@@ -1,0 +1,22 @@
+Format: 1.8
+Date: Mon, 29 May 2017 10:31:27 +0200
+Source: pijuice
+Binary: pijuice
+Architecture: all
+Version: 1.0-1
+Distribution: unstable
+Urgency: low
+Maintainer: Milan Neskovic <milan@pi-supply.com>
+Changed-By: Milan Neskovic <milan@pi-supply.com>
+Description:
+ pijuice    - Packaging a PiJuice Python script as DEB
+Changes:
+ pijuice (1.0-1) unstable; urgency=low
+ .
+   * source package automatically created by stdeb 0.8.2
+Checksums-Sha1:
+ baf7c289a2f2f350775fb79f05f1ce263986ae1c 163324 pijuice_1.0-1_all.deb
+Checksums-Sha256:
+ 82caa67c82ff45d363211477c3cc4d8685203e244f460820104370256ac0dd07 163324 pijuice_1.0-1_all.deb
+Files:
+ ffb93e7e15ea7b75aaf32224e96ef412 163324 python optional pijuice_1.0-1_all.deb

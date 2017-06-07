@@ -1,0 +1,3 @@
+override_dh_installinit dh_systemd_enable
+override_dh_installinit dh_installinit
+override_dh_installinit dh_systemd_start

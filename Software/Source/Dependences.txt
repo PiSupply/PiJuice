@@ -1,0 +1,7 @@
+i2c-tools # raspbian jessie installed
+python-smbus # raspbian jessie installed
+
+
+# building
+sudo apt-get install python-stdeb
+sudo apt-get install dh-systemd

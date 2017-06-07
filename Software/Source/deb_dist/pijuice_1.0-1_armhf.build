@@ -1,0 +1,24 @@
+ dpkg-buildpackage -rfakeroot -D -us -uc
+dpkg-buildpackage: source package pijuice
+dpkg-buildpackage: source version 1.0-1
+dpkg-buildpackage: source distribution unstable
+dpkg-buildpackage: source changed by Milan Neskovic <milan@pi-supply.com>
+ dpkg-source --before-build pijuice-1.0
+dpkg-buildpackage: host architecture armhf
+ fakeroot debian/rules clean
+dh clean --with python2 --with systemd --buildsystem=pybuild
+   dh_testdir -O--buildsystem=pybuild
+   dh_auto_clean -O--buildsystem=pybuild
+I: pybuild base:170: python2.7 setup.py clean 
+running clean
+removing '/home/pi/pijuice-1.0/deb_dist/pijuice-1.0/.pybuild/pythonX.Y_2.7/build' (and everything under it)
+'build/bdist.linux-armv7l' does not exist -- can't clean it
+'build/scripts-2.7' does not exist -- can't clean it
+   dh_clean -O--buildsystem=pybuild
+ dpkg-source -b pijuice-1.0
+dpkg-source: info: using source format `3.0 (quilt)'
+dpkg-source: info: building pijuice using existing ./pijuice_1.0.orig.tar.gz
+dpkg-source: error: cannot represent change to bin/pijuiceboot: binary file contents changed
+dpkg-source: error: add bin/pijuiceboot in debian/source/include-binaries if you want to store the modified binary in the debian tarball
+dpkg-source: error: unrepresentable changes to source
+dpkg-buildpackage: error: dpkg-source -b pijuice-1.0 gave error exit status 2

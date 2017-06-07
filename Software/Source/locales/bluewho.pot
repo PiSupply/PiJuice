@@ -1,0 +1,416 @@
+# BlueWho - Information and notification of new discovered bluetooth devices.
+# Copyright (C) 2009 Fabio Castelli
+# This file is distributed under the GPL v2 license (see copyright file).
+# Fabio Castelli <muflone@vbsimple.net>, 2009.
+# X translation for bluewho package.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: bluewho 0.1\n"
+"Report-Msgid-Bugs-To: Fabio Castelli <muflone@vbsimple.net>\n"
+"POT-Creation-Date: 2010-01-02 01:31+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../data/bluewho.glade.h:1
+msgid "<b>Available services:</b>"
+msgstr ""
+
+#: ../data/bluewho.glade.h:2
+msgid "<b>Detected devices:</b>"
+msgstr ""
+
+#: ../data/bluewho.glade.h:3
+msgid "<b>Scan options:</b>"
+msgstr ""
+
+#: ../data/bluewho.glade.h:4
+msgid "<b>Startup preferences:</b>"
+msgstr ""
+
+#: ../data/bluewho.glade.h:5
+msgid "<b>When a device has been found:</b>"
+msgstr ""
+
+#: ../data/bluewho.glade.h:6
+msgid "About"
+msgstr ""
+
+#: ../data/bluewho.glade.h:7
+msgid "Auto scan"
+msgstr ""
+
+#: ../data/bluewho.glade.h:8
+msgid "Available services"
+msgstr ""
+
+#: ../data/bluewho.glade.h:9
+msgid "Clear list"
+msgstr ""
+
+#: ../data/bluewho.glade.h:10
+msgid "Detect devices"
+msgstr ""
+
+#: ../data/bluewho.glade.h:11
+msgid "Detect devices at _startup"
+msgstr ""
+
+#: ../data/bluewho.glade.h:12
+msgid "Preferences"
+msgstr ""
+
+#: ../data/bluewho.glade.h:13
+msgid "Re_trieve name during scan (slow)"
+msgstr ""
+
+#: ../data/bluewho.glade.h:14
+msgid "Restore last used _window size and position"
+msgstr ""
+
+#: ../data/bluewho.glade.h:15
+msgid "S_end notification"
+msgstr ""
+
+#: ../data/bluewho.glade.h:16
+msgid "Show _local adapters"
+msgstr ""
+
+#: ../data/bluewho.glade.h:17
+msgid "_Automatic scan at startup"
+msgstr ""
+
+#: ../data/bluewho.glade.h:18
+msgid "_Notification command:"
+msgstr ""
+
+#: ../data/bluewho.glade.h:19
+msgid "_Play a sound"
+msgstr ""
+
+#: ../data/bluewho.glade.h:20
+msgid "_Resolve device name after each detection"
+msgstr ""
+
+#: ../src/bluewho.py:64
+msgid "adapter"
+msgstr ""
+
+#: ../src/bluewho.py:83
+#, python-format
+msgid "%(year)04d/%(month)02d/%(day)02d %(hour)02d:%(minute)02d.%(second)02d"
+msgstr ""
+
+#: ../src/bluewho.py:113
+msgid "No local devices found during detection."
+msgstr ""
+
+#: ../src/bluewho.py:143
+#, python-format
+msgid "Last scan: %s"
+msgstr ""
+
+#: ../src/bluewho.py:156
+msgid "Type"
+msgstr ""
+
+#: ../src/bluewho.py:164
+msgid "Device name"
+msgstr ""
+
+#: ../src/bluewho.py:172
+msgid "Bluetooth address"
+msgstr ""
+
+#: ../src/bluewho.py:179
+msgid "Last seen"
+msgstr ""
+
+#: ../src/bluewho.py:188
+msgid "Service name"
+msgstr ""
+
+#: ../src/bluewho.py:195
+msgid "Protocol"
+msgstr ""
+
+#: ../src/bluewho.py:202
+msgid "Channel"
+msgstr ""
+
+#: ../src/bluewho.py:335
+msgid ""
+"A GTK utility to inform and notify you when a new bluetooth device is "
+"discovered."
+msgstr ""
+
+#: ../src/btsupport.py:40
+msgid "positioning service"
+msgstr ""
+
+#: ../src/btsupport.py:41
+msgid "networking service"
+msgstr ""
+
+#: ../src/btsupport.py:42
+msgid "rendering service"
+msgstr ""
+
+#: ../src/btsupport.py:43
+msgid "capturing service"
+msgstr ""
+
+#: ../src/btsupport.py:44
+msgid "object transfer service"
+msgstr ""
+
+#: ../src/btsupport.py:45
+msgid "audio service"
+msgstr ""
+
+#: ../src/btsupport.py:46
+msgid "telephony service"
+msgstr ""
+
+#: ../src/btsupport.py:47
+msgid "information service"
+msgstr ""
+
+#: ../src/btsupport.py:58
+msgid "miscellaneous"
+msgstr ""
+
+#: ../src/btsupport.py:59
+msgid "computer"
+msgstr ""
+
+#: ../src/btsupport.py:60
+msgid "phone"
+msgstr ""
+
+#: ../src/btsupport.py:61
+msgid "network"
+msgstr ""
+
+#: ../src/btsupport.py:62
+msgid "audio-video"
+msgstr ""
+
+#: ../src/btsupport.py:63
+msgid "peripheral"
+msgstr ""
+
+#: ../src/btsupport.py:64
+msgid "imaging"
+msgstr ""
+
+#: ../src/btsupport.py:65 ../src/btsupport.py:73
+msgid "uncategorized"
+msgstr ""
+
+#: ../src/btsupport.py:79
+msgid "desktop workstation"
+msgstr ""
+
+#: ../src/btsupport.py:80
+msgid "server"
+msgstr ""
+
+#: ../src/btsupport.py:81
+msgid "laptop"
+msgstr ""
+
+#: ../src/btsupport.py:82
+msgid "handheld"
+msgstr ""
+
+#: ../src/btsupport.py:83
+msgid "palm"
+msgstr ""
+
+#: ../src/btsupport.py:84
+msgid "wearable computer"
+msgstr ""
+
+#: ../src/btsupport.py:88
+msgid "cellular"
+msgstr ""
+
+#: ../src/btsupport.py:89
+msgid "cordless"
+msgstr ""
+
+#: ../src/btsupport.py:90
+msgid "smartphone"
+msgstr ""
+
+#: ../src/btsupport.py:91
+msgid "wired modem - voice gateway"
+msgstr ""
+
+#: ../src/btsupport.py:92
+msgid "common ISDN access"
+msgstr ""
+
+#: ../src/btsupport.py:96
+msgid "network fully available"
+msgstr ""
+
+#: ../src/btsupport.py:97
+#, python-format
+msgid "network 1-17%% used"
+msgstr ""
+
+#: ../src/btsupport.py:98
+#, python-format
+msgid "network 17-33%% used"
+msgstr ""
+
+#: ../src/btsupport.py:99
+#, python-format
+msgid "network 33-50%% used"
+msgstr ""
+
+#: ../src/btsupport.py:100
+#, python-format
+msgid "network 50-67%% used"
+msgstr ""
+
+#: ../src/btsupport.py:101
+#, python-format
+msgid "network 67-83%% used"
+msgstr ""
+
+#: ../src/btsupport.py:102
+#, python-format
+msgid "network 83-99%% used"
+msgstr ""
+
+#: ../src/btsupport.py:103
+msgid "network unavailable"
+msgstr ""
+
+#: ../src/btsupport.py:107
+msgid "headset"
+msgstr ""
+
+#: ../src/btsupport.py:108
+msgid "hands-free"
+msgstr ""
+
+#: ../src/btsupport.py:109
+msgid "microphone"
+msgstr ""
+
+#: ../src/btsupport.py:110
+msgid "loudspeaker"
+msgstr ""
+
+#: ../src/btsupport.py:111
+msgid "headphone"
+msgstr ""
+
+#: ../src/btsupport.py:112
+msgid "portable audio"
+msgstr ""
+
+#: ../src/btsupport.py:113
+msgid "car audio"
+msgstr ""
+
+#: ../src/btsupport.py:114
+msgid "set-top box"
+msgstr ""
+
+#: ../src/btsupport.py:115
+msgid "hifi audio"
+msgstr ""
+
+#: ../src/btsupport.py:116
+msgid "vcr"
+msgstr ""
+
+#: ../src/btsupport.py:117
+msgid "videocamera"
+msgstr ""
+
+#: ../src/btsupport.py:118
+msgid "camcorder"
+msgstr ""
+
+#: ../src/btsupport.py:119
+msgid "video monitor"
+msgstr ""
+
+#: ../src/btsupport.py:120
+msgid "video display loudspeaker"
+msgstr ""
+
+#: ../src/btsupport.py:121
+msgid "video conferencing"
+msgstr ""
+
+#: ../src/btsupport.py:122
+msgid "gaming toy"
+msgstr ""
+
+#: ../src/btsupport.py:127
+msgid "joystick"
+msgstr ""
+
+#: ../src/btsupport.py:128
+msgid "gamepad"
+msgstr ""
+
+#: ../src/btsupport.py:129
+msgid "remote control"
+msgstr ""
+
+#: ../src/btsupport.py:130
+msgid "sensing device"
+msgstr ""
+
+#: ../src/btsupport.py:131
+msgid "digitizer tablet"
+msgstr ""
+
+#: ../src/btsupport.py:132
+msgid "card reader"
+msgstr ""
+
+#: ../src/btsupport.py:136
+msgid "keyboard"
+msgstr ""
+
+#: ../src/btsupport.py:137
+msgid "mouse"
+msgstr ""
+
+#: ../src/btsupport.py:138
+msgid "keyboard+mouse"
+msgstr ""
+
+#: ../src/btsupport.py:142
+msgid "display"
+msgstr ""
+
+#: ../src/btsupport.py:143
+msgid "camera"
+msgstr ""
+
+#: ../src/btsupport.py:144
+msgid "scanner"
+msgstr ""
+
+#: ../src/btsupport.py:145
+msgid "printer"
+msgstr ""
+
+#: ../src/settings.py:67
+msgid "New bluetooth device detected"
+msgstr ""

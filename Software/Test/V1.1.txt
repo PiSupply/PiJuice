@@ -1,0 +1,1 @@
+Added battery temperature read, and battery voltage read

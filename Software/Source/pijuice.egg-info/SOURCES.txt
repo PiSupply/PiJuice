@@ -1,0 +1,7 @@
+pijuice.py
+setup.py
+pijuice.egg-info/PKG-INFO
+pijuice.egg-info/SOURCES.txt
+pijuice.egg-info/dependency_links.txt
+pijuice.egg-info/entry_points.txt
+pijuice.egg-info/top_level.txt

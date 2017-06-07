@@ -1,0 +1,13 @@
+[Unit]
+Description=PiJuice status service
+After=network.target
+
+[Service]
+Type=idle
+WorkingDirectory=/var/lib/pijuice/
+ExecStart=/usr/bin/pijuice_sys.py
+ExecStopPost=/usr/bin/pijuice_sys.py stop
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
