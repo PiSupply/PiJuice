@@ -1,2 +1,2 @@
 # PiJuice
-Resources for the PiJuice module (complete with our revolutionary PiAnywhere technology – the best way to take your Pi off the grid!). Originally funded on Kickstarter.
+Resources for the [PiJuice range](https://www.pi-supply.com/?s=pijuice&post_type=product&tags=1&limit=5&ixwps=1) (complete with our revolutionary [PiAnywhere](https://www.pi-supply.com/product-tag/pianywhere/) technology – the best way to take your Pi off the grid!). Originally funded on [Kickstarter](https://www.kickstarter.com/projects/pijuice/pijuice-a-portable-project-platform-for-every-rasp/).
