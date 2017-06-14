@@ -5,3 +5,7 @@ Default battery profile is defined by dip switch position. On v1.1 it is positio
 It is not possible to detect battery not present when powered through on board usb micro, so it might show 0% only.
 
 User functions are 4 digit binary coded and have 15 combinations, code 0 is USER_EVENT meant that it will not be processed by system task, but left to user and python API to manage it. I thought it is rare case that all 15 will be needed so on gui there is 8 (it will make big window also). However if someone needs more scripts it can be manualy added by editing config json file: /var/lib/pijuice/pijuice_config.JSON. Also all other configurations can be managed manually in this file if gui is not available. 
+
+There are dependencies so you got error if not installed. Package is configured to intentionally  raise those errors so you can install it before. Usually if package is added to some server and configured as repository than you can use apt-get that will automatically install dependencies, and update. I can prepare packages to add on private server, do not know for official.
+
+It is possible that tray do not update if you open config by right click on tray, but if you open from menu it should update.
