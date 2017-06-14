@@ -1,1 +1,1 @@
-Initialise hardware folder
+Single cell lipo - can't do cells/batteries in parallel or series.
