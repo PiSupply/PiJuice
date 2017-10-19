@@ -104,3 +104,13 @@ The protection method is integrated within the BP7X battery we are using, which 
 Attached is charge discharge test log, with charge level and voltage printed every minute during charging and discharging. There is initial rise during charging to over 50%, but discharge is pretty linear.
 
 Last but not least, we will likely try to fix this in a future software update based on practical test data - but a) this is not a huge priority and b) it will need more test data than we are able to get right now (multiple boards over long period charging and discharging in different scenarios)
+
+## Content
+
+We just wanted to give you an idea here, or where we will be putting all this content:
+
+There is a "quick start guide" in the package which you can see here. As you can see it's pretty basic but really the PiJuice is quite intuitive and very easy to use. 
+There will also be more technical information going up on the PiJuice GitHub here - https://github.com/PiSupply/PiJuice
+And also a lot of picture guides and tutorials going up on our Maker Zone - https://www.pi-supply.com/make 
+We will likely have the pinouts available at http://pinout.xyz
+We will also have tutorials on Instructables and Hackster.io 
