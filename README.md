@@ -1,4 +1,4 @@
-![Alt text](https://user-images.githubusercontent.com/16068311/30545031-58b8fec6-9c80-11e7-8b3a-5e1f3aefd86c.png?raw=true "Optional Title")
+![PiJuice Logo](https://user-images.githubusercontent.com/16068311/30545031-58b8fec6-9c80-11e7-8b3a-5e1f3aefd86c.png?raw=true "PiJuice Logo")
 # PiJuice
 Resources for the [PiJuice range](https://www.pi-supply.com/?s=pijuice&post_type=product&tags=1&limit=5&ixwps=1) (complete with our revolutionary [PiAnywhere](https://www.pi-supply.com/product-tag/pianywhere/) technology – the best way to take your Pi off the grid!). Originally funded on [Kickstarter](https://www.kickstarter.com/projects/pijuice/pijuice-a-portable-project-platform-for-every-rasp/).
 
@@ -6,6 +6,7 @@ Resources for the [PiJuice range](https://www.pi-supply.com/?s=pijuice&post_type
  - can you tell me purpose and pinouts for each of the tag connect cables J7 and J6 and how they can be used?
 J7 is development header to connect ST-Link with mcu and download firmware or debug. Can be also used in production to write firmware. It needs Tag-connect TC2050 ARM20-10 adapter to connect ST-Link to cable.
 J6 is for programming ID EEPROM in production. See signals below, there is no adapter board and needs to be wired manually to some programming tool. It is just option for programming if it is not possible to do with EEPROM programmer before assembly.
+![J6 Pinout](https://user-images.githubusercontent.com/3359418/31778443-943191f4-b4e8-11e7-87d5-0d665272d2da.jpg?raw=true "J6 Pinout")
 
 - can you tell me specification of button to connect to J5? Just momentary push button? And it connects to same as one of the other buttons SW1-3? Which one?
 It needs to be simple tactile pushbutton and connects parallel to SW1.
@@ -63,4 +64,4 @@ VSYS on P3 is same as VSYS on J3 and is switchable battery voltage for system us
 Firmware source code is not intended to be shared with users, because it requires deep understanding of hardware and programming to do customization, and may even harm something or damage battery in case of mistakes.
 There is I2C command interface provided through python API that install together with configuration GUI intended for users to do custom applications on Linux side. There is pijucetest.py that can be used as example how to do programming in python and communicate data with Pijuice.
 -What are pinout designations for spring battery connector J1 on Pijuice HAT?
-
+![Batt Pinout](https://user-images.githubusercontent.com/3359418/31778440-93eb5900-b4e8-11e7-99ba-b1dfbc0c313e.jpg?raw=true "Batt Pinout")
