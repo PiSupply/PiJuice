@@ -109,7 +109,7 @@ Last but not least, we will likely try to fix this in a future software update b
 
 We just wanted to give you an idea here, or where we will be putting all this content:
 
-There is a "quick start guide" in the package which you can see here. As you can see it's pretty basic but really the PiJuice is quite intuitive and very easy to use. 
+There is a "quick start guide" in the package [which you can see here](https://github.com/PiSupply/PiJuice/blob/master/Documentation/PiJuice%20Guide.pdf). As you can see it's pretty basic but really the PiJuice is quite intuitive and very easy to use. 
 There will also be more technical information going up on the PiJuice GitHub here - https://github.com/PiSupply/PiJuice
 And also a lot of picture guides and tutorials going up on our Maker Zone - https://www.pi-supply.com/make 
 We will likely have the pinouts available at http://pinout.xyz
