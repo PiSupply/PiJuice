@@ -83,7 +83,7 @@ LONG_PRESS1: press and hold at least 10 seconds to automatically halt (there sho
 LONG_PRESS2: press and hold at least 20 seconds to cut power if system is freezes and cannot be halted.
 
 In this directory there is python script called pijuicetest.py:
-https://drive.google.com/drive/u/0/folders/0BzUkkXkOnknbOWsxb3ZpaGo1ZTA
+https://github.com/PiSupply/PiJuice/tree/master/Software/Test
 
 copy it to /home/pi and run:
 pijuicetest.py
