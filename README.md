@@ -65,3 +65,28 @@ Firmware source code is not intended to be shared with users, because it require
 There is I2C command interface provided through python API that install together with configuration GUI intended for users to do custom applications on Linux side. There is pijucetest.py that can be used as example how to do programming in python and communicate data with Pijuice.
 -What are pinout designations for spring battery connector J1 on Pijuice HAT?
 ![Batt Pinout](https://user-images.githubusercontent.com/3359418/31778440-93eb5900-b4e8-11e7-99ba-b1dfbc0c313e.jpg?raw=true "Batt Pinout")
+
+## Notes
+
+there are two other sheets in excel file: Profile selection and Charge settings where you have 
+column R [KOhm] for R20 resistance choices. It needs to download excel cannot see additional sheets 
+from browser.
+
+R22, R13, R51 are hardware configuration options for measuring battery temperature using NTC,
+alternative to fuel gauge and this is mostly for development purposes not important for user.
+
+when plugging a 2.5A PSU into the onboard microUSB port on PiJuice, it only takes 0.75A - is that due to the charge IC and charge profile? 
+It is normal because pijuice has an efficient charger, based on switching not linear principle so calculation for input current when charging no load is
+Iinput ~ Ibat * Vbat/Vin / k, for exmple in case Vbat = 3.7, Vin = 5V, Ibat = 0.925, k ~ 0.92 efficiency coefficient, gives around 0.75A. it depends on charging current Ibat from mentioned equation. Charging current is settable and differs for different batteries, for pkcell Ibat is set to 2.5A. Charging current is specified by battery manufacturer but general spec if no data available is around 0.5C where C is battery capacity.
+
+LONG_PRESS1: press and hold at least 10 seconds to automatically halt (there should be red blinks on user led if successful).
+LONG_PRESS2: press and hold at least 20 seconds to cut power if system is freezes and cannot be halted.
+
+In this directory there is python script called pijuicetest.py:
+https://drive.google.com/drive/u/0/folders/0BzUkkXkOnknbOWsxb3ZpaGo1ZTA
+
+copy it to /home/pi and run:
+pijuicetest.py
+
+if firmware is ok it will print data read from mcu on screen, like battery voltage, charge, battery profile...
+try it to test firmware
