@@ -105,6 +105,14 @@ Attached is charge discharge test log, with charge level and voltage printed eve
 
 Last but not least, we will likely try to fix this in a future software update based on practical test data - but a) this is not a huge priority and b) it will need more test data than we are able to get right now (multiple boards over long period charging and discharging in different scenarios)
 
+## Max. current that the juice will be able to supply? 
+
+Maximum current at 5V gpio is 2.5A, as VSYS output 2.1A, but also depends on battery capacity.
+
+For BP7X have measured around 1.1A at 5V GPIO and around 1.6A at VSYS output.
+
+To achieve maximum of 2.5A it will need battery over 3500mAh.
+
 ## Content
 
 We just wanted to give you an idea here, or where we will be putting all this content:
