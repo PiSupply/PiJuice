@@ -863,7 +863,7 @@ int main(int argc, char* argv[])
 	
 	if (argc != 3) {
 		printf("Usage: %s <address> <input file path>\n", argv[0]);
-		printf("Eample: %s 14 ./Filename.binary\n", argv[0]);
+		printf("Example: %s 14 ./Filename.binary\n", argv[0]);
 		//sysBootloaderFd = OpenI2C("/dev/i2c-1");//OpenUart("/dev/ttyAMA0");
 		//appI2CFd = OpenAppI2C("/dev/i2c-1", 0x14);
 	}
