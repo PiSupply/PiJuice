@@ -17,6 +17,15 @@ The board is has a Raspberry Pi HAT compatible layout, with onboard EEPROM. Alth
 PiJuice is fully [CE and FCC tested](https://github.com/PiSupply/PiJuice/tree/master/Documentation/Compliance) design and [battery safety tests](https://github.com/PiSupply/PiJuice/tree/master/Documentation/Battery%20Safety) have also been carried out.
 
 ## Basic functionality
+tbd-----------------------------
+
+What's the difference between powering from the Pi or from Juice
+Board layout description. Buttons, LEDs
+Connectors
+Batteries
+Solar panels and other sources (wind thermal)
+
+tbd-----------------------------
 
 Once the battery is slot into place LED2 will start glowing green. This doesn't mean your Raspberry Pi is yet receiving power it is just telling you that the PiJuice MCU is receiving power and is operational.   
 
@@ -79,19 +88,6 @@ Replace the battery without downtime. Compatible with any single cell LiPo or Li
 Full power management API available to Raspberry Pi OS with auto shutdown capability when running low on batteries
 Enhanced graphical user interface (GUI) available for easy install (via APT)
 Customisable scripts for enhanced flexibility and full report of battery status
-
-
------------------------------
-
-What's the difference between powering from the Pi or from Juice
-
-Board layout description. Buttons, LEDs
-
-Connectors
-
-Batteries
-
-Solar panels and other sources (wind thermal)
 
 ## Technical specs
 

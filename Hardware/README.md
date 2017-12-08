@@ -1,7 +1,7 @@
 **Datasheets**
 
 # Hardware
-![PiJuice_Overview](https://user-images.githubusercontent.com/16068311/33768839-9c0f441c-dc1f-11e7-9445-1933ca0e6b08.png "PiJuice Overview")
+![PiJuice_Overview](https://user-images.githubusercontent.com/16068311/33771575-55e9593c-dc29-11e7-9e2c-3a0c1810c4c8.png "PiJuice Overview")
 
 ## Switches
 
@@ -29,15 +29,14 @@ Refer to the main picture
  - can you tell me purpose and pinouts for each of the tag connect cables J7 and J6 and how they can be used?
 J7 is development header to connect ST-Link with mcu and download firmware or debug. Can be also used in production to write firmware. It needs Tag-connect TC2050 ARM20-10 adapter to connect ST-Link to cable.
 J6 is for programming ID EEPROM in production. See signals below, there is no adapter board and needs to be wired manually to some programming tool. It is just option for programming if it is not possible to do with EEPROM programmer before assembly.
-Replace with ASCII-----------------
 
-- TP1,2,3 Run-----
+- TP1,2,3 Run TP1 Pi 3B, TP2 Pi Zero, TP3 Pi B+ 2B  Pogo pin----
 
 - can you tell me the purpose and pinouts for TP4 to TP23?
 TP4-TP23 are test points with possible use in production test to connect to custom bed of nails or spring pins. This should not be in user guide and purpose of each is about connections in schematic.
 
 ## Pinout
-- P1 pinout
+P1 pinout
 ```text
 P1
 -----------------------------------------------------------------------------------------------------------------------
@@ -57,6 +56,52 @@ o Available
 28 I2C_SDL to HAT EEPROM
 ```
 
+[P3 Pinout](#P3-Pinout)
+```text
+P3
+--------------------------------------
+| 1     2     3     4     5     6    |
+|VSYS  5V    GND   3V3   IO1   IO2   |
+--------------------------------------
+```
+
+J2 Pinout
+```text
+J2
+------------------------
+| 1     2     3     4  |
+|GND   NTC   ID    VBAT|
+------------------------
+```
+
+J3 Pinout
+```text
+J3
+------------
+| 1     2  |
+|GND   VSYS|
+------------
+```
+
+J4 Pinout
+```text
+J4
+------------
+| 1     2  |
+|VIN   GND |
+------------
+```
+
+J6 Pinout
+```text
+J6
+-----------------
+| 2     4     6 |
+|GND   SDA   NC |
+|3V3   SCL   WP |
+| 1     3     5 |
+-----------------
+```
 
 - can you tell me specification of NTC and ID on battery terminals?
 NTC terminal can be used to connect NTC thermistor integrated with battery and used for temperature regulation of battery during charging. Requirement is that battery uses 10KOhm NTC resistor with known thermistor B constant that can be entered as profile data in config GUI “battery” tab. There are regulation threshold data that can be entered for custom batteries like Cold, Cool, Warm and HOT temperatures that are derived from battery manufacturers specification.
@@ -67,16 +112,16 @@ VSYS on P3 is same as VSYS on J3 and is switchable battery voltage for system us
 
 ## Components
 
-- Unpopulated R26 is reserved for future development use to add different possibilities with resistor configuration.
+### Unpopulated
+- R13, R22, R51 are hardware configuration options for measuring battery temperature using NTC,
+alternative to fuel gauge and this is mostly for development purposes not important for user.
 
-- Unpopulated D3 is charger ic status LED, is on during active charging of charger ic and is used for firmware development purposes and debugging.
-
-- can you tell me the purpose of unpopulated posts R20, R26 and D3?
-R20 if place to solder resistor as additional way to configure battery profile without using software configuration additional to dip switch, where charging current and charging voltage are encoded with resistance of resistor. Also user can select predefined profile by choosing one of 16 with resistor value instead with dip switch which is limited to 4. There is table within excel document Pijuice_battery_config.xlsx  sheet “Charge settings” how to choose resistor for desired charge settings and sheet “Profile selection” how to choose resistor to select one of predefined battery profiles. R20 should be through hole 0.1% tolerance.
+- R20 is place to solder resistor as additional way to configure battery profile without using software configuration additional to dip switch, where charging current and charging voltage are encoded with resistance of resistor. Also user can select predefined profile by choosing one of 16 with resistor value instead with dip switch which is limited to 4. There is table within excel document Pijuice_battery_config.xlsx  sheet “Charge settings” how to choose resistor for desired charge settings and sheet “Profile selection” how to choose resistor to select one of predefined battery profiles. R20 should be through hole 0.1% tolerance.
 It is possible to override resistor settings in software. In Pijuice HAT configuration window on “Battery” tab check “Custom” and edit battery charging parameters to desired values, then click apply. You can also return to resistor settings by choosing “DEFAULT” from drop-down list.
 
-- R22, R13, R51 are hardware configuration options for measuring battery temperature using NTC,
-alternative to fuel gauge and this is mostly for development purposes not important for user.
+- R26 is reserved for future development use to add different possibilities with resistor configuration.
+
+- D3 is charger ic status LED, is on during active charging of charger ic and is used for firmware development purposes and debugging.
 
 ## Power management
 - What is the difference between powering from the Pi's micro USB and the PiJuice micro USB?
