@@ -1,5 +1,8 @@
 # PiJuice Software
 
+GUI description
+  scripts
+
 Default battery profile is defined by dip switch position. On v1.1 it is position 01 for BP7X, on v1.0 version, it might be different, you can try different positions, and power circle pijuice to get updated.
 
 It is not possible to detect battery not present when powered through on board usb micro, so it might show 0% only.

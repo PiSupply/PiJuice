@@ -2,40 +2,40 @@
 # PiJuice
 Resources for the [PiJuice range](https://www.pi-supply.com/?s=pijuice&post_type=product&tags=1&limit=5&ixwps=1) (complete with our revolutionary [PiAnywhere](https://www.pi-supply.com/product-tag/pianywhere/) technology – the best way to take your Pi off the grid!). Originally funded on [Kickstarter](https://www.kickstarter.com/projects/pijuice/pijuice-a-portable-project-platform-for-every-rasp/).
 
-## Technical FAQ
- - can you tell me purpose and pinouts for each of the tag connect cables J7 and J6 and how they can be used?
-J7 is development header to connect ST-Link with mcu and download firmware or debug. Can be also used in production to write firmware. It needs Tag-connect TC2050 ARM20-10 adapter to connect ST-Link to cable.
-J6 is for programming ID EEPROM in production. See signals below, there is no adapter board and needs to be wired manually to some programming tool. It is just option for programming if it is not possible to do with EEPROM programmer before assembly.
-![J6 Pinout](https://user-images.githubusercontent.com/3359418/31778443-943191f4-b4e8-11e7-87d5-0d665272d2da.jpg?raw=true "J6 Pinout")
+**Surround rethink where it should be**
 
-- can you tell me specification of button to connect to J5? Just momentary push button? And it connects to same as one of the other buttons SW1-3? Which one?
-It needs to be simple tactile pushbutton and connects parallel to SW1.
-- can you tell me specification of solar panel to connect to J3?
-Requirement for on board USB micro input is to provide voltage 4.2V – 10V, as labeled on board. Also minimum current source should provide to get charging is 80mA.
- 
-- can you tell me specification of what can be connected to J4?
-J4 is alternative to onboard USB micro input. Pad holes to solder 2.54mm header, any type that can fit and user finds useful.
- 
-- can you tell me the purpose and pinouts for TP1 to TP23?
-TP1-TP23 are test points with possible use in production test to connect to custom bed of nails or spring pins. This should not be in user guide and purpose of each is about connections in schematic.
-- can you tell me the purpose of unpopulated posts R20, R26 and D3?
-R20 if place to solder resistor as additional way to configure battery profile without using software configuration additional to dip switch, where charging current and charging voltage are encoded with resistance of resistor. Also user can select predefined profile by choosing one of 16 with resistor value instead with dip switch which is limited to 4. There is table within excel document Pijuice_battery_config.xlsx  sheet “Charge settings” how to choose resistor for desired charge settings and sheet “Profile selection” how to choose resistor to select one of predefined battery profiles. R20 should be through hole 0.1% tolerance.
-It is possible to override resistor settings in software. In Pijuice HAT configuration window on “Battery” tab check “Custom” and edit battery charging parameters to desired values, then click apply. You can also return to resistor settings by choosing “DEFAULT” from drop-down list.
- 
-Unpopulated R26 is reserved for future development use to add different possibilities with resistor configuration.
+## Board overview
 
-Unpopulated D3 is charger ic status LED, is on during active charging of charger ic and is used for firmware development purposes and debugging.
- 
-- with DIP switch, position in test document is for BP7X by default. Can you tell me, what are defaults for other 3 dip switch positions? And can these all be overridden in firmware/software? Can you explain exact process?
-There is table in Pijuice_battery_config.xlsx for dip switch configuration options, how to select desired battery profile with switch code. Switch and resistor configuration can be overridden in software configuration, in Pijuice HAT configuration window on “Battery” tab choose battery profile from drop down list. You can also return to dip switch selected profile by choosing “DEFAULT” from drop-down list.
- 
-- can you tell me under what circumstances somebody would want to install the RF should onto clips?
-In cases where it is experienced greater heating of Pijuice board, or in cases there are sensitive electronics around like radios or sensors hats sensitive to 1.5MHz and harmonics or 2.5MHz and harmonics that are frequencies of pijuice regulators.
- 
-- can you tell me specification of NTC and ID on battery terminals?
-NTC terminal can be used to connect NTC thermistor integrated with battery and used for temperature regulation of battery during charging. Requirement is that battery uses 10KOhm NTC resistor with known thermistor B constant that can be entered as profile data in config GUI “battery” tab. There are regulation threshold data that can be entered for custom batteries like Cold, Cool, Warm and HOT temperatures that are derived from battery manufacturers specification.
-ID is not used it is just reserved for possible future use, because there is ID on BP7X, BP6X so possibility to identify it automatically.
- 
+PiJuice is a fully uninterruptable power supply that will always keep your Raspberry Pi powered. It has a real time clock (RTC) for time tracking and scheduled task when the Pi is offline. It aslo has an integrated microcontroller (MCU) chip which will manage soft shut down functionality and a true low power deep sleep state and intelligent start up.  
+
+The tri-coloured RGB LEDs will allow you to keep track of the battery charge levels and other info. There are three programmable buttons to trigger events and customisable scripts aside from their predefined functions.
+PiJuice only uses five of the Pi's GPIO pins (just power and I2C), the rest are free and made available via the stacking header which allows for other boards to be used along side PiJuice.
+The board can be powered directly from the grid with the standard Raspberry Pi PSU, via an on board battery, via external batteries, solar panels, wind turbines and other renewable sources.
+
+The board is has a Raspberry Pi HAT compatible layout, with onboard EEPROM. Although it has been designed for the Raspberry Pi A+, B+, 2B and 3B but it is also compatible with the Raspberry Pi Zero v1.3 and Zero W v1.1.
+
+PiJuice is fully [CE and FCC tested](https://github.com/PiSupply/PiJuice/tree/master/Documentation/Compliance) design and [battery safety tests](https://github.com/PiSupply/PiJuice/tree/master/Documentation/Battery%20Safety) have also been carried out.
+
+## Basic functionality
+
+Once the battery is slot into place LED2 will start glowing green. This doesn't mean your Raspberry Pi is yet receiving power it is just telling you that the PiJuice MCU is receiving power and is operational.   
+
+### Power On and Off the Pi
+![Buttons_LEDs](https://user-images.githubusercontent.com/16068311/33768831-94db68b0-dc1f-11e7-99d4-a06cb65b0135.png "Buttons and LEDs")
+
+To power on the Raspberry Pi press SW1 briefly (less than 5 seconds)------
+
+### Providing power to the board
+
+PiJuice can recharge its on board battery in several ways and via different power sources. The most common approach is to use the standard Raspberry Pi PSU or a micro USB PSU with similar characteristics.
+When the PiJuice is installed over the Raspberry Pi you can power both the Pi and PiJuice via either the Pi's micro USB or the PiJuice's one. That's because the power lines on the GPIO header are shared by both boards and this allows to effectively be able to charge the battery independently from which micro USB connector you use.
+Other ways of providing power to the PiJuice is directly via the GPIO pin headers or one of the other connectors on board. See the [Hardware section](https://github.com/PiSupply/PiJuice/tree/master/Hardware) for more information.
+
+### Buttons and LEDs
+
+LONG_PRESS1: press and hold at least 10 seconds to automatically halt (there should be red blinks on user led if successful).
+LONG_PRESS2: press and hold at least 20 seconds to cut power if system is freezes and cannot be halted.
+
 - can you tell me default operations of each button?
 SW1 is power button by default:
 ·        Single press to power on (release in less than 800 ms),
@@ -49,69 +49,68 @@ SW3 is user button by default, configured to trigger user scripts:
 ·        Press will invoke “USER_FUNC3”,
 ·        Release will invoke “USER_FUNC4”.
 Default settings can be overridden in “Buttons” tab of Pijuice HAT configuration window.
- 
+
 There are fixed button functions:
-·        Dual long press of SW1 and SW2 (J5 for Pijuice Zero)  for 20 seconds will reset Pijuice HAT configuration to default (this applies to mcu configuration only).
-·        Holding pressed SW3 (J5 for Pijuice Zero) while powering up Pijuice will initiate bootloader (used only in cases when ordinary initiation through I2C does not works because of damaged firmware).
+·        Dual long press of SW1 and SW2 for 20 seconds will reset Pijuice HAT configuration to default (this applies to mcu configuration only).
+·        Holding pressed SW3 while powering up Pijuice will initiate bootloader (used only in cases when ordinary initiation through I2C does not works because of damaged firmware).
+
 
 - can you tell me default operations of each led?
 D1 charge status by default
 D2 user LED by default.
-- on P3 what is vsys - battery voltage? Vcc is 5v0? What is current capacity of these pins and 3v3? And for the two IO pins, how can those be utilized and what pins on ARM cortex do they connect to?
-VSYS on P3 is same as VSYS on J3 and is switchable battery voltage for system use, like connecting to Pibot power input. VSYS switch is programmable with software with “OFF”, “ON 500mA current limit” and “ON 2100mA current limit”.
- 
-- do we have source code for the firmware that we could share with people for custom applications?
-Firmware source code is not intended to be shared with users, because it requires deep understanding of hardware and programming to do customization, and may even harm something or damage battery in case of mistakes.
-There is I2C command interface provided through python API that install together with configuration GUI intended for users to do custom applications on Linux side. There is pijucetest.py that can be used as example how to do programming in python and communicate data with Pijuice.
--What are pinout designations for spring battery connector J1 on Pijuice HAT?
-![Batt Pinout](https://user-images.githubusercontent.com/3359418/31778440-93eb5900-b4e8-11e7-99ba-b1dfbc0c313e.jpg?raw=true "Batt Pinout")
 
-## Notes
+On board the PiJuice there are three buttons and two multicolour LEDs
 
-there are two other sheets in excel file: Profile selection and Charge settings where you have 
-column R [KOhm] for R20 resistance choices. It needs to download excel cannot see additional sheets 
-from browser.
+Programmable multi-colored RGB led (x2) and buttons (x3) with super simple user-configurable options
 
-R22, R13, R51 are hardware configuration options for measuring battery temperature using NTC,
-alternative to fuel gauge and this is mostly for development purposes not important for user.
+### Power management
+Onboard intelligent on/off switch 
+Low power deep-sleep state with wake on interrupt/calendar event
+Batteries can be charged from different type of sources and voltages
 
-when plugging a 2.5A PSU into the onboard microUSB port on PiJuice, it only takes 0.75A - is that due to the charge IC and charge profile? 
-It is normal because pijuice has an efficient charger, based on switching not linear principle so calculation for input current when charging no load is
-Iinput ~ Ibat * Vbat/Vin / k, for exmple in case Vbat = 3.7, Vin = 5V, Ibat = 0.925, k ~ 0.92 efficiency coefficient, gives around 0.75A. it depends on charging current Ibat from mentioned equation. Charging current is settable and differs for different batteries, for pkcell Ibat is set to 2.5A. Charging current is specified by battery manufacturer but general spec if no data available is around 0.5C where C is battery capacity.
+#### UPS functionality
+Hardware watchdog timer to keep your Raspberry Pi up and running for mission-critical remote applications
+A Full Uninterrupted / Uninterruptable Power Supply solution.
+Onboard 1820 mAh “off the shelf” Lipo / LiIon battery for ~4 to 6 hours in constant use! (with support for larger Lipo Battery of 5000 or 10,000 mAH+ to last up to 24 hrs +)
+Replace the battery without downtime. Compatible with any single cell LiPo or LiIon battery    
 
-LONG_PRESS1: press and hold at least 10 seconds to automatically halt (there should be red blinks on user led if successful).
-LONG_PRESS2: press and hold at least 20 seconds to cut power if system is freezes and cannot be halted.
 
-In this directory there is python script called pijuicetest.py:
-https://github.com/PiSupply/PiJuice/tree/master/Software/Test
+### GUI interface
+Full power management API available to Raspberry Pi OS with auto shutdown capability when running low on batteries
+Enhanced graphical user interface (GUI) available for easy install (via APT)
+Customisable scripts for enhanced flexibility and full report of battery status
 
-copy it to /home/pi and run:
-pijuicetest.py
 
-if firmware is ok it will print data read from mcu on screen, like battery voltage, charge, battery profile...
-try it to test firmware
+-----------------------------
 
-## Battery charge level notes
+What's the difference between powering from the Pi or from Juice
 
-This is basically a known quirk of lithium ion batteries whilst charging / discharging and the specific "fuel gauge" IC we are using.
+Board layout description. Buttons, LEDs
 
-It is effectively about the measuring principle of the fuel gauge IC, that measures battery impedance to estimate charge level. Due to parasitic impedance (mostly internal battery protection circuit - such modern phones tablets won't have, but they tightly control their manufacturer of batteries which is far harder for a low volume product) there are measuring errors especially while charging because there are big currents over 1 amp. We took the attitude that safety is a priority over charge level accuracy.
+Connectors
 
-Purpose for charge level is to have estimation during discharging to know when it is near to empty... info that is useful for field applications. It is precise enough while powering Pi and discharging with no inputs. More accurate readings with this IC is to have fixed battery type without protection circuit before fuel gauge connection point - that is the usual case in phones or laptops. 
+Batteries
 
-The protection method is integrated within the BP7X battery we are using, which is an older battery that as you can see was removable, that makes impedance measurement errors, it is about hardware not firmware. That is why on many older phones you do not even have charge level during charging but only blinking symbol. 
+Solar panels and other sources (wind thermal)
 
-Attached is charge discharge test log, with charge level and voltage printed every minute during charging and discharging. There is initial rise during charging to over 50%, but discharge is pretty linear.
+## Technical specs
 
-Last but not least, we will likely try to fix this in a future software update based on practical test data - but a) this is not a huge priority and b) it will need more test data than we are able to get right now (multiple boards over long period charging and discharging in different scenarios)
-
-## Max. current that the juice will be able to supply? 
-
-Maximum current at 5V gpio is 2.5A, as VSYS output 2.1A, but also depends on battery capacity.
-
-For BP7X have measured around 1.1A at 5V GPIO and around 1.6A at VSYS output.
-
-To achieve maximum of 2.5A it will need battery over 3500mAh.
+- The EEPROM can be disabled and its I2C address changed for increased compatibility with other boards
+- BP7X battery - original battery from Motorola Droid 2 (A955) - 1820mAh battery
+- Microcontroller is an ST Micro STM32F030CCT6 ARM Cortex-M0, 48MHz, F64KB, R8KB, I2C, SPI, USART, 2.4-3.6V
+- Charge IC - BQ24160RGET Charger IC Lithium-Ion/Polymer, 2.5A, 4.2-10V
+- Fuel gauge IC - LC709203FQH-01TWG Battery Fuel Gauge, 1-Cell Li-ion, 2.8%
+- EEPROM - CAT24C32WI-GT3 EEPROM, I2C, 32KBIT, 400KHZ, 1V7-5V5
+- Optional spring pin - Mil-Max 0929-7-15-20-77-14-11-0
+- Compatible with any 4 pin battery on board that can be used with 00-9155-004-742-006 battery contacts from AVX including the BP7X, BP6X, and any compatible batteries including the 1600mAh and 2300mAh ones from CameronSino (CS-MOA853SL and CS-MOA855XL)
+- There is an on board 4 pin screw terminal block for larger off board batteries. Any single cell LiPo / LiIon is compatible. However, you use your own sourced battery at your own risk. We HIGHLY RECOMMEND using a battery with an internal protection circuit and a NTC (temp sensor)
+- Optional header for offboard button - connected to same output as SW1
+- 6 pin breakout header - with two GPIO from the ARM Cortex-M0, Vsys, 5v0, 3v3, GND connections
+- Header for optional off board solar panel / wind turbine etc.
+- Optional RF Shield attachment - Harwin S02-20150300 (can also double as an inexpensive heatsink)
+- Input voltage range - 4.2V – 10V
+- Output voltage - 3.3V and 5V
+- Output amperage - maximum current at 5V gpio is 2.5A and at VSYS output 2.1A, but also this depends heavily on battery capacity. For BP7X have measured around 1.1A at 5V GPIO and around 1.6A at VSYS output. Obviously this also depends heavily on the current draw demanded by the Raspberry Pi / device itself. To achieve maximum of 2.5A it will need battery over 3500mAh.
 
 ## Content
 
@@ -122,3 +121,5 @@ There will also be more technical information going up on the PiJuice GitHub her
 And also a lot of picture guides and tutorials going up on our Maker Zone - https://www.pi-supply.com/make 
 We will likely have the pinouts available at http://pinout.xyz
 We will also have tutorials on Instructables and Hackster.io 
+
+# Third party software libraries
