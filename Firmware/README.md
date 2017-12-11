@@ -1,21 +1,34 @@
 # Update PiJuice firmware
 
-# usage:
+There are two ways in which you can upgrade the firmware for the PiJuice. You can use the command line tool provided here or refer to the [Software section](https://github.com/PiSupply/PiJuice/tree/master/Software) to find out how to perform a firmware update via the GUI. 
+pijuiceboot need to be made executable by running
+```bash
+chmod 755 pijuiceboot
+```
+or
+```bash
+chmod a+x pijuiceboot
+```
+## Usage:
+```text
 ./pijuiceboot i2c_address path_to_firmware_binary
+```
 
-# example:
-./pijuiceboot 14 /home/pi/PiJuice.elf.binary
+### Example:
+```bash
+./pijuiceboot 14 PiJuice.elf.binary
+```
 
+The firmware source code is not intended to be made openly available as it requires deep understanding of the hardware design and the programming involved if one wanted to customize. Making changes to the firmware may even harm components or damage battery.
+The majority of customisation can anyway be done by using the I2C command interface provided through the Python API that is installed together with configuration GUI. This is the best approach for end users willing to customise further PiJuice for their needs.
+pijucetest.py is an example made available to demonstrate how to communicate with PiJuice with Python.
 
-- do we have source code for the firmware that we could share with people for custom applications?
-Firmware source code is not intended to be shared with users, because it requires deep understanding of hardware and programming to do customization, and may even harm something or damage battery in case of mistakes.
-There is I2C command interface provided through python API that install together with configuration GUI intended for users to do custom applications on Linux side. There is pijucetest.py that can be used as example how to do programming in python and communicate data with Pijuice.
+The script can be found under [/home/pi/PiJuice/Software/Test/pijuicetest.py](https://github.com/PiSupply/PiJuice/blob/master/Software/Test/pijuicetest.py)
 
-In this directory there is python script called pijuicetest.py:
-https://github.com/PiSupply/PiJuice/tree/master/Software/Test
-
-copy it to /home/pi and run:
-pijuicetest.py
-
-if firmware is ok it will print data read from mcu on screen, like battery voltage, charge, battery profile...
-try it to test firmware
+Make a copy into your home folder and run it to see display a demo
+```bash
+cp /home/pi/PiJuice/Software/Test/pijuicetest.py /home/pi/.
+cd ~
+python pijuicetest.py
+```
+The script should display the firmware status, it will print data read from the MCU on screen like battery voltage, charge, battery profile, etc.

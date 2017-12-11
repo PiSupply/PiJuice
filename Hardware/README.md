@@ -5,6 +5,23 @@
 
 ## Switches
 
+SW1 is power button by default:
+·        Single press to power on (release in less than 800 ms),
+·        Long press of at least 10 seconds to halt,
+·        Long press of at least 20 seconds to cut power.
+SW2 is user button by default, configured to trigger user scripts:
+·        Single press in less than 400ms to invoke “USER_FUNC1”,
+·        Double press within 600ms to invoke “USER_FUNC2”.
+ 
+SW3 is user button by default, configured to trigger user scripts:
+·        Press will invoke “USER_FUNC3”,
+·        Release will invoke “USER_FUNC4”.
+Default settings can be overridden in “Buttons” tab of Pijuice HAT configuration window.
+
+There are fixed button functions:
+·        Dual long press of SW1 and SW2 for 20 seconds will reset Pijuice HAT configuration to default (this applies to mcu configuration only).
+·        Holding pressed SW3 while powering up Pijuice will initiate bootloader (used only in cases when ordinary initiation through I2C does not works because of damaged firmware).
+
 ### Defaults
 - can you tell me specification of button to connect to J5? Just momentary push button? And it connects to same as one of the other buttons SW1-3? Which one?
 It needs to be simple tactile pushbutton and connects parallel to SW1.
@@ -115,6 +132,8 @@ VSYS on P3 is same as VSYS on J3 and is switchable battery voltage for system us
 ### Unpopulated
 - R13, R22, R51 are hardware configuration options for measuring battery temperature using NTC,
 alternative to fuel gauge and this is mostly for development purposes not important for user.
+
+- C31 for development purposes.
 
 - R20 is place to solder resistor as additional way to configure battery profile without using software configuration additional to dip switch, where charging current and charging voltage are encoded with resistance of resistor. Also user can select predefined profile by choosing one of 16 with resistor value instead with dip switch which is limited to 4. There is table within excel document Pijuice_battery_config.xlsx  sheet “Charge settings” how to choose resistor for desired charge settings and sheet “Profile selection” how to choose resistor to select one of predefined battery profiles. R20 should be through hole 0.1% tolerance.
 It is possible to override resistor settings in software. In Pijuice HAT configuration window on “Battery” tab check “Custom” and edit battery charging parameters to desired values, then click apply. You can also return to resistor settings by choosing “DEFAULT” from drop-down list.

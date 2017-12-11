@@ -16,6 +16,16 @@ The board is has a Raspberry Pi HAT compatible layout, with onboard EEPROM. Alth
 
 PiJuice is fully [CE and FCC tested](https://github.com/PiSupply/PiJuice/tree/master/Documentation/Compliance) design and [battery safety tests](https://github.com/PiSupply/PiJuice/tree/master/Documentation/Battery%20Safety) have also been carried out.
 
+## Installing the software
+
+For PiJuice we have created a Raspbian Package to make it extra simple to obtain and install the necessary software.
+At the command line simply type
+```bash
+sudo apt-get install pijuice
+``` 
+and a new icon will appear under preference.
+Please refer to our [Software section](https://github.com/PiSupply/PiJuice/tree/master/Software) to find out more.
+
 ## Basic functionality
 tbd-----------------------------
 
@@ -32,7 +42,9 @@ Once the battery is slot into place LED2 will start glowing green. This doesn't 
 ### Power On and Off the Pi
 ![Buttons_LEDs](https://user-images.githubusercontent.com/16068311/33768831-94db68b0-dc1f-11e7-99d4-a06cb65b0135.png "Buttons and LEDs")
 
-To power on the Raspberry Pi press SW1 briefly (less than 5 seconds)------
+**If you wish to start your Raspberry Pi using the PiJuice SW1 you'll have to connect the micro USB to the PiJuice directly.**
+
+To power on the Raspberry Pi press SW1 briefly (less than 5 seconds). If the micro USB is directly connected to the Raspberry Pi then it will power up immediately without you needing to press the PiJuice button.
 
 ### Providing power to the board
 
@@ -42,28 +54,17 @@ Other ways of providing power to the PiJuice is directly via the GPIO pin header
 
 ### Buttons and LEDs
 
+SW1 and LED2 have predefined default functions associated.
+
+SW1 is the power button by default:
+* Single brief press to power on.
+* Long press of at least 10 seconds to halt.
+* Long press of at least 20 seconds to cut power.
+
 LONG_PRESS1: press and hold at least 10 seconds to automatically halt (there should be red blinks on user led if successful).
 LONG_PRESS2: press and hold at least 20 seconds to cut power if system is freezes and cannot be halted.
 
-- can you tell me default operations of each button?
-SW1 is power button by default:
-·        Single press to power on (release in less than 800 ms),
-·        Long press of at least 10 seconds to halt,
-·        Long press of at least 20 seconds to cut power.
-SW2 is user button by default, configured to trigger user scripts:
-·        Single press in less than 400ms to invoke “USER_FUNC1”,
-·        Double press within 600ms to invoke “USER_FUNC2”.
- 
-SW3 is user button by default, configured to trigger user scripts:
-·        Press will invoke “USER_FUNC3”,
-·        Release will invoke “USER_FUNC4”.
-Default settings can be overridden in “Buttons” tab of Pijuice HAT configuration window.
-
-There are fixed button functions:
-·        Dual long press of SW1 and SW2 for 20 seconds will reset Pijuice HAT configuration to default (this applies to mcu configuration only).
-·        Holding pressed SW3 while powering up Pijuice will initiate bootloader (used only in cases when ordinary initiation through I2C does not works because of damaged firmware).
-
-
+LED1 is charge status by default:
 - can you tell me default operations of each led?
 D1 charge status by default
 D2 user LED by default.
