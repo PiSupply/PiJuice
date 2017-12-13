@@ -23,7 +23,7 @@ The firmware source code is not intended to be made openly available as it requi
 The majority of customisation can anyway be done by using the I2C command interface provided through the Python API that is installed together with configuration GUI. This is the best approach for end users willing to customise further PiJuice for their needs.
 pijucetest.py is an example made available to demonstrate how to communicate with PiJuice with Python.
 
-The script can be found under [/home/pi/PiJuice/Software/Test/pijuicetest.py](https://github.com/PiSupply/PiJuice/blob/master/Software/Test/pijuicetest.py)
+The [script](https://github.com/PiSupply/PiJuice/blob/master/Software/Test/pijuicetest.py) can be found under /home/pi/PiJuice/Software/Test/pijuicetest.py
 
 Make a copy into your home folder and run it to see display a demo
 ```bash

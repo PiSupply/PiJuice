@@ -22,7 +22,7 @@ At the command line simply type
 sudo apt-get install pijuice
 ``` 
 After a restart a new icon will appear under preference.
-Please refer to our [Software section](https://github.com/PiSupply/PiJuice/tree/master/Software) to find out more.
+Please refer to our [software section](https://github.com/PiSupply/PiJuice/tree/master/Software) to find out more.
 
 ## Basic functionality
 
@@ -42,7 +42,7 @@ To remove power to the Pi press and keep pressed SW1 for at least 20 seconds. Th
 
 PiJuice can recharge its on board battery in several ways and via different power sources. The most common approach is to use the standard Raspberry Pi PSU or a micro USB PSU with similar characteristics but solar panels, wind mills, and other renewable power sources can be used too.
 When the PiJuice is installed over the Raspberry Pi you can power both the Pi and PiJuice via either the Pi's micro USB or the PiJuice's one. That's because the power lines on the GPIO header are shared by both boards and this allows to effectively be able to charge the battery independently from which micro USB connector you use.
-Other ways of providing power to the PiJuice is directly via the GPIO pin headers or one of the other connectors on board. See the [Hardware section](https://github.com/PiSupply/PiJuice/tree/master/Hardware) for more information.
+Other ways of providing power to the PiJuice is directly via the GPIO pin headers or one of the other connectors on board. See the [hardware section](https://github.com/PiSupply/PiJuice/tree/master/Hardware) for more information.
 
 ### Buttons and LEDs
 
@@ -58,7 +58,7 @@ LED1 is charge status by default:
     * Green blinking: Standby
     * Blue blinking: Charging
     * Red blinking: Low battery
-* Led1 with Pi on
+* with Pi on
     * Green steady: Power on
     * Blue blinking: Charging
 
@@ -68,7 +68,7 @@ On board the PiJuice there are three buttons and two multicolour LEDs please ref
 
 The PiJuice provides an onboard intelligent on/off switch allowing you to have control on when the Raspberry Pi will be switched on or off without having to plug or unplug the PSU as you would normally have to do.
 
-*Note Turning on the Raspberry Pi via the onboard intelligent switch only works when the power is provided the micro USB on the PiJuice.* 
+*Note: Turning on the Raspberry Pi via the onboard intelligent switch only works when the power is provided the micro USB on the PiJuice.* 
 
 When the Raspberry Pi is off, for example due to a scheduled power off via the onboard RTC, the PiJuice will enter a low power deep-sleep state which guarantees only a minute fraction of the battery charge will be required to keep the circuitry on ensuring long periods of inactivity between recharges.
 This is for example ideal when dealing with recyclable energy sources like solar panels. At all time the PiJuice will still be able to trigger a wake on to the Raspberry Pi via interrupt or calendar event.
@@ -118,4 +118,9 @@ A part from the material available on Github we are also preparing guides, tutor
 * We will also have tutorials on Instructables and Hackster.io 
 
 # Reviews and links
-**Coming soon**
+Here are some links to reviews and articles from around the web:
+
+* [PiJuice Review: Portable Power For Raspberry Pi](https://www.raspberrypi.org/magpi/pijuice-review/)
+* [PiJuice – testing the software and hardware plus 6W 40W solar panels video?](http://raspi.tv/2017/pijuice-testing-the-software-and-hardware-plus-6w-40w-solar-panels-video)
+* [PiJuice – unboxing, first look and why it’s 2 years late?](http://raspi.tv/2017/pijuice-unboxing-first-look-and-why-its-2-years-late)
+* [PiJuice – portable battery power for your Raspberry Pi – a review](http://www.recantha.co.uk/blog/?p=17790)
