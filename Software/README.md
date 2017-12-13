@@ -1,7 +1,5 @@
 # PiJuice Software
 
-**todo  scripts---**
-
 Default battery profile is defined by dip switch position. On v1.1 it is position 01 for BP7X, on v1.0 version, it might be different, you can try different positions, and power circle pijuice to get updated.
 
 It is not possible to detect battery not present when powered through on board usb micro, so it might show 0% only.
@@ -113,3 +111,9 @@ As previously mentioned, some of these are even hard coded into the firmware on 
 ![PiJuice HAT Config Firmware Menu](https://user-images.githubusercontent.com/16068311/33845771-6b55373a-de9c-11e7-9475-09b8dc8086dc.png "PiJuice HAT Config Firmware Menu")
 
 Last but very much not least is the firmware menu. This allows you to update the firmware on the PiJuice MCU chip as and when necessary meaning we can actively improve the firmware and any updates or improvements we make in the future can be retrospectively applied to all PiJuice HATs!
+
+*Note that the path to the binary file is fixed and it points to*
+```text
+/usr/share/pijuice/data/firmware/PiJuice.elf.binary
+```
+If you want to use the GUI to update the firmware you will have to override this file with the new one and make sure the filename is the same i.e. PiJuice.elf.binary
