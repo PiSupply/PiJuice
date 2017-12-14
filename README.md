@@ -121,6 +121,7 @@ Here are some links to reviews and articles from around the web:
 * RasPi.TV technical discussion - [PiJuice – testing the software and hardware plus 6W 40W solar panels video?](http://raspi.tv/2017/pijuice-testing-the-software-and-hardware-plus-6w-40w-solar-panels-video)
 * RasPi.TV unboxing - [PiJuice – unboxing, first look and why it’s 2 years late?](http://raspi.tv/2017/pijuice-unboxing-first-look-and-why-its-2-years-late)
 * Michael Horne / Tim Richardson review - [PiJuice – portable battery power for your Raspberry Pi – a review](http://www.recantha.co.uk/blog/?p=17790)
+* [PiJuice Kickstarter](https://www.kickstarter.com/projects/pijuice/pijuice-a-portable-project-platform-for-every-rasp/).
 
 # Third party software libraries
 It is safe to say we have an awesome and growing community of people using PiJuice to add battery power to their projects  - both from our Kickstarter and beyond. We get a huge amount of contributions of code, some of which we can easily integrate here and others which we can't (we are only a small team). However we want to make sure that any contributions are easy to find, for anyone looking. So here is a list of other software libraries that might be useful to you (if you have one of your own, please visit the "Issues" tab above and let us know!):
