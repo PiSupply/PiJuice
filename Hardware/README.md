@@ -141,7 +141,7 @@ The picture above highlights the main ICs used on PiJuice. Links to the various 
 
 You may notice that there are several components which have not be installed on your board. This section aims to explain what they are and which are for user customisation.
 
-- TP1, 2 and 3 should be used to install the pogo pin for the wake on function. Each is located with respect to the "Run" pad on the various Raspberry Pi layouts:
+- TP1, 2 and 3 should be used to install the pogo / spring pin (Mill-Max 0929-7-15-20-75-14-11-0 or 0929-7-15-20-77-14-11-0) for the wake on function. Each is located with respect to the "Run" pad on the various Raspberry Pi layouts:
     - TP1 - Pi 3B
     - TP2 - Pi Zero
     - TP3 - Pi B+ and 2B
