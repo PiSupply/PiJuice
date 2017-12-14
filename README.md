@@ -14,11 +14,13 @@ PiJuice is a fully [CE and FCC tested](https://github.com/PiSupply/PiJuice/tree/
 
 ## Installing the software
 
-For PiJuice we have created a Raspbian / Debian Package to make it extra simple to obtain and install the necessary software. At the command line simply type:
+PiJuice will actually work straight out of the box, with no software, to power the Pi and for some other basic functionality. However to get the most out of PiJuice you really need to install the software packages. For PiJuice we have created a Raspbian / Debian Package to make it extra simple to obtain and install the necessary software. At the command line simply type:
 ```bash
 sudo apt-get install pijuice
 ``` 
 After a restart a new icon "PiJuice Configuration" will appear under Menu>Preferences. Please refer to our [software section](https://github.com/PiSupply/PiJuice/tree/master/Software) to find out more.
+
+Soon we will have a "headless" version of the software which will not require a GUI to operate. In fact, you can already operate the software just using the JSON configutation file that sits behind the GUI, but the installer requires the GUI to install currently. We are working hard to fix this.
 
 ## Basic functionality
 
