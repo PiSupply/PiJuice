@@ -96,7 +96,7 @@ You can find out more in the [software section](https://github.com/PiSupply/PiJu
 - Charge IC - BQ24160RGET Charger IC Lithium-Ion/Polymer, 2.5A, 4.2-10V
 - Fuel gauge IC - LC709203FQH-01TWG Battery Fuel Gauge, 1-Cell Li-ion, 2.8%
 - EEPROM - CAT24C32WI-GT3 EEPROM, I2C, 32KBIT, 400KHZ, 1V7-5V5
-- Optional spring pin - Mil-Max 0929-7-15-20-77-14-11-0
+- Optional spring pin - Mil-Max 0929-7-15-20-77-14-11-0 or 0929-7-15-20-75-14-11-0
 - Compatible with any 4 pin battery on board that can be used with 00-9155-004-742-006 battery contacts from AVX including the BP7X, BP6X, and any compatible batteries including the 1600mAh and 2300mAh ones from CameronSino (CS-MOA853SL and CS-MOA855XL)
 - There is an on board 4 pin screw terminal block for larger off board batteries. Any single cell LiPo / LiIon is compatible. However, you use your own sourced battery at your own risk. We HIGHLY RECOMMEND using a battery with an internal protection circuit and a NTC (temp sensor)
 - Optional header for offboard button - connected to same output as SW1
