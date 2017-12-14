@@ -106,13 +106,12 @@ You can find out more in the [software section](https://github.com/PiSupply/PiJu
 - Output amperage - maximum current at 5V gpio is 2.5A and at VSYS output 2.1A, but also this depends heavily on battery capacity. For BP7X have measured around 1.1A at 5V GPIO and around 1.6A at VSYS output. Obviously this also depends heavily on the current draw demanded by the Raspberry Pi / device itself. To achieve maximum of 2.5A it will need battery over 3500mAh.
 
 ## Additional content
-A part from the material available on Github we are also preparing guides, tutorials and additional information on various platforms and media. This is a list of current and future resources:
+Apart from the material available on Github we are also preparing guides, tutorials and additional information on various platforms and media. This is a list of current and future resources:
 
 * There is a "quick start guide" in the package [which you can see here](https://github.com/PiSupply/PiJuice/blob/master/Documentation/PiJuice%20Guide.pdf). As you can see it's pretty basic but really the PiJuice is quite intuitive and very easy to use. 
-* There will also be more technical information going up on the PiJuice GitHub here - https://github.com/PiSupply/PiJuice
-* And also a lot of picture guides and tutorials going up on our Maker Zone - https://www.pi-supply.com/make 
-* We will likely have the pinouts available at http://pinout.xyz
-* We will also have tutorials on Instructables and Hackster.io 
+* A lot of picture guides and tutorials are going up on our Maker Zone - https://www.pi-supply.com/make 
+* We will soon have the pinouts available at http://pinout.xyz
+* We will also have tutorials on [Instructables](http://www.instructables.com/member/PiJuice/) and [Hackster.io](https://www.hackster.io/PiJuice) 
 
 # Reviews and links
 Here are some links to reviews and articles from around the web:
