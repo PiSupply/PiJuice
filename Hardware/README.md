@@ -220,7 +220,17 @@ There are two other sheets in the [excel file](https://github.com/PiSupply/PiJui
 
 ### Battery charge/discharge
 
-**Coming soon**
+#### Battery uptime calculations
+
+To get a good approximation of how long will your setup run with your chosen battery you can use the formula below in which you need to provide the capacity of the battery in mAh and the overall load of your setup in mA.
+
+`((Battery Size * 3.7) / (mA * 5)) * 0.75`
+
+*((Battery mAh * Battery Voltage) / (Pi current draw * Pi voltage)) * Estimated efficiency of system*
+
+For example an idling Raspberry Pi 3B consuming 230mA running with our default battery BP7X with a capacity of 1820mAh should be up for about 4 hours and 40 minutes.
+
+`((1820mhA * 3.7V) / (230mA * 5V)) * 0.75 = 4.39h`   
 
 ### Battery charge level notes
 
