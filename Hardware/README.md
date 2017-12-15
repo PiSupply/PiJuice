@@ -222,15 +222,17 @@ There are two other sheets in the [excel file](https://github.com/PiSupply/PiJui
 
 #### Battery uptime calculations
 
-To get a good approximation of how long will your setup run with your chosen battery you can use the formula below in which you need to provide the capacity of the battery in mAh and the overall load of your setup in mA.
+To get a good approximation of how long your PiJuice setup will run with your chosen battery you can use the formula below in which you need to provide the capacity of the battery in mAh and the overall load of your setup in mA:
 
 `((Battery Size * 3.7) / (mA * 5)) * 0.75`
 
 *((Battery mAh * Battery Voltage) / (Pi current draw * Pi voltage)) * Estimated efficiency of system*
 
-For example an idling Raspberry Pi 3B consuming 230mA running with our default battery BP7X with a capacity of 1820mAh should be up for about 4 hours and 40 minutes.
+For example an idling Raspberry Pi 3B consuming 230mA running with our default battery BP7X with a capacity of 1820mAh and a voltage of 3.7V should be up for about 4 hours and 40 minutes.
 
-`((1820mhA * 3.7V) / (230mA * 5V)) * 0.75 = 4.39h`   
+`((1820mAh * 3.7V) / (230mA * 5V)) * 0.75 = 4.39h` 
+
+We have [created a spreadsheet](https://github.com/PiSupply/PiJuice/blob/master/Hardware/Batteries/PiJuice%20Battery%20Discharge%20Levels.xlsx) which gives some typical battery capacities and usage scenarios ([with thanks to Alex from RasPi.TV for his testing efforts](http://raspi.tv/2017/how-much-power-does-pi-zero-w-use)) on all the versions of the Raspberry Pi and how they then relate to approcimate uptime of the Pi when using the PiJuice. Obviously these are pretty basic theoretical estimations and if the uptime is "mission-critical" then you should definitely perform real-life testing before relying on these figures but these should give you a good idea. In the not-too-distant future we will have a dynamic calculator where you can plug in the figures to this equation for your usage scenario and it will output an approximate uptime.
 
 ### Battery charge level notes
 
