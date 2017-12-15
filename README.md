@@ -42,19 +42,21 @@ PiJuice can recharge its on board battery in several ways and via different powe
 
 SW1 and LED1 have predefined default functions associated.
 
-SW1 is the power button by default:
+SW1 - Power button:
 * Single brief press to power on.
 * Long press of at least 10 seconds to halt (soft shutdown).
 * Long press of at least 20 seconds to cut power (hard shutdown).
 
-LED1 is charge status by default:
+LED1 - Charge status:
 * with Pi off
-    * Green blinking: Standby
-    * Blue blinking: Charging
-    * Red blinking: Low battery
+    * ![#00FF00](http://via.placeholder.com/15x15/00FF00/000000?text=+) Green blinking: Standby
+    * ![#0000FF](http://via.placeholder.com/15x15/0000FF/000000?text=+) Blue blinking: Charging
+    * ![#FF0000](http://via.placeholder.com/15x15/FF0000/000000?text=+) Red blinking: Low battery
 * with Pi on
-    * Green steady: Power on
-    * Blue blinking: Charging
+    * ![#00FF00](http://via.placeholder.com/15x15/00FF00/000000?text=+) Green steady: Power on - Battery over 50%
+    * ![#0000FF](http://via.placeholder.com/15x15/0000FF/000000?text=+) Blue blinking: Charging
+    * ![#FFA500](http://via.placeholder.com/15x15/FFA500/000000?text=+) Orange steady: Low battery - level < 50%
+    * ![#FF0000](http://via.placeholder.com/15x15/FF0000/000000?text=+) Red steady: Low battery - level < 15% or battery absent
 
 On board the PiJuice there are three buttons and two multicolour LEDs please refer to the [hardware](https://github.com/PiSupply/PiJuice/blob/master/Hardware/README.md) and the [software](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md) sections to find out more.
 

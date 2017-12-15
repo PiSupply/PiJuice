@@ -7,7 +7,9 @@ The above image of the PiJuice PCB is used in the following descriptions to high
 On board the PiJuice, highlighted in green in the above overview image, there are three momentary switches and one DIP switch. Please note that SW1 and J5 have the same function...J5 has been provided so that a separate tactile pushbutton can be used for ease of use for example on a custom case (similar to a reset or power button on a normal computer).
 
 The following lists the default function/configuration (these can be easily overriden in the software GUI/JSON file - see below):
+
 ### Buttons
+
 * SW1/J5 is power button by default:
     * Single press to power on (release in less than 800 ms)
     * Long press of at least 10 seconds to halt
@@ -19,8 +21,10 @@ The following lists the default function/configuration (these can be easily over
     * Press will invoke “USER_FUNC3”
     * Release will invoke “USER_FUNC4”
 
-Default settings can be overridden in "Buttons" tab of PiJuice HAT configuration window. Check the [software section](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md) for more information.
+Default settings can be overridden in the "Buttons" tab of PiJuice HAT configuration window. Check the [software section](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md) for more information.
+
 #### Special functions
+
 * Dual long press of SW1 and SW2 for 20 seconds will reset PiJuice HAT configuration to default. This applies to the MCU configuration only.
 * Holding pressed SW3 while powering up PiJuice will initiate the bootloader. This is used only in cases when ordinary initiation through I2C does not work because of damaged firmware.
 
@@ -33,9 +37,20 @@ We have also provided [this document](https://github.com/PiSupply/PiJuice/tree/m
 Whether you use the DIP switch and the resistor configuration by populating R20 you can always override the settings using the software configuration GUI. From the Pijuice HAT configuration window on the "Battery" tab choose battery profile from drop down list. You can also return to DIP switch selected profile by choosing "DEFAULT" from drop-down list.
 
 ## LEDs
-On board the PiJuice there are two multicolour LEDs highlighted in orange in the picture above.
 
-**Coming soon**
+On board of the PiJuice there are two multicolour LEDs highlighted in orange in the picture above.
+
+- LED1 (D1) is the charge status by default. It will blink when the MCU detects the current load to be below 50mA. The MCU will then set itself in Low Power Mode to conserve as much as possible energy.
+When the Pi is on or in halt state the LED will be a steady colour with exception of the charging mode which will always be blinking as far as there is a battery charging.
+    * ![#00FF00](http://via.placeholder.com/15x15/00FF00/000000?text=+) Green: Power on - Battery over 50%
+    * ![#0000FF](http://via.placeholder.com/15x15/0000FF/000000?text=+) Blue: Charging
+    * ![#FFA500](http://via.placeholder.com/15x15/FFA500/000000?text=+) Orange: Low battery - level < 50%
+    * ![#FF0000](http://via.placeholder.com/15x15/FF0000/000000?text=+) Red: Low battery - level < 15% or battery absent
+- LED2 (D2) is the user LED by default.
+
+You can look at the [demo script](https://github.com/PiSupply/PiJuice/blob/master/Software/Test/pijuicetest.py) provided in the code base to see how to use it in Python.
+
+Default settings can be overridden in the "LEDs" tab of PiJuice HAT configuration window. Check the [software section ](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md) for more information.
 
 ## Connectors
 
@@ -43,19 +58,24 @@ On board the PiJuice there are several connectors. The connectors / headers avai
 
 ### Top of the board
 
-- J4 is an alternative to the onboard PiJuice microUSB input. Pad holes are provided to solder a 2.54mm header...any type (straight or right angle, female or male) and length can fit.
+- J4 is an alternative to the PiJuice microUSB micro input. Pad holes are provided to solder a 2.54mm header...any type (straight or right angle, female or male) and length can fit.
+  You can plug in power sources to this connector with input voltage between 4.2V and 10V. A minimum current of 80mA will be sufficient for the battery to charge.
+  *Note: Although this connector may be used for some types of solar panels be aware that we only support the use of the official panels.*
 
-- The screw terminal can be used to connect an off-board / external battery instead of the provided onboard battery (the BP7X) . We recommend you use a battery with an NTC thermistor integrated with the battery and used for temperature regulation of battery during charging we also recommend that the battery have onboard over charge / over current etc. protection (this is not essential, but it is far safer if you have them - lithium batteries can be dangerous so it is wise to think about safety). The requirements are that battery uses a 10KOhm NTC resistor with known thermistor B constant which can be entered as profile data in config GUI "Battery" tab. There are regulation threshold data points that can be entered for custom batteries like Cold, Cool, Warm and HOT temperatures that are derived from the battery manufacturers specification. The ID pin is not used and it is just reserved for possible future use. It could for example be used to automatically recognise which battery is connected when using BP7X or BP6X.
+- The screw terminal can be used to connect an off-board / external battery instead of the provided onboard battery (the BP7X). We recommend you use a battery with an NTC thermistor integrated with the battery and used for temperature regulation of battery during charging we also recommend that the battery have onboard over charge / over current etc. protection (this is not essential, but it is far safer if you have them - lithium batteries can be dangerous so it is wise to think about safety). The requirements are that battery uses a 10KOhm NTC resistor with known thermistor B constant which can be entered as profile data in config GUI "Battery" tab. There are regulation threshold data points that can be entered for custom batteries like Cold, Cool, Warm and HOT temperatures that are derived from the battery manufacturers specification. The ID pin is not used and it is just reserved for possible future use. It could for example be used to automatically recognise which battery is connected when using BP7X or BP6X.
 
 - P3 is an expansion header which provides access to two unused GPIO pins on the ARM Cortex M0 (STM32-F0) MCU on board the PiJuice. There is also a regulated 3V3 and 5V0 pin, a GND pin and a VSYS pin which has the same function as VSYS on J3. VSYS is a switchable battery voltage for system use and can be used with boards like PiBot to provide power. VSYS output is programmable via with software with "OFF", "ON 500mA current limit" and "ON 2100mA current limit".
+  The 5V pin is wired with the GPIO header and is then share amongst the Raspberry Pi's electronics and the PiJuice for battery charging. The available current that this pin can supply is around 800mA.
+  As for the 3V3 a maximum of 100mA sourced by the internal LDO. 
 
 ### Bottom of the board
 
-- J3 is alternative to the USB micro input and requires an input voltage between 4.2V and 10V. The minimum current source should provide to get charging is 80mA.
+- J3 provides the same VSYS as per P3.
 - J7 is a development header to be used in conjunction with an ST-Link programmer for the MCU and a [Tag-Connect cable](http://www.tag-connect.com/TC2050-IDC). It is used to download firmware or perform debugging. It can be also used during production to write the firmware. It requires a [Tag-connect TC2050 ARM20-10](http://www.tag-connect.com/TC2050-ARM2010) adapter to connect ST-Link to cable. This connector is not intended for end users.
 - J6 is used to program the ID EEPROM during production. There is no adapter board and it needs to be wired manually to some programming tool. It requires a [Tag-Connect cable](http://www.tag-connect.com/TC2030-IDC). It provides an additional option to program the EEPROM in case it cannot be pre-programmed before assembly. This connector is not intended for end users.
 
 ## Pinout
+
 #### P1 pinout
 ```text
 P1
@@ -121,6 +141,17 @@ J6
 |3V3   SCL   WP |
 | 1     3     5 |
 -----------------
+```
+
+#### J7 Pinout
+```text
+J7
+-------------------------------
+| 10    9     8     7     6   |
+|NRST  GND   SDA1  SCL1 BOOT0 |
+|3V3  SWDIO  GND SWDLCK  GND  |
+| 1     2     3     4     5   |
+-------------------------------
 ```
 
 ## Components
