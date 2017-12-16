@@ -2,6 +2,20 @@
 # PiJuice
 Resources for the [PiJuice range](https://www.pi-supply.com/?s=pijuice&post_type=product&tags=1&limit=5&ixwps=1) (complete with our revolutionary [PiAnywhere](https://www.pi-supply.com/product-tag/pianywhere/) technology – the best way to take your Pi off the grid!). Originally funded on [Kickstarter](https://www.kickstarter.com/projects/pijuice/pijuice-a-portable-project-platform-for-every-rasp/).
 
+#### Where to buy a PiJuice?
+
+Due to our Kickstarter, there will be no PiJuice boards available to purchase until after the Kickstarter units are all shipped out to our backers. However, we have already got some confirmed outlets that will sell PiJuice HATs, solar panels and cases. Some of them will let you provide an expression of interest (and receive an email when in stock) and others will actually let you place provisional pre-orders. We have indicated whether you can pre-order / register your interest / quote next to each one:
+
+- [Pi Supply](https://www.pi-supply.com/product/pijuice-standard/) - register interest
+- [ModMyPi](https://www.modmypi.com/raspberry-pi/power-1051/ups-boards-1051/pijuice-standard) - register interest
+- [Raspberry Pi Denmark](https://raspberrypi.dk/produkt/pijuice-stroem-platform-hat-batteri/) - register interest
+- [Pi Shop Switzerland](https://www.pi-shop.ch/pi-supply-pijuice) - register interest
+- [Allied Elec](https://www.alliedelec.com/pi-supply-pis-0212/71079304/) - pre order
+- [Arrow](https://www.arrow.com/en/products/pis-0212/pi-supply) - quote / pre order
+- [Newark](http://www.newark.com/pi-supply/pi-juice/pijuice-pi-ups-hat/dp/31AC3820) - pre order / register interest
+- [Farnell](http://uk.farnell.com/pi-supply/pi-juice/power-supply-board-raspberry-pi/dp/2671595) - pre order / register interest
+- [KUBII](https://www.kubii.fr/es/cargadores-fuentes-raspberry-pi/2019-pijuice-hat-3272496008793.html) - register interest
+
 ## Board overview
 
 PiJuice is a fully uninterruptable / uninterupted power supply that will always keep your Raspberry Pi powered! It has a real time clock (RTC) for time tracking and scheduled tasks when the Pi is offline (as well as remote on/off of your Pi). It also has an integrated microcontroller (MCU) chip which will manage soft shut down functionality, a true low power deep sleep state and intelligent start up.  
