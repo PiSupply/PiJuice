@@ -20,7 +20,7 @@ sudo apt-get install pijuice
 ``` 
 After a restart a new icon "PiJuice Configuration" will appear under Menu>Preferences. Please refer to our [software section](https://github.com/PiSupply/PiJuice/tree/master/Software) to find out more.
 
-Soon we will have a "headless" version of the software which will not require a GUI to operate. In fact, you can already operate the software just using the JSON configutation file that sits behind the GUI, but the installer requires the GUI to install currently. We are working hard to fix this.
+Soon we will have a "headless" version of the software which will not require a GUI to operate. In fact, you can already operate the software just using the JSON configuration file that sits behind the GUI, but the installer requires the GUI to install currently. We are working hard to fix this.
 
 ## Basic functionality
 
@@ -64,11 +64,11 @@ On board the PiJuice there are three buttons and two multicolour LEDs please ref
 
 The PiJuice provides an onboard intelligent on/off switch allowing you to have control on when the Raspberry Pi will be switched on or off without having to plug or unplug the PSU as you would normally have to do.
 
-*Note: Turning on the Raspberry Pi via the onboard intelligent switch only works when the power is provided the micro USB on the PiJuice.* 
+*Note: Turning on the Raspberry Pi via the onboard intelligent switch only works when the power is provided to the micro USB on the PiJuice.* 
 
 When the Raspberry Pi is off, for example due to a scheduled power off via the onboard RTC, the PiJuice will enter a low power deep-sleep state which guarantees only a minute fraction of the battery charge will be required to keep the circuitry on ensuring long periods of inactivity between recharges.
 
-This is for example ideal when dealing with recyclable energy sources like solar panels. At all time the PiJuice will still be able to trigger a wake-up call to the Raspberry Pi via interrupt or calendar event.
+This is for example ideal when dealing with recyclable energy sources like solar panels. At all times the PiJuice will still be able to trigger a wake-up call to the Raspberry Pi via interrupt or calendar event.
 
 The PiJuice has been designed so that it can accept power sources of different nature. It accepts power sources providing between 4.2V and 10V which can be applied on different onboard connectors.
 
@@ -87,7 +87,7 @@ The batteries can be replaced without downtime as long as an alternative power s
 
 An enhanced graphical user interface (GUI) is available via APT and provides a full power management API for Raspbian that allows auto shutdown capability when running low on batteries.
 
-It also provide a mean to attach customisable scripts to power events and reporting of the battery status.
+It also provides a means to attach customisable scripts to power events and reporting of the battery status.
 You can find out more in the [software section](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md).
 
 ## Technical specs summary
