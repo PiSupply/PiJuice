@@ -70,7 +70,7 @@ On board the PiJuice there are several connectors. The connectors / headers avai
 
 ### Bottom of the board
 
-- J3 provides the same VSYS as per P3.
+- J3 provides the same VSYS as per P3. J3 is a battery output for external load connections with current limit, we use this for external boards such as PiBot. Current limit prevents power loss on the Raspberry Pi if load draws excessive current. 
 - J7 is a development header to be used in conjunction with an ST-Link programmer for the MCU and a [Tag-Connect cable](http://www.tag-connect.com/TC2050-IDC). It is used to download firmware or perform debugging. It can be also used during production to write the firmware. It requires a [Tag-connect TC2050 ARM20-10](http://www.tag-connect.com/TC2050-ARM2010) adapter to connect ST-Link to cable. This connector is not intended for end users.
 - J6 is used to program the ID EEPROM during production. There is no adapter board and it needs to be wired manually to some programming tool. It requires a [Tag-Connect cable](http://www.tag-connect.com/TC2030-IDC). It provides an additional option to program the EEPROM in case it cannot be pre-programmed before assembly. This connector is not intended for end users.
 
