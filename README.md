@@ -17,6 +17,14 @@ Due to our Kickstarter, there will be no PiJuice boards available to purchase un
 - [KUBII](https://www.kubii.fr/es/cargadores-fuentes-raspberry-pi/2019-pijuice-hat-3272496008793.html) - register interest
 - [Ameridroid](https://ameridroid.com/products?keywords=pijuice) - pre order
 - [S.O.S Solutions](https://www.sossolutions.nl/catalogsearch/result/?q=pijuice) - register interest
+- [BuyAPi](https://www.buyapi.ca/?s=pijuice&product_cat=0&post_type=product) - register interest
+- [Melopero](https://www.melopero.com/?s=pijuice&post_type=product) - register interest
+- [Botland](https://botland.com.pl/szukaj?controller=search&orderby=position&orderway=desc&search_query=pijuice&submit_search=) - register interest
+- [Chicago Electronics Distributors](https://chicagodist.com/search?q=pijuice) - register interest
+- [Elmwood Electronic](https://elmwoodelectronics.ca/search?q=pijuice) - register interest
+- [RS Components (coming soon)](https://uk.rs-online.com/web/zr/?searchTerm=pijuice) - register interest
+- [RPiShop.cz](http://rpishop.cz/vyhledavani?controller=search&orderby=position&orderway=desc&search_query=pijuice&submit_search=Hledat) - register interest
+- [Eckstein GmbH](https://eckstein-shop.de/navi.php?qs=pijuice) - register interest
 
 ## Board overview
 
