@@ -15,6 +15,8 @@ Due to our Kickstarter, there will be no PiJuice boards available to purchase un
 - [Newark](http://www.newark.com/pi-supply/pi-juice/pijuice-pi-ups-hat/dp/31AC3820) - pre order / register interest
 - [Farnell](http://uk.farnell.com/pi-supply/pi-juice/power-supply-board-raspberry-pi/dp/2671595) - pre order / register interest
 - [KUBII](https://www.kubii.fr/es/cargadores-fuentes-raspberry-pi/2019-pijuice-hat-3272496008793.html) - register interest
+- [Ameridroid](https://ameridroid.com/products?keywords=pijuice) - pre order
+- [S.O.S Solutions](https://www.sossolutions.nl/catalogsearch/result/?q=pijuice) - register interest
 
 ## Board overview
 
