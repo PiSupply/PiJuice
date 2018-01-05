@@ -540,7 +540,7 @@ class PiJuiceBatteryConfig:
 		self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=lambda v=self.apply: self._ApplyNewProfile(v))
 		self.applyBtn.grid(row=13, column=1, pady=(4,2), sticky = E)
 		
-		Label(self.frame, text="Temerature sense:").grid(row=2, column=2, padx=(5, 5), sticky = W)
+		Label(self.frame, text="Temperature sense:").grid(row=2, column=2, padx=(5, 5), sticky = W)
 		self.tempSense = StringVar()
 		self.tempSenseSel = Combobox(self.frame, textvariable=self.tempSense, state='readonly')
 		self.tempSenseSel['values'] = pijuice.config.batteryTempSenseOptions
