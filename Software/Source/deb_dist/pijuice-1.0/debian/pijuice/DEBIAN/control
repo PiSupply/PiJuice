@@ -1,9 +1,0 @@
-Package: pijuice
-Version: 1.0-1
-Architecture: all
-Maintainer: Milan Neskovic <milan@pi-supply.com>
-Installed-Size: 379
-Depends: init-system-helpers (>= 1.18~), python (>= 2.7), python (<< 2.8)
-Section: python
-Priority: optional
-Description: Packaging a PiJuice Python script as DEB

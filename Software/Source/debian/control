@@ -3,7 +3,7 @@ Maintainer: Milan Neskovic <milan@pi-supply.com>
 Section: python
 Priority: optional
 Build-Depends: python-all (>= 2.6.6-3), debhelper (>= 9), dh-systemd (>= 1.5), i2c-tools, python-smbus
-Standards-Version: 3.9.1
+Standards-Version: 3.9.6
 
 Package: pijuice
 Architecture: all
