@@ -64,11 +64,10 @@ class InstallData(install_data):
         return data_files
 
 
-if '--light' in sys.argv:
+if os.environ.get('PIJUICE_BUILD_LIGHT'):
     data_files = [('share/pijuice/data/firmware', ['data/firmware/PiJuice.elf.binary'])]
     scripts = ['src/pijuice_sys.py']
     description = "Software package for PiJuice (Light version)"
-    sys.argv.remove('--light')
 else:
     data_files= [
         ('share/applications', ['data/pijuice-gui.desktop']),
