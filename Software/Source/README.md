@@ -10,6 +10,8 @@ OR (for version without GUI)
 
 `./pckg-pijuice.sh --light`
 
+You will need python-stdeb, dh-systemd and debhelper for building.
+
 # Configuration GUI:
 Start -> Preferences -> PiJuice
 
