@@ -28,6 +28,7 @@ from distutils.log import info
 import glob
 import os
 import sys
+import pijuice
 
 class InstallData(install_data):
     def run (self):
@@ -64,6 +65,19 @@ class InstallData(install_data):
         return data_files
 
 
+def set_desktop_entry_versions(version):
+    entries = ("data/pijuice-gui.desktop", "data/pijuice-tray.desktop")
+    for entry in entries:
+        with open(entry, "r") as f:
+            lines = f.readlines()
+        for i in range(len(lines)):
+            if lines[i].startswith("Version="):
+                break
+        lines[i] = "Version=" + version + "\n"
+        with open(entry, "w") as f:
+            f.writelines(lines)
+
+
 if os.environ.get('PIJUICE_BUILD_LIGHT'):
     data_files = [('share/pijuice/data/firmware', ['data/firmware/PiJuice.elf.binary'])]
     scripts = ['src/pijuice_sys.py']
@@ -81,10 +95,14 @@ else:
     scripts = ['src/pijuice_tray.py', 'src/pijuice_gui.py', 'src/pijuice_sys.py']
     description = "Software package for PiJuice"
 
+try:
+    set_desktop_entry_versions(pijuice.__version__)
+except:
+    pass
 
 setup(
 	name="pijuice",
-	version="1.0",
+	version=pijuice.__version__,
 	author="Milan Neskovic",
 	author_email="milan@pi-supply.com",
 	description=description,
