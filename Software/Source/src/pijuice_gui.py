@@ -722,6 +722,8 @@ class PiJuiceHATConfigGui():
 
 		t = Toplevel()
 		t.wm_title('PiJuice HAT Configuration')
+		t.minsize(550, 500)
+		t.update()
 
 		# create the notebook
 		nb = Notebook(t, name='notebook')
