@@ -34,6 +34,8 @@ The DIP switch is preset for the BP7X battery that we supply with every PiJuice 
 
 You can set the DIP Switch for four predefined battery profiles. 
 
+![PiJuice DIP Switch Settings](https://user-images.githubusercontent.com/16068311/34769251-25c7c3b6-f5f5-11e7-971f-e93f5d4d3cc0.jpg "PiJuice DIP Switch Settings")
+
 ```text
 BP6X
 -ON---CTS-
