@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__ = "1.0.1"
+__version__ = "1.1"
 from smbus import SMBus
 import time
 import datetime
