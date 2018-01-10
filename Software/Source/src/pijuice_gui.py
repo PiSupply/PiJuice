@@ -1362,6 +1362,6 @@ if __name__ == '__main__':
 	if pijuice is None:
 		tkMessageBox.showerror('PuJuice Interfacing', 'Failed to use I2C bus. Check if I2C is enabled', parent=root)
 	root.update()
-	root.minsize(400, 320)
+	root.minsize(400, 380)
 
 	PiJuiceConfigGui().mainloop()
