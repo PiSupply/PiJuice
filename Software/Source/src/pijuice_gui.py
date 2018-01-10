@@ -1305,9 +1305,21 @@ class PiJuiceConfigGui(Frame):
 		self.userScriptTab = PiJuiceUserScriptConfig(nb)
 		nb.add(self.userScriptTab.frame, text='User Scripts', underline=0, padding=2)
 
-		apply_button = Button(self, text="Apply", command=save_config)
+		apply_button = Button(self, text="Apply")
+		apply_button.event_add("<<ApplySettings>>", "<Button-1>", "<Return>", "<space>")  # XXX: Using separate actions can be unnecessary
+		apply_button.bind("<<ApplySettings>>", self.apply_settings)
 		apply_button.pack(side=RIGHT, padx=5, pady=5)
 		#print 'gui initialized'
+
+	def apply_settings(self, event=None):
+		# Apply user scripts paths
+		for i in range(0, 8):
+			self.userScriptTab._UpdatePath(i)
+		# Apply system task params
+		for param in (self.sysTaskConfig.watchdogParam, self.sysTaskConfig.wakeupChargeParam, self.sysTaskConfig.minChargeParam, self.sysTaskConfig.minVoltageParam):
+			param._WriteParam(None)
+		save_config()
+
 
 def save_config():
 	#if tkMessageBox.askokcancel("Quit", "Do you want to quit?"):
@@ -1319,6 +1331,7 @@ def save_config():
 		json.dump(pijuiceConfigData, outputConfig, indent=2)
 	#except:
 		#print
+
 
 def PiJuiceGuiOnclosing():
 	save_config()
