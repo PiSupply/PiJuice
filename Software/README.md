@@ -10,7 +10,28 @@ There are dependencies so you got error if not installed. Package is configured 
 
 It is possible that tray do not update if you open config by right click on tray, but if you open from menu it should update.
 
-## Software Menus
+## Software manual installation
+
+Copy the deb package to the pi home and install the package.
+
+`sudo dpkg -i ./pijuice_1.0-1_all.deb`
+
+You will need reboot at this point so that the system tray app is refreshed.
+
+To remove PiJuice you'll need to run:
+
+`sudo dpkg -r pijuice`
+
+### Build DEB-package manually
+`./pckg-pijuice.sh`
+
+or for the light version without GUI:
+
+`./pckg-pijuice.sh --light`
+
+*Note: You will need python-stdeb, dh-systemd and debhelper in order to be able to build.*
+
+## GUI Menus
 
 We have also taken a LOT of screenshots of all the different menu options etc to show you the full software. So lets get stuck in:
 
