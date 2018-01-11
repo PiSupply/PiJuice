@@ -17,7 +17,7 @@ ICON_DIR = '/usr/share/pijuice/data/images'
 
 class PiJuiceStatusTray:
 		
-    def __init__(self):
+	def __init__(self):
 		self.tray = gtk.StatusIcon()
 		self.tray.connect('activate', self.refresh)
 
@@ -44,32 +44,38 @@ class PiJuiceStatusTray:
 		
 		gobject.timeout_add(REFRESH_INTERVAL, self.refresh, False)
 
-    def show_menu(self, widget, event_button, event_time, menu):
-        menu.popup(None, None,
-            gtk.status_icon_position_menu,
-            event_button,
-            event_time,
-            self.tray
-        )
+	def show_menu(self, widget, event_button, event_time, menu):
+		menu.popup(None, None,
+			gtk.status_icon_position_menu,
+			event_button,
+			event_time,
+			self.tray
+		)
 
-    def show_about(self, widget):
-        dialog = gtk.MessageDialog(
-            None,
-            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            gtk.MESSAGE_INFO,
-            gtk.BUTTONS_OK,
-            """
-PiJuice battery 
-level status
-""")
-        dialog.run()
-        dialog.destroy()
+	def show_about(self, widget):
+		sw_version, fw_version, os_version = get_versions()
+		if fw_version is None:
+			fw_version = "No connection to PiJuice"
+		message = "\n".join([
+			"Software version: %s" % sw_version,
+			"Firmware version: %s" % fw_version,
+			"OS version: %s" % os_version,
+		])
+		dialog = gtk.MessageDialog(
+			None,
+			gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+			gtk.MESSAGE_INFO,
+			gtk.BUTTONS_OK,
+			message
+		)
+		dialog.run()
+		dialog.destroy()
 
-    def ConfigurePiJuice(self, widget):
+	def ConfigurePiJuice(self, widget):
 		PiJuiceConfigGui().mainloop()
-        #self.pijuiceConfig = 
+		#self.pijuiceConfig = 
 		
-    def refresh(self, widget):
+	def refresh(self, widget):
 		try:	
 			charge = self.pijuice.status.GetChargeLevel()	
 
