@@ -110,14 +110,15 @@ class PiJuiceHATConfig:
 		self.frame = Frame(master, name='hat')
 		self.frame.grid(row=0, column=0, sticky=W)
 		self.frame.rowconfigure(10, weight=1)
-		self.frame.columnconfigure((0,3), weight=1, uniform=1)
-		self.frame.columnconfigure(0, minsize=200)
+		self.frame.columnconfigure(0, weight=0, minsize=200)
+		self.frame.columnconfigure(1, weight=5, uniform=1)
+		self.frame.columnconfigure(2, weight=1, uniform=1)
 
 		Label(self.frame, text="Run pin:").grid(row=0, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
 		self.runPinConfig = StringVar()
 		self.runPinConfigSel = Combobox(self.frame, textvariable=self.runPinConfig, state='readonly')
 		self.runPinConfigSel['values'] = pijuice.config.runPinConfigs
-		self.runPinConfigSel.grid(column=1, row=0, padx=(2, 2), pady=(10, 0), sticky = W)
+		self.runPinConfigSel.grid(column=1, row=0, padx=(2, 2), pady=(10, 0), sticky = W+E)
 		self.runPinConfigSel.bind("<<ComboboxSelected>>", self._RunPinConfigSelected)
 		config = pijuice.config.GetRunPinConfig()
 		if config['error'] != 'NO_ERROR':
@@ -136,7 +137,7 @@ class PiJuiceHATConfig:
 			self.slaveAddr[i] = StringVar()
 			self.slaveAddr[i].trace("w", lambda name, index, mode, var=self.slaveAddr[i], id = i: self._ValidateSlaveAdr(var, id))
 			self.slaveAddrEntry[i] = Entry(self.frame,textvariable=self.slaveAddr[i])
-			self.slaveAddrEntry[i].grid(row=1+i, column=1, padx=(2, 2), pady=(10, 0), sticky=W)
+			self.slaveAddrEntry[i].grid(row=1+i, column=1, padx=(2, 2), pady=(10, 0), sticky=W+E)
 			self.slaveAddrEntry[i].bind("<Return>", lambda x, id=i: self._WriteSlaveAddress(id))
 			self.slaveAddrconfig[i] = pijuice.config.GetAddress(i+1)
 			if self.slaveAddrconfig[i]['error'] != 'NO_ERROR':
@@ -149,7 +150,7 @@ class PiJuiceHATConfig:
 		self.idEepromAddr = StringVar()
 		self.idEepromAddrSel = Combobox(self.frame, textvariable=self.idEepromAddr, state='readonly')
 		self.idEepromAddrSel['values'] = pijuice.config.idEepromAddresses
-		self.idEepromAddrSel.grid(column=1, row=3, padx=(2, 2), pady=(10, 0), sticky = W)
+		self.idEepromAddrSel.grid(column=1, row=3, padx=(2, 2), pady=(10, 0), sticky = W+E)
 		self.idEepromAddrSel.bind("<<ComboboxSelected>>", self._IdEepromAddrSelected)
 		config = pijuice.config.GetIdEepromAddress()
 		if config['error'] != 'NO_ERROR':
@@ -168,9 +169,9 @@ class PiJuiceHATConfig:
 
 		Label(self.frame, text="Power regulator mode:").grid(row=5, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
 		self.powerRegMode = StringVar()
-		self.powerRegModeSel = Combobox(self.frame, textvariable=self.powerRegMode, state='readonly', length=len(max(pijuice.config.powerRegulatorModes, key=len)) + 1)
+		self.powerRegModeSel = Combobox(self.frame, textvariable=self.powerRegMode, state='readonly', width=len(max(pijuice.config.powerRegulatorModes, key=len)) + 1)
 		self.powerRegModeSel['values'] = pijuice.config.powerRegulatorModes
-		self.powerRegModeSel.grid(column=1, row=5, padx=(2, 2), pady=(10, 0), sticky = W)
+		self.powerRegModeSel.grid(column=1, row=5, padx=(2, 2), pady=(10, 0), sticky = W+E)
 		self.powerRegModeSel.bind("<<ComboboxSelected>>", self._PowerRegModeSelected)
 		config = pijuice.config.GetPowerRegulatorMode()
 		if config['error'] != 'NO_ERROR':
@@ -242,7 +243,10 @@ class PiJuiceButtonsConfig:
 		# frame to hold contentx
 		self.frame = Frame(master, name='buttons')
 		self.frame.grid(row=0, column=0, sticky=W)
-		self.frame.columnconfigure(0, minsize=120)
+		self.frame.columnconfigure(0, weight=0, minsize=120)
+		self.frame.columnconfigure((1, 2), weight=1, uniform=1)
+
+		self.frame.rowconfigure((len(pijuice.config.buttonEvents)+1)*len(pijuice.config.buttons), weight=1)
 
 		self.evFuncSelList = []
 		self.evFuncList = []
@@ -276,13 +280,13 @@ class PiJuiceButtonsConfig:
 				func = StringVar()
 				self.evFuncList.append(func)
 				combo = Combobox(self.frame, textvariable=func, state='readonly')
-				combo.grid(row=r, column=1, padx=(2, 2), sticky=W)
+				combo.grid(row=r, column=1, padx=(2, 2), sticky=W+E)
 				combo['values'] = self.eventFunctions
 				self.evFuncSelList.append(combo)
 				param = StringVar()
 				self.evParamList.append(param)
 				ent = Entry(self.frame,textvariable=self.evParamList[ind])
-				ent.grid(row=r, column=2, padx=(2, 2), sticky=W)
+				ent.grid(row=r, column=2, padx=(2, 2), sticky=W+E)
 				self.evParamEntryList.append(ent)
 
 				self.evFuncSelList[ind].bind("<<ComboboxSelected>>", self._ConfigEdited)
@@ -291,8 +295,6 @@ class PiJuiceButtonsConfig:
 			self.configs.append({})
 			self.ReadConfig(i)
 
-		self.frame.rowconfigure((len(pijuice.config.buttonEvents)+1)*len(pijuice.config.buttons), weight=1)
-		self.frame.columnconfigure((0,3), weight=1, uniform=1)
 		self.applyBtn.configure(state="disabled")
 
 	def _ApplyNewConfig(self, v):
@@ -357,6 +359,10 @@ class PiJuiceLedConfig:
 
 		# frame to hold contentx
 		self.frame = Frame(master, name='led')
+		self.frame.rowconfigure(14, weight=1)
+		self.frame.columnconfigure(0, minsize=100, weight=0)
+		self.frame.columnconfigure(1, weight=5, uniform=1)
+		self.frame.columnconfigure(2, weight=1)
 
 		self.ledConfigsSel = []
 		self.ledConfigs = []
@@ -423,10 +429,7 @@ class PiJuiceLedConfig:
 
 		self.apply = StringVar()
 		self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=lambda v=self.apply: self._ApplyNewConfig(v))
-		self.applyBtn.grid(row=10, column=2)
-
-		self.frame.rowconfigure(14, weight=1)
-		self.frame.columnconfigure((0,2), weight=1, uniform=1)
+		self.applyBtn.grid(row=10, column=2, padx=5, sticky=E)
 
 	def _NewConfigSelected(self, event, i):
 		self.applyBtn.configure(state="normal")
@@ -462,6 +465,11 @@ class PiJuiceBatteryConfig:
 	def __init__(self, master):
 		# frame to hold contentx
 		self.frame = Frame(master, name='battery')
+		self.frame.columnconfigure(0, weight=0, uniform=1)
+
+		# position and set resize behaviour
+		self.frame.rowconfigure(14, weight=1)
+		self.frame.columnconfigure((1,2), weight=1, uniform=1)
 
 		# widgets to be displayed on 'Description' tab
 
@@ -481,74 +489,74 @@ class PiJuiceBatteryConfig:
 
 		Label(self.frame, text="Profile:").grid(row=0, column=0, sticky = W, pady=(8, 4))
 		self.prfStatus = StringVar()
-		self.statusLbl = Label(self.frame, text="" ,textvariable=self.prfStatus).grid(row=0, column=1, sticky = W, pady=(8, 4))
+		self.statusLbl = Label(self.frame, text="" ,textvariable=self.prfStatus).grid(row=0, column=1, sticky = W+E, pady=(8, 4))
 
 		Label(self.frame, text="Capacity [mAh]:").grid(row=2, column=0, sticky = W)
 		self.capacity = StringVar()
 		self.capacity.trace("w", self._ProfileEdited)
 		self.capacityEntry = Entry(self.frame,textvariable=self.capacity)
-		self.capacityEntry.grid(row=2, column=1, sticky = W)
+		self.capacityEntry.grid(row=2, column=1, sticky = W+E)
 		Label(self.frame, text="Charge current [mA]:").grid(row=3, column=0, sticky = W)
 		self.chgCurrent = StringVar()
 		self.chgCurrent.trace("w", self._ProfileEdited)
 		self.chgCurrentEntry = Entry(self.frame, textvariable=self.chgCurrent)
-		self.chgCurrentEntry.grid(row=3, column=1, sticky = W)
+		self.chgCurrentEntry.grid(row=3, column=1, sticky = W+E)
 		Label(self.frame, text="Termination current [mA]:").grid(row=4, column=0, sticky = W)
 		self.termCurrent = StringVar()
 		self.termCurrent.trace("w", self._ProfileEdited)
 		self.termCurrentEntry = Entry(self.frame, textvariable=self.termCurrent)
-		self.termCurrentEntry.grid(row=4, column=1, sticky = W)
+		self.termCurrentEntry.grid(row=4, column=1, sticky = W+E)
 		Label(self.frame, text="Regulation voltage [mV]:").grid(row=5, column=0, sticky = W)
 		self.regVoltage = StringVar()
 		self.regVoltage.trace("w", self._ProfileEdited)
 		self.regVoltageEntry = Entry(self.frame,textvariable=self.regVoltage)
-		self.regVoltageEntry.grid(row=5, column=1, sticky = W)
+		self.regVoltageEntry.grid(row=5, column=1, sticky = W+E)
 		Label(self.frame, text="Cutoff voltage [mV]:").grid(row=6, column=0, sticky = W)
 		self.cutoffVoltage = StringVar()
 		self.cutoffVoltage.trace("w", self._ProfileEdited)
 		self.cutoffVoltageEntry = Entry(self.frame,textvariable=self.cutoffVoltage)
-		self.cutoffVoltageEntry.grid(row=6, column=1, sticky = W)
+		self.cutoffVoltageEntry.grid(row=6, column=1, sticky = W+E)
 		Label(self.frame, text="Cold temperature [C]:").grid(row=7, column=0, sticky = W)
 		self.tempCold = StringVar()
 		self.tempCold.trace("w", self._ProfileEdited)
 		self.tempColdEntry = Entry(self.frame,textvariable=self.tempCold)
-		self.tempColdEntry.grid(row=7, column=1, sticky = W)
+		self.tempColdEntry.grid(row=7, column=1, sticky = W+E)
 		Label(self.frame, text="Cool temperature [C]:").grid(row=8, column=0, sticky = W)
 		self.tempCool = StringVar()
 		self.tempCool.trace("w", self._ProfileEdited)
 		self.tempCoolEntry = Entry(self.frame,textvariable=self.tempCool)
-		self.tempCoolEntry.grid(row=8, column=1, sticky = W)
+		self.tempCoolEntry.grid(row=8, column=1, sticky = W+E)
 		Label(self.frame, text="Warm temperature [C]:").grid(row=9, column=0, sticky = W)
 		self.tempWarm = StringVar()
 		self.tempWarm.trace("w", self._ProfileEdited)
 		self.tempWarmEntry = Entry(self.frame,textvariable=self.tempWarm)
-		self.tempWarmEntry.grid(row=9, column=1, sticky = W)
+		self.tempWarmEntry.grid(row=9, column=1, sticky = W+E)
 		Label(self.frame, text="Hot temperature [C]:").grid(row=10, column=0, sticky = W)
 		self.tempHot = StringVar()
 		self.tempHot.trace("w", self._ProfileEdited)
 		self.tempHotEntry = Entry(self.frame,textvariable=self.tempHot)
-		self.tempHotEntry.grid(row=10, column=1, sticky = W)
+		self.tempHotEntry.grid(row=10, column=1, sticky = W+E)
 		Label(self.frame, text="NTC B constant [1k]:").grid(row=11, column=0, sticky = W)
 		self.ntcB = StringVar()
 		self.ntcB.trace("w", self._ProfileEdited)
 		self.ntcBEntry = Entry(self.frame,textvariable=self.ntcB)
-		self.ntcBEntry.grid(row=11, column=1, sticky = W)
+		self.ntcBEntry.grid(row=11, column=1, sticky = W+E)
 		Label(self.frame, text="NTC resistance [ohm]:").grid(row=12, column=0, sticky = W)
 		self.ntcResistance = StringVar()
 		self.ntcResistance.trace("w", self._ProfileEdited)
 		self.ntcResistanceEntry = Entry(self.frame,textvariable=self.ntcResistance)
-		self.ntcResistanceEntry.grid(row=12, column=1, sticky = W)
+		self.ntcResistanceEntry.grid(row=12, column=1, sticky = W+E)
 
 		self.apply = StringVar()
 		self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=lambda v=self.apply: self._ApplyNewProfile(v))
-		self.applyBtn.grid(row=13, column=1, pady=(4,2), sticky = E)
+		self.applyBtn.grid(row=13, column=2, pady=(4,2), sticky = E)
 
-		Label(self.frame, text="Temperature sense:").grid(row=2, column=2, padx=(5, 5), sticky = W)
+		Label(self.frame, text="Temperature sense:").grid(row=2, column=2, padx=(5, 5), sticky = (W, E))
 		self.tempSense = StringVar()
 		self.tempSenseSel = Combobox(self.frame, textvariable=self.tempSense, state='readonly')
 		self.tempSenseSel['values'] = pijuice.config.batteryTempSenseOptions
 		self.tempSenseSel.set('')
-		self.tempSenseSel.grid(column=2, row=3, padx=(5, 5), pady=(0,2))
+		self.tempSenseSel.grid(column=2, row=3, padx=(5, 5), pady=(0,2), sticky=W)
 		self.tempSenseSel.bind("<<ComboboxSelected>>", self._NewTempSenseConfigSel)
 
 		self.refreshConfig = StringVar()
@@ -558,11 +566,6 @@ class PiJuiceBatteryConfig:
 		#self.closeConfig = StringVar()
 		#self.closeBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=lambda v=self.closeConfig: self._Close(v))
 		#self.closeBtn.grid(row=13, column=2, pady=(4,2), sticky = E)
-
-		# position and set resize behaviour
-		#lbl.grid(row=1, column=2, columnspan=2, sticky='new', pady=5)
-		self.frame.rowconfigure(14, weight=1)
-		self.frame.columnconfigure((0,2), weight=1, uniform=1)
 
 		self.Refresh(self.refreshConfig)
 
@@ -761,12 +764,13 @@ class PiJuiceUserScriptConfig:
 		self.frame.grid(row=0, column=0, sticky=W)
 		self.frame.rowconfigure(10, weight=1)
 		self.frame.columnconfigure((0,3), weight=1, uniform=1)
+		self.frame.columnconfigure(0, weight=0)
 
 		global pijuiceConfigData
 		self.pathEdits = []
 		self.paths = []
 		for i in range(0, 8):
-			Label(self.frame, text='USER FUNC'+str(i+1)+':').grid(row=i, column=0, padx=(2, 2), pady=(4, 0), sticky = W)
+			Label(self.frame, text='USER FUNC'+str(i+1)+':').grid(row=i, column=0, padx=(2, 20), pady=(4, 0), sticky = W)
 			self.paths.append(StringVar())
 			self.pathEdits.append(Entry(self.frame,textvariable=self.paths[i]))
 			self.pathEdits[i].grid(row=i, column=1, padx=(2, 2), pady=(4, 0), columnspan = 3, sticky='WE')
@@ -957,8 +961,9 @@ class PiJuiceSysEventConfig:
 		self.frame = Frame(master, name='system_events')
 		self.frame.grid(row=0, column=0, sticky=W)
 		self.frame.rowconfigure(10, weight=1)
-		self.frame.columnconfigure((0,3), weight=1, uniform=1)
-		self.frame.columnconfigure(0, minsize=175)
+		self.frame.columnconfigure(0, weight=0, minsize=175)
+		self.frame.columnconfigure(1, weight=10, uniform=1)
+		self.frame.columnconfigure(2, weight=1, uniform=1)
 
 		self.eventFunctions = ['NO_FUNC'] + pijuice_sys_functions + pijuice_user_functions
 		self.sysEvents = [{'id':'low_charge', 'name':'Low charge', 'funcList':self.eventFunctions},
@@ -996,7 +1001,7 @@ class PiJuiceSysEventConfig:
 			self.funcConfigsSel.append(Combobox(self.frame, textvariable=self.funcConfigs[i], state='readonly', width=combobox_length))
 			self.funcConfigsSel[i]['values'] = self.sysEvents[i]['funcList']#self.eventFunctions
 			self.funcConfigsSel[i].current(0)
-			self.funcConfigsSel[i].grid(column=1, row=1+i, padx=(5, 5), pady=(0, 5), sticky = W)
+			self.funcConfigsSel[i].grid(column=1, row=1+i, padx=(5, 5), pady=(0, 5), sticky = W+E)
 
 			#self.params[i].set('')
 			#self.oldParams[i].set('')
@@ -1076,7 +1081,7 @@ class PiJuiceConfigParamEdit:
 		self.oldParamVal = StringVar()
 		self.paramEntry = Entry(self.frame,textvariable=self.param)
 		self.paramEntry.bind("<Return>", self._WriteParam)
-		self.paramEntry.grid(row=r+1, column=1, sticky = W, padx=(2, 2), pady=(2, 0))
+		self.paramEntry.grid(row=r+1, column=1, sticky = W+E, padx=(2, 2), pady=(2, 0))
 
 		if id in config:
 			if paramId in config[id]:
@@ -1125,8 +1130,9 @@ class PiJuiceSysTaskTab:
 		self.frame = Frame(master, name='sys_task')
 		self.frame.grid(row=0, column=0, sticky=W)
 		self.frame.rowconfigure(10, weight=1)
-		self.frame.columnconfigure((0,3), weight=1, uniform=1)
-		self.frame.columnconfigure(0, minsize=190)
+		self.frame.columnconfigure(0, weight=0, minsize=190)
+		self.frame.columnconfigure(1, weight=10, uniform=1)
+		self.frame.columnconfigure(2, weight=1, uniform=1)
 
 		if not ('system_task' in pijuiceConfigData):
 			pijuiceConfigData['system_task'] = {}
@@ -1159,38 +1165,39 @@ class PiJuiceHatTab:
 		self.frame = Frame(master, name='hat')
 		self.frame.grid(row=0, column=0, sticky=W)
 		self.frame.rowconfigure(10, weight=1)
-		self.frame.columnconfigure((0,2), weight=1, uniform=1)
 		self.frame.columnconfigure(0, minsize=150)
+		self.frame.columnconfigure(1, weight=3, uniform=1)
+		self.frame.columnconfigure(2, weight=1, uniform=1)
 
 		if pijuice == None:
 			return
 
-		Label(self.frame, text="Battery:").grid(row=0, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
+		Label(self.frame, text="Battery:").grid(row=0, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
 		self.status = StringVar()
 		self.statusLbl = Label(self.frame,textvariable=self.status, text='')
 		self.statusLbl.grid(row=0, column=1, padx=(2, 2), pady=(20, 0), columnspan=2, sticky = W)
 
-		Label(self.frame, text="GPIO power input:").grid(row=1, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
+		Label(self.frame, text="GPIO power input:").grid(row=1, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
 		self.gpioPower = StringVar()
 		self.gpioPowerLbl = Label(self.frame,textvariable=self.gpioPower, text='')
 		self.gpioPowerLbl.grid(row=1, column=1, padx=(2, 2), pady=(20, 0), columnspan=2, sticky = W)
 
-		Label(self.frame, text="USB Micro power input:").grid(row=2, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
+		Label(self.frame, text="USB Micro power input:").grid(row=2, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
 		self.usbPower = StringVar()
 		self.usbPowerLbl = Label(self.frame,textvariable=self.usbPower, text='')
 		self.usbPowerLbl.grid(row=2, column=1, padx=(2, 2), pady=(20, 0), columnspan=2, sticky = W)
 
-		Label(self.frame, text="Fault:").grid(row=3, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
+		Label(self.frame, text="Fault:").grid(row=3, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
 		self.fault = StringVar()
 		self.faultLbl = Label(self.frame,textvariable=self.fault, text='')
 		self.faultLbl.grid(row=3, column=1, padx=(2, 2), pady=(20, 0), columnspan=2, sticky = W)
 
 		self.sysSwEnable = BooleanVar()
-		self.sysSwEnableCheck = Checkbutton(self.frame, text = 'System switch state', variable = self.sysSwEnable).grid(row=4, column=0, sticky = W, padx=(2, 2), pady=(20, 0))
+		self.sysSwEnableCheck = Checkbutton(self.frame, text = 'System switch state', variable = self.sysSwEnable).grid(row=4, column=0, sticky = W, padx=(2, 10), pady=(20, 0))
 		self.sysSwLimit = StringVar()
 		self.sysSwLimitEntry = Entry(self.frame,textvariable=self.sysSwLimit)
 		#self.sysSwLimitEntry.bind("<Return>", self._SetSysSwitch)
-		self.sysSwLimitEntry.grid(row=4, column=1, sticky = W, padx=(2, 2), pady=(20, 0))
+		self.sysSwLimitEntry.grid(row=4, column=1, sticky = W+E, padx=(2, 2), pady=(20, 0))
 		self.sysSwEnable.trace("w", self._SetSysSwitch)
 
 		self.hatConfigBtn = Button(self.frame, text='Configure HAT', state="normal", underline=0, command= self._HatConfigCmd)
