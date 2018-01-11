@@ -168,7 +168,7 @@ class PiJuiceHATConfig:
 
 		Label(self.frame, text="Power regulator mode:").grid(row=5, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
 		self.powerRegMode = StringVar()
-		self.powerRegModeSel = Combobox(self.frame, textvariable=self.powerRegMode, state='readonly')
+		self.powerRegModeSel = Combobox(self.frame, textvariable=self.powerRegMode, state='readonly', length=len(max(pijuice.config.powerRegulatorModes, key=len)) + 1)
 		self.powerRegModeSel['values'] = pijuice.config.powerRegulatorModes
 		self.powerRegModeSel.grid(column=1, row=5, padx=(2, 2), pady=(10, 0), sticky = W)
 		self.powerRegModeSel.bind("<<ComboboxSelected>>", self._PowerRegModeSelected)
