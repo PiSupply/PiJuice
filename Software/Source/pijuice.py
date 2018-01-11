@@ -1285,4 +1285,26 @@ class PiJuice(object):
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		return False  # Don't suppress exceptions.
-		
+
+
+def get_versions():
+	import os
+	try:
+		p = PiJuice()
+		firmware_version_dict = p.config.GetFirmvareVersion()
+	except:
+		firmware_version_dict = {}
+	uname = os.uname()
+	os_version = ' '.join((uname[0], uname[2], uname[3]))
+	firmware_version = firmware_version_dict.get('data', {}).get('version')
+	return __version__, firmware_version, os_version
+
+
+if __name__ == '__main__':
+	if sys.argv[1] == '--version':
+		sw_version, fw_version, os_version = get_versions()
+		print "Software version: %s" % sw_version
+		if fw_version is None:
+			fw_version = "No connection to PiJuice"
+		print "Firmware version: %s" % fw_version
+		print "OS version: %s" % os_version
