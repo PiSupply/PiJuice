@@ -111,6 +111,7 @@ class PiJuiceHATConfig:
 		self.frame.grid(row=0, column=0, sticky=W)
 		self.frame.rowconfigure(10, weight=1)
 		self.frame.columnconfigure((0,3), weight=1, uniform=1)
+		self.frame.columnconfigure(0, minsize=200)
 
 		Label(self.frame, text="Run pin:").grid(row=0, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
 		self.runPinConfig = StringVar()
@@ -241,6 +242,8 @@ class PiJuiceButtonsConfig:
 		# frame to hold contentx
 		self.frame = Frame(master, name='buttons')
 		self.frame.grid(row=0, column=0, sticky=W)
+		self.frame.columnconfigure(0, minsize=120)
+
 		self.evFuncSelList = []
 		self.evFuncList = []
 		self.evParamEntryList = []
@@ -783,6 +786,7 @@ class PiJuiceWakeupConfig:
 		self.frame.grid(row=0, column=0, sticky=W)
 		self.frame.rowconfigure(10, weight=1)
 		self.frame.columnconfigure((0,3), weight=1, uniform=1)
+		self.frame.columnconfigure(0, minsize=100)
 
 		if pijuice == None:
 			return
@@ -992,7 +996,7 @@ class PiJuiceSysEventConfig:
 			self.funcConfigsSel.append(Combobox(self.frame, textvariable=self.funcConfigs[i], state='readonly', width=combobox_length))
 			self.funcConfigsSel[i]['values'] = self.sysEvents[i]['funcList']#self.eventFunctions
 			self.funcConfigsSel[i].current(0)
-			self.funcConfigsSel[i].grid(column=1, row=1+i, padx=(5, 5), sticky = W)
+			self.funcConfigsSel[i].grid(column=1, row=1+i, padx=(5, 5), pady=(0, 5), sticky = W)
 
 			#self.params[i].set('')
 			#self.oldParams[i].set('')
@@ -1122,7 +1126,7 @@ class PiJuiceSysTaskTab:
 		self.frame.grid(row=0, column=0, sticky=W)
 		self.frame.rowconfigure(10, weight=1)
 		self.frame.columnconfigure((0,3), weight=1, uniform=1)
-		self.frame.columnconfigure(0, minsize=175)
+		self.frame.columnconfigure(0, minsize=190)
 
 		if not ('system_task' in pijuiceConfigData):
 			pijuiceConfigData['system_task'] = {}
@@ -1156,6 +1160,7 @@ class PiJuiceHatTab:
 		self.frame.grid(row=0, column=0, sticky=W)
 		self.frame.rowconfigure(10, weight=1)
 		self.frame.columnconfigure((0,2), weight=1, uniform=1)
+		self.frame.columnconfigure(0, minsize=150)
 
 		if pijuice == None:
 			return
@@ -1311,7 +1316,6 @@ class PiJuiceConfigGui(Frame):
 		apply_button.event_add("<<ApplySettings>>", "<Button-1>", "<Return>", "<space>")  # XXX: Using separate actions can be unnecessary
 		apply_button.bind("<<ApplySettings>>", self.apply_settings)
 		apply_button.pack(side=RIGHT, padx=5, pady=5)
-		#print 'gui initialized'
 
 	def apply_settings(self, event=None):
 		# Apply user scripts paths
@@ -1364,6 +1368,6 @@ if __name__ == '__main__':
 	if pijuice is None:
 		tkMessageBox.showerror('PuJuice Interfacing', 'Failed to use I2C bus. Check if I2C is enabled', parent=root)
 	root.update()
-	root.minsize(400, 380)
+	root.minsize(400, 400)
 
 	PiJuiceConfigGui().mainloop()
