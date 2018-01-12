@@ -60,7 +60,7 @@ class PiJuiceFirmware:
 		self.firmVerLbl = Label(self.frame, textvariable=self.firmVer, text="").grid(row=0, column=1, padx=(2, 2), pady=(10, 0), sticky = W)
 		self.newFirmStatus = StringVar()
 		self.newFirmStatusLbl = Label(self.frame, textvariable=self.newFirmStatus, text="").grid(row=1, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
-		status = pijuice.config.GetFirmvareVersion()
+		status = pijuice.config.GetFirmwareVersion()
 		self.ver = None
 		if status['error'] == 'NO_ERROR':
 			self.ver = status['data']

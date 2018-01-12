@@ -1260,7 +1260,7 @@ class PiJuiceConfig():
 	def SetDefaultConfiguration(self):
 		return self.interface.WriteData(self.RESET_TO_DEFAULT_CMD, [0xaa, 0x55, 0x0a, 0xa3])		
 		
-	def GetFirmvareVersion(self):	
+	def GetFirmwareVersion(self):	
 		ret = self.interface.ReadData(self.FIRMWARE_VERSION_CMD, 2)
 		if ret['error'] != 'NO_ERROR':
 			return ret
@@ -1291,7 +1291,7 @@ def get_versions():
 	import os
 	try:
 		p = PiJuice()
-		firmware_version_dict = p.config.GetFirmvareVersion()
+		firmware_version_dict = p.config.GetFirmwareVersion()
 	except:
 		firmware_version_dict = {}
 	uname = os.uname()
