@@ -1,5 +1,30 @@
-pijuice (1.0-1) unstable; urgency=low
+pijuice (1.1-1) unstable; urgency=low
 
-  * source package automatically created by stdeb 0.8.2
+Software:
+    Improvements:
+      * New icon for desktop menu
+      * Apply button in main window for saving settings
+      * Use "clam" theme for GUI
+      * Adjust minimal window sizes
+      * Function for getting versions (OS, Firmware, Software)
+      * Add versions info to About menu in tray
+      * Change title for main settings window
+      * Added light installation mode for headless systems as per #18
 
- -- Milan Neskovic <milan@pi-supply.com>  Mon, 29 May 2017 10:31:27 +0200
+    Fixes:
+      * Fix typo "Temerature sense" in Battery configuration tab
+      * "Apply" button now applies settings from fields that use Enter key to update value
+      * Various layout fixes for values to fit their elements
+      * Make tray menu entry Settings launch pijuice_gui in separate process
+      * Refactored GetFirmvareVersion to GetFirmwareVersion #34
+
+     -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 12 Jan 2018 13:05:40 +0600
+Firmware:
+    Improvements:
+    Fixes:
+
+    -- Milan Neskovic <milan@pi-supply.com>
+
+pijuice (1.0) stable;
+
+This version had been uploaded to Raspbian's official repo

@@ -1,16 +1,62 @@
 # PiJuice Software
 
-Default battery profile is defined by dip switch position. On v1.1 it is position 01 for BP7X, on v1.0 version, it might be different, you can try different positions, and power circle pijuice to get updated.
+The default battery profile is defined by the DIP switch position. On v1.1 it is position 01 for BP7X, on v1.0 version, it might be different, you can try different positions, and power circle pijuice to get updated.
 
-It is not possible to detect battery not present when powered through on board usb micro, so it might show 0% only.
+It is not possible to detect battery not present when powered through on board USB micro, so it might show 0% only.
 
-User functions are 4 digit binary coded and have 15 combinations, code 0 is USER_EVENT meant that it will not be processed by system task, but left to user and python API to manage it. I thought it is rare case that all 15 will be needed so on gui there is 8 (it will make big window also). However if someone needs more scripts it can be manualy added by editing config json file: /var/lib/pijuice/pijuice_config.JSON. Also all other configurations can be managed manually in this file if gui is not available. 
+User functions are 4 digit binary coded and have 15 combinations, code 0 is USER_EVENT meant that it will not be processed by system task, but left to user and python API to manage it. I thought it is rare case that all 15 will be needed so on gui there is 8 (it will make big window also). However if someone needs more scripts it can be manualy added by editing config json file: /var/lib/pijuice/pijuice_config.JSON. Also all other configurations can be managed manually in this file if the GUI is not available.
 
-There are dependencies so you got error if not installed. Package is configured to intentionally  raise those errors so you can install it before. Usually if package is added to some server and configured as repository than you can use apt-get that will automatically install dependencies, and update. I can prepare packages to add on private server, do not know for official.
+The user functions section of the JSON file looks like the following. To add USER_FUNC from 9 to 15 simply append them to the existing ones.
 
-It is possible that tray do not update if you open config by right click on tray, but if you open from menu it should update.
+```text
+ "user_functions": {    
+    "USER_FUNC1": "",
+    "USER_FUNC2": "",
+    "USER_FUNC3": "",
+    "USER_FUNC4": "",
+    "USER_FUNC5": "",
+    "USER_FUNC6": "",
+    "USER_FUNC7": "",
+    "USER_FUNC8": "",
+    "USER_FUNC9": "",
+    ...
+    "USER_FUNC15": ""
+  },
 
-## Software Menus
+``` 
+
+## Software installation
+### Automated process
+At the command line simply type:
+```bash
+sudo apt-get install pijuice
+``` 
+PiJuice depends on other libraries to be present, the package is designed to raise them and let apt-get resolve them.
+
+### Manual process
+
+Copy the deb package to the pi home and install the package.
+
+`sudo dpkg -i ./pijuice_1.0-1_all.deb`
+
+Should the installation complain about missing dependencies you need to sort them first and try with the installation once again.
+
+You will need to reboot at this point so that the system tray app is refreshed.
+
+To remove PiJuice you'll need to run:
+
+`sudo dpkg -r pijuice`
+
+#### Build DEB-package manually
+`./pckg-pijuice.sh`
+
+or for the light version without GUI:
+
+`./pckg-pijuice.sh --light`
+
+*Note: You will need python-stdeb, dh-systemd and debhelper in order to be able to build.*
+
+## GUI Menus
 
 We have also taken a LOT of screenshots of all the different menu options etc to show you the full software. So lets get stuck in:
 
@@ -18,7 +64,7 @@ We have also taken a LOT of screenshots of all the different menu options etc to
 
 Raspberry Pi Menu Entry for PiJuice Configuration Software
 
-As said in the above video, we have compiled the source code into a .deb Debian package file so it is super easy to install (instructions on how on the GitHub page linked below). Eventually, we will get this included in the official Raspbian package repositories so you will be able to install it very easily using the command "sudo apt-get install pijuice" just like you do with other software! Once installation is complete the software appears in the system menu under Menu -> Preferences -> PiJuice Configuration as you can see in the above image.
+We have compiled the source code into a .deb Debian package file so it is super easy to install. Once installation is complete the software appears in the system menu under Menu -> Preferences -> PiJuice Configuration as you can see in the above image.
 
 ### System Tray
 
@@ -94,6 +140,8 @@ This is the user scripts menu tab as we mentioned in the above screenshot descri
 In the first config menu screenshot, we mentioned a button in the image that said "Configure HAT" - if you were to click on that button it would bring you to this PiJuice HAT general configuration menu. It allows you to configure a lot of hardware settings on the PiJuice HAT itself (as opposed to the previous menus which were actually configuring the software - hopefully that is not too confusing!)
 
 This is the general tab, which allows you to select whether you have installed the spring pin / run pin and also the I2C addresses of the HAT and the RTC as well as changing the write protect on the eeprom and changing the actual physical I2C address of the eeprom. These eeprom features can be very useful if you want to stack another HAT on top of the PiJuice but still have that other HAT auto-configure itself.
+
+*Note: Using the "Reset to default configuration" will restore the board to its default settings and for a short while the GUI will report "COMMUNICATION_ERROR"*
 
 ### PiJuice HAT Config Buttons Menu
 

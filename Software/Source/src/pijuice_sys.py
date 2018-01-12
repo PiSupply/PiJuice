@@ -25,12 +25,9 @@ logger = None
 dopoll = True 
 
 def _SystemHalt(event):
-	if (
-		(event == 'low_charge' or event == 'low_battery_voltage')
-		and ('wakeup_on_charge' in configData['system_task']) 
-		and ('enabled' in configData['system_task']['wakeup_on_charge']) 
-		and configData['system_task']['wakeup_on_charge']['enabled']
-		and 'trigger_level' in configData['system_task']['wakeup_on_charge']):
+	if (event == 'low_charge' or event == 'low_battery_voltage')
+		and configData['system_task'].get('wakeup_on_charge', {}).get('enabled')
+		and 'trigger_level' in configData['system_task']['wakeup_on_charge']:
 		try:
 			tl = float(configData['system_task']['wakeup_on_charge']['trigger_level'])
 			print 'wakeup on charge', tl
@@ -206,9 +203,8 @@ def main():
 		sys.exit(0)
 
 	if (('watchdog' in configData['system_task']) 
-		and ('enabled' in configData['system_task']['watchdog']) 
-		and configData['system_task']['watchdog']['enabled'] 
-		and ('period' in configData['system_task']['watchdog']) 
+		and configData['system_task'].get('watchdog', {}).get('enabled')
+		and ('period' in configData['system_task']['watchdog'])
 		):
 		try:
 			p = int(configData['system_task']['watchdog']['period'])
