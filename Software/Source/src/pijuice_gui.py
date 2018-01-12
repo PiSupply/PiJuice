@@ -267,7 +267,7 @@ class PiJuiceButtonsConfig:
 		self.applyBtn.grid(row=apply_btn_row, column=4, padx=2, pady=(5, 2), sticky=N+E)
 
 		self.errorStatus = StringVar()
-		self.errorStatusLbl = Label(self.frame, text='', textvariable=self.errorStatus).grid(row=1, column=4, sticky=E)
+		self.errorStatusLbl = Label(self.frame, text='', textvariable=self.errorStatus).grid(row=apply_btn_row, column=0, padx=2, pady=2, sticky=N+W)
 
 		combobox_length = len(max(self.eventFunctions, key=len)) + 1
 
