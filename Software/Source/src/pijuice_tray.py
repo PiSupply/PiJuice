@@ -68,6 +68,7 @@ class PiJuiceStatusTray:
 			gtk.BUTTONS_OK,
 			message
 		)
+		dialog.set_title("About")
 		dialog.run()
 		dialog.destroy()
 
