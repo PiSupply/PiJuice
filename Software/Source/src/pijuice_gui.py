@@ -242,11 +242,13 @@ class PiJuiceButtonsConfig:
 	def __init__(self, master):
 		# frame to hold contentx
 		self.frame = Frame(master, name='buttons')
-		self.frame.grid(row=0, column=0, sticky=W)
+		self.frame.grid(row=0, column=0, sticky=N+W+S+E)
 		self.frame.columnconfigure(0, weight=0, minsize=120)
-		self.frame.columnconfigure((1, 2), weight=1, uniform=1)
+		self.frame.columnconfigure((1, 4), weight=1, uniform=1)
 
-		self.frame.rowconfigure((len(pijuice.config.buttonEvents)+1)*len(pijuice.config.buttons), weight=1)
+		apply_btn_row = (len(pijuice.config.buttonEvents)+1)*len(pijuice.config.buttons)
+
+		self.frame.rowconfigure(apply_btn_row, weight=1)
 
 		self.evFuncSelList = []
 		self.evFuncList = []
@@ -258,19 +260,21 @@ class PiJuiceButtonsConfig:
 
 		self.refreshConfig = StringVar()
 		self.refreshConfigBtn = Button(self.frame, text='Refresh', underline=0, command=lambda v=self.refreshConfig: self.Refresh(v))
-		self.refreshConfigBtn.grid(row=0, column=3)
+		self.refreshConfigBtn.grid(row=0, column=4, padx=2, pady=2, sticky=N+E)
 
 		self.apply = StringVar()
 		self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=lambda v=self.apply: self._ApplyNewConfig(v))
-		self.applyBtn.grid(row=(len(pijuice.config.buttonEvents)+1)*len(pijuice.config.buttons)-1, column=3)
+		self.applyBtn.grid(row=apply_btn_row, column=4, padx=2, pady=(5, 2), sticky=N+E)
 
 		self.errorStatus = StringVar()
-		self.errorStatusLbl = Label(self.frame, text='', textvariable=self.errorStatus).grid(row=1, column=3)
+		self.errorStatusLbl = Label(self.frame, text='', textvariable=self.errorStatus).grid(row=1, column=4, sticky=E)
+
+		combobox_length = len(max(self.eventFunctions, key=len)) + 1
 
 		for i in range(0, len(pijuice.config.buttons)):
 			Label(self.frame, text=pijuice.config.buttons[i]+":").grid(row=i*7, column=0, columnspan=2, padx=(5, 5),pady=(4, 0), sticky=W)
 			Label(self.frame, text="Function:").grid(row=i*7, column=1, columnspan=2, padx=(2, 2),pady=(4, 0), sticky=W)
-			Label(self.frame, text="Parameter:").grid(row=i*7, column=2, columnspan=2, padx=(2, 2),pady=(4, 0), sticky=W)
+			Label(self.frame, text="Parameter:").grid(row=i*7, column=3, columnspan=2, padx=(2, 2),pady=(4, 0), sticky=W)
 
 			for j in range(0, len(pijuice.config.buttonEvents)):
 				r = i * (len(pijuice.config.buttonEvents) + 1) + j + 1
@@ -279,14 +283,14 @@ class PiJuiceButtonsConfig:
 
 				func = StringVar()
 				self.evFuncList.append(func)
-				combo = Combobox(self.frame, textvariable=func, state='readonly')
-				combo.grid(row=r, column=1, padx=(2, 2), sticky=W+E)
+				combo = Combobox(self.frame, textvariable=func, state='readonly', width=combobox_length)
+				combo.grid(row=r, column=1, padx=(2, 2), columnspan=2, sticky=W+E)
 				combo['values'] = self.eventFunctions
 				self.evFuncSelList.append(combo)
 				param = StringVar()
 				self.evParamList.append(param)
 				ent = Entry(self.frame,textvariable=self.evParamList[ind])
-				ent.grid(row=r, column=2, padx=(2, 2), sticky=W+E)
+				ent.grid(row=r, column=3, padx=(2, 2), columnspan=2, sticky=W+E)
 				self.evParamEntryList.append(ent)
 
 				self.evFuncSelList[ind].bind("<<ComboboxSelected>>", self._ConfigEdited)
@@ -728,8 +732,6 @@ class PiJuiceHATConfigGui():
 
 		t = Toplevel()
 		t.wm_title('PiJuice HAT Configuration')
-		t.minsize(550, 500)
-		t.update()
 
 		# create the notebook
 		nb = Notebook(t, name='notebook')
@@ -757,6 +759,9 @@ class PiJuiceHATConfigGui():
 
 		self.firmware = PiJuiceFirmware(nb)
 		nb.add(self.firmware.frame, text='Firmware', underline=0, padding=2)
+		
+		t.update()
+		t.minsize(t.winfo_width(), t.winfo_height())
 
 class PiJuiceUserScriptConfig:
 	def __init__(self, master):
