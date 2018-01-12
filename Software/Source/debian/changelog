@@ -1,18 +1,30 @@
 pijuice (1.1-1) unstable; urgency=low
 
-Improvements:
-  * New icon for desktop menu
-  * Apply button in main window for saving settings
-  * Use "clam" theme for GUI
-  * Adjust minimal window sizes
-  * Function for getting versions (OS, Firmware, Software)
-  * Add versions info to About menu in tray
-  * Change title for main settings window
+Software:
+    Improvements:
+      * New icon for desktop menu
+      * Apply button in main window for saving settings
+      * Use "clam" theme for GUI
+      * Adjust minimal window sizes
+      * Function for getting versions (OS, Firmware, Software)
+      * Add versions info to About menu in tray
+      * Change title for main settings window
+      * Added light installation mode for headless systems as per #18
 
-Fixes:
-  * Fix typo "Temerature sense" in Battery configuration tab
-  * "Apply" button now applies settings from fields that use Enter key to update value
-  * Various layout fixes for values to fit their elements
-  * Make tray menu entry Settings launch pijuice_gui in separate process
+    Fixes:
+      * Fix typo "Temerature sense" in Battery configuration tab
+      * "Apply" button now applies settings from fields that use Enter key to update value
+      * Various layout fixes for values to fit their elements
+      * Make tray menu entry Settings launch pijuice_gui in separate process
+      * Refactored GetFirmvareVersion to GetFirmwareVersion #34
 
- -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 12 Jan 2018 13:05:40 +0600
+     -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 12 Jan 2018 13:05:40 +0600
+Firmware:
+    Improvements:
+    Fixes:
+
+    -- Milan Neskovic <milan@pi-supply.com>
+
+pijuice (1.0) stable;
+
+This version had been uploaded to Raspbian's official repo

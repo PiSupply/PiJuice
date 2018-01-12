@@ -35,4 +35,4 @@ python pijuicetest.py
 ```
 The script should display the firmware status, it will print data read from the MCU on screen like battery voltage, charge, battery profile, etc.
 
-*Note: For old firmwares try to use the old firmware updater with a new firmware binary, or use ST debuger to erase flash.*
+*Note: For old firmwares (prior to V1.0_2017_08_15) try to use the old firmware updater with a new firmware binary, or use ST debuger to erase flash.*
