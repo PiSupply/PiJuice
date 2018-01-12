@@ -24,7 +24,7 @@ class PiJuiceStatusTray:
 		# Create menu
 		menu = gtk.Menu()
 		
-		i = gtk.MenuItem("Configure")
+		i = gtk.MenuItem("Settings")
 		i.show()
 		i.connect("activate", self.ConfigurePiJuice)
 		menu.append(i)
