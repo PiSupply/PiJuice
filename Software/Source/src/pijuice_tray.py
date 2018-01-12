@@ -10,7 +10,8 @@ from string import rstrip
 import sys
 from pijuice import *
 import time
-from pijuice_gui import *
+from pijuice_gui import start_app
+from multiprocessing import Process
 
 REFRESH_INTERVAL = 5000
 ICON_DIR = '/usr/share/pijuice/data/images' 
@@ -73,8 +74,8 @@ class PiJuiceStatusTray:
 		dialog.destroy()
 
 	def ConfigurePiJuice(self, widget):
-		PiJuiceConfigGui().mainloop()
-		#self.pijuiceConfig = 
+		p = Process(target=start_app)
+		p.start()
 		
 	def refresh(self, widget):
 		try:	

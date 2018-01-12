@@ -1348,6 +1348,7 @@ def save_config():
 
 def PiJuiceGuiOnclosing():
 	save_config()
+	global root
 	root.destroy()
 
 
@@ -1363,8 +1364,8 @@ def configure_style(style):
 							foreground=[('disabled', DISABLED_FONT_COLOR), ('readonly', ENABLED_FONT_COLOR)])
 
 
-if __name__ == '__main__':
-
+def start_app():
+	global root
 	root = Tk()
 	s = Style()
 	theme_name = 'clam'
@@ -1378,3 +1379,6 @@ if __name__ == '__main__':
 	root.minsize(400, 400)
 
 	PiJuiceConfigGui().mainloop()
+
+if __name__ == '__main__':
+	start_app()
