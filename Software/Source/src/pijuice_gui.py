@@ -1345,10 +1345,27 @@ def save_config():
 		print os.path.dirname(PiJuiceConfigDataPath)
 		os.makedirs(os.path.dirname(PiJuiceConfigDataPath))
 	#try:
+	with open(PiJuiceConfigDataPath , 'r') as oldConfig:
+		try:
+			is_sys_task_enabled = json.load(oldConfig)['system_task']['enabled']
+		except:
+			is_sys_task_enabled = False
 	with open(PiJuiceConfigDataPath , 'w+') as outputConfig:
 		json.dump(pijuiceConfigData, outputConfig, indent=2)
+	if pijuiceConfigData['system_task'].get('enabled', False) and not is_sys_task_enabled:
+		restart_service()
 	#except:
 		#print
+
+
+def restart_service():
+	global root
+	cmd = '/bin/systemctl restart pijuice.service'
+	proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+	stdout, stderr = proc.communicate()
+	if proc.returncode != 0:
+		tkMessageBox.showerror('PuJuice Service', "Failed to restart PiJuice service.\n"
+			"See system logs and 'systemctl status pijuice.service' for details.", parent=root)
 
 
 def PiJuiceGuiOnclosing():
