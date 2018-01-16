@@ -61,37 +61,74 @@ class PiJuiceFirmware:
 		self.newFirmStatus = StringVar()
 		self.newFirmStatusLbl = Label(self.frame, textvariable=self.newFirmStatus, text="").grid(row=1, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
 		status = pijuice.config.GetFirmwareVersion()
+
+		self.defaultConfigBtn = Button(self.frame, text='Update firmware',state="disabled", underline=0, command= self._UpdateFirmwareCmd)
+		self.defaultConfigBtn.grid(row=1, column=1, padx=(2, 2), pady=(20, 0), sticky = W)
+
 		self.ver = None
 		if status['error'] == 'NO_ERROR':
 			self.ver = status['data']
 			self.firmVer.set(self.ver['version'][0] + '.' + self.ver['version'][1])
 		else:
 			self.firmVer.set(status['error'])
+		
+		from os import listdir
+		from os.path import isfile, join
+		self.newVer = None
+		self.binFile = None
+		#binDir = '/usr/share/pijuice/data/firmware/'
+		binDir = '/home/pi/'
+		files = [f for f in listdir(binDir) if isfile(join(binDir, f))]
+		self.newVerStr = ''
+		maxVer = 0
+		for f in files:
+			fn = os.path.splitext(f)
+			fv = fn[0].split('_')
+			if fn[1] == '.binary' and len(fv) >= 2 and fv[0] == 'PiJuice.elf':
+				vs = fv[1].split('.')
+				if len(vs) == 2 and vs[0].isdigit() and vs[1].isdigit():
+					verNum = int(str(vs[0] + vs[1]), 16)
+					if verNum >= maxVer:
+						maxVer = verNum
+						self.newVerStr = fv[1]
+						self.newVer = vs[0] + vs[1]
+						self.binFile = binDir + f
 
-		self.newVer = '10'
 		if self.ver and self.newVer:
 			if int(str(self.newVer), 16) > int(str(self.ver['version']), 16):
-				self.newFirmStatus.set('New firmware available')
+				self.newFirmStatus.set('New firmware V' + self.newVerStr + ' is available')
+				self.defaultConfigBtn.configure(state="normal")
 			else:
 				self.newFirmStatus.set('Firmware is up to date')
-
-		self.defaultConfigBtn = Button(self.frame, text='Update firmware', state="normal", underline=0, command= self._UpdateFirmwareCmd)
-		self.defaultConfigBtn.grid(row=1, column=1, padx=(2, 2), pady=(20, 0), sticky = W)
+		elif not self.ver:
+			self.newFirmStatus.set('Firmware status unknown')
+		else:
+			self.newFirmStatus.set('Missing firmware file')
 
 		self.firmUpdateErrors = ['NO_ERROR', 'I2C_BUS_ACCESS_ERROR', 'INPUT_FILE_OPEN_ERROR', 'STARTING_BOOTLOADER_ERROR', 'FIRST_PAGE_ERASE_ERROR',
 		'EEPROM_ERASE_ERROR', 'INPUT_FILE_READ_ERROR', 'PAGE_WRITE_ERROR', 'PAGE_READ_ERROR', 'PAGE_VERIFY_ERROR', 'CODE_EXECUTE_ERROR']
-	def _UpdateFirmwareCmd(self):
+    def _UpdateFirmwareCmd(self):
+		ret = pijuice.status.GetStatus()
+		if ret['error'] == 'NO_ERROR':
+			if ret['data']['powerInput'] != 'PRESENT' and ret['data']['powerInput5vIo'] != 'PRESENT':
+				ret = pijuice.status.GetChargeLevel()
+				if ret['error'] == 'NO_ERROR' and float(ret['data']) < 20:
+					tkMessageBox.showerror('Update Fimware','Cannot update, charge level is too low', parent=self.frame)
+					return
+
 		q = tkMessageBox.showwarning('Update Fimware','Warning! Interrupting firmare update may lead to non functional PiJuice HAT.', parent=self.frame)
 		if q:
-			print 'Updating fimware'
-			inputFile = '/usr/share/pijuice/data/firmware/PiJuice.elf.binary'
+			#print 'Updating fimware'
+			#inputFile = '/usr/share/pijuice/data/firmware/PiJuice.elf.binary'
 			curAdr = pijuice.config.interface.GetAddress()
 			if curAdr:
 				adr = format(curAdr, 'x')
-				ret = 256 - subprocess.call(['pijuiceboot', adr, inputFile])#subprocess.call([os.getcwd() + '/stmboot', adr, inputFile])
-				print 'firm res', ret
+				ret = 256 - subprocess.call(['pijuiceboot', adr, self.binFile])#subprocess.call([os.getcwd() + '/stmboot', adr, inputFile])
 				if ret == 256:
 					tkMessageBox.showinfo('Firmware update', 'Finished succesfully!', parent=self.frame)
+					self.newFirmStatus.set('Firmware is up to date')
+					self.firmVer.set(self.newVerStr)
+					self.defaultConfigBtn.configure(state="disabled")
 				else:
 					errorStatus = self.firmUpdateErrors[ret] if ret < 11 else '	UNKNOWN'
 					msg = ''
@@ -163,15 +200,53 @@ class PiJuiceHATConfig:
 		self.idEepromWpDisable.trace("w", self._IdEepromWpDisableCheck)
 		config = pijuice.config.GetIdEepromWriteProtect()
 		if config['error'] != 'NO_ERROR':
-			self.idEepromWpDisable.set(0)
+			self.idEepromWpDisable.set(1)
 		else:
-			self.idEepromWpDisable.set(config['data'])
+			self.idEepromWpDisable.set(not config['data'])
 
-		Label(self.frame, text="Power regulator mode:").grid(row=5, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
+		Label(self.frame, text="Inputs precedence:").grid(row=5, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
+		self.inputsPrecedence = StringVar()
+		Radiobutton(self.frame, text=pijuice.config.powerInputs[0], variable=self.inputsPrecedence, value=pijuice.config.powerInputs[0]).grid(row=5, column=1, padx=(2, 2), pady=(10, 0), sticky='WE')
+		Radiobutton(self.frame, text=pijuice.config.powerInputs[1], variable=self.inputsPrecedence, value=pijuice.config.powerInputs[1]).grid(row=5, column=2, padx=(2, 2), pady=(10, 0), sticky='WE')
+
+		self.gpioInputEnabled = BooleanVar()
+		self.gpioInputEnabledCheck = Checkbutton(self.frame, text = "GPIO Input Enabled", variable = self.gpioInputEnabled).grid(row=6, column=0, sticky = W, padx=(2, 2), pady=(10, 0))
+
+		Label(self.frame, text="USB Micro current limit:").grid(row=7, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
+		self.usbMicroCurrentLimit = StringVar()
+		Radiobutton(self.frame, text=pijuice.config.usbMicroCurrentLimits[0], variable=self.usbMicroCurrentLimit, value=pijuice.config.usbMicroCurrentLimits[0]).grid(row=7, column=1, padx=(2, 2), pady=(8, 0), sticky='WE')
+		Radiobutton(self.frame, text=pijuice.config.usbMicroCurrentLimits[1], variable=self.usbMicroCurrentLimit, value=pijuice.config.usbMicroCurrentLimits[1]).grid(row=7, column=2, padx=(2, 2), pady=(8, 0), sticky='WE')
+
+		Label(self.frame, text="USB Micro IN DPM:").grid(row=8, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
+		self.usbMicroInDpm = StringVar()
+		self.usbMicroInDpmSel = Combobox(self.frame, textvariable=self.usbMicroInDpm, state='readonly')
+		self.usbMicroInDpmSel['values'] = pijuice.config.usbMicroDPMs
+		self.usbMicroInDpmSel.grid(column=1, row=8, padx=(2, 2), pady=(10, 0), sticky = W)
+		self.usbMicroInDpmSel.current(0)
+
+		self.noBatTurnOnEnabled = BooleanVar()
+		self.noBatTurnOnEnabledCheck = Checkbutton(self.frame, text = "No battery turn on", variable = self.noBatTurnOnEnabled).grid(row=9, column=0, sticky = W, padx=(2, 2), pady=(10, 0))
+
+		ret = pijuice.config.GetPowerInputsConfig()
+		if ret['error'] == 'NO_ERROR':
+			powInCfg = ret['data']
+			self.inputsPrecedence.set(powInCfg['precedence'])
+			self.gpioInputEnabled.set(powInCfg['gpio_in_enabled'])
+			self.noBatTurnOnEnabled.set(powInCfg['no_battery_turn_on'])
+			self.usbMicroCurrentLimit.set(powInCfg['usb_micro_current_limit'])
+			self.usbMicroInDpm.set(powInCfg['usb_micro_dpm'])
+
+		self.usbMicroInDpmSel.bind("<<ComboboxSelected>>", self._UpdatePowerInputsConfig)
+		self.usbMicroCurrentLimit.trace("w", self._UpdatePowerInputsConfig)
+		self.gpioInputEnabled.trace("w", self._UpdatePowerInputsConfig)
+		self.inputsPrecedence.trace("w", self._UpdatePowerInputsConfig)
+		self.noBatTurnOnEnabled.trace("w", self._UpdatePowerInputsConfig)
+
+		Label(self.frame, text="Power regulator mode:").grid(row=10, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
 		self.powerRegMode = StringVar()
 		self.powerRegModeSel = Combobox(self.frame, textvariable=self.powerRegMode, state='readonly', width=len(max(pijuice.config.powerRegulatorModes, key=len)) + 1)
 		self.powerRegModeSel['values'] = pijuice.config.powerRegulatorModes
-		self.powerRegModeSel.grid(column=1, row=5, padx=(2, 2), pady=(10, 0), sticky = W+E)
+		self.powerRegModeSel.grid(column=1, row=10, padx=(2, 2), pady=(10, 0), sticky = W)
 		self.powerRegModeSel.bind("<<ComboboxSelected>>", self._PowerRegModeSelected)
 		config = pijuice.config.GetPowerRegulatorMode()
 		if config['error'] != 'NO_ERROR':
@@ -179,8 +254,15 @@ class PiJuiceHATConfig:
 		else:
 			self.powerRegModeSel.current(pijuice.config.powerRegulatorModes.index(config['data']))
 
+		self.chargingEnabled = BooleanVar()
+		self.chargingEnabledCheck = Checkbutton(self.frame, text = "Charging Enabled", variable = self.chargingEnabled).grid(row=11, column=0, sticky = W, padx=(2, 2), pady=(10, 0))
+		config = pijuice.config.GetChargingConfig()
+		if config['error'] == 'NO_ERROR':
+			self.chargingEnabled.set(config['data']['charging_enabled'])
+		self.chargingEnabled.trace("w", self._UpdateChargingConfig)
+
 		self.defaultConfigBtn = Button(self.frame, text='Reset to default configuration', state="normal", underline=0, command= self._ResetToDefaultConfigCmd)
-		self.defaultConfigBtn.grid(row=6, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
+		self.defaultConfigBtn.grid(row=12, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
 
 	def _ResetToDefaultConfigCmd(self):
 		q = tkMessageBox.askokcancel('Reset Configuration','Warning! This action will reset PiJuice HAT configuration to default settings.', parent=self.frame)
@@ -210,20 +292,37 @@ class PiJuiceHATConfig:
 		if status['error'] != 'NO_ERROR':
 			self.idEepromAddr.set(status['error'])
 			tkMessageBox.showerror('ID EEPROM Address select', status['error'], parent=self.frame)
-
-	def _IdEepromWpDisableCheck(self, *args):
-		status = pijuice.config.SetIdEepromWriteProtect(self.idEepromWpDisable.get())
+			
+    def _IdEepromWpDisableCheck(self, *args):
+		status = pijuice.config.SetIdEepromWriteProtect(not self.idEepromWpDisable.get())
 		if status['error'] != 'NO_ERROR':
 			self.idEepromWpDisable.set(not self.idEepromWpDisable.get())
 			tkMessageBox.showerror('ID EEPROM write protect', status['error'], parent=self.frame)
 
-	def _PowerRegModeSelected(self, event):
+    def _UpdatePowerInputsConfig(self, *args):
+		config = {}
+		config['precedence'] = self.inputsPrecedence.get()
+		config['gpio_in_enabled'] = self.gpioInputEnabled.get()
+		config['no_battery_turn_on'] = self.noBatTurnOnEnabled.get()
+		config['usb_micro_current_limit'] = self.usbMicroCurrentLimit.get()
+		config['usb_micro_dpm'] = self.usbMicroInDpm.get()
+		status = pijuice.config.SetPowerInputsConfig(config, True)
+		if status['error'] != 'NO_ERROR':
+			tkMessageBox.showerror('Power Inputs Configuration', status['error'], parent=self.frame)
+
+    def _PowerRegModeSelected(self, event):
 		status = pijuice.config.SetPowerRegulatorMode(self.powerRegMode.get())
 		if status['error'] != 'NO_ERROR':
 			self.powerRegMode.set(status['error'])
 			tkMessageBox.showerror('ID EEPROM Address select', status['error'], parent=self.frame)
+			
+    def _UpdateChargingConfig(self, *args):
+		config = {'charging_enabled':self.chargingEnabled.get()}
+		status = pijuice.config.SetChargingConfig(config, True)
+		if status['error'] != 'NO_ERROR':
+			tkMessageBox.showerror('Charging configuration', status['error'], parent=self.frame)
 
-	def _ValidateSlaveAdr(self, var, id):
+    def _ValidateSlaveAdr(self, var, id):
 		new_value = var.get()
 		try:
 			if var.get() != '':
@@ -560,7 +659,7 @@ class PiJuiceBatteryConfig:
 		self.tempSenseSel = Combobox(self.frame, textvariable=self.tempSense, state='readonly')
 		self.tempSenseSel['values'] = pijuice.config.batteryTempSenseOptions
 		self.tempSenseSel.set('')
-		self.tempSenseSel.grid(column=2, row=3, padx=(5, 5), pady=(0,2), sticky=W)
+		self.tempSenseSel.grid(column=2, row=3, padx=(5, 5), pady=(0,2), sticky = W)
 		self.tempSenseSel.bind("<<ComboboxSelected>>", self._NewTempSenseConfigSel)
 
 		self.refreshConfig = StringVar()
@@ -721,6 +820,135 @@ class PiJuiceBatteryConfig:
 			self.ReadProfileData()
 			self.applyBtn.configure(state="disabled")
 
+class PiJuiceIoConfig:
+    def __init__(self, master):
+
+		# frame to hold contentx
+		self.frame = Frame(master, name='io')
+
+		self.config = [{}, {}]
+		self.mode = [{}, {}]
+		self.modeSel = [{}, {}]
+		self.pull = [{}, {}]
+		self.param1 = [{}, {}]
+		self.oldParam1 = [{}, {}]
+		self.paramName1 = [{}, {}]
+		self.paramEntry1 = [{}, {}]
+		self.paramName2 = [{}, {}]
+		self.param2 = [{}, {}]
+		self.oldParam2 = [{}, {}]
+		self.paramEntry2 = [{}, {}]
+		self.paramConfig1 =[None, None]
+		self.paramConfig2 =[None, None]
+
+		for i in range(0, 2):
+			Label(self.frame, text="IO"+str(i+1)+":").grid(row=1+i*2, column=0, padx=(2, 2), pady=(2, 0), sticky = W)
+			Label(self.frame, text="mode:").grid(row=0+i*2, column=1, padx=(2, 2), pady=(10, 0), sticky = W)
+			self.mode[i] = StringVar()
+			self.modeSel[i] = Combobox(self.frame, textvariable=self.mode[i], state='readonly')
+			self.modeSel[i]['values'] = pijuice.config.ioSupportedModes[i+1]
+			self.modeSel[i].grid(column=1, row=1+i*2, padx=(2, 2), pady=(2, 0), sticky = W)
+
+			Label(self.frame, text="pull:").grid(row=0+i*2, column=2, padx=(2, 2), pady=(10, 0), sticky = W)
+			self.pull[i] = StringVar()
+			self.pullSel = Combobox(self.frame, textvariable=self.pull[i], state='readonly')
+			self.pullSel.grid(column=2, row=1+i*2, padx=(2, 2), pady=(2, 0), sticky = W)
+			self.pullSel['values'] = pijuice.config.ioPullOptions
+
+			self.paramName1[i] = StringVar()
+			self.paramNameLabel1 = Label(self.frame, textvariable=self.paramName1[i], text="param1:").grid(row=0+i*2, column=3, padx=(2, 2), pady=(10, 0), sticky = W)
+			self.param1[i] = StringVar()
+			self.oldParam1[i] = StringVar()
+			self.paramEntry1[i] = Entry(self.frame,textvariable=self.param1[i])
+			self.paramEntry1[i].grid(row=1+i*2, column=3, padx=(2, 2), pady=(2, 0), sticky='W')
+
+			self.paramName2[i] = StringVar()
+			self.paramNameLabel2 = Label(self.frame, textvariable=self.paramName2, text="param2:").grid(row=0+i*2, column=4, padx=(2, 2), pady=(10, 0), sticky = W)
+			self.param2[i] = StringVar()
+			self.oldParam2[i] = StringVar()
+			self.paramEntry2[i] = Entry(self.frame,textvariable=self.param2[i])
+			self.paramEntry2[i].grid(row=1+i*2, column=4, padx=(2, 2), pady=(2, 0), sticky='W')
+
+			ret = pijuice.config.GetIoConfiguration(i+1)
+			if ret['error'] != 'NO_ERROR':
+				self.mode[i].set(ret['error'])
+			else:
+				self.config[i] = ret['data']
+				self.mode[i].set(self.config[i]['mode'])
+				self.pull[i].set(self.config[i]['pull'])
+
+			self._ModeSelected(None, i)
+
+			if self.paramConfig1[i]:
+				self.param1[i].set(self.config[i][self.paramConfig1[i]['name']])
+			if self.paramConfig2[i]:
+				self.param2[i].set(self.config[i][self.paramConfig2[i]['name']])
+
+			self.modeSel[i].bind("<<ComboboxSelected>>", lambda event, idx=i: self._ModeSelected(event, idx))
+			self.param1[i].trace("w", lambda name, index, mode, idx=i: self._ParamEdited1(idx))
+			self.param2[i].trace("w", lambda name, index, mode, idx=i: self._ParamEdited2(idx))
+
+		self.apply = StringVar()
+		self.applyBtn = Button(self.frame, text='Apply', state="normal", underline=0, command=lambda v=self.apply: self._ApplyNewConfig(v))
+		self.applyBtn.grid(row=5, column=0, padx=(2, 2), pady=(20, 0), sticky='W')
+
+    def _ModeSelected(self, event, i):
+		try:
+			self.paramConfig1[i] = pijuice.config.ioConfigParams[self.mode[i].get()][0]
+		except:
+			self.paramConfig1[i] = None
+		if self.paramConfig1[i]:
+			self.paramEntry1[i].configure(state="normal")
+			self.paramName1[i].set(self.paramConfig1[i]['name']+((' [' + self.paramConfig1[i]['unit']+']:') if 'unit' in self.paramConfig1[i] else ':'))
+		else:
+			self.paramEntry1[i].configure(state="disabled")
+			self.paramName1[i].set('')
+		self.param1[i].set('')
+
+		try:
+			self.paramConfig2[i] = pijuice.config.ioConfigParams[self.mode[i].get()][1]
+		except:
+			self.paramConfig2[i] = None
+		if self.paramConfig2[i]:
+			self.paramEntry2[i].configure(state="normal")
+			self.paramName2[i].set(self.paramConfig2[i]['name']+((' [' + self.paramConfig2[i]['unit']+']:') if 'unit' in self.paramConfig2[i] else ':'))
+		else:
+			self.paramEntry2[i].configure(state="disabled")
+			self.paramName2[i].set('')
+		self.param2[i].set('')
+
+    def _ParamEdited1(self, i):
+		if self.paramConfig1[i]:
+			min = 0 if self.paramConfig1[i]['min'] > 0 else self.paramConfig1[i]['min']
+			if self.paramConfig1[i]['type'] == 'int':
+				_ValidateIntEntry(self.param1[i], self.oldParam1[i], min, self.paramConfig1[i]['max'])
+			elif self.paramConfig1[i]['type'] == 'float':
+				_ValidateFloatEntry(self.param1[i], self.oldParam1[i], min, self.paramConfig1[i]['max'])
+
+    def _ParamEdited2(self, i):
+		if self.paramConfig2[i]:
+			min = 0 if self.paramConfig2[i]['min'] > 0 else self.paramConfig2[i]['min']
+			if self.paramConfig2[i]['type'] == 'int':
+				_ValidateIntEntry(self.param2[i], self.oldParam2[i], min, self.paramConfig2[i]['max'])
+			elif self.paramConfig2[i]['type'] == 'float':
+				_ValidateFloatEntry(self.param2[i], self.oldParam2[i], min, self.paramConfig2[i]['max'])
+
+    def _ApplyNewConfig(self, v):
+		for i in range(0, 2):
+			newCfg = {
+				'mode':self.mode[i].get(),
+				'pull':self.pull[i].get()
+				}
+			if self.paramConfig1[i]:
+				newCfg[self.paramConfig1[i]['name']] = self.param1[i].get()
+			if self.paramConfig2[i]:
+				newCfg[self.paramConfig2[i]['name']] = self.param2[i].get()
+
+			print newCfg
+			ret = pijuice.config.SetIoConfiguration(i+1, newCfg, True)
+			if ret['error'] != 'NO_ERROR':
+				tkMessageBox.showerror('IO' + str(i+1) + ' Configuration', 'Reason: ' + ret['error'], parent=self.frame)
+
 class PiJuiceHATConfigGui():
 
 	def __init__(self, isapp=True, name='pijuiceConfig'):
@@ -757,9 +985,12 @@ class PiJuiceHATConfigGui():
 		self.batConfig = PiJuiceBatteryConfig(nb)
 		nb.add(self.batConfig.frame, text='Battery', underline=0, padding=2)
 
+		self.ioConfig = PiJuiceIoConfig(nb)
+		nb.add(self.ioConfig.frame, text='IO       ', underline=0, padding=2)
+
 		self.firmware = PiJuiceFirmware(nb)
 		nb.add(self.firmware.frame, text='Firmware', underline=0, padding=2)
-		
+
 		t.update()
 		t.minsize(t.winfo_width(), t.winfo_height())
 
@@ -971,6 +1202,12 @@ class PiJuiceSysEventConfig:
 		self.frame.columnconfigure(2, weight=1, uniform=1)
 
 		self.eventFunctions = ['NO_FUNC'] + pijuice_sys_functions + pijuice_user_functions
+		self.sysEvents = [{'id':'low_charge', 'name':'Low charge', 'funcList':self.eventFunctions}, 
+		{'id':'low_battery_voltage', 'name':'Low battery voltage', 'funcList':self.eventFunctions}, 
+		{'id':'no_power', 'name':'No power', 'funcList':self.eventFunctions},
+		{'id':'watchdog_reset', 'name':'Watchdog reset', 'funcList':(['NO_FUNC']+pijuice_user_functions)},
+		{'id':'button_power_off', 'name':'Button power off', 'funcList':(['NO_FUNC']+pijuice_user_functions)}, 
+		{'id':'forced_power_off', 'name':'Forced power off', 'funcList':(['NO_FUNC']+pijuice_user_functions)}, 
 		self.sysEvents = [{'id':'low_charge', 'name':'Low charge', 'funcList':self.eventFunctions},
 		{'id':'low_battery_voltage', 'name':'Low battery voltage', 'funcList':self.eventFunctions},
 		{'id':'watchdog_reset', 'name':'Watchdog reset', 'funcList':(['NO_FUNC']+pijuice_user_functions)},
@@ -1196,15 +1433,14 @@ class PiJuiceHatTab:
 		self.fault = StringVar()
 		self.faultLbl = Label(self.frame,textvariable=self.fault, text='')
 		self.faultLbl.grid(row=3, column=1, padx=(2, 2), pady=(20, 0), columnspan=2, sticky = W)
-
-		self.sysSwEnable = BooleanVar()
-		self.sysSwEnableCheck = Checkbutton(self.frame, text = 'System switch state', variable = self.sysSwEnable).grid(row=4, column=0, sticky = W, padx=(2, 10), pady=(20, 0))
-		self.sysSwLimit = StringVar()
-		self.sysSwLimitEntry = Entry(self.frame,textvariable=self.sysSwLimit)
-		#self.sysSwLimitEntry.bind("<Return>", self._SetSysSwitch)
-		self.sysSwLimitEntry.grid(row=4, column=1, sticky = W+E, padx=(2, 2), pady=(20, 0))
-		self.sysSwEnable.trace("w", self._SetSysSwitch)
-
+		
+		Label(self.frame, text="System switch:").grid(row=4, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
+		self.sysSwLimit = IntVar()
+		Radiobutton(self.frame, text="Off", variable=self.sysSwLimit, value=0).grid(row=4, column=1, padx=(2, 2), pady=(10, 0), sticky='WE')
+		Radiobutton(self.frame, text="500mA", variable=self.sysSwLimit, value=500).grid(row=4, column=2, padx=(2, 2), pady=(10, 0), sticky='WE')
+		Radiobutton(self.frame, text="2100mA", variable=self.sysSwLimit, value=2100).grid(row=4, column=3, padx=(2, 2), pady=(10, 0), sticky='WE')
+		self.sysSwLimit.trace("w", self._SetSysSwitch)
+		
 		self.hatConfigBtn = Button(self.frame, text='Configure HAT', state="normal", underline=0, command= self._HatConfigCmd)
 		self.hatConfigBtn.grid(row=9, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
 		self.counter = 0
@@ -1233,7 +1469,7 @@ class PiJuiceHatTab:
 
 			curr = pijuice.status.GetIoCurrent()
 			if curr['error'] == 'NO_ERROR':
-				curr = str(float(curr['data']) / 1000) + 'A, '
+				curr = str("{0:.1f}".format(float(curr['data']) / 1000)) + 'A, '
 			else:
 				curr = ''
 
@@ -1260,20 +1496,16 @@ class PiJuiceHatTab:
 
 			ret = pijuice.power.GetSystemPowerSwitch()
 			if ret['error'] == 'NO_ERROR':
-				self.sysSwEnable.set(int(ret['data']) > 0)
 				self.sysSwLimit.set(ret['data'])
-			else:
-				self.sysSwLimit = ret['error']
+			#else:
+			#	self.sysSwLimit = ret['error']
 		except:
 			pass
 		self.frame.after(6000, self._RefreshStatus)
-
-	def _SetSysSwitch(self, *args):
-		if self.sysSwEnable.get():
-			pijuice.power.SetSystemPowerSwitch(self.sysSwLimit.get())
-		else:
-			pijuice.power.SetSystemPowerSwitch(0)
-	def _HatConfigCmd(self):
+		
+    def _SetSysSwitch(self, *args):
+		pijuice.power.SetSystemPowerSwitch(self.sysSwLimit.get())
+    def _HatConfigCmd(self):
 		if pijuice != None:
 			self.advWindow = PiJuiceHATConfigGui()
 

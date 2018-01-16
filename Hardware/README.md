@@ -32,6 +32,32 @@ Default settings can be overridden in the "Buttons" tab of PiJuice HAT configura
 
 The DIP switch is preset for the BP7X battery that we supply with every PiJuice HAT.
 
+You can set the DIP Switch for four predefined battery profiles. 
+
+![PiJuice DIP Switch Settings](https://user-images.githubusercontent.com/16068311/34769251-25c7c3b6-f5f5-11e7-971f-e93f5d4d3cc0.jpg "PiJuice DIP Switch Settings")
+
+```text
+BP6X
+-ON---CTS-
+[OFF][OFF]
+--1----2--
+
+SNN5843
+-ON---CTS-
+[OFF][ON ]
+--1----2--
+
+BP7X (Default)
+-ON---CTS-
+[ON ][OFF]
+--1----2--
+
+LIP08047109
+-ON---CTS-
+[ON ][ON ]
+--1----2--
+```
+
 We have also provided [this document](https://github.com/PiSupply/PiJuice/tree/master/Hardware/Batteries/Pijuice_battery_config.xlsx) that should help you to select desired battery profile via the DIP switch.
 
 Whether you use the DIP switch and the resistor configuration by populating R20 you can always override the settings using the software configuration GUI. From the Pijuice HAT configuration window on the "Battery" tab choose battery profile from drop down list. You can also return to DIP switch selected profile by choosing "DEFAULT" from drop-down list.
@@ -103,6 +129,15 @@ P3
 | 1     2     3     4     5     6    |
 |VSYS  5V    GND   3V3   IO1   IO2   |
 --------------------------------------
+```
+
+#### J1 Pinout
+```text
+J1
+------------------------
+| 1     2     3     4  |
+|VBAT  ID    NTC   GND |
+------------------------
 ```
 
 #### J2 Pinout

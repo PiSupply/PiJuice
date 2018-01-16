@@ -19,15 +19,24 @@ configPath = '/var/lib/pijuice/pijuice_config.JSON'#os.getcwd() + '/pijuice_conf
 configData = {'system_task':{'enabled':False}}
 status = {}
 sysEvEn = False
-chargeLevel = 50 
+minChgEn = False
+minBatVolEn = False
+lowChgEn = False
+lowBatVolEn = False
+chargeLevel = 50
 timeCnt = 5
+noPowEn = False
+noPowCnt = 100
 logger = None
 dopoll = True 
 
 def _SystemHalt(event):
-	if (event == 'low_charge' or event == 'low_battery_voltage')
-		and configData['system_task'].get('wakeup_on_charge', {}).get('enabled')
-		and 'trigger_level' in configData['system_task']['wakeup_on_charge']:
+	if (
+		(event == 'low_charge' or event == 'low_battery_voltage' or event == 'no_power')
+		and ('wakeup_on_charge' in configData['system_task']) 
+		and ('enabled' in configData['system_task']['wakeup_on_charge']) 
+		and configData['system_task']['wakeup_on_charge']['enabled']
+		and 'trigger_level' in configData['system_task']['wakeup_on_charge']):
 		try:
 			tl = float(configData['system_task']['wakeup_on_charge']['trigger_level'])
 			print 'wakeup on charge', tl
@@ -88,28 +97,29 @@ def _EvalButtonEvents():
 		return False
 	
 def _EvalCharge():
-	global lowChgEn
-	charge = pijuice.status.GetChargeLevel()
+	charge = pijuice.status.GetChargeLevel()	
 	if charge['error'] == 'NO_ERROR':
 		level = float(charge['data'])
 		global chargeLevel
 		if ('threshold' in configData['system_task']['min_charge']):
 			th = float(configData['system_task']['min_charge']['threshold'])
-			if level == 0 or ((level < th) and ((chargeLevel-level) >= 0 and (chargeLevel-level) < 3)):
-				print 'level, th', level, th, chargeLevel, (level < th)
+			if level == 0 or ((level < th) and ((chargeLevel-level) > 0 and (chargeLevel-level) < 3)):
+				#print 'level, th', level, th, chargeLevel, (level < th)
+				#global lowChgEn
+				#print 'lowChgEn' , lowChgEn
 				if lowChgEn:
 					# energy is low, take action
+					#print 'ExecuteFunc'
 					ExecuteFunc(configData['system_events']['low_charge']['function'], 'low_charge', level)
 			
 		chargeLevel = level
-		print level, '%'
+		#print level, '%'
 		#logger.info(str(level)) 
 		return True
 	else:
 		return False
 		
 def _EvalBatVoltage():
-	global lowBatVolEn
 	bv = pijuice.status.GetBatteryVoltage()	
 	if bv['error'] == 'NO_ERROR':
 		v = float(bv['data']) / 1000
@@ -118,7 +128,7 @@ def _EvalBatVoltage():
 				th = float(configData['system_task']['min_bat_voltage']['threshold'])
 			except:
 				th = None
-			print 'v, th',v,th,'bv=',bv 
+			#print 'v, th',v,th,'bv=',bv
 			if th != None and v < th:
 				if lowBatVolEn:
 					# Battery voltage below thresholdw, take action
@@ -128,7 +138,17 @@ def _EvalBatVoltage():
 		return True
 	else:
 		return False
-		 
+
+def _EvalPowerInputs(status):
+	global noPowCnt
+	if ((status['powerInput'] == 'NOT_PRESENT') or (status['powerInput'] == 'BAD')) and ((status['powerInput5vIo'] == 'NOT_PRESENT') or (status['powerInput5vIo'] == 'BAD')):
+		noPowCnt = noPowCnt + 1
+	else:
+		noPowCnt = 0
+	if noPowCnt == 2:
+		#print 'unplugged'
+		ExecuteFunc(configData['system_events']['no_power']['function'], 'no_power', '')
+
 def _EvalFaultFlags():
 	faults = pijuice.status.GetFaultStatus()
 	if faults['error'] == 'NO_ERROR': 
@@ -155,9 +175,12 @@ def main():
 	global chargeLevel 
 	global timeCnt
 	global logger
+	global minChgEn
+	global minBatVolEn
 	global lowChgEn
 	global lowBatVolEn
-	
+	global noPowEn
+
 	try:
 		pijuice = PiJuice(1,0x14)
 	except:
@@ -207,8 +230,9 @@ def main():
 		sys.exit(0)
 
 	if (('watchdog' in configData['system_task']) 
-		and configData['system_task'].get('watchdog', {}).get('enabled')
-		and ('period' in configData['system_task']['watchdog'])
+		and ('enabled' in configData['system_task']['watchdog']) 
+		and configData['system_task']['watchdog']['enabled'] 
+		and ('period' in configData['system_task']['watchdog']) 
 		):
 		try:
 			p = int(configData['system_task']['watchdog']['period'])
@@ -225,6 +249,7 @@ def main():
 	minBatVolEn = ('min_bat_voltage' in configData['system_task']) and ('enabled' in configData['system_task']['min_bat_voltage']) and configData['system_task']['min_bat_voltage']['enabled']
 	lowChgEn = sysEvEn and ('low_charge' in configData['system_events']) and ('enabled' in configData['system_events']['low_charge']) and configData['system_events']['low_charge']['enabled']
 	lowBatVolEn = sysEvEn and ('low_battery_voltage' in configData['system_events']) and ('enabled' in configData['system_events']['low_battery_voltage']) and configData['system_events']['low_battery_voltage']['enabled']
+	noPowEn = sysEvEn and ('no_power' in configData['system_events']) and ('enabled' in configData['system_events']['no_power']) and configData['system_events']['no_power']['enabled']
 
 	if configData['system_task']['enabled']:
 		print 'starting status poll'
@@ -244,7 +269,9 @@ def main():
 						_EvalCharge()
 					if minBatVolEn:
 						_EvalBatVoltage()
-			
+					if noPowEn:
+						_EvalPowerInputs(status)
+
 			time.sleep(1)
 	else:
 		print 'Task is disabled'
