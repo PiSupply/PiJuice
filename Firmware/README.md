@@ -17,7 +17,7 @@ chmod a+x pijuiceboot
 
 ### Example:
 ```bash
-./pijuiceboot 14 PiJuice-V1.0_2017_10_23.elf.binary
+./pijuiceboot 14 PiJuice-V1.1_2018_01_15.elf.binary
 ```
 
 The firmware source code is not intended to be made openly available as it requires deep understanding of the hardware design and the programming involved if you wanted to customise it. Making changes to the firmware may even harm components or damage the battery.
