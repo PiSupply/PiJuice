@@ -10,7 +10,7 @@ import struct
 import ctypes
 import threading
 
-pijuice_hard_functions = ['HARD_FUNC_POWER_ON', 'HARD_FUNC_POWER_OFF']
+pijuice_hard_functions = ['HARD_FUNC_POWER_ON', 'HARD_FUNC_POWER_OFF', 'HARD_FUNC_RESET']
 pijuice_sys_functions = ['SYS_FUNC_HALT', 'SYS_FUNC_HALT_POW_OFF', 'SYS_FUNC_SYS_OFF_HALT', 'SYS_FUNC_REBOOT']
 pijuice_user_functions = ['USER_EVENT'] + ['USER_FUNC' + str(i+1) for i in range(0,15)]
 
@@ -204,6 +204,7 @@ class PiJuiceStatus():
 	IO_CURRENT_CMD = 0X4f
 	LED_STATE_CMD = 0x66
 	LED_BLINK_CMD = 0x68
+	IO_PIN_ACCESS_CMD = 0x75
 	
 	def __init__(self, interface):
 		self.interface = interface
@@ -392,7 +393,74 @@ class PiJuiceStatus():
 		else:
 			d = ret['data']
 			return {'data':{'count':d[0], 'rgb1':d[1:4], 'period1':d[4]*10, 'rgb2':d[5:8], 'period2':d[8]*10}, 'error':'NO_ERROR'}
-	
+			
+	def GetIoDigitalInput(self, pin):
+		if not (pin == 1 or pin == 2): 
+			return {'error':'BAD_ARGUMENT'}
+		ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else: 
+			d = ret['data']
+			b = 1 if d[0] == 0x01 else 0
+			return {'data':b, 'error':'NO_ERROR'}
+			
+	def SetIoDigitalOutput(self, pin, value):
+		if not (pin == 1 or pin == 2): 
+			return {'error':'BAD_ARGUMENT'}
+		d = [0x00, 0x00]
+		d[1] = 0x00 if value == 0 else 0x01
+		return self.interface.WriteData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, d)
+		
+	def GetIoDigitalOutput(self, pin):
+		if not (pin == 1 or pin == 2): 
+			return {'error':'BAD_ARGUMENT'}
+		ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else: 
+			d = ret['data']
+			b = 1 if d[1] == 0x01 else 0
+			return {'data':b, 'error':'NO_ERROR'}
+			
+	def GetIoAnalogInput(self, pin):
+		if not (pin == 1 or pin == 2): 
+			return {'error':'BAD_ARGUMENT'}
+		ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else: 
+			d = ret['data']
+			return {'data':(d[1] << 8) | d[0], 'error':'NO_ERROR'}
+			
+	def SetIoPWM(self, pin, dutyCircle):
+		if not (pin == 1 or pin == 2): 
+			return {'error':'BAD_ARGUMENT'}
+		d = [0xFF, 0xFF]
+		try:
+			dc = float(dutyCircle)
+		except:
+			return {'error':'BAD_ARGUMENT'}
+		if dc < 0 or dc > 100:
+			return {'error':'INVALID_DUTY_CIRCLE'}
+		elif dc < 100:
+			dci = int(round(dc*65534/100))
+			d[0] = dci&0xFF
+			d[1] = (dci>>8)&0xFF
+		return self.interface.WriteData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, d)
+		
+	def GetIoPWM(self, pin):
+		if not (pin == 1 or pin == 2): 
+			return {'error':'BAD_ARGUMENT'}
+		ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			d = ret['data']
+			dci = d[0] | (d[1] << 8)
+			dc = float(dci) * 100 / 65534 if dci < 65535 else 100
+			return {'data':dc, 'error':'NO_ERROR'}
+			
 class PiJuiceRtcAlarm():
 
 	RTC_ALARM_CMD = 0xB9
@@ -905,12 +973,12 @@ class PiJuicePower():
 	def SetWakeUpOnCharge(self, arg):
 		try:
 			if arg == 'DISABLED':
-				d = 0XFF
+				d = 0X7F
 			elif int(arg) >= 0 and int(arg) <= 100:
 				d = int(arg)
 		except:
 			return {'error':'BAD_ARGUMENT'}
-		return self.interface.WriteData(self.WAKEUP_ON_CHARGE_CMD, [d])
+		return self.interface.WriteDataVerify(self.WAKEUP_ON_CHARGE_CMD, [d])
 		
 	def GetWakeUpOnCharge(self):
 		ret = self.interface.ReadData(self.WAKEUP_ON_CHARGE_CMD, 1)
@@ -955,13 +1023,16 @@ class PiJuicePower():
 		
 class PiJuiceConfig():
 
+	CHARGING_CONFIG_CMD = 0x51
 	BATTERY_PROFILE_ID_CMD = 0x52
 	BATTERY_PROFILE_CMD = 0x53
 	BATTERY_TEMP_SENSE_CONFIG_CMD = 0x5D
+	POWER_INPUTS_CONFIG_CMD = 0x5E
 	RUN_PIN_CONFIG_CMD = 0X5F
 	POWER_REGULATOR_CONFIG_CMD = 0X60
 	LED_CONFIGURATION_CMD = 0x6A
 	BUTTON_CONFIGURATION_CMD = 0x6E
+	IO_CONFIGURATION_CMD = 0x72
 	I2C_ADDRESS_CMD = 0x7C
 	ID_EEPROM_WRITE_PROTECT_CTRL_CMD = 0x7E
 	ID_EEPROM_ADDRESS_CMD = 0x7F
@@ -977,7 +1048,28 @@ class PiJuiceConfig():
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		return False  # Don't suppress exceptions.
-		
+
+	def SetChargingConfig(self, config, non_volatile = False):
+		try:
+			nv = 0x80 if non_volatile == True else 0x00
+			if config['charging_enabled'] == True:
+				chEn = 0x01
+			elif config['charging_enabled'] == False:
+				chEn = 0x00
+			else:
+				return {'error':'BAD_ARGUMENT'}
+		except:
+			return {'error':'BAD_ARGUMENT'}
+		d = [nv | chEn]
+		return self.interface.WriteDataVerify(self.CHARGING_CONFIG_CMD, d)
+	
+	def GetChargingConfig(self):  
+		ret = self.interface.ReadData(self.CHARGING_CONFIG_CMD, 1)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			return {'data':{'charging_enabled':bool(ret['data'][0]&0x01)}, 'non_volatile':bool(ret['data'][0]&0x80), 'error':'NO_ERROR'}
+			
 	batteryProfiles = ['BP6X', 'BP7X', 'SNN5843', 'LIPO8047109']
 	def SetBatteryProfile(self, profile):
 		id = None
@@ -1056,7 +1148,7 @@ class PiJuiceConfig():
 			d[13] = (R >> 8)&0xFF
 		except:
 			return {'error':'BAD_ARGUMENT'}
-		print d
+		#print d
 		return self.interface.WriteDataVerify(self.BATTERY_PROFILE_CMD, d, 0.2)
 	
 	batteryTempSenseOptions = ['NOT_USED', 'NTC', 'ON_BOARD', 'AUTO_DETECT']
@@ -1078,6 +1170,44 @@ class PiJuiceConfig():
 		data = [ind]
 		return self.interface.WriteDataVerify(self.BATTERY_TEMP_SENSE_CONFIG_CMD, data)
 	
+	powerInputs = ['USB_MICRO', '5V_GPIO']
+	usbMicroCurrentLimits = ['1.5A', '2.5A']
+	usbMicroDPMs = list("{0:.2f}".format(4.2+0.08*x)+'V' for x in range(0, 8))
+	def SetPowerInputsConfig(self, config, non_volatile = False):
+		d = []
+		try:
+			nv = 0x80 if non_volatile == True else 0x00
+			prec = 0x01 if (config['precedence'] == '5V_GPIO') else 0x00
+			gpioInEn = 0x02 if (config['gpio_in_enabled'] == True) else 0x00
+			noBatOn = 0x04 if (config['no_battery_turn_on'] == True) else 0x00
+			ind = self.usbMicroCurrentLimits.index(config['usb_micro_current_limit'])
+			if ind == None:
+				return {'error':'INVALID_USB_MICRO_CURRENT_LIMIT'}
+			usbMicroLimit = int(ind) << 3
+			
+			ind = self.usbMicroDPMs.index(config['usb_micro_dpm'])
+			if ind == None:
+				return {'error':'INVALID_USB_MICRO_DPM'}
+			dpm = (int(ind) & 0x07) << 4
+			d = [nv | prec | gpioInEn | noBatOn | usbMicroLimit | dpm]
+		except:
+			return {'error':'BAD_ARGUMENT'}
+		return self.interface.WriteDataVerify(self.POWER_INPUTS_CONFIG_CMD, d)
+		
+	def GetPowerInputsConfig(self):
+		ret = self.interface.ReadData(self.POWER_INPUTS_CONFIG_CMD, 1)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		d = ret['data'][0]
+		config = {}
+		#print hex(d) 
+		config['precedence'] = self.powerInputs[d&0x01]
+		config['gpio_in_enabled'] = bool(d&0x02)
+		config['no_battery_turn_on'] = bool(d&0x04)
+		config['usb_micro_current_limit'] = self.usbMicroCurrentLimits[(d>>3)&0x01]
+		config['usb_micro_dpm'] = self.usbMicroDPMs[(d>>4)&0x07]
+		return {'data':config, 'non_volatile':bool(d&0x80), 'error':'NO_ERROR'}
+		
 	buttons = ['SW' + str(i+1) for i in range(0,3)]
 	buttonEvents = ['PRESS', 'RELEASE', 'SINGLE_PRESS', 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
 	#functionTypes = ['HARDWARE', 'SYSTEM', 'USER']
@@ -1158,7 +1288,7 @@ class PiJuiceConfig():
 		d = [0x00, 0x00, 0x00, 0x00]
 		try:
 			i = self.leds.index(led)
-			d[0] = self.ledFunctions.index(config['function'])
+			d[0] = self.ledFunctions.index(config['function']) 
 			d[1] = int(config['parameter']['r'])
 			d[2] = int(config['parameter']['g'])
 			d[3] = int(config['parameter']['b'])
@@ -1204,6 +1334,67 @@ class PiJuiceConfig():
 			return {'error':'BAD_ARGUMENT'}
 		return self.interface.WriteDataVerify(self.RUN_PIN_CONFIG_CMD, [ind]) 
 		
+	ioModes = ['NOT_USED', 'ANALOG_IN', 'DIGITAL_IN', 'DIGITAL_OUT_PUSHPULL', 'DIGITAL_IO_OPEN_DRAIN', 'PWM_OUT_PUSHPULL', 'PWM_OUT_OPEN_DRAIN']
+	ioSupportedModes = {
+		1:['NOT_USED', 'ANALOG_IN', 'DIGITAL_IN', 'DIGITAL_OUT_PUSHPULL', 'DIGITAL_IO_OPEN_DRAIN', 'PWM_OUT_PUSHPULL', 'PWM_OUT_OPEN_DRAIN'],
+		2:['NOT_USED', 'DIGITAL_IN', 'DIGITAL_OUT_PUSHPULL', 'DIGITAL_IO_OPEN_DRAIN', 'PWM_OUT_PUSHPULL', 'PWM_OUT_OPEN_DRAIN']
+		}
+	ioPullOptions = ['NOPULL', 'PULLDOWN', 'PULLUP']
+	ioConfigParams = {
+		'DIGITAL_OUT_PUSHPULL':[{'name':'value', 'type':'int', 'min':0, 'max':1}], 
+		'DIGITAL_IO_OPEN_DRAIN':[{'name':'value', 'type':'int', 'min':0, 'max':1}], 
+		'PWM_OUT_PUSHPULL':[{'name':'period', 'unit':'us', 'type':'int', 'min':2, 'max':65536*2}, {'name':'duty_circle', 'unit':'%', 'type':'float', 'min':0, 'max':100}],
+		'PWM_OUT_OPEN_DRAIN':[{'name':'period', 'unit':'us', 'type':'int', 'min':2, 'max':65536*2}, {'name':'duty_circle', 'unit':'%', 'type':'float', 'min':0, 'max':100}]
+		}
+	def SetIoConfiguration(self, io_pin, config, non_volatile = False):
+		d = [0x00, 0x00, 0x00, 0x00, 0x00]
+		try:
+			mode = self.ioModes.index(config['mode'])
+			pull = self.ioPullOptions.index(config['pull'])
+			nv = 0x80 if non_volatile == True else 0x00
+			d[0] = (mode & 0x0F) | ((pull & 0x03) << 4) | nv
+			
+			if config['mode'] == 'DIGITAL_OUT_PUSHPULL' or config['mode'] == 'DIGITAL_IO_OPEN_DRAIN':
+				d[1] = int(config['value']) & 0x01 # output value
+			elif config['mode'] == 'PWM_OUT_PUSHPULL' or config['mode'] == 'PWM_OUT_OPEN_DRAIN':
+				if config['period'] >= 2:
+					p = int(config['period']) / 2 - 1 
+				else:
+					return {'error':'INVALID_PERIOD'}
+				d[1] = p&0xFF
+				d[2] = (p >> 8)&0xFF
+				d[3] = 0xFF
+				d[4] = 0xFF
+				dc = float(config['duty_circle'])
+				if dc < 0 or dc > 100:
+					return {'error':'INVALID_CONFIG'}
+				elif dc < 100:
+					dci = int(round(dc*65534/100))
+					d[3] = dci&0xFF
+					d[4] = (dci>>8)&0xFF
+		except:
+			return {'error':'INVALID_CONFIG'}
+		return self.interface.WriteDataVerify(self.IO_CONFIGURATION_CMD + (io_pin-1)*5, d) 
+
+	def GetIoConfiguration(self, io_pin):
+		ret = self.interface.ReadData(self.IO_CONFIGURATION_CMD + (io_pin-1)*5, 5)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			d = ret['data']
+			nv = bool(d[0]&0x80)
+			mode = self.ioModes[d[0]&0x0F] if ((d[0]&0x0F) < len(self.ioModes)) else 'UNKNOWN'
+			pull = self.ioPullOptions[(d[0]>>4)&0x03] if (((d[0]>>4)&0x03) < len(self.ioPullOptions)) else 'UNKNOWN'
+			if mode == 'DIGITAL_OUT_PUSHPULL' or mode == 'DIGITAL_IO_OPEN_DRAIN':
+				return {'data':{'mode':mode, 'pull':pull, 'value':int(d[1])}, 'non_volatile':nv, 'error':'NO_ERROR'}
+			elif mode == 'PWM_OUT_PUSHPULL' or mode == 'PWM_OUT_OPEN_DRAIN':
+				per = ((d[1] | (d[2] << 8)) + 1) * 2
+				dci = d[3] | (d[4] << 8)
+				dc = float(dci) * 100 / 65534 if dci < 65535 else 100
+				return {'data':{'mode':mode, 'pull':pull, 'period':per, 'duty_circle':dc}, 'non_volatile':nv, 'error':'NO_ERROR'}
+			else:
+				return {'data':{'mode':mode, 'pull':pull}, 'non_volatile':nv, 'error':'NO_ERROR'}
+				
 	def GetAddress(self, slave):
 		if slave != 1 and slave != 2:
 			return {'error':'BAD_ARGUMENT'}
@@ -1259,7 +1450,7 @@ class PiJuiceConfig():
 	def SetDefaultConfiguration(self):
 		return self.interface.WriteData(self.RESET_TO_DEFAULT_CMD, [0xaa, 0x55, 0x0a, 0xa3])		
 		
-	def GetFirmvareVersion(self):	
+	def GetFirmwareVersion(self):	
 		ret = self.interface.ReadData(self.FIRMWARE_VERSION_CMD, 2)
 		if ret['error'] != 'NO_ERROR':
 			return ret
