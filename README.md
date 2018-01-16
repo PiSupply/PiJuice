@@ -118,7 +118,7 @@ You can find out more in the [software section](https://github.com/PiSupply/PiJu
 
 - The EEPROM can be disabled and its I2C address changed for increased compatibility with other boards
 - BP7X battery - original battery from Motorola Droid 2 (A955) - 1820mAh battery
-- Microcontroller is an ST Micro STM32F030CCT6 ARM Cortex-M0, 48MHz, F64KB, R8KB, I2C, SPI, USART, 2.4-3.6V
+- Microcontroller is an ST Micro STM32F030CCT6 ARM CortexM0,48MHz,F256KB,R32KB,I2C,SPI,USART,2.4-3.6V
 - Charge IC - BQ24160RGET Charger IC Lithium-Ion/Polymer, 2.5A, 4.2-10V
 - Fuel gauge IC - LC709203FQH-01TWG Battery Fuel Gauge, 1-Cell Li-ion, 2.8%
 - EEPROM - CAT24C32WI-GT3 EEPROM, I2C, 32KBIT, 400KHZ, 1V7-5V5
