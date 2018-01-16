@@ -76,8 +76,8 @@ class PiJuiceFirmware:
 		from os.path import isfile, join
 		self.newVer = None
 		self.binFile = None
-		#binDir = '/usr/share/pijuice/data/firmware/'
-		binDir = '/home/pi/'
+		binDir = '/usr/share/pijuice/data/firmware/'
+		#binDir = '/home/pi/'
 		files = [f for f in listdir(binDir) if isfile(join(binDir, f))]
 		self.newVerStr = ''
 		maxVer = 0
