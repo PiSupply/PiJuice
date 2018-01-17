@@ -76,8 +76,8 @@ class PiJuiceFirmware:
         from os.path import isfile, join
         self.newVer = None
         self.binFile = None
-        #binDir = '/usr/share/pijuice/data/firmware/'
-        binDir = '/home/pi/'
+        binDir = '/usr/share/pijuice/data/firmware/'
+        #binDir = '/home/pi/'
         files = [f for f in listdir(binDir) if isfile(join(binDir, f))]
         self.newVerStr = ''
         maxVer = 0
@@ -113,10 +113,10 @@ class PiJuiceFirmware:
             if ret['data']['powerInput'] != 'PRESENT' and ret['data']['powerInput5vIo'] != 'PRESENT':
                 ret = pijuice.status.GetChargeLevel()
                 if ret['error'] == 'NO_ERROR' and float(ret['data']) < 20:
-                    tkMessageBox.showerror('Update Fimware','Cannot update, charge level is too low', parent=self.frame)
+                    tkMessageBox.showerror('Update Firmware','Cannot update, charge level is too low', parent=self.frame)
                     return
 
-        q = tkMessageBox.showwarning('Update Fimware','Warning! Interrupting firmare update may lead to non functional PiJuice HAT.', parent=self.frame)
+        q = tkMessageBox.showwarning('Update Firmware','Warning! Interrupting firmware update may lead to non functional PiJuice HAT.', parent=self.frame)
         if q:
             #print 'Updating fimware'
             #inputFile = '/usr/share/pijuice/data/firmware/PiJuice.elf.binary'
@@ -125,7 +125,7 @@ class PiJuiceFirmware:
                 adr = format(curAdr, 'x')
                 ret = 256 - subprocess.call(['pijuiceboot', adr, self.binFile])#subprocess.call([os.getcwd() + '/stmboot', adr, inputFile])
                 if ret == 256:
-                    tkMessageBox.showinfo('Firmware update', 'Finished succesfully!', parent=self.frame)
+                    tkMessageBox.showinfo('Firmware update', 'Finished successfully!', parent=self.frame)
                     self.newFirmStatus.set('Firmware is up to date')
                     self.firmVer.set(self.newVerStr)
                     self.defaultConfigBtn.configure(state="disabled")
@@ -137,10 +137,10 @@ class PiJuiceFirmware:
                     elif errorStatus == 'INPUT_FILE_OPEN_ERROR':
                         msg = 'Firmware binary file might be missing or damaged.'
                     elif errorStatus == 'STARTING_BOOTLOADER_ERROR':
-                        msg = 'Try to start bootloader manualy. Press and hold button SW3 while powering up RPI and PiJuice.'
+                        msg = 'Try to start bootloader manually. Press and hold button SW3 while powering up RPI and PiJuice.'
                     tkMessageBox.showerror('Firmware update failed', 'Reason: ' + errorStatus + '. ' + msg, parent=self.frame)
             else:
-                tkMessageBox.showerror('Firmware update', 'Unknown pijuice I2C address', parent=self.frame)
+                tkMessageBox.showerror('Firmware update', 'Unknown PiJuice I2C address', parent=self.frame)
 
 class PiJuiceHATConfig:
     def __init__(self, master):
@@ -962,7 +962,7 @@ class PiJuiceHATConfigGui():
         t.wm_title('PiJuice HAT Configuration')
 
         # create the notebook
-        nb = Notebook(t, name='notebook')
+        nb = Notebook(t, name='notebook', width=640, height=480)
 
         # extend bindings to top level window allowing
         #   CTRL+TAB - cycles thru tabs

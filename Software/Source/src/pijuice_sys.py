@@ -97,13 +97,14 @@ def _EvalButtonEvents():
 		return False
 	
 def _EvalCharge():
-	charge = pijuice.status.GetChargeLevel()	
+	global lowChgEn
+	charge = pijuice.status.GetChargeLevel()
 	if charge['error'] == 'NO_ERROR':
 		level = float(charge['data'])
 		global chargeLevel
 		if ('threshold' in configData['system_task']['min_charge']):
 			th = float(configData['system_task']['min_charge']['threshold'])
-			if level == 0 or ((level < th) and ((chargeLevel-level) > 0 and (chargeLevel-level) < 3)):
+			if level == 0 or ((level < th) and ((chargeLevel-level) >= 0 and (chargeLevel-level) < 3)):
 				#print 'level, th', level, th, chargeLevel, (level < th)
 				#global lowChgEn
 				#print 'lowChgEn' , lowChgEn
@@ -120,7 +121,8 @@ def _EvalCharge():
 		return False
 		
 def _EvalBatVoltage():
-	bv = pijuice.status.GetBatteryVoltage()	
+	global lowBatVolEn
+	bv = pijuice.status.GetBatteryVoltage()
 	if bv['error'] == 'NO_ERROR':
 		v = float(bv['data']) / 1000
 		if ('threshold' in configData['system_task']['min_bat_voltage']):
