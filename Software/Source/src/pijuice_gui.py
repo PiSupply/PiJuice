@@ -5,6 +5,7 @@ from Tkinter import *
 from ttk import *
 from pijuice import *
 import tkMessageBox
+import tkFileDialog
 import copy
 import os
 import subprocess
@@ -52,8 +53,10 @@ class PiJuiceFirmware:
     def __init__(self, master):
         self.frame = Frame(master, name='firmware')
         self.frame.grid(row=0, column=0, sticky=W)
-        self.frame.rowconfigure(10, weight=1)
-        self.frame.columnconfigure((0,3), weight=1, uniform=1)
+        self.frame.columnconfigure(0, weight=2)
+        self.frame.columnconfigure(1, weight=1)
+
+        self.firmwareFilePath = StringVar()
 
         Label(self.frame, text="Firmware version:").grid(row=0, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
         self.firmVer = StringVar()
@@ -64,6 +67,10 @@ class PiJuiceFirmware:
 
         self.defaultConfigBtn = Button(self.frame, text='Update firmware',state="disabled", underline=0, command= self._UpdateFirmwareCmd)
         self.defaultConfigBtn.grid(row=1, column=1, padx=(2, 2), pady=(20, 0), sticky = W)
+
+        Label(self.frame, text="Firmware file path:").grid(row=2, column=0, padx=2, pady=(10, 0), sticky=W)
+        self.pathLabel = Label(self.frame, textvariable=self.firmwareFilePath, text="").grid(row=3, column=0, padx=2, pady=(10, 0), sticky=W)
+        self.browseButton = Button(self.frame, text="Browse", command=self._SetFirmwarePath).grid(row=3, column=1, padx=2, pady=5, sticky=W)
 
         self.ver = None
         if status['error'] == 'NO_ERROR':
@@ -81,6 +88,7 @@ class PiJuiceFirmware:
         files = [f for f in listdir(binDir) if isfile(join(binDir, f))]
         self.newVerStr = ''
         maxVer = 0
+        self.firmwareFilePath.set("No firmware files found")
         for f in files:
             fn = os.path.splitext(f)
             fv = fn[0].split('_')
@@ -93,6 +101,7 @@ class PiJuiceFirmware:
                         self.newVerStr = fv[1]
                         self.newVer = vs[0] + vs[1]
                         self.binFile = binDir + f
+                        self.firmwareFilePath.set(self.binFile)
 
         if self.ver and self.newVer:
             if int(str(self.newVer), 16) > int(str(self.ver['version']), 16):
@@ -107,6 +116,13 @@ class PiJuiceFirmware:
 
         self.firmUpdateErrors = ['NO_ERROR', 'I2C_BUS_ACCESS_ERROR', 'INPUT_FILE_OPEN_ERROR', 'STARTING_BOOTLOADER_ERROR', 'FIRST_PAGE_ERASE_ERROR',
         'EEPROM_ERASE_ERROR', 'INPUT_FILE_READ_ERROR', 'PAGE_WRITE_ERROR', 'PAGE_READ_ERROR', 'PAGE_VERIFY_ERROR', 'CODE_EXECUTE_ERROR']
+    
+    def _SetFirmwarePath(self, event=None):
+        self.binFile = tkFileDialog.askopenfilename(parent=self.frame, title='Select firmware file')
+        self.firmwareFilePath.set(self.binFile)
+        if self.binFile:
+            self.defaultConfigBtn.configure(state="normal")
+
     def _UpdateFirmwareCmd(self):
         ret = pijuice.status.GetStatus()
         if ret['error'] == 'NO_ERROR':
@@ -146,7 +162,6 @@ class PiJuiceHATConfig:
     def __init__(self, master):
         self.frame = Frame(master, name='hat')
         self.frame.grid(row=0, column=0, sticky=W)
-        self.frame.rowconfigure(10, weight=1)
         self.frame.columnconfigure(0, weight=0, minsize=200)
         self.frame.columnconfigure(1, weight=5, uniform=1)
         self.frame.columnconfigure(2, weight=1, uniform=1)
