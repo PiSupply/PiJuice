@@ -878,7 +878,7 @@ class PiJuiceIoConfig:
             self.paramEntry1[i].grid(row=1+i*2, column=3, padx=(2, 2), pady=(2, 0), sticky='W')
 
             self.paramName2[i] = StringVar()
-            self.paramNameLabel2 = Label(self.frame, textvariable=self.paramName2, text="param2:").grid(row=0+i*2, column=4, padx=(2, 2), pady=(10, 0), sticky = W)
+            self.paramNameLabel2 = Label(self.frame, textvariable=self.paramName2[i], text="param2:").grid(row=0+i*2, column=4, padx=(2, 2), pady=(10, 0), sticky = W)
             self.param2[i] = StringVar()
             self.oldParam2[i] = StringVar()
             self.paramEntry2[i] = Entry(self.frame,textvariable=self.param2[i])
