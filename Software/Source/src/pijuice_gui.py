@@ -181,14 +181,14 @@ class PiJuiceHATConfig:
         self.frame = Frame(master, name='hat')
         self.frame.grid(row=0, column=0, sticky=W)
         self.frame.columnconfigure(0, weight=0, minsize=200)
-        self.frame.columnconfigure(1, weight=5, uniform=1)
-        self.frame.columnconfigure(2, weight=1, uniform=1)
+        self.frame.columnconfigure(3, weight=5, uniform=1)
+        self.frame.rowconfigure(14, weight=1)
 
         Label(self.frame, text="Run pin:").grid(row=0, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
         self.runPinConfig = StringVar()
         self.runPinConfigSel = Combobox(self.frame, textvariable=self.runPinConfig, state='readonly')
         self.runPinConfigSel['values'] = pijuice.config.runPinConfigs
-        self.runPinConfigSel.grid(column=1, row=0, padx=(2, 2), pady=(10, 0), sticky = W+E)
+        self.runPinConfigSel.grid(column=1, row=0, columnspan=3, padx=(2, 2), pady=(10, 0), sticky = W+E)
         self.runPinConfigSel.bind("<<ComboboxSelected>>", self._RunPinConfigSelected)
         config = pijuice.config.GetRunPinConfig()
         if config['error'] != 'NO_ERROR':
@@ -207,7 +207,7 @@ class PiJuiceHATConfig:
             self.slaveAddr[i] = StringVar()
             self.slaveAddr[i].trace("w", lambda name, index, mode, var=self.slaveAddr[i], id = i: self._ValidateSlaveAdr(var, id))
             self.slaveAddrEntry[i] = Entry(self.frame,textvariable=self.slaveAddr[i])
-            self.slaveAddrEntry[i].grid(row=1+i, column=1, padx=(2, 2), pady=(10, 0), sticky=W+E)
+            self.slaveAddrEntry[i].grid(row=1+i, column=1, padx=(2, 2), pady=(10, 0), columnspan=3, sticky=W+E)
             self.slaveAddrEntry[i].bind("<Return>", lambda x, id=i: self._WriteSlaveAddress(id))
             self.slaveAddrconfig[i] = pijuice.config.GetAddress(i+1)
             if self.slaveAddrconfig[i]['error'] != 'NO_ERROR':
@@ -220,7 +220,7 @@ class PiJuiceHATConfig:
         self.idEepromAddr = StringVar()
         self.idEepromAddrSel = Combobox(self.frame, textvariable=self.idEepromAddr, state='readonly')
         self.idEepromAddrSel['values'] = pijuice.config.idEepromAddresses
-        self.idEepromAddrSel.grid(column=1, row=3, padx=(2, 2), pady=(10, 0), sticky = W+E)
+        self.idEepromAddrSel.grid(column=1, row=3, columnspan=3, padx=(2, 2), pady=(10, 0), sticky = W+E)
         self.idEepromAddrSel.bind("<<ComboboxSelected>>", self._IdEepromAddrSelected)
         config = pijuice.config.GetIdEepromAddress()
         if config['error'] != 'NO_ERROR':
@@ -229,7 +229,8 @@ class PiJuiceHATConfig:
             self.idEepromAddrSel.current(pijuice.config.idEepromAddresses.index(config['data']))
 
         self.idEepromWpDisable = IntVar()
-        self.idEepromWpDisableCheck = Checkbutton(self.frame, text = "ID EEPROM Write unprotect", variable = self.idEepromWpDisable).grid(row=4, column=0, sticky = W, padx=(2, 2), pady=(10, 0))
+        Label(self.frame, text="ID EEPROM Write unprotect").grid(row=4, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
+        self.idEepromWpDisableCheck = Checkbutton(self.frame, variable = self.idEepromWpDisable).grid(row=4, column=1, sticky = W, padx=(2, 2), pady=(10, 0))
         self.idEepromWpDisable.trace("w", self._IdEepromWpDisableCheck)
         config = pijuice.config.GetIdEepromWriteProtect()
         if config['error'] != 'NO_ERROR':
@@ -240,25 +241,27 @@ class PiJuiceHATConfig:
         Label(self.frame, text="Inputs precedence:").grid(row=5, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
         self.inputsPrecedence = StringVar()
         Radiobutton(self.frame, text=pijuice.config.powerInputs[0], variable=self.inputsPrecedence, value=pijuice.config.powerInputs[0]).grid(row=5, column=1, padx=(2, 2), pady=(10, 0), sticky= W)
-        Radiobutton(self.frame, text=pijuice.config.powerInputs[1], variable=self.inputsPrecedence, value=pijuice.config.powerInputs[1]).grid(row=6, column=1, padx=(2, 2), pady=(10, 0), sticky= W)
+        Radiobutton(self.frame, text=pijuice.config.powerInputs[1], variable=self.inputsPrecedence, value=pijuice.config.powerInputs[1]).grid(row=5, column=2, padx=(2, 2), pady=(10, 0), sticky= W)
 
         self.gpioInputEnabled = BooleanVar()
-        self.gpioInputEnabledCheck = Checkbutton(self.frame, text = "GPIO Input Enabled", variable = self.gpioInputEnabled).grid(row=7, column=0, sticky = W, padx=(2, 2), pady=(10, 0))
+        Label(self.frame, text="GPIO Input Enabled").grid(row=7, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
+        self.gpioInputEnabledCheck = Checkbutton(self.frame, variable = self.gpioInputEnabled).grid(row=7, column=1, sticky = W, padx=(2, 2), pady=(10, 0))
 
         Label(self.frame, text="USB Micro current limit:").grid(row=8, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
         self.usbMicroCurrentLimit = StringVar()
         Radiobutton(self.frame, text=pijuice.config.usbMicroCurrentLimits[0], variable=self.usbMicroCurrentLimit, value=pijuice.config.usbMicroCurrentLimits[0]).grid(row=8, column=1, padx=(2, 2), pady=(10, 0), sticky= W)
-        Radiobutton(self.frame, text=pijuice.config.usbMicroCurrentLimits[1], variable=self.usbMicroCurrentLimit, value=pijuice.config.usbMicroCurrentLimits[1]).grid(row=9, column=1, padx=(2, 2), pady=(10, 0), sticky= W)
+        Radiobutton(self.frame, text=pijuice.config.usbMicroCurrentLimits[1], variable=self.usbMicroCurrentLimit, value=pijuice.config.usbMicroCurrentLimits[1]).grid(row=8, column=2, padx=(2, 2), pady=(10, 0), sticky= W)
 
         Label(self.frame, text="USB Micro IN DPM:").grid(row=10, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
         self.usbMicroInDpm = StringVar()
         self.usbMicroInDpmSel = Combobox(self.frame, textvariable=self.usbMicroInDpm, state='readonly')
         self.usbMicroInDpmSel['values'] = pijuice.config.usbMicroDPMs
-        self.usbMicroInDpmSel.grid(column=1, row=10, padx=(2, 2), pady=(10, 0), sticky = W)
+        self.usbMicroInDpmSel.grid(column=1, row=10, columnspan=3, padx=(2, 2), pady=(10, 0), sticky = W+E)
         self.usbMicroInDpmSel.current(0)
 
         self.noBatTurnOnEnabled = BooleanVar()
-        self.noBatTurnOnEnabledCheck = Checkbutton(self.frame, text = "No battery turn on", variable = self.noBatTurnOnEnabled).grid(row=11, column=0, sticky = W, padx=(2, 2), pady=(10, 0))
+        Label(self.frame, text="No battery turn on").grid(row=11, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
+        self.noBatTurnOnEnabledCheck = Checkbutton(self.frame, variable = self.noBatTurnOnEnabled).grid(row=11, column=1, sticky = W, padx=(2, 2), pady=(10, 0))
 
         ret = pijuice.config.GetPowerInputsConfig()
         if ret['error'] == 'NO_ERROR':
@@ -279,7 +282,7 @@ class PiJuiceHATConfig:
         self.powerRegMode = StringVar()
         self.powerRegModeSel = Combobox(self.frame, textvariable=self.powerRegMode, state='readonly', width=len(max(pijuice.config.powerRegulatorModes, key=len)) + 1)
         self.powerRegModeSel['values'] = pijuice.config.powerRegulatorModes
-        self.powerRegModeSel.grid(column=1, row=12, padx=(2, 2), pady=(10, 0), sticky = W)
+        self.powerRegModeSel.grid(column=1, row=12, columnspan=3, padx=(2, 2), pady=(10, 0), sticky = W+E)
         self.powerRegModeSel.bind("<<ComboboxSelected>>", self._PowerRegModeSelected)
         config = pijuice.config.GetPowerRegulatorMode()
         if config['error'] != 'NO_ERROR':
@@ -288,14 +291,17 @@ class PiJuiceHATConfig:
             self.powerRegModeSel.current(pijuice.config.powerRegulatorModes.index(config['data']))
 
         self.chargingEnabled = BooleanVar()
-        self.chargingEnabledCheck = Checkbutton(self.frame, text = "Charging Enabled", variable = self.chargingEnabled).grid(row=13, column=0, sticky = W, padx=(2, 2), pady=(10, 0))
+        Label(self.frame, text="Charging Enabled").grid(row=13, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
+        self.chargingEnabledCheck = Checkbutton(self.frame, variable = self.chargingEnabled).grid(row=13, column=1, sticky = W, padx=(2, 2), pady=(10, 0))
         config = pijuice.config.GetChargingConfig()
         if config['error'] == 'NO_ERROR':
             self.chargingEnabled.set(config['data']['charging_enabled'])
         self.chargingEnabled.trace("w", self._UpdateChargingConfig)
 
         self.defaultConfigBtn = Button(self.frame, text='Reset to default configuration', state="normal", underline=0, command= self._ResetToDefaultConfigCmd)
-        self.defaultConfigBtn.grid(row=14, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
+        self.defaultConfigBtn.grid(row=14, column=0, padx=(2, 2), pady=(20, 0), sticky = SW)
+
+        Label(self.frame, text="Changes on this tab apply instantly.").grid(row=14, columnspan=3, column=1, sticky=SE)
 
     def _ResetToDefaultConfigCmd(self):
         q = tkMessageBox.askokcancel('Reset Configuration','Warning! This action will reset PiJuice HAT configuration to default settings.', parent=self.frame)
@@ -1439,8 +1445,7 @@ class PiJuiceHatTab:
         self.frame.grid(row=0, column=0, sticky=W)
         self.frame.rowconfigure(10, weight=1)
         self.frame.columnconfigure(0, minsize=150)
-        self.frame.columnconfigure(1, weight=3, uniform=1)
-        self.frame.columnconfigure(2, weight=1, uniform=1)
+        # self.frame.columnconfigure((1, 3), weight=1, uniform=1)
 
         if pijuice == None:
             return
@@ -1448,28 +1453,28 @@ class PiJuiceHatTab:
         Label(self.frame, text="Battery:").grid(row=0, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
         self.status = StringVar()
         self.statusLbl = Label(self.frame,textvariable=self.status, text='')
-        self.statusLbl.grid(row=0, column=1, padx=(2, 2), pady=(20, 0), columnspan=2, sticky = W)
+        self.statusLbl.grid(row=0, column=1, padx=(2, 2), pady=(20, 0), columnspan=3, sticky = W)
 
         Label(self.frame, text="GPIO power input:").grid(row=1, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
         self.gpioPower = StringVar()
         self.gpioPowerLbl = Label(self.frame,textvariable=self.gpioPower, text='')
-        self.gpioPowerLbl.grid(row=1, column=1, padx=(2, 2), pady=(20, 0), columnspan=2, sticky = W)
+        self.gpioPowerLbl.grid(row=1, column=1, padx=(2, 2), pady=(20, 0), columnspan=3, sticky = W)
 
         Label(self.frame, text="USB Micro power input:").grid(row=2, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
         self.usbPower = StringVar()
         self.usbPowerLbl = Label(self.frame,textvariable=self.usbPower, text='')
-        self.usbPowerLbl.grid(row=2, column=1, padx=(2, 2), pady=(20, 0), columnspan=2, sticky = W)
+        self.usbPowerLbl.grid(row=2, column=1, padx=(2, 2), pady=(20, 0), columnspan=3, sticky = W)
 
         Label(self.frame, text="Fault:").grid(row=3, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
         self.fault = StringVar()
         self.faultLbl = Label(self.frame,textvariable=self.fault, text='')
-        self.faultLbl.grid(row=3, column=1, padx=(2, 2), pady=(20, 0), columnspan=2, sticky = W)
+        self.faultLbl.grid(row=3, column=1, padx=(2, 2), pady=(20, 0), columnspan=3, sticky = W)
 
         Label(self.frame, text="System switch:").grid(row=4, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
         self.sysSwLimit = IntVar()
         Radiobutton(self.frame, text="Off", variable=self.sysSwLimit, value=0).grid(row=4, column=1, padx=(2, 2), pady=(20, 0), sticky = W)
-        Radiobutton(self.frame, text="500mA", variable=self.sysSwLimit, value=500).grid(row=5, column=1, padx=(2, 2), pady=(20, 0), sticky = W)
-        Radiobutton(self.frame, text="2100mA", variable=self.sysSwLimit, value=2100).grid(row=6, column=1, padx=(2, 2), pady=(20, 0), sticky = W)
+        Radiobutton(self.frame, text="500mA", variable=self.sysSwLimit, value=500).grid(row=4, column=2, padx=(2, 2), pady=(20, 0), sticky = W+E)
+        Radiobutton(self.frame, text="2100mA", variable=self.sysSwLimit, value=2100).grid(row=4, column=3, padx=(2, 2), pady=(20, 0), sticky = W)
         self.sysSwLimit.trace("w", self._SetSysSwitch)
 
         self.hatConfigBtn = Button(self.frame, text='Configure HAT', state="normal", underline=0, command= self._HatConfigCmd)
