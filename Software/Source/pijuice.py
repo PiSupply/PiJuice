@@ -1456,7 +1456,13 @@ class PiJuiceConfig():
 		if ret['error'] != 'NO_ERROR':
 			return ret
 		else:
-			return {'data':{'version':format(ret['data'][0], 'x'), 'variant':format(ret['data'][1], 'x')}, 'error':'NO_ERROR'}
+			major_version = ret['data'][0] >> 4
+			minor_version = (ret['data'][0] << 4 & 0xf0) >> 4
+			version_str = '%i.%i' % (major_version, minor_version)
+			return {'data': {
+				'version': version_str,
+				'variant': format(ret['data'][1], 'x')},
+				'error':'NO_ERROR'}
 			
 	def RunTestCalibration(self):
 		self.interface.WriteData(248, [0x55, 0x26, 0xa0, 0x2b])
