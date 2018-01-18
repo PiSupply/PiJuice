@@ -78,7 +78,7 @@ class PiJuiceFirmware:
         if status['error'] == 'NO_ERROR':
             self.verStr = status['data']['version']
             major, minor = self.verStr.split('.')
-            self.ver = (int(major) << 4) + int(minor_version)
+            self.ver = (int(major) << 4) + int(minor)
             self.firmVer.set(self.verStr)
         else:
             self.firmVer.set(status['error'])
