@@ -8,6 +8,7 @@ import tkMessageBox
 import tkFileDialog
 import copy
 import os
+import re
 import subprocess
 import json
 
@@ -73,14 +74,18 @@ class PiJuiceFirmware:
         self.browseButton = Button(self.frame, text="Browse", command=self._SetFirmwarePath).grid(row=3, column=1, padx=2, pady=5, sticky=W)
 
         self.ver = None
+        self.verStr = None
         if status['error'] == 'NO_ERROR':
-            self.ver = status['data']
-            self.firmVer.set(self.ver['version'])
+            self.verStr = status['data']['version']
+            major, minor = self.verStr.split('.')
+            self.ver = (int(major) << 4) + int(minor_version)
+            self.firmVer.set(self.verStr)
         else:
             self.firmVer.set(status['error'])
 
         from os import listdir
         from os.path import isfile, join
+
         self.newVer = None
         self.binFile = None
         binDir = '/usr/share/pijuice/data/firmware/'
@@ -89,22 +94,24 @@ class PiJuiceFirmware:
         self.newVerStr = ''
         maxVer = 0
         self.firmwareFilePath.set("No firmware files found")
+
+        regex = re.compile(r"PiJuice-V(\d+)\.(\d+)_(\d+_\d+_\d+).elf.binary")
         for f in files:
-            fn = os.path.splitext(f)
-            fv = fn[0].split('_')
-            if fn[1] == '.binary' and len(fv) >= 2 and fv[0] == 'PiJuice.elf':
-                vs = fv[1].split('.')
-                if len(vs) == 2 and vs[0].isdigit() and vs[1].isdigit():
-                    verNum = int(str(vs[0] + vs[1]), 16)
-                    if verNum >= maxVer:
-                        maxVer = verNum
-                        self.newVerStr = fv[1]
-                        self.newVer = vs[0] + vs[1]
-                        self.binFile = binDir + f
-                        self.firmwareFilePath.set(self.binFile)
+            # 1 - major, 2 - minor, 3 - date
+            match = regex.match(f)
+            if match:
+                major_version = int(match.group(1))
+                minor_version = int(match.group(2))
+                verNum = (major_version << 4) + minor_version
+                if verNum >= maxVer:
+                    maxVer = verNum
+                    self.newVerStr = "%i.%i" % (major_version, minor_version)
+                    self.newVer = verNum
+                    self.binFile = binDir + f
+                    self.firmwareFilePath.set(self.binFile)
 
         if self.ver and self.newVer:
-            if int(str(self.newVer), 16) > int(str(self.ver['version']), 16):
+            if self.newVer > self.ver:
                 self.newFirmStatus.set('New firmware V' + self.newVerStr + ' is available')
                 self.defaultConfigBtn.configure(state="normal")
             else:
@@ -117,11 +124,20 @@ class PiJuiceFirmware:
         self.firmUpdateErrors = ['NO_ERROR', 'I2C_BUS_ACCESS_ERROR', 'INPUT_FILE_OPEN_ERROR', 'STARTING_BOOTLOADER_ERROR', 'FIRST_PAGE_ERASE_ERROR',
         'EEPROM_ERASE_ERROR', 'INPUT_FILE_READ_ERROR', 'PAGE_WRITE_ERROR', 'PAGE_READ_ERROR', 'PAGE_VERIFY_ERROR', 'CODE_EXECUTE_ERROR']
     
+    def _WaitForUpdate(self, message="Update in progress. Please, wait.", title="Update in progress"):
+        msg = Toplevel(self.frame.master.master)
+        msg.transient()
+        msg.title(title)
+        Label(msg, text=message).grid(row=0, column=0, padx=30, pady=30)
+        return msg
+
     def _SetFirmwarePath(self, event=None):
-        self.binFile = tkFileDialog.askopenfilename(parent=self.frame, title='Select firmware file')
-        self.firmwareFilePath.set(self.binFile)
-        if self.binFile:
-            self.defaultConfigBtn.configure(state="normal")
+        new_file = tkFileDialog.askopenfilename(parent=self.frame, title='Select firmware file')
+        if new_file:
+            self.binFile = new_file
+            self.firmwareFilePath.set(self.binFile)
+            if self.binFile:
+                self.defaultConfigBtn.configure(state="normal")
 
     def _UpdateFirmwareCmd(self):
         ret = pijuice.status.GetStatus()
@@ -139,7 +155,9 @@ class PiJuiceFirmware:
             curAdr = pijuice.config.interface.GetAddress()
             if curAdr:
                 adr = format(curAdr, 'x')
-                ret = 256 - subprocess.call(['pijuiceboot', adr, self.binFile])#subprocess.call([os.getcwd() + '/stmboot', adr, inputFile])
+                msgbox = self._WaitForUpdate()
+                ret = 256 - subprocess.call(['pijuiceboot', adr, self.binFile])  # subprocess.call([os.getcwd() + '/stmboot', adr, inputFile])
+                msgbox.destroy()
                 if ret == 256:
                     tkMessageBox.showinfo('Firmware update', 'Finished successfully!', parent=self.frame)
                     self.newFirmStatus.set('Firmware is up to date')
