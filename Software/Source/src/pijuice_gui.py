@@ -118,10 +118,12 @@ class PiJuiceFirmware:
         'EEPROM_ERASE_ERROR', 'INPUT_FILE_READ_ERROR', 'PAGE_WRITE_ERROR', 'PAGE_READ_ERROR', 'PAGE_VERIFY_ERROR', 'CODE_EXECUTE_ERROR']
     
     def _SetFirmwarePath(self, event=None):
-        self.binFile = tkFileDialog.askopenfilename(parent=self.frame, title='Select firmware file')
-        self.firmwareFilePath.set(self.binFile)
-        if self.binFile:
-            self.defaultConfigBtn.configure(state="normal")
+        new_file = tkFileDialog.askopenfilename(parent=self.frame, title='Select firmware file')
+        if new_file:
+            self.binFile = new_file
+            self.firmwareFilePath.set(self.binFile)
+            if self.binFile:
+                self.defaultConfigBtn.configure(state="normal")
 
     def _UpdateFirmwareCmd(self):
         ret = pijuice.status.GetStatus()
