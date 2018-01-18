@@ -79,7 +79,7 @@ def set_desktop_entry_versions(version):
 
 
 if os.environ.get('PIJUICE_BUILD_LIGHT'):
-    data_files = [('share/pijuice/data/firmware', ['data/firmware/PiJuice.elf.binary'])]
+    data_files = [('share/pijuice/data/firmware', glob.glob('data/firmware/*'))]
     scripts = ['src/pijuice_sys.py']
     description = "Software package for PiJuice (Light version)"
 else:
@@ -87,7 +87,7 @@ else:
         ('share/applications', ['data/pijuice-gui.desktop']),
         ('/etc/xdg/autostart', ['data/pijuice-tray.desktop']),#(os.environ['XDG_CONFIG_DIRS'] + '/autostart', ['data/pijuice-tray.desktop']),
         ('share/pijuice/data/images', glob.glob('data/images/*')), 
-        ('share/pijuice/data/firmware', ['data/firmware/PiJuice.elf.binary']),
+        ('share/pijuice/data/firmware', glob.glob('data/firmware/*')),
         #('/var/lib/pijuice', ['data/pijuice_config.JSON']),
         #('/etc/systemd/user', ['data/pijuice.service']),
         #('share/pijuice/src', glob.glob('src/*.py')),
