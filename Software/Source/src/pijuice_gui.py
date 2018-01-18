@@ -137,6 +137,7 @@ class PiJuiceFirmware:
             self.binFile = new_file
             self.firmwareFilePath.set(self.binFile)
             if self.binFile:
+                self.newFirmStatus.set('Using manually chosen file')
                 self.defaultConfigBtn.configure(state="normal")
 
     def _UpdateFirmwareCmd(self):
