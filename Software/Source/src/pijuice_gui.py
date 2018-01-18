@@ -123,6 +123,13 @@ class PiJuiceFirmware:
 
         self.firmUpdateErrors = ['NO_ERROR', 'I2C_BUS_ACCESS_ERROR', 'INPUT_FILE_OPEN_ERROR', 'STARTING_BOOTLOADER_ERROR', 'FIRST_PAGE_ERASE_ERROR',
         'EEPROM_ERASE_ERROR', 'INPUT_FILE_READ_ERROR', 'PAGE_WRITE_ERROR', 'PAGE_READ_ERROR', 'PAGE_VERIFY_ERROR', 'CODE_EXECUTE_ERROR']
+    
+    def _WaitForUpdate(self, message="Update in progress. Please, wait.", title="Update in progress"):
+        msg = Toplevel(self.frame.master.master)
+        msg.transient()
+        msg.title(title)
+        Label(msg, text=message).grid(row=0, column=0, padx=30, pady=30)
+        return msg
 
     def _SetFirmwarePath(self, event=None):
         new_file = tkFileDialog.askopenfilename(parent=self.frame, title='Select firmware file')
@@ -148,7 +155,9 @@ class PiJuiceFirmware:
             curAdr = pijuice.config.interface.GetAddress()
             if curAdr:
                 adr = format(curAdr, 'x')
+                msgbox = self._WaitForUpdate()
                 ret = 256 - subprocess.call(['pijuiceboot', adr, self.binFile])  # subprocess.call([os.getcwd() + '/stmboot', adr, inputFile])
+                msgbox.destroy()
                 if ret == 256:
                     tkMessageBox.showinfo('Firmware update', 'Finished successfully!', parent=self.frame)
                     self.newFirmStatus.set('Firmware is up to date')
