@@ -859,6 +859,8 @@ class PiJuiceIoConfig:
         # frame to hold contentx
         self.frame = Frame(master, name='io')
 
+        self.frame.columnconfigure((1, 2), weight=1)
+
         self.config = [{}, {}]
         self.mode = [{}, {}]
         self.modeSel = [{}, {}]
@@ -875,32 +877,32 @@ class PiJuiceIoConfig:
         self.paramConfig2 =[None, None]
 
         for i in range(0, 2):
-            Label(self.frame, text="IO"+str(i+1)+":").grid(row=1+i*2, column=0, padx=(2, 2), pady=(2, 0), sticky = W)
-            Label(self.frame, text="mode:").grid(row=0+i*2, column=1, padx=(2, 2), pady=(10, 0), sticky = W)
+            Label(self.frame, text="IO"+str(i+1)+":").grid(row=1+i*3, column=0, padx=(2, 2), pady=(2, 0), sticky = W)
+            Label(self.frame, text="mode:").grid(row=0+i*3, column=1, padx=5, pady=(10, 0), sticky = W)
             self.mode[i] = StringVar()
             self.modeSel[i] = Combobox(self.frame, textvariable=self.mode[i], state='readonly')
             self.modeSel[i]['values'] = pijuice.config.ioSupportedModes[i+1]
-            self.modeSel[i].grid(column=1, row=1+i*2, padx=(2, 2), pady=(2, 0), sticky = W)
+            self.modeSel[i].grid(column=1, row=1+i*3, padx=5, pady=(2, 0), sticky = W+E)
 
-            Label(self.frame, text="pull:").grid(row=0+i*2, column=2, padx=(2, 2), pady=(10, 0), sticky = W)
+            Label(self.frame, text="pull:").grid(row=0+i*3, column=2, padx=5, pady=(10, 0), sticky = W)
             self.pull[i] = StringVar()
             self.pullSel = Combobox(self.frame, textvariable=self.pull[i], state='readonly')
-            self.pullSel.grid(column=2, row=1+i*2, padx=(2, 2), pady=(2, 0), sticky = W)
+            self.pullSel.grid(column=2, row=1+i*3, padx=5, pady=(2, 0), sticky = W+E)
             self.pullSel['values'] = pijuice.config.ioPullOptions
 
             self.paramName1[i] = StringVar()
-            self.paramNameLabel1 = Label(self.frame, textvariable=self.paramName1[i], text="param1:").grid(row=0+i*2, column=3, padx=(2, 2), pady=(10, 0), sticky = W)
+            self.paramNameLabel1 = Label(self.frame, textvariable=self.paramName1[i], text="param1:").grid(row=0+i*3, column=3, padx=(2, 2), pady=(10, 0), sticky = W)
             self.param1[i] = StringVar()
             self.oldParam1[i] = StringVar()
             self.paramEntry1[i] = Entry(self.frame,textvariable=self.param1[i])
-            self.paramEntry1[i].grid(row=1+i*2, column=3, padx=(2, 2), pady=(2, 0), sticky='W')
+            self.paramEntry1[i].grid(row=2+i*3, column=1, padx=5, pady=(2, 0), sticky=W+E)
 
             self.paramName2[i] = StringVar()
-            self.paramNameLabel2 = Label(self.frame, textvariable=self.paramName2[i], text="param2:").grid(row=0+i*2, column=4, padx=(2, 2), pady=(10, 0), sticky = W)
+            self.paramNameLabel2 = Label(self.frame, textvariable=self.paramName2[i], text="param2:").grid(row=0+i*3, column=4, padx=(2, 2), pady=(10, 0), sticky = W)
             self.param2[i] = StringVar()
             self.oldParam2[i] = StringVar()
             self.paramEntry2[i] = Entry(self.frame,textvariable=self.param2[i])
-            self.paramEntry2[i].grid(row=1+i*2, column=4, padx=(2, 2), pady=(2, 0), sticky='W')
+            self.paramEntry2[i].grid(row=2+i*3, column=2, padx=5, pady=(2, 0), sticky=W+E)
 
             ret = pijuice.config.GetIoConfiguration(i+1)
             if ret['error'] != 'NO_ERROR':
@@ -923,7 +925,7 @@ class PiJuiceIoConfig:
 
         self.apply = StringVar()
         self.applyBtn = Button(self.frame, text='Apply', state="normal", underline=0, command=lambda v=self.apply: self._ApplyNewConfig(v))
-        self.applyBtn.grid(row=5, column=0, padx=(2, 2), pady=(20, 0), sticky='W')
+        self.applyBtn.grid(row=6, column=2, padx=(2, 2), pady=(20, 0), sticky=E)
 
     def _ModeSelected(self, event, i):
         try:
