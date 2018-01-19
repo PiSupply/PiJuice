@@ -143,6 +143,20 @@ In the first config menu screenshot, we mentioned a button in the image that sai
 
 This is the general tab, which allows you to select whether you have installed the spring pin / run pin and also the I2C addresses of the HAT and the RTC as well as changing the write protect on the eeprom and changing the actual physical I2C address of the eeprom. These eeprom features can be very useful if you want to stack another HAT on top of the PiJuice but still have that other HAT auto-configure itself.
 
+#### Inputs precedence
+Selects what power input will have precedence for charging and supplying VSYS output when both are present, HAT USB Micro Input, GPIO 5V Input. 5V_GPIO selected by default.
+#### GPIO Input Enabled
+Enables/disables powering HAT from 5V GPIO Input. Enabled by default.
+#### USB Micro current limit
+Selects maximum current that HAT can take from USB Micro connected power source. 2.5A selected by default.
+#### USB Micro IN DPM
+Selects minimum voltage at USB Micro power input for Dynamic Power Management Loop. 4.2V set by default.
+#### No battery turn on
+If enabled pijuice will automatically power on 5V rail and trigger wake-up as soon as power appears at USB Micro Input and there is no battery. Disabled by default.
+#### Power regulator mode
+Selects power regulator mode. POWER_SOURCE_DETECTION by default.
+
+
 *Note: Using the "Reset to default configuration" will restore the board to its default settings and for a short while the GUI will report "COMMUNICATION_ERROR"*
 
 ### PiJuice HAT Config Buttons Menu
@@ -174,14 +188,29 @@ As previously mentioned, some of these are even hard coded into the firmware on 
 ### PiJuice HAT Config IO Menu
 ![PiJuice HAT Config IO Menu](https://user-images.githubusercontent.com/16068311/35161231-7cc2820c-fd37-11e7-875b-b80b18c3a6ab.png "PiJuice HAT Config IO Menu")
 
+This Tab provides configuration of two pins IO port provided from HAC microcontroller at P3 Header.
+Modes selection box provides to program IO pin to one of predefined modes:
+* NOT_USED Set IO pin in neutral configuration (passive input).
+* ANALOG_IN Set IO pin in analog to digital converter mode. In this mode Value can be read with status function GetIoAnalogInput(). Pull has no effect in this mode.
+* DIGITAL_IN Set IO pin in digital input mode. Pull in this mode cen be set to NO_PULL, PULLDOWN or PULLUP. Use status function SetIoDigitalOutput() to read input value dynamically.
+* DIGITAL_OUT_PUSHPULL Set IO pin in digital output mode with push-pull driver topology. Pull in this mode should be set to NO_PULL. Initial value can be set to 0 or 1. Use status function SetIoDigitalOutput() to control output value dynamically.
+* DIGITAL_IO_OPEN_DRAIN Set IO pin in digital output mode with open-drain driver topology. Pull in this mode can be set to NO_PULL, PULLDOWN or PULLUP. Initial value can be set to 0 or 1. Use status function SetIoDigitalOutput() to control output value dynamically.
+* PWM_OUT_PUSHPULL Set IO pin to PWM output mode with push-pull driver topology. Pull in this mode should be set to NO_PULL. Period [us] box sets period in microseconds in range [2, 131072] with 2us resolution. Set initial duty_circle in range [0, 100]. Use status function SetIoPWM() to control duty circle dynamically.
+* PWM_OUT_OPEN_DRAIN Set IO pin to PWM output mode with open-drain driver topology. Pull in this mode can be set to NO_PULL, PULLDOWN or PULLUP. Period [us] box sets period in microseconds in range [2, 131072] with 2us resolution. Set initial duty_circle in range [0, 100]. Use status function SetIoPWM() to control duty circle dynamically.
+
+Click Apply button to save new settings.
+
+
 ### PiJuice HAT Config Firmware Menu
 
 ![PiJuice HAT Config Firmware Menu](https://user-images.githubusercontent.com/16068311/35161228-7c370f24-fd37-11e7-899a-aad82b827476.png "PiJuice HAT Config Firmware Menu")
 
 Last but very much not least is the firmware menu. This allows you to update the firmware on the PiJuice MCU chip as and when necessary meaning we can actively improve the firmware and any updates or improvements we make in the future can be retrospectively applied to all PiJuice HATs!
 
-*Note that the path to the binary file is fixed and it points to*
+*Note that the PiJuice package you installed comes with a default firmware located at the path below:*
 ```text
-/usr/share/pijuice/data/firmware/PiJuice.elf.binary
+/usr/share/pijuice/data/firmware/
 ```
-If you want to use the GUI to update the firmware you will have to override this file with the new one and make sure the filename is the same i.e. PiJuice.elf.binary
+
+Should you wish to update the firmware with a more recent version simply browse to the new file and proceed with the update.
+During the update the window may become unresponsive. **Wait until the update is finished** before you continue with anything else.
