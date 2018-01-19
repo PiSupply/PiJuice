@@ -60,11 +60,13 @@ or for the light version without GUI:
 
 We have also taken a LOT of screenshots of all the different menu options etc to show you the full software. So lets get stuck in:
 
-![Raspberry Pi Menu Entry for PiJuice Configuration Software](https://user-images.githubusercontent.com/16068311/33845719-3eab8388-de9c-11e7-8499-149e52e66b71.png "Raspberry Pi Menu Entry for PiJuice Configuration Software")
+![Raspberry Pi Menu Entry for PiJuice Configuration Software](https://user-images.githubusercontent.com/16068311/35162363-00d2e1a6-fd3b-11e7-8da3-b6d65e7d300e.png "Raspberry Pi Menu Entry for PiJuice Configuration Software")
 
 Raspberry Pi Menu Entry for PiJuice Configuration Software
 
 We have compiled the source code into a .deb Debian package file so it is super easy to install. Once installation is complete the software appears in the system menu under Menu -> Preferences -> PiJuice Configuration as you can see in the above image.
+
+![pijuice](https://raw.githubusercontent.com/PiSupply/PiJuice/master/Software/Source/data/images/pijuice.png)
 
 ### System Tray
 
@@ -91,23 +93,23 @@ Once you load the software, you will see the PiJuice icon appear in the system t
 
 You can also right click on this icon to load the configuration menu, instead of having to go to the menu as in the previous image.
 
-## Software Configuration
+## PiJuice Settings
 
 ### Main software menu, with no battery attached
 
-![Main software menu, with no battery attached](https://user-images.githubusercontent.com/16068311/33845737-4caea1ae-de9c-11e7-848f-56b58cea3f23.png "Main software menu, with no battery attached")
+![Main software menu, with no battery attached](https://user-images.githubusercontent.com/16068311/35161233-7cfa5fce-fd37-11e7-83ec-72a8043ee0c0.png "Main software menu, with no battery attached")
 
 This picture is how the PiJuice Configuration software looks when it loads up. This also shows some basic information about the battery charge, battery voltage, and where it is charging from....here is it showing 0% and a low voltage on the battery - because there is no battery installed! You can also see that it is charging from the Pi GPIO (meaning it is plugged in to the Pis microUSB) and it also shows the rail voltages and current draw over the GPIO pins. Below that is the PiJuice microUSB and as you can see in this screenshot that is not currently plugged in. There is a fault checker, a system switch state and also a link to a HAT config menu (more on that later! - see PiJuice HAT Configuration Menu screenshot).
 
 ### Main software menu, with battery attached
 
-![Main software menu, with battery attached](https://user-images.githubusercontent.com/16068311/33845730-46f3ef4e-de9c-11e7-8a79-8bf64380da6f.png "Main software menu, with battery attached")
+![Main software menu, with battery attached](https://user-images.githubusercontent.com/16068311/35161234-7d125174-fd37-11e7-9383-e2e80044258d.png "Main software menu, with battery attached")
 
 This screenshot shows the same menu as in the previous screenshot, the only difference being there is now a battery installed in the PiJuice.
 
 ### Wakeup Alarm Menu
 
-![Wakeup Alarm Menu](https://user-images.githubusercontent.com/16068311/33845741-502a4252-de9c-11e7-9ec5-ddef3ec95d91.png "Wakeup Alarm Menu")
+![Wakeup Alarm Menu](https://user-images.githubusercontent.com/16068311/35161225-7bd18140-fd37-11e7-8889-e6715023b334.png "Wakeup Alarm Menu")
 
 In this screenshot we have moved over to the Wakeup alarm tab of the config menu and as you can see this is an area where you can set schedules for the Pi to automatically wake up. This is useful for remote monitoring applications.
 
@@ -115,13 +117,13 @@ This feature will only work if you are either plugged in to the PiJuice microUSB
 
 ### System Task Menu
 
-![System Task Menu](https://user-images.githubusercontent.com/16068311/33845745-53cb645e-de9c-11e7-836f-9601881a3fa9.png "System Task Menu")
+![System Task Menu](https://user-images.githubusercontent.com/16068311/35161236-7d4e6f56-fd37-11e7-9209-7943e88a76d5.png "System Task Menu")
 
 Here we have the system task menu tab. This enables you to set the external watchdog timer - useful for remote applications where you can't come and do a hard-reset yourself if the Pi crashes or hangs. The PiJuice essentially monitors for a "heart beat" from the software - if it does not sense it after a defined period of time it automatically resets the Raspberry Pi. You can also set here wakeup on charge levels, minimum battery levels and voltages.
 
 ### System Events Menu
 
-![System Events Menu](https://user-images.githubusercontent.com/16068311/33845747-56fca07a-de9c-11e7-8026-8de2b847f330.png "System Events Menu")
+![System Events Menu](https://user-images.githubusercontent.com/16068311/35161235-7d31d544-fd37-11e7-92b4-dc0ccab55c56.png "System Events Menu")
 
 This is the system events menu tab. It allows you to trigger events for certain scenarios such as low charge, low voltage and more. Each paramater has a couple of preset options to choose from, and also you can select options from the "user scripts" tab which allows you to trigger your own custom scripts when certain system events occur for maximum flexibility.
 
@@ -135,7 +137,7 @@ This is the user scripts menu tab as we mentioned in the above screenshot descri
 
 ### PiJuice HAT General Config Menu
 
-![PiJuice HAT General Config Menu](https://user-images.githubusercontent.com/16068311/33845754-5eada1e8-de9c-11e7-8102-b933247a18ca.png "PiJuice HAT General Config Menu")
+![PiJuice HAT General Config Menu](https://user-images.githubusercontent.com/16068311/35161230-7caa54d4-fd37-11e7-88cb-a76b2891af4d.png "PiJuice HAT General Config Menu")
 
 In the first config menu screenshot, we mentioned a button in the image that said "Configure HAT" - if you were to click on that button it would bring you to this PiJuice HAT general configuration menu. It allows you to configure a lot of hardware settings on the PiJuice HAT itself (as opposed to the previous menus which were actually configuring the software - hopefully that is not too confusing!)
 
@@ -145,7 +147,7 @@ This is the general tab, which allows you to select whether you have installed t
 
 ### PiJuice HAT Config Buttons Menu
 
-![PiJuice HAT Config Buttons Menu](https://user-images.githubusercontent.com/16068311/33845760-620ac668-de9c-11e7-8b88-7d514f925068.png "PiJuice HAT Config Buttons Menu")
+![PiJuice HAT Config Buttons Menu](https://user-images.githubusercontent.com/16068311/35161227-7c2194be-fd37-11e7-90ee-521a7d65813f.png "PiJuice HAT Config Buttons Menu")
 
 Next we have the buttons menu - this configures the actions of the buttons on the PiJuice HAT (there are three surface mount buttons, one of which also has a 2 pin 2.54mm header so you can break out a button on a cable to the edge of a case or wherever you fancy).
 
@@ -155,7 +157,7 @@ You can even trigger different events for a press, release, single press, double
 
 ### PiJuice HAT Config LEDs Menu
 
-![PiJuice HAT Config LEDs Menu](https://user-images.githubusercontent.com/16068311/33845764-650c1dee-de9c-11e7-9135-f489c402f59a.png "PiJuice HAT Config LEDs Menu")
+![PiJuice HAT Config LEDs Menu](https://user-images.githubusercontent.com/16068311/35161232-7cdfe4aa-fd37-11e7-9249-f02f89ea2587.png "PiJuice HAT Config LEDs Menu")
 
 Perhaps our favourite options menu is the LEDs menu - as with the buttons we have made these super versatile. They can have standard functions as displayed above, they can have preset functions or you can define custom ways for them to behave.
 
@@ -163,15 +165,18 @@ Who doesn't love blinkenlights!
 
 ### PiJuice HAT Config Battery Menu
 
-![PiJuice HAT Config Battery Menu](https://user-images.githubusercontent.com/16068311/33845770-682d4354-de9c-11e7-8ad0-9149058f2266.png "PiJuice HAT Config Battery Menu")
+![PiJuice HAT Config Battery Menu](https://user-images.githubusercontent.com/16068311/35161226-7c026f30-fd37-11e7-897a-a470e06a4c8b.png "PiJuice HAT Config Battery Menu")
 
 The battery menu is a very important one. It basically allows you to set charge profiles for the PiJuice charge chip in order to correctly and efficiently charge the battery, correctly monitor the charge percentages and more. We have got a number of built in presets such as the ones that will come with the PiJuice by default (the BP7X) and all of the other ones we will supply. But as promised, there is also the ability to add your own custom charge profiles and even your own battery temperature sensor in order to increase the safety and efficiency of charging your batteries.
 
 As previously mentioned, some of these are even hard coded into the firmware on the PiJuice which enables you to actually select profiles using the PiJuices on board DIP switch.
 
+### PiJuice HAT Config IO Menu
+![PiJuice HAT Config IO Menu](https://user-images.githubusercontent.com/16068311/35161231-7cc2820c-fd37-11e7-875b-b80b18c3a6ab.png "PiJuice HAT Config IO Menu")
+
 ### PiJuice HAT Config Firmware Menu
 
-![PiJuice HAT Config Firmware Menu](https://user-images.githubusercontent.com/16068311/33845771-6b55373a-de9c-11e7-9475-09b8dc8086dc.png "PiJuice HAT Config Firmware Menu")
+![PiJuice HAT Config Firmware Menu](https://user-images.githubusercontent.com/16068311/35161228-7c370f24-fd37-11e7-899a-aad82b827476.png "PiJuice HAT Config Firmware Menu")
 
 Last but very much not least is the firmware menu. This allows you to update the firmware on the PiJuice MCU chip as and when necessary meaning we can actively improve the firmware and any updates or improvements we make in the future can be retrospectively applied to all PiJuice HATs!
 
