@@ -1639,8 +1639,7 @@ def save_config():
             is_sys_task_enabled = False
     with open(PiJuiceConfigDataPath , 'w+') as outputConfig:
         json.dump(pijuiceConfigData, outputConfig, indent=2)
-    if pijuiceConfigData['system_task'].get('enabled', False) and not is_sys_task_enabled:
-        restart_service()
+    restart_service()
     #except:
         #print
 
