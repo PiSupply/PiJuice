@@ -90,7 +90,10 @@ class PiJuiceFirmware:
         self.binFile = None
         binDir = '/usr/share/pijuice/data/firmware/'
         #binDir = '/home/pi/'
-        files = [f for f in listdir(binDir) if isfile(join(binDir, f))]
+        try:
+            files = [f for f in listdir(binDir) if isfile(join(binDir, f))]
+        except:
+            files = []
         self.newVerStr = ''
         maxVer = 0
         self.firmwareFilePath.set("No firmware files found")
@@ -119,7 +122,7 @@ class PiJuiceFirmware:
         elif not self.ver:
             self.newFirmStatus.set('Firmware status unknown')
         else:
-            self.newFirmStatus.set('Missing firmware file')
+            self.newFirmStatus.set('Missing/wrong firmware file')
 
         self.firmUpdateErrors = ['NO_ERROR', 'I2C_BUS_ACCESS_ERROR', 'INPUT_FILE_OPEN_ERROR', 'STARTING_BOOTLOADER_ERROR', 'FIRST_PAGE_ERASE_ERROR',
         'EEPROM_ERASE_ERROR', 'INPUT_FILE_READ_ERROR', 'PAGE_WRITE_ERROR', 'PAGE_READ_ERROR', 'PAGE_VERIFY_ERROR', 'CODE_EXECUTE_ERROR']
