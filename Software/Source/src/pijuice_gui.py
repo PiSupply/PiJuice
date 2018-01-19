@@ -844,9 +844,24 @@ class PiJuiceBatteryConfig:
     def WriteCustomProfileData(self):
         profile = {}
         profile['capacity'] = int(self.capacity.get())
-        profile['chargeCurrent'] = int(self.chgCurrent.get())
-        profile['terminationCurrent'] = int(self.termCurrent.get())
-        profile['regulationVoltage'] = int(self.regVoltage.get())
+		chc = int(self.chgCurrent.get())
+		if chc < 550:
+			chc = 550
+		elif chc > 2500:
+			chc = 2500
+		profile['chargeCurrent'] = chc
+		tc = int(self.termCurrent.get())
+		if tc < 50:
+			tc = 50
+		elif tc > 400:
+			tc = 400
+		profile['terminationCurrent'] = tc
+		rv = int(self.regVoltage.get())
+		if rv < 3500:
+			rv = 3500
+		elif rv > 4440:
+			rv = 4440
+		profile['regulationVoltage'] = rv
         profile['cutoffVoltage'] = int(self.cutoffVoltage.get())
         profile['tempCold'] = int(self.tempCold.get())
         profile['tempCool'] = int(self.tempCool.get())
