@@ -1,30 +1,5 @@
 # PiJuice Software
 
-The default battery profile is defined by the DIP switch position. On v1.1 it is position 01 for BP7X, on v1.0 version, it might be different, you can try different positions, and power circle pijuice to get updated.
-
-It is not possible to detect battery not present when powered through on board USB micro, so it might show 0% only.
-
-User functions are 4 digit binary coded and have 15 combinations, code 0 is USER_EVENT meant that it will not be processed by system task, but left to user and python API to manage it. I thought it is rare case that all 15 will be needed so on gui there is 8 (it will make big window also). However if someone needs more scripts it can be manualy added by editing config json file: /var/lib/pijuice/pijuice_config.JSON. Also all other configurations can be managed manually in this file if the GUI is not available.
-
-The user functions section of the JSON file looks like the following. To add USER_FUNC from 9 to 15 simply append them to the existing ones.
-
-```text
- "user_functions": {    
-    "USER_FUNC1": "",
-    "USER_FUNC2": "",
-    "USER_FUNC3": "",
-    "USER_FUNC4": "",
-    "USER_FUNC5": "",
-    "USER_FUNC6": "",
-    "USER_FUNC7": "",
-    "USER_FUNC8": "",
-    "USER_FUNC9": "",
-    ...
-    "USER_FUNC15": ""
-  },
-
-``` 
-
 ## Software installation
 ### Automated process
 At the command line simply type:
@@ -135,6 +110,8 @@ This is the system events menu tab. It allows you to trigger events for certain 
 
 This is the user scripts menu tab as we mentioned in the above screenshot description where you can add paths to custom scripts that you can trigger on events.
 
+User scripts can be assigned to user functions called by system task when configured event arise. This should be non-blocking callback function that implements customized system functions or event logging.
+
 ## PiJuice Configuration
 
 ### PiJuice HAT General Config Menu
@@ -145,18 +122,12 @@ In the first config menu screenshot, we mentioned a button in the image that sai
 
 This is the general tab, which allows you to select whether you have installed the spring pin / run pin and also the I2C addresses of the HAT and the RTC as well as changing the write protect on the eeprom and changing the actual physical I2C address of the eeprom. These eeprom features can be very useful if you want to stack another HAT on top of the PiJuice but still have that other HAT auto-configure itself.
 
-#### Inputs precedence
-Selects what power input will have precedence for charging and supplying VSYS output when both are present, HAT USB Micro Input, GPIO 5V Input. 5V_GPIO selected by default.
-#### GPIO Input Enabled
-Enables/disables powering HAT from 5V GPIO Input. Enabled by default.
-#### USB Micro current limit
-Selects maximum current that HAT can take from USB Micro connected power source. 2.5A selected by default.
-#### USB Micro IN DPM
-Selects minimum voltage at USB Micro power input for Dynamic Power Management Loop. 4.2V set by default.
-#### No battery turn on
-If enabled pijuice will automatically power on 5V rail and trigger wake-up as soon as power appears at USB Micro Input and there is no battery. Disabled by default.
-#### Power regulator mode
-Selects power regulator mode. POWER_SOURCE_DETECTION by default.
+* **Inputs precedence**: Selects what power input will have precedence for charging and supplying VSYS output when both are present, HAT USB Micro Input, GPIO 5V Input. 5V_GPIO selected by default.
+* **GPIO Input Enabled**: Enables/disables powering HAT from 5V GPIO Input. Enabled by default.
+* **USB Micro current limit**: Selects maximum current that HAT can take from USB Micro connected power source. 2.5A selected by default.
+* **USB Micro IN DPM**: Selects minimum voltage at USB Micro power input for Dynamic Power Management Loop. 4.2V set by default.
+* **No battery turn on**: If enabled pijuice will automatically power on 5V rail and trigger wake-up as soon as power appears at USB Micro Input and there is no battery. Disabled by default.
+* **Power regulator mode**: Selects power regulator mode. POWER_SOURCE_DETECTION by default.
 
 
 *Note: Using the "Reset to default configuration" will restore the board to its default settings and for a short while the GUI will report "COMMUNICATION_ERROR"*
@@ -171,13 +142,31 @@ There are a number of preset behaviours for the buttons - startup/shutdown etc a
 
 You can even trigger different events for a press, release, single press, double press and two lengths of long press - you can even configure the length of time these long presses would take before triggering the event. As you can see the first button is already configured for system power functionality and we would highly recommend that at least one of the buttons is configured to these settings or you may have issues turning your PiJuice on and off :-)
 
+#### Button events:
+* **PRESS**. Triggered immediately after button is pressed
+* **RELEASE**: Triggered immediately after button is released
+* **SINGLE PRESS**: Triggered if button is released in time less than configurable timeout after button press.
+* **DOUBLE PRESS**: Triggered if button is double pressed in time less than configurable timeout.
+* **LONG PRESS 1**: Triggered if button is hold pressed hold for configurable time period 1.
+* **LONG PRESS 2**: Triggered if button is hold pressed hold for configurable time period 2.
+
+Button events can be configured to trigger predefined or user functions.
+
+#### Hardware functions
+* **POWER ON**: This function will wake-up system. 5V regulator (5V GPIO rail) will be turned on if was off.
+* **POWER OFF**: 5V regulator (5V GPIO rail) turns off.
+* **RESET**: If run pin is installed then reset is triggered by run signal activation. If run pin is not installed rest is done by power circle at 5V GPIO rail if power source is not present.
+
+
 ### PiJuice HAT Config LEDs Menu
 
 ![PiJuice HAT Config LEDs Menu](https://user-images.githubusercontent.com/16068311/35161232-7cdfe4aa-fd37-11e7-9249-f02f89ea2587.png "PiJuice HAT Config LEDs Menu")
 
 Perhaps our favourite options menu is the LEDs menu - as with the buttons we have made these super versatile. They can have standard functions as displayed above, they can have preset functions or you can define custom ways for them to behave.
 
-Who doesn't love blinkenlights!
+Each LED can be assigned to predefined predefined function or configured for user software control as User LED.
+* CHARGE STATUS. LED is configured to signal current charge level of battery. For level <= 15% red with configurable brightness. For level > 15% and level <=50% mix of red and green with configurable brightness. For level > 50% green with configurable brightness. When battery is charging blinking blue with configurable brightness is added to current charge level color. For full buttery state blue component is steady on.
+* USER LED. When LED is configured as User LED it can be directly controlled with User software via command interface. Initial PiJuice power on User LED state is defined with R, G, and B brightness level parameters.
 
 ### PiJuice HAT Config Battery Menu
 
@@ -192,13 +181,13 @@ As previously mentioned, some of these are even hard coded into the firmware on 
 
 This Tab provides configuration of two pins IO port provided from HAC microcontroller at P3 Header.
 Modes selection box provides to program IO pin to one of predefined modes:
-* NOT_USED Set IO pin in neutral configuration (passive input).
-* ANALOG_IN Set IO pin in analog to digital converter mode. In this mode Value can be read with status function GetIoAnalogInput(). Pull has no effect in this mode.
-* DIGITAL_IN Set IO pin in digital input mode. Pull in this mode cen be set to NO_PULL, PULLDOWN or PULLUP. Use status function SetIoDigitalOutput() to read input value dynamically.
-* DIGITAL_OUT_PUSHPULL Set IO pin in digital output mode with push-pull driver topology. Pull in this mode should be set to NO_PULL. Initial value can be set to 0 or 1. Use status function SetIoDigitalOutput() to control output value dynamically.
-* DIGITAL_IO_OPEN_DRAIN Set IO pin in digital output mode with open-drain driver topology. Pull in this mode can be set to NO_PULL, PULLDOWN or PULLUP. Initial value can be set to 0 or 1. Use status function SetIoDigitalOutput() to control output value dynamically.
-* PWM_OUT_PUSHPULL Set IO pin to PWM output mode with push-pull driver topology. Pull in this mode should be set to NO_PULL. Period [us] box sets period in microseconds in range [2, 131072] with 2us resolution. Set initial duty_circle in range [0, 100]. Use status function SetIoPWM() to control duty circle dynamically.
-* PWM_OUT_OPEN_DRAIN Set IO pin to PWM output mode with open-drain driver topology. Pull in this mode can be set to NO_PULL, PULLDOWN or PULLUP. Period [us] box sets period in microseconds in range [2, 131072] with 2us resolution. Set initial duty_circle in range [0, 100]. Use status function SetIoPWM() to control duty circle dynamically.
+* **NOT_USED**: Set IO pin in neutral configuration (passive input).
+* **ANALOG_IN**: Set IO pin in analog to digital converter mode. In this mode Value can be read with status function GetIoAnalogInput(). Pull has no effect in this mode.
+* **DIGITAL_IN**: Set IO pin in digital input mode. Pull in this mode cen be set to NO_PULL, PULLDOWN or PULLUP. Use status function SetIoDigitalOutput() to read input value dynamically.
+* **DIGITAL_OUT_PUSHPULL**: Set IO pin in digital output mode with push-pull driver topology. Pull in this mode should be set to NO_PULL. Initial value can be set to 0 or 1. Use status function SetIoDigitalOutput() to control output value dynamically.
+* **DIGITAL_IO_OPEN_DRAIN**: Set IO pin in digital output mode with open-drain driver topology. Pull in this mode can be set to NO_PULL, PULLDOWN or PULLUP. Initial value can be set to 0 or 1. Use status function SetIoDigitalOutput() to control output value dynamically.
+* **PWM_OUT_PUSHPULL**: Set IO pin to PWM output mode with push-pull driver topology. Pull in this mode should be set to NO_PULL. Period [us] box sets period in microseconds in range [2, 131072] with 2us resolution. Set initial duty_circle in range [0, 100]. Use status function SetIoPWM() to control duty circle dynamically.
+* **PWM_OUT_OPEN_DRAIN**: Set IO pin to PWM output mode with open-drain driver topology. Pull in this mode can be set to NO_PULL, PULLDOWN or PULLUP. Period [us] box sets period in microseconds in range [2, 131072] with 2us resolution. Set initial duty_circle in range [0, 100]. Use status function SetIoPWM() to control duty circle dynamically.
 
 Click Apply button to save new settings.
 
@@ -216,3 +205,141 @@ Last but very much not least is the firmware menu. This allows you to update the
 
 Should you wish to update the firmware with a more recent version simply browse to the new file and proceed with the update.
 During the update the window may become unresponsive. **Wait until the update is finished** before you continue with anything else.
+
+### Automatic wake-up
+PiJuice can be configured to automatically wake-up system in several ways: on charge level, when power source appears, by RTC Alarm.
+* **Wakeup on charge**: When power source appears and battery starts charging this function can be configured to wakeup system when charge level reaches settable trigger level. Trigger level can be set in range 0%-100%. Setting trigger level to 0 means that system will wake-up as soon as power source appears and battery starts charging.
+* **Wake-up Alarm**: PiJuice features real-time clock with Alarm function that can be configured to wake-up system at programmed date/time.
+
+### JSON configuration file
+Changes made on tabs "System Task", "System Events" and "User Scripts" on the main windows will be saved on a JSON file.
+
+`/var/lib/pijuice/pijuice_config.JSON`
+
+here is an example of a configuration.
+
+```text
+{
+  "system_events": {
+    "low_battery_voltage": {
+      "function": "SYS_FUNC_HALT", 
+      "enabled": true
+    }, 
+    "low_charge": {
+      "function": "NO_FUNC", 
+      "enabled": true
+    }, 
+    "button_power_off": {
+      "function": "USER_FUNC1", 
+      "enabled": true
+    }, 
+    "forced_power_off": {
+      "function": "USER_FUNC2", 
+      "enabled": true
+    }, 
+    "no_power": {
+      "function": "SYS_FUNC_HALT_POW_OFF", 
+      "enabled": true
+    }, 
+    "forced_sys_power_off": {
+      "function": "USER_FUNC3", 
+      "enabled": true
+    }, 
+    "watchdog_reset": {
+      "function": "USER_EVENT", 
+      "enabled": true
+    }
+  }, 
+  "user_functions": {
+    "USER_FUNC8": "", 
+    "USER_FUNC1": "/home/pi/user-script.sh", 
+    "USER_FUNC2": "", 
+    "USER_FUNC3": "", 
+    "USER_FUNC4": "", 
+    "USER_FUNC5": "", 
+    "USER_FUNC6": "", 
+    "USER_FUNC7": ""
+  }, 
+  "system_task": {
+    "watchdog": {
+      "enabled": true, 
+      "period": "60"
+    }, 
+    "min_bat_voltage": {
+      "threshold": "1", 
+      "enabled": true
+    }, 
+    "min_charge": {
+      "threshold": "1", 
+      "enabled": true
+    }, 
+    "enabled": true, 
+    "wakeup_on_charge": {
+      "enabled": true, 
+      "trigger_level": "1"
+    }
+  }
+}
+```
+
+For the light version of PiJuice changes can be done directly on the JSON file.
+Here is a list of accepted values for the various fields above.
+* **system_events**:
+    - low_battery_voltage low_charge no_power:
+        * enabled: true, false
+        * function:
+            - NO_FUNC
+            - SYS_FUNC_HALT
+            - SYS_FUNC_HALT_POW_OFF
+            - SYS_FUNC_HALT_POW_OFF
+            - SYS_FUNC_REBOOT
+            - USER_EVENT
+            - USER_FUNC1 .. USER_FUNC15
+    - button_power_off, forced_power_off, forced_sys_power_off, watchdog_reset
+        * enabled: true, false
+        * function:
+            - NO_FUNC
+            - USER_EVENT
+            - USER_FUNC1 .. USER_FUNC15
+* **system_task**:
+    - enabled: true, false
+    - watchdog
+        - enabled: true, false 
+        - period (minutes): 1..65535
+    - min_bat_voltage
+        - enabled: true, false
+        - threshold (%): 0..100 
+    - min_charge
+        - enabled: true, false
+        - threshold (%): 0..100 
+    - wakeup_on_charge
+        - enabled: true, false
+        - trigger_level (Volts): 0..10
+* **user_functions**: 
+    - absolute path to user defined script
+
+The user functions section of the JSON file looks like the following. To add USER_FUNC from 9 to 15 simply append them to the existing ones.
+
+```text
+ "user_functions": {    
+    "USER_FUNC1": "",
+    "USER_FUNC2": "",
+    "USER_FUNC3": "",
+    "USER_FUNC4": "",
+    "USER_FUNC5": "",
+    "USER_FUNC6": "",
+    "USER_FUNC7": "",
+    "USER_FUNC8": "",
+    "USER_FUNC9": "",
+    ...
+    "USER_FUNC15": ""
+  },
+
+``` 
+
+### Battery Profiles
+The default battery profile is defined by the DIP switch position. On v1.1 it is position 01 for BP7X, on v1.0 version, it might be different, you can try different positions, and power circle pijuice to get updated.
+
+It is not possible to detect battery not present when powered through on board USB micro, so it might show 0% only.
+
+User functions are 4 digit binary coded and have 15 combinations, code 0 is USER_EVENT meant that it will not be processed by system task, but left to user and python API to manage it. I thought it is rare case that all 15 will be needed so on gui there is 8 (it will make big window also). However if someone needs more scripts it can be manualy added by editing config json file: /var/lib/pijuice/pijuice_config.JSON. Also all other configurations can be managed manually in this file if the GUI is not available.
