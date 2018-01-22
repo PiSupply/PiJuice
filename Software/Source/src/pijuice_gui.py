@@ -11,12 +11,14 @@ import os
 import re
 import subprocess
 import json
+import signal
 
 try:
     pijuice = PiJuice(1,0x14)
 except:
     pijuice = None
 
+PID_FILE = '/var/run/pijuice.pid'
 pijuiceConfigData = {}
 PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON' #os.getcwd() + '/pijuice_config.JSON'
 
@@ -521,7 +523,7 @@ class PiJuiceLedConfig:
             ledConfig = StringVar()
             self.ledConfigs.append(ledConfig)
             ledConfigSel = Combobox(self.frame, textvariable=ledConfig, state='readonly')
-            ledConfigSel['values'] = pijuice.config.ledFunctions
+            ledConfigSel['values'] = pijuice.config.ledFunctionsOptions
             #ledConfigSel.set('')
             ledConfigSel.grid(column=1, row=i*5, padx=(5, 5), pady=(20, 0), sticky = W)
             self.ledConfigsSel.append(ledConfigSel)
@@ -556,7 +558,11 @@ class PiJuiceLedConfig:
             config = pijuice.config.GetLedConfiguration(pijuice.config.leds[i])
             self.configs.append({})
             if config['error'] == 'NO_ERROR':
-                self.ledConfigsSel[i].current(pijuice.config.ledFunctions.index(config['data']['function']))
+                # XXX: Avoid setting ON_OFF_STATUS
+                try:
+                    self.ledConfigsSel[i].current(pijuice.config.ledFunctionsOptions.index(config['data']['function']))
+                except ValueError:
+                    self.ledConfigsSel[i].current(0)  # Set NOT_USED as default
                 paramR.set(config['data']['parameter']['r'])
                 paramG.set(config['data']['parameter']['g'])
                 paramB.set(config['data']['parameter']['b'])
@@ -847,24 +853,24 @@ class PiJuiceBatteryConfig:
     def WriteCustomProfileData(self):
         profile = {}
         profile['capacity'] = int(self.capacity.get())
-		chc = int(self.chgCurrent.get())
-		if chc < 550:
-			chc = 550
-		elif chc > 2500:
-			chc = 2500
-		profile['chargeCurrent'] = chc
-		tc = int(self.termCurrent.get())
-		if tc < 50:
-			tc = 50
-		elif tc > 400:
-			tc = 400
-		profile['terminationCurrent'] = tc
-		rv = int(self.regVoltage.get())
-		if rv < 3500:
-			rv = 3500
-		elif rv > 4440:
-			rv = 4440
-		profile['regulationVoltage'] = rv
+        chc = int(self.chgCurrent.get())
+        if chc < 550:
+            chc = 550
+        elif chc > 2500:
+            chc = 2500
+        profile['chargeCurrent'] = chc
+        tc = int(self.termCurrent.get())
+        if tc < 50:
+            tc = 50
+        elif tc > 400:
+            tc = 400
+        profile['terminationCurrent'] = tc
+        rv = int(self.regVoltage.get())
+        if rv < 3500:
+            rv = 3500
+        elif rv > 4440:
+            rv = 4440
+        profile['regulationVoltage'] = rv
         profile['cutoffVoltage'] = int(self.cutoffVoltage.get())
         profile['tempCold'] = int(self.tempCold.get())
         profile['tempCool'] = int(self.tempCool.get())
@@ -1639,18 +1645,18 @@ def save_config():
             is_sys_task_enabled = False
     with open(PiJuiceConfigDataPath , 'w+') as outputConfig:
         json.dump(pijuiceConfigData, outputConfig, indent=2)
-    restart_service()
+    notify_service()
     #except:
         #print
 
 
-def restart_service():
+def notify_service():
     global root
-    cmd = '/bin/systemctl restart pijuice.service'
-    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    stdout, stderr = proc.communicate()
-    if proc.returncode != 0:
-        tkMessageBox.showerror('PuJuice Service', "Failed to restart PiJuice service.\n"
+    try:
+        pid = int(open(PID_FILE, 'r').read())
+        os.kill(pid, signal.SIGHUP)
+    except:
+        tkMessageBox.showerror('PuJuice Service', "Failed to communicate with PiJuice service.\n"
             "See system logs and 'systemctl status pijuice.service' for details.", parent=root)
 
 

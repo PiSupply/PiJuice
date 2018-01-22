@@ -28,11 +28,12 @@ timeCnt = 5
 noPowEn = False
 noPowCnt = 100
 logger = None
-dopoll = True 
+dopoll = True
+PID_FILE = '/var/run/pijuice.pid'
 
 def _SystemHalt(event):
 	if (
-		(event == 'low_charge' or event == 'low_battery_voltage' or event == 'no_power')
+		event in ('low_charge', 'low_battery_voltage', 'no_power')
 		and ('wakeup_on_charge' in configData['system_task']) 
 		and ('enabled' in configData['system_task']['wakeup_on_charge']) 
 		and configData['system_task']['wakeup_on_charge']['enabled']
@@ -167,7 +168,17 @@ def _EvalFaultFlags():
 	else:
 		return False
 
+
+def reload_settings(signum=None, frame=None):
+	global configData
+	with open(configPath, 'r') as outputConfig:
+		config_dict = json.load(outputConfig)
+		configData.update(config_dict)
+
+
 def main():
+	pid = str(os.getpid())
+	file(PID_FILE, 'w').write(pid)
 
 	global pijuice
 	global btConfig
@@ -190,8 +201,7 @@ def main():
 		sys.exit(0)
 		
 	try:
-		with open(configPath, 'r') as outputConfig:
-			configData = json.load(outputConfig)
+		reload_settings()
 	except:
 		print 'Failed to load ', configPath
 		#logger.info('Failed to load config') 
@@ -203,6 +213,9 @@ def main():
 				btConfig[b] = conf['data']
 	except:
 		powButton = None
+
+	# Handle SIGHUP signal to reload settings
+	signal.signal(signal.SIGHUP, reload_settings)
 
 	#logger = logging.getLogger('pijuice')
 	#hdlr = logging.FileHandler('/home/pi/pijuice.log')
@@ -253,9 +266,8 @@ def main():
 	lowBatVolEn = sysEvEn and ('low_battery_voltage' in configData['system_events']) and ('enabled' in configData['system_events']['low_battery_voltage']) and configData['system_events']['low_battery_voltage']['enabled']
 	noPowEn = sysEvEn and ('no_power' in configData['system_events']) and ('enabled' in configData['system_events']['no_power']) and configData['system_events']['no_power']['enabled']
 
-	if configData['system_task']['enabled']:
-		print 'starting status poll'
-		while dopoll:
+	while dopoll:
+		if configData.get('system_task', {}).get('enabled'):
 			ret = pijuice.status.GetStatus()
 			if ret['error'] == 'NO_ERROR':
 				status = ret['data']
@@ -274,9 +286,7 @@ def main():
 					if noPowEn:
 						_EvalPowerInputs(status)
 
-			time.sleep(1)
-	else:
-		print 'Task is disabled'
+		time.sleep(5)
 			
 if __name__ == '__main__':
 	main()

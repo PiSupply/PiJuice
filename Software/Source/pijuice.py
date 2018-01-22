@@ -1265,6 +1265,8 @@ class PiJuiceConfig():
 		return self.interface.WriteDataVerify(self.BUTTON_CONFIGURATION_CMD + b, data, 0.4)
 		
 	leds = ['D1', 'D2']
+	# XXX: Avoid setting ON_OFF_STATUS
+	ledFunctionsOptions = ['NOT_USED', 'CHARGE_STATUS', 'USER_LED']
 	ledFunctions = ['NOT_USED', 'CHARGE_STATUS', 'ON_OFF_STATUS', 'USER_LED']
 	def GetLedConfiguration(self, led):
 		i = None
