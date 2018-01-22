@@ -17,7 +17,7 @@ chmod a+x pijuiceboot
 
 ### Example:
 ```bash
-./pijuiceboot 14 PiJuice-V1.0_2017_10_23.elf.binary
+./pijuiceboot 14 PiJuice-V1.1_2018_01_15.elf.binary
 ```
 
 The firmware source code is not intended to be made openly available as it requires deep understanding of the hardware design and the programming involved if you wanted to customise it. Making changes to the firmware may even harm components or damage the battery.
@@ -27,10 +27,12 @@ pijucetest.py is an example made available to demonstrate how to communicate wit
 
 The [script](https://github.com/PiSupply/PiJuice/blob/master/Software/Test/pijuicetest.py) can be found under /home/pi/PiJuice/Software/Test/pijuicetest.py
 
-Make a copy into your home folder and run it to see display a demo:
+Make a copy into your home folder and run it to see a display a demo:
 ```bash
 cp /home/pi/PiJuice/Software/Test/pijuicetest.py /home/pi/.
 cd ~
 python pijuicetest.py
 ```
 The script should display the firmware status, it will print data read from the MCU on screen like battery voltage, charge, battery profile, etc.
+
+*Note: For old firmwares (prior to V1.0_2017_08_15) try to use the old firmware updater with a new firmware binary, or use ST debuger to erase flash.*

@@ -7,9 +7,9 @@ export PYBUILD_NAME=pijuice
 	dh $@ --with python2 --with systemd --buildsystem=pybuild
 
 override_dh_installinit:
-	dh_systemd_enable -ppython-pijuice --name=pijuice pijuice.service
-	dh_installinit -ppython-pijuice --no-start --noscripts
-	dh_systemd_start -ppython-pijuice --no-restart-on-upgrade
+	dh_systemd_enable -p pijuice --name=pijuice pijuice.service
+	dh_installinit -p pijuice --no-start --noscripts
+	dh_systemd_start -p pijuice --no-restart-on-upgrade
 
 override_dh_systemd_start:
 	echo "Not running dh_systemd_start"

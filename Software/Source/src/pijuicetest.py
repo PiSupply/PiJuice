@@ -71,7 +71,7 @@ while True:
 	print pijuice.config.GetIdEepromWriteProtect()  
 	#print pijuice.config.SetIdEepromAddress(52)
 	print pijuice.config.GetIdEepromAddress()
-	print pijuice.config.GetFirmvareVersion()
+	print pijuice.config.GetFirmwareVersion()
 #time.sleep(0.12)
 #pijuice.status.SetPowerOff(30)
 #pijuice.SetBatteryTempSenseConfig('AUTO_DETECT')

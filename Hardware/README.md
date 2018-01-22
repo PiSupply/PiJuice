@@ -224,6 +224,20 @@ You may notice that there are several components which have not be installed on 
 
 ## Power management and batteries
 
+### USB Micro Input
+PiJuice features configurable current limit at USB Micro power input. One of two settings can be selected, 1.5A and 2.5A. PiJuice will limit current draw from connected source even if it needs more to cover total demand for charging battery and supplying output Rails. This may be useful to set lower limit for weaker sources that usually will shut-down when overloaded.
+Another USB Micro power input feature is Dynamic Power Management Loop (DPM). This feature limits voltage drop at power input to configured minimum. If power source is weak and cannot supply enough current to fully charge battery plus provide loading demand than PiJuice will limit current draw to level that will prevent voltage to fall below preset DPM preventing power source crashing. This is excellent feature for non-reliable sources like energy harvesting and solar panels.
+
+### 5V Power Regulator
+5V Power regulator supplies 5V power Rail with up to 2.5A of continuous current. Regulator can be set in one of 3 modes of operation:
+1. DCDC Switching Mode. In this mode 5V Rail voltage is regulated to 5V with 2.5% tolerance, typically 5.07V at mid-loaded conditions. This is the most efficient operation mode.
+2. LDO Mode. This mode regulates 5V Rail voltage to 4.79V. In this mode output voltage has lowest output ripple.
+3. POWER SOURCE DETECTION Mode. In this mode regulator switches between DCDC switching mode and LDO mode with most of time in DCDC switching mode. This is mode has high efficiency but increased voltage ripple.
+
+### 5V GPIO Rail power source detection
+Pijuice can detect when power source is connected through 5V GPIO rail. If power source at 5V GPIO Rail is detected pijuice will take power from it to charge battery. If power source is not detected pijuice will automatically supply 5V GPIO Rail with 5V regulator powered from battery. For reliable Power source detection 5v Power regulator needs to be set in POWER SOURCE DETECTION Mode or LDO Mode and power source connected to 5V GPIO Rail needs to provide voltage between 4.8V and 5.25V.
+
+
 ### Which micro USB connector to use
 
 PiJuice allows for multiple ways of providing power to its battery and to the Raspberry Pi. When deciding whether to use the Pi's micro USB or the PiJuice micro USB you need to take into consideration the following:
@@ -252,6 +266,74 @@ We intend to create add on boards as accessories in the future which will allow 
 The best way to generate new battery profiles when the datasheet is unknown and for generic batteries is to use values for charging current that can be found on the Internet for Li-ion batteries. A good rule of thumb is 0.5 x C/h, where C is the battery capacity. Battery regulation voltage is 4.2V typically. Setting lower values will reduce energy but can somewhat extend battery life especially in UPS applications where most of time there is a power source connected. For temperature thresholds, hot, cold, warm, cool, there are some standards as referenced in the [JEITA compliance](http://www.ti.com/lit/an/slyt365/slyt365.pdf).
 
 There are two other sheets in the [excel file](https://github.com/PiSupply/PiJuice/tree/master/Hardware/Batteries/Pijuice_battery_config.xlsx) Profile selection and Charge settings where you have a column R [KOhm] for R20 resistance choices.
+
+Battery profile defines charging, discharging parameters for PiJuice Battery. Also profile defines normal working conditions according JEITA safety standard, and temperature sensor parameters if integrated with battery.
+* Capacity. Charge capacity of battery.
+* Charge current. [550mA – 2500mA]. Defines constant current that PiJuice battery is charged in current regulation phase of charging process.
+* Termination current. [50mA – 400mA]. When charging current drops below termination current threshold in voltage regulation phase charging process terminates.
+* Regulation voltage. [3500mV – 4440mV]. Defines constant voltage to which voltage over battery is regulated in voltage regulation phase of charging process.
+* Cut-off voltage. [0mV – 5100mV]. Defines minimum voltage at which battery is fully discharged.
+* Cold temperature. Defines temperature threshold according to JEITA standard below which charging is suspended.
+* Cool temperature. Defines temperature threshold according to JEITA standard below which charge current is reduced to half of programmed charge current. This threshold should be set above cold temperature.
+* Warm temperature. Defines temperature threshold according to JEITA standard above which the battery regulation voltage is reduced by 140mV from the programmed regulation voltage. This threshold should be set above cool temperature.
+* Hot temperature.  Defines temperature threshold according to JEITA standard above which charging is suspended. This threshold should be set above warm temperature.
+* NTC  B constant. Defines thermistor B constant of NTC temperature sensor if it is integrated with battery.
+* NTC resistance. Defines nominal thermistor resistance at 25°C of NTC temperature sensor if it is integrated with battery.
+
+#### Predefined Profiles
+PiJuice has set of predefined profiles for set of tested compatible batteries that can be selected if one of batteries is used.
+* (0) BP6X
+  - Capacity: 1400 mAh,
+  - Charge current: 850 mA,
+  - Termination current: 50 mA,
+  - Regulation voltage: 4180 mV,
+  - Cut-off voltage: 3000 mV,
+  - Cold temperature: 1 °C,
+  - Cool temperature: 10 °C,
+  - Warm temperature: 45 °C,
+  - Hot temperature: 59 °C,
+  - NTC  B constant: 3380 K,
+  - NTC resistance 10000 Ω.
+  
+* (1) BP7X
+  - Capacity: 1820 mAh,
+  - Charge current: 925 mA,
+  - Termination current: 50 mA,
+  - Regulation voltage: 4180 mV,
+  - Cut-off voltage: 3000 mV,
+  - Cold temperature: 1 °C,
+  - Cool temperature: 10 °C,
+  - Warm temperature: 45 °C,
+  - Hot temperature: 59 °C,
+  - NTC  B constant: 3380 K,
+  - NTC resistance 10000 Ω.
+  
+* (2) SNN5843
+  - Capacity: 2300 mAh,
+  - Charge current: 1150 mA,
+  - Termination current: 100 mA,
+  - Regulation voltage: 4180 mV,
+  - Cut-off voltage: 3000 mV,
+  - Cold temperature: 1 °C,
+  - Cool temperature: 10 °C,
+  - Warm temperature: 45 °C,
+  - Hot temperature: 59 °C,
+  - NTC  B constant: 3380 K,
+  - NTC resistance 10000 Ω.
+  
+* (3) LIPO8047109
+  - Capacity: 5000 mAh,
+  - Charge current: 2500 mA,
+  - Termination current: 100 mA,
+  - Regulation voltage: 4180 mV,
+  - Cut-off voltage: 3000 mV,
+  - Cold temperature: 1 °C,
+  - Cool temperature: 2 °C,
+  - Warm temperature: 45 °C,
+  - Hot temperature: 50 °C,
+  - NTC  B constant: 3380 K,
+  - NTC resistance 10000 Ω.
+
 
 ### Battery charge/discharge
 

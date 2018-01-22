@@ -1,11 +1,8 @@
-# This PiJuice test program polls pijuice HAT for state of charge and prints, polls power button and halts when pressed
-#copy to rpi home 
+# This PiJuice test program polls pijuice HAT for state of charge and prints present configuration
 
-#make executable:
-
-chmod +x pijuice.sh
-
-#run ./pijuice.sh
+```
+python pijuicetest.py
+```
 
 user_func1.py can be used for you to test user scripts. It will log events that are enabled. Attached are images of gui how to setup. It will generate log file with time of event and event id. You can leave it to fully discharge as test and than when you plug in you can look at log file to see if there is forced power off event, also you can set button to log press events, and any other case you think is good to test.
 

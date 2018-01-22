@@ -1,7 +1,7 @@
 [Desktop Entry]
-Version=1.0
+Version=1.1
 Type=Application
-Name=PiJuice Configuration
+Name=PiJuice Settings
 Exec=/usr/bin/pijuice_gui.py
 Icon=/usr/share/pijuice/data/images/pijuice.png
 Terminal=false

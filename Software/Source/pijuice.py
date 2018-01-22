@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+__version__ = "1.1"
 from smbus import SMBus
 import time
 import datetime
@@ -1264,6 +1265,8 @@ class PiJuiceConfig():
 		return self.interface.WriteDataVerify(self.BUTTON_CONFIGURATION_CMD + b, data, 0.4)
 		
 	leds = ['D1', 'D2']
+	# XXX: Avoid setting ON_OFF_STATUS
+	ledFunctionsOptions = ['NOT_USED', 'CHARGE_STATUS', 'USER_LED']
 	ledFunctions = ['NOT_USED', 'CHARGE_STATUS', 'ON_OFF_STATUS', 'USER_LED']
 	def GetLedConfiguration(self, led):
 		i = None
@@ -1455,7 +1458,13 @@ class PiJuiceConfig():
 		if ret['error'] != 'NO_ERROR':
 			return ret
 		else:
-			return {'data':{'version':format(ret['data'][0], 'x'), 'variant':format(ret['data'][1], 'x')}, 'error':'NO_ERROR'}
+			major_version = ret['data'][0] >> 4
+			minor_version = (ret['data'][0] << 4 & 0xf0) >> 4
+			version_str = '%i.%i' % (major_version, minor_version)
+			return {'data': {
+				'version': version_str,
+				'variant': format(ret['data'][1], 'x')},
+				'error':'NO_ERROR'}
 			
 	def RunTestCalibration(self):
 		self.interface.WriteData(248, [0x55, 0x26, 0xa0, 0x2b])
@@ -1475,4 +1484,25 @@ class PiJuice(object):
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		return False  # Don't suppress exceptions.
-		
+
+def get_versions():
+	import os
+	try:
+		p = PiJuice()
+		firmware_version_dict = p.config.GetFirmwareVersion()
+	except:
+		firmware_version_dict = {}
+	uname = os.uname()
+	os_version = ' '.join((uname[0], uname[2], uname[3]))
+	firmware_version = firmware_version_dict.get('data', {}).get('version')
+	return __version__, firmware_version, os_version
+
+
+if __name__ == '__main__':
+	if sys.argv[1] == '--version':
+		sw_version, fw_version, os_version = get_versions()
+		print "Software version: %s" % sw_version
+		if fw_version is None:
+			fw_version = "No connection to PiJuice"
+		print "Firmware version: %s" % fw_version
+		print "OS version: %s" % os_version
