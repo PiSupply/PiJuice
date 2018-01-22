@@ -73,7 +73,7 @@ class PiJuiceFirmware:
 
         Label(self.frame, text="Firmware file path:").grid(row=2, column=0, padx=2, pady=(10, 0), sticky=W)
         self.pathLabel = Label(self.frame, textvariable=self.firmwareFilePath, text="").grid(row=3, column=0, padx=2, pady=(10, 0), sticky=W)
-        self.browseButton = Button(self.frame, text="Browse", command=self._SetFirmwarePath).grid(row=3, column=1, padx=2, pady=5, sticky=W)
+        # self.browseButton = Button(self.frame, text="Browse", command=self._SetFirmwarePath).grid(row=3, column=1, padx=2, pady=5, sticky=W)
 
         self.ver = None
         self.verStr = None
