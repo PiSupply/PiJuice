@@ -11,12 +11,14 @@ import os
 import re
 import subprocess
 import json
+import signal
 
 try:
     pijuice = PiJuice(1,0x14)
 except:
     pijuice = None
 
+PID_FILE = '/var/run/pijuice.pid'
 pijuiceConfigData = {}
 PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON' #os.getcwd() + '/pijuice_config.JSON'
 
@@ -1639,19 +1641,21 @@ def save_config():
             is_sys_task_enabled = False
     with open(PiJuiceConfigDataPath , 'w+') as outputConfig:
         json.dump(pijuiceConfigData, outputConfig, indent=2)
-    restart_service()
+    notify_service()
     #except:
         #print
 
 
-def restart_service():
+def notify_service():
     global root
-    cmd = '/bin/systemctl restart pijuice.service'
-    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    stdout, stderr = proc.communicate()
-    if proc.returncode != 0:
-        tkMessageBox.showerror('PuJuice Service', "Failed to restart PiJuice service.\n"
-            "See system logs and 'systemctl status pijuice.service' for details.", parent=root)
+    pid = int(open(PID_FILE, 'r').read())
+    os.kill(pid, signal.SIGHUP)
+    # cmd = '/bin/systemctl restart pijuice.service'
+    # proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    # stdout, stderr = proc.communicate()
+    # if proc.returncode != 0:
+    #     tkMessageBox.showerror('PuJuice Service', "Failed to restart PiJuice service.\n"
+    #         "See system logs and 'systemctl status pijuice.service' for details.", parent=root)
 
 
 def PiJuiceGuiOnclosing():
