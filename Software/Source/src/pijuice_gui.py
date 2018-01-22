@@ -523,7 +523,7 @@ class PiJuiceLedConfig:
             ledConfig = StringVar()
             self.ledConfigs.append(ledConfig)
             ledConfigSel = Combobox(self.frame, textvariable=ledConfig, state='readonly')
-            ledConfigSel['values'] = pijuice.config.ledFunctions
+            ledConfigSel['values'] = pijuice.config.ledFunctionsOptions
             #ledConfigSel.set('')
             ledConfigSel.grid(column=1, row=i*5, padx=(5, 5), pady=(20, 0), sticky = W)
             self.ledConfigsSel.append(ledConfigSel)
@@ -558,7 +558,11 @@ class PiJuiceLedConfig:
             config = pijuice.config.GetLedConfiguration(pijuice.config.leds[i])
             self.configs.append({})
             if config['error'] == 'NO_ERROR':
-                self.ledConfigsSel[i].current(pijuice.config.ledFunctions.index(config['data']['function']))
+                # XXX: Avoid setting ON_OFF_STATUS
+                try:
+                    self.ledConfigsSel[i].current(pijuice.config.ledFunctionsOptions.index(config['data']['function']))
+                except ValueError:
+                    self.ledConfigsSel[i].current(0)  # Set NOT_USED as default
                 paramR.set(config['data']['parameter']['r'])
                 paramG.set(config['data']['parameter']['g'])
                 paramB.set(config['data']['parameter']['b'])
@@ -1648,14 +1652,12 @@ def save_config():
 
 def notify_service():
     global root
-    pid = int(open(PID_FILE, 'r').read())
-    os.kill(pid, signal.SIGHUP)
-    # cmd = '/bin/systemctl restart pijuice.service'
-    # proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    # stdout, stderr = proc.communicate()
-    # if proc.returncode != 0:
-    #     tkMessageBox.showerror('PuJuice Service', "Failed to restart PiJuice service.\n"
-    #         "See system logs and 'systemctl status pijuice.service' for details.", parent=root)
+    try:
+        pid = int(open(PID_FILE, 'r').read())
+        os.kill(pid, signal.SIGHUP)
+    except:
+        tkMessageBox.showerror('PuJuice Service', "Failed to communicate with PiJuice service.\n"
+            "See system logs and 'systemctl status pijuice.service' for details.", parent=root)
 
 
 def PiJuiceGuiOnclosing():

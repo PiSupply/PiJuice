@@ -33,7 +33,7 @@ PID_FILE = '/var/run/pijuice.pid'
 
 def _SystemHalt(event):
 	if (
-		(event == 'low_charge' or event == 'low_battery_voltage' or event == 'no_power')
+		event in ('low_charge', 'low_battery_voltage', 'no_power')
 		and ('wakeup_on_charge' in configData['system_task']) 
 		and ('enabled' in configData['system_task']['wakeup_on_charge']) 
 		and configData['system_task']['wakeup_on_charge']['enabled']
