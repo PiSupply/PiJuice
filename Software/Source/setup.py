@@ -80,7 +80,7 @@ def set_desktop_entry_versions(version):
 
 if os.environ.get('PIJUICE_BUILD_LIGHT'):
     data_files = [('share/pijuice/data/firmware', glob.glob('data/firmware/*'))]
-    scripts = ['src/pijuice_sys.py']
+    scripts = ['src/pijuice_sys.py', 'src/pijuicetest.py']
     description = "Software package for PiJuice (Light version)"
 else:
     data_files= [
@@ -92,7 +92,7 @@ else:
         #('/etc/systemd/user', ['data/pijuice.service']),
         #('share/pijuice/src', glob.glob('src/*.py')),
     ]
-    scripts = ['src/pijuice_tray.py', 'src/pijuice_gui.py', 'src/pijuice_sys.py']
+    scripts = ['src/pijuice_tray.py', 'src/pijuice_gui.py', 'src/pijuice_sys.py', 'src/pijuicetest.py']
     description = "Software package for PiJuice"
 
 try:
