@@ -1655,6 +1655,8 @@ def notify_service():
     try:
         pid = int(open(PID_FILE, 'r').read())
         os.kill(pid, signal.SIGHUP)
+    except OSError:
+        os.system("sudo kill -s SIGHUP %i" % pid)
     except:
         tkMessageBox.showerror('PuJuice Service', "Failed to communicate with PiJuice service.\n"
             "See system logs and 'systemctl status pijuice.service' for details.", parent=root)
