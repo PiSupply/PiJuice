@@ -96,7 +96,7 @@ This feature will only work if you are either plugged in to the PiJuice microUSB
 
 Here we have the system task menu tab. This enables you to set the external watchdog timer - useful for remote applications where you can't come and do a hard-reset yourself if the Pi crashes or hangs. The PiJuice essentially monitors for a "heart beat" from the software - if it does not sense it after a defined period of time it automatically resets the Raspberry Pi. You can also set here wakeup on charge levels, minimum battery levels and voltages.
 
-The watchdog timer has a configurable time-out - the time after which it will power cycle if it doesn't receive a heartbeat signal. The time step is in minutes so the minimum time-out period is one minute and the maximum is 65535 minutes. The number can be any whole number between one and 65535.
+The watchdog timer has a configurable time-out. It defines the time after which it will power cycle if it doesn't receive a heartbeat signal. The time step is in minutes so the minimum time-out period is one minute and the maximum is 65535 minutes. The number can be any whole number between one and 65535. If you set the time to zero the watchdog timer will be disabled.
 
 ### System Events Menu
 
@@ -203,7 +203,12 @@ Last but very much not least is the firmware menu. This allows you to update the
 /usr/share/pijuice/data/firmware/
 ```
 
-Should you wish to update the firmware with a more recent version simply browse to the new file and proceed with the update.
+the filename would look like `PiJuice-V1.1-2018_01_15.elf.binary`
+
+If you want to use the GUI to update the firmware to a more recent version you will have to override this file with the new one that you can download from our Firmware section.
+
+*Remember though that the firmware we provide in the software package you've obtained from either APT or Github is generally the only one you should ever use for that specific version of Software release, therefore only update the firmware if the GUI reports that the firmware is not up to date or if we instruct you to do so.* 
+
 During the update the window may become unresponsive. **Wait until the update is finished** before you continue with anything else.
 
 ### Automatic wake-up
