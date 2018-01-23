@@ -40,41 +40,27 @@ def _SystemHalt(event):
 		and 'trigger_level' in configData['system_task']['wakeup_on_charge']):
 		try:
 			tl = float(configData['system_task']['wakeup_on_charge']['trigger_level'])
-			print 'wakeup on charge', tl
-			print pijuice.power.SetWakeUpOnCharge(tl)
+			pijuice.power.SetWakeUpOnCharge(tl)
 		except:
 			tl = None 
 	pijuice.status.SetLedBlink('D2', 3, [150, 0,0], 200, [0, 100,0], 200)
-	print 'halt command'
-	#os.system("sudo halt")
 	subprocess.call(["sudo", "halt"])
 		 
 def ExecuteFunc(func, event, param):
-	print func, event, param
 	if func == 'SYS_FUNC_HALT':
-		print 'SYS_FUNC_HALT'
 		#logger.info(func+' '+str(event)+' '+str(param))
 		_SystemHalt(event)
 		 
 	elif func == 'SYS_FUNC_HALT_POW_OFF':
-		print 'SYS_FUNC_HALT_POW_OFF'
-		#logger.info(func+' '+str(event)+' '+str(param))
-		#os.system("sudo halt")
 		pijuice.power.SetSystemPowerSwitch(0)
 		pijuice.power.SetPowerOff(60)
 		_SystemHalt(event)
 	elif func == 'SYS_FUNC_SYS_OFF_HALT':
-		print 'SYS_FUNC_SYS_OFF_HALT'
 		pijuice.power.SetSystemPowerSwitch(0)
 		_SystemHalt(event)
 	elif func == 'SYS_FUNC_REBOOT':
-		print 'reboot, SYS_FUNC_REBOOT'
-		#logger.info(func+' '+str(event)+' '+str(param))
-		#os.system("sudo reboot")
 		subprocess.call(["sudo", "reboot"])
 	elif ('USER_FUNC' in func) and ('user_functions' in configData) and (func in configData['user_functions']):
-		#ind = int(func.split("USER_FUNC",1)[1])
-		print 'execute user func', configData['user_functions'][func]
 		try:
 			os.system(configData['user_functions'][func] + ' '+ str(event)+ ' ' + str(param))
 			#subprocess.call([configData['user_functions'][func], event, param])
@@ -82,7 +68,6 @@ def ExecuteFunc(func, event, param):
 			print 'failed to execute user func'
 					
 def _EvalButtonEvents():
-	print pijuice
 	btEvents = pijuice.status.GetButtonEvents()
 	if btEvents['error'] == 'NO_ERROR':
 		for b in pijuice.config.buttons:
@@ -91,7 +76,6 @@ def _EvalButtonEvents():
 				if btConfig[b][ev]['function'] != 'USER_EVENT':
 					pijuice.status.AcceptButtonEvent(b)
 					if btConfig[b][ev]['function'] != 'NO_FUNC':
-						print 'batton event', b, ev
 						ExecuteFunc(btConfig[b][ev]['function'], ev, b)
 		return True
 	else:
@@ -106,17 +90,11 @@ def _EvalCharge():
 		if ('threshold' in configData['system_task']['min_charge']):
 			th = float(configData['system_task']['min_charge']['threshold'])
 			if level == 0 or ((level < th) and ((chargeLevel-level) >= 0 and (chargeLevel-level) < 3)):
-				#print 'level, th', level, th, chargeLevel, (level < th)
-				#global lowChgEn
-				#print 'lowChgEn' , lowChgEn
 				if lowChgEn:
 					# energy is low, take action
-					#print 'ExecuteFunc'
 					ExecuteFunc(configData['system_events']['low_charge']['function'], 'low_charge', level)
 			
 		chargeLevel = level
-		#print level, '%'
-		#logger.info(str(level)) 
 		return True
 	else:
 		return False
@@ -131,13 +109,11 @@ def _EvalBatVoltage():
 				th = float(configData['system_task']['min_bat_voltage']['threshold'])
 			except:
 				th = None
-			#print 'v, th',v,th,'bv=',bv
 			if th != None and v < th:
 				if lowBatVolEn:
 					# Battery voltage below thresholdw, take action
 					ExecuteFunc(configData['system_events']['low_battery_voltage']['function'], 'low_battery_voltage', v)
 			
-		#logger.info(str(level))
 		return True
 	else:
 		return False
@@ -149,14 +125,13 @@ def _EvalPowerInputs(status):
 	else:
 		noPowCnt = 0
 	if noPowCnt == 2:
-		#print 'unplugged'
+		# unplugged
 		ExecuteFunc(configData['system_events']['no_power']['function'], 'no_power', '')
 
 def _EvalFaultFlags():
 	faults = pijuice.status.GetFaultStatus()
 	if faults['error'] == 'NO_ERROR': 
 		faults = faults['data']
-		print faults
 		for f in (pijuice.status.faultEvents + pijuice.status.faults):
 			if f in faults:
 				#logger.info('fault:' + f)
@@ -197,14 +172,9 @@ def main():
 	try:
 		pijuice = PiJuice(1,0x14)
 	except:
-		print 'Failed to establish interface to PiJuce'
 		sys.exit(0)
 		
-	try:
-		reload_settings()
-	except:
-		print 'Failed to load ', configPath
-		#logger.info('Failed to load config') 
+	reload_settings()
 
 	try:
 		for b in pijuice.config.buttons:
@@ -230,18 +200,14 @@ def main():
 				and ('enabled' in configData['system_task']['watchdog']) 
 				and configData['system_task']['watchdog']['enabled'] 
 				):
-
-				print 'disabling watchdog'
-				#ret = {'error':''}
+				# Disabling watchdog
 				ret = pijuice.power.SetWatchdog(0)
 				if ret['error'] != 'NO_ERROR':
 					time.sleep(0.05)
 					ret = pijuice.power.SetWatchdog(0)
-					print ret
 				#logger.info('watchdog disabled') 
-				print 'watchdog disabled'
 		except:
-			print 'Error evaluating watchdog'
+			pass
 		sys.exit(0)
 
 	if (('watchdog' in configData['system_task']) 
@@ -252,12 +218,10 @@ def main():
 		try:
 			p = int(configData['system_task']['watchdog']['period'])
 			ret = pijuice.power.SetWatchdog(p)
-			print 'watchdog enabled', p
 			#logger.info('watchdog enabled') 
 		except:
 			p = None
 			#logger.info('cannot enable watchdg') 
-			print 'cannot enable watchdg', p
 
 	sysEvEn = 'system_events' in configData
 	minChgEn = ('min_charge' in configData['system_task']) and ('enabled' in configData['system_task']['min_charge']) and configData['system_task']['min_charge']['enabled']
