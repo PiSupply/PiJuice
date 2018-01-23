@@ -78,22 +78,26 @@ def set_desktop_entry_versions(version):
             f.writelines(lines)
 
 
-if os.environ.get('PIJUICE_BUILD_LIGHT'):
+if int(os.environ.get('PIJUICE_BUILD_BASE', 0)) > 0:
+    name = "pijuice-base"
     data_files = [('share/pijuice/data/firmware', glob.glob('data/firmware/*'))]
     scripts = ['src/pijuice_sys.py', 'src/pijuicetest.py']
-    description = "Software package for PiJuice (Light version)"
+    description = "Software package for PiJuice"
+    py_modules=['pijuice']
 else:
+    name = "pijuice-gui"
+    py_modules = None
     data_files= [
         ('share/applications', ['data/pijuice-gui.desktop']),
         ('/etc/xdg/autostart', ['data/pijuice-tray.desktop']),#(os.environ['XDG_CONFIG_DIRS'] + '/autostart', ['data/pijuice-tray.desktop']),
         ('share/pijuice/data/images', glob.glob('data/images/*')), 
-        ('share/pijuice/data/firmware', glob.glob('data/firmware/*')),
+        # ('share/pijuice/data/firmware', glob.glob('data/firmware/*')),
         #('/var/lib/pijuice', ['data/pijuice_config.JSON']),
         #('/etc/systemd/user', ['data/pijuice.service']),
         #('share/pijuice/src', glob.glob('src/*.py')),
     ]
-    scripts = ['src/pijuice_tray.py', 'src/pijuice_gui.py', 'src/pijuice_sys.py', 'src/pijuicetest.py']
-    description = "Software package for PiJuice"
+    scripts = ['src/pijuice_tray.py', 'src/pijuice_gui.py']
+    description = "GUI package for PiJuice"
 
 try:
     set_desktop_entry_versions(pijuice.__version__)
@@ -101,19 +105,19 @@ except:
     pass
 
 setup(
-	name="pijuice",
-	version=pijuice.__version__,
-	author="Milan Neskovic",
-	author_email="milan@pi-supply.com",
-	description=description,
-	url="https://github.com/PiSupply/PiJuice/",
-	license='GPL v2',
-	py_modules=['pijuice'],
-	data_files=data_files,
-	scripts=scripts,
-	#entry_points = {
-		#'gui_scripts' : ['pijuice_gui = pijuice_gui:main'],
-		#'console_scripts' : ['pijuicetest = pijuicetest']
-	#},
-	#cmdclass={'install_data': InstallData}
+    name=name,
+    version=pijuice.__version__,
+    author="Milan Neskovic",
+    author_email="milan@pi-supply.com",
+    description=description,
+    url="https://github.com/PiSupply/PiJuice/",
+    license='GPL v2',
+    py_modules=py_modules,
+    data_files=data_files,
+    scripts=scripts,
+    #entry_points = {
+        #'gui_scripts' : ['pijuice_gui = pijuice_gui:main'],
+        #'console_scripts' : ['pijuicetest = pijuicetest']
+    #},
+    #cmdclass={'install_data': InstallData}
     )

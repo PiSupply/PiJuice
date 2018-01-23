@@ -1,17 +1,23 @@
 #!/bin/bash
-# first build package using python setp tool
-if [[ "$@" == "--light" ]]
-then
-    echo "Building light version..."
-    export PIJUICE_BUILD_LIGHT=1
-fi
+PIJUICE_VERSION=$(python -c "import pijuice; print pijuice.__version__")
+
+# Build base package
+export PIJUICE_BUILD_BASE=1
 
 python setup.py --command-packages=stdeb.command bdist_deb
 
-mkdir -p ./deb_dist/pijuice-1.1/bin/
-cp -a ./bin/. ./deb_dist/pijuice-1.1/bin/
+mkdir -p ./deb_dist/pijuice-base-$PIJUICE_VERSION/bin/
+cp -a ./bin/. ./deb_dist/pijuice-base-$PIJUICE_VERSION/bin/
 
-cp -a ./debian/. ./deb_dist/pijuice-1.1/debian/
+cp -a ./debian-base/. ./deb_dist/pijuice-base-1.1/debian/
+(cd ./deb_dist/pijuice-base-$PIJUICE_VERSION && dpkg-buildpackage -b -rfakeroot -us -uc)
 
-#debuild -us -uc
-(cd ./deb_dist/pijuice-1.1 && dpkg-buildpackage -b -rfakeroot -us -uc)
+mv deb_dist deb_dist_base
+
+# Build GUI package
+unset PIJUICE_BUILD_BASE
+
+python setup.py --command-packages=stdeb.command bdist_deb
+
+cp -a ./debian-gui/. ./deb_dist/pijuice-gui-1.1/debian/
+(cd ./deb_dist/pijuice-gui-$PIJUICE_VERSION && dpkg-buildpackage -b -rfakeroot -us -uc)

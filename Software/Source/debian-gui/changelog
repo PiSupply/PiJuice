@@ -1,0 +1,19 @@
+pijuice-gui (1.1-1) unstable; urgency=low
+
+  * data/images/:
+    - New icon for desktop menu
+
+  * src/pijuice_gui.py:
+    - Use "clam" theme for GUI
+    - Apply button in main window for saving settings
+    - Adjust minimal window sizes
+    - Change title for main settings window
+    - Fix typo "Temerature sense" in Battery configuration tab
+    - "Apply" button now applies settings from fields that use Enter key to update value
+    - Various layout fixes for values to fit their elements
+  
+  * src/pijuice_tray.py:
+    - Add versions info to About menu in tray
+    - Make tray menu entry Settings launch pijuice_gui in separate process
+
+-- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 12 Jan 2018 13:05:40 +0600

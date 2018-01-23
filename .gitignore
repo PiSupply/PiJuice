@@ -12,6 +12,7 @@ build/
 develop-eggs/
 dist/
 deb_dist/
+deb_dist_base/
 downloads/
 eggs/
 .eggs/
