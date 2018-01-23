@@ -194,7 +194,7 @@ Click Apply button to save new settings.
 
 ### PiJuice HAT Config Firmware Menu
 
-![PiJuice HAT Config Firmware Menu](https://user-images.githubusercontent.com/16068311/35161228-7c370f24-fd37-11e7-899a-aad82b827476.png "PiJuice HAT Config Firmware Menu")
+![PiJuice HAT Config Firmware Menu](https://user-images.githubusercontent.com/16068311/35274166-0879d4a0-0033-11e8-8d49-628c27d727f8.png "PiJuice HAT Config Firmware Menu")
 
 Last but very much not least is the firmware menu. This allows you to update the firmware on the PiJuice MCU chip as and when necessary meaning we can actively improve the firmware and any updates or improvements we make in the future can be retrospectively applied to all PiJuice HATs!
 
