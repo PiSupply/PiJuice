@@ -1,5 +1,5 @@
 #!/bin/bash
-PIJUICE_VERSION=$(python -c "import pijuice; print pijuice.__version__")
+export PIJUICE_VERSION=$(python -c "import pijuice; print pijuice.__version__")
 
 # Build base package
 export PIJUICE_BUILD_BASE=1

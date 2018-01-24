@@ -28,7 +28,6 @@ from distutils.log import info
 import glob
 import os
 import sys
-import pijuice
 
 class InstallData(install_data):
     def run (self):
@@ -78,6 +77,8 @@ def set_desktop_entry_versions(version):
             f.writelines(lines)
 
 
+version = os.environ.get('PIJUICE_VERSION')
+
 if int(os.environ.get('PIJUICE_BUILD_BASE', 0)) > 0:
     name = "pijuice-base"
     data_files = [('share/pijuice/data/firmware', glob.glob('data/firmware/*'))]
@@ -100,13 +101,13 @@ else:
     description = "GUI package for PiJuice"
 
 try:
-    set_desktop_entry_versions(pijuice.__version__)
+    set_desktop_entry_versions(version)
 except:
     pass
 
 setup(
     name=name,
-    version=pijuice.__version__,
+    version=version,
     author="Milan Neskovic",
     author_email="milan@pi-supply.com",
     description=description,
