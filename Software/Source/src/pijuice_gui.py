@@ -1638,11 +1638,6 @@ def save_config():
         print os.path.dirname(PiJuiceConfigDataPath)
         os.makedirs(os.path.dirname(PiJuiceConfigDataPath))
     #try:
-    with open(PiJuiceConfigDataPath , 'r') as oldConfig:
-        try:
-            is_sys_task_enabled = json.load(oldConfig)['system_task']['enabled']
-        except:
-            is_sys_task_enabled = False
     with open(PiJuiceConfigDataPath , 'w+') as outputConfig:
         json.dump(pijuiceConfigData, outputConfig, indent=2)
     notify_service()
