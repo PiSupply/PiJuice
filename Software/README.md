@@ -4,9 +4,15 @@
 ### Automated process
 At the command line simply type:
 ```bash
-sudo apt-get install pijuice
+sudo apt-get install pijuice-gui
 ``` 
 PiJuice depends on other libraries to be present, the package is designed to raise them and let apt-get resolve them.
+
+If you wish to install just the light version of PiJuice with no GUI:
+```bash
+sudo apt-get install pijuice-base
+``` 
+This is particularly indicated for Raspbian Lite or an headless installation.
 
 ### Manual process
 
@@ -35,13 +41,9 @@ or for the light version without GUI:
 
 We have also taken a LOT of screenshots of all the different menu options etc to show you the full software. So lets get stuck in:
 
-![Raspberry Pi Menu Entry for PiJuice Configuration Software](https://user-images.githubusercontent.com/16068311/35162363-00d2e1a6-fd3b-11e7-8da3-b6d65e7d300e.png "Raspberry Pi Menu Entry for PiJuice Configuration Software")
+![Raspberry Pi Menu Entry for PiJuice Settings Software](https://user-images.githubusercontent.com/16068311/35343402-7a362126-0122-11e8-9961-0b7013453f3f.png "Raspberry Pi Menu Entry for PiJuice Settings Software")
 
-Raspberry Pi Menu Entry for PiJuice Configuration Software
-
-We have compiled the source code into a .deb Debian package file so it is super easy to install. Once installation is complete the software appears in the system menu under Menu -> Preferences -> PiJuice Configuration as you can see in the above image.
-
-![pijuice](https://raw.githubusercontent.com/PiSupply/PiJuice/master/Software/Source/data/images/pijuice.png)
+We have compiled the source code into a .deb Debian package file so it is super easy to install. Once installation is complete the software appears in the system menu under Menu -> Preferences -> PiJuice Settings as you can see in the above image.
 
 ### System Tray
 
@@ -74,7 +76,7 @@ You can also right click on this icon to load the configuration menu, instead of
 
 ![Main software menu, with no battery attached](https://user-images.githubusercontent.com/16068311/35161233-7cfa5fce-fd37-11e7-83ec-72a8043ee0c0.png "Main software menu, with no battery attached")
 
-This picture is how the PiJuice Configuration software looks when it loads up. This also shows some basic information about the battery charge, battery voltage, and where it is charging from....here is it showing 0% and a low voltage on the battery - because there is no battery installed! You can also see that it is charging from the Pi GPIO (meaning it is plugged in to the Pis microUSB) and it also shows the rail voltages and current draw over the GPIO pins. Below that is the PiJuice microUSB and as you can see in this screenshot that is not currently plugged in. There is a fault checker, a system switch state and also a link to a HAT config menu (more on that later! - see PiJuice HAT Configuration Menu screenshot).
+This picture is how the PiJuice Settings software looks when it loads up. This also shows some basic information about the battery charge, battery voltage, and where it is charging from....here is it showing 0% and a low voltage on the battery - because there is no battery installed! You can also see that it is charging from the Pi GPIO (meaning it is plugged in to the Pis microUSB) and it also shows the rail voltages and current draw over the GPIO pins. Below that is the PiJuice microUSB and as you can see in this screenshot that is not currently plugged in. There is a fault checker, a system switch state and also a link to a HAT config menu (more on that later! - see PiJuice HAT Configuration Menu screenshot).
 
 ### Main software menu, with battery attached
 

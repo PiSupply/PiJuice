@@ -281,6 +281,7 @@ Battery profile defines charging, discharging parameters for PiJuice Battery. Al
 * NTC resistance. Defines nominal thermistor resistance at 25°C of NTC temperature sensor if it is integrated with battery.
 
 #### Predefined Profiles
+
 PiJuice has set of predefined profiles for set of tested compatible batteries that can be selected if one of batteries is used.
 * (0) BP6X
   - Capacity: 1400 mAh,
@@ -349,7 +350,7 @@ For example an idling Raspberry Pi 3B consuming 230mA running with our default b
 
 `((1820mAh * 3.7V) / (230mA * 5V)) * 0.75 = 4.39h` 
 
-We have [created a spreadsheet](https://github.com/PiSupply/PiJuice/blob/master/Hardware/Batteries/PiJuice%20Battery%20Discharge%20Levels.xlsx) which gives some typical battery capacities and usage scenarios ([with thanks to Alex from RasPi.TV for his testing efforts](http://raspi.tv/2017/how-much-power-does-pi-zero-w-use)) on all the versions of the Raspberry Pi and how they then relate to approcimate uptime of the Pi when using the PiJuice. Obviously these are pretty basic theoretical estimations and if the uptime is "mission-critical" then you should definitely perform real-life testing before relying on these figures but these should give you a good idea. In the not-too-distant future we will have a dynamic calculator where you can plug in the figures to this equation for your usage scenario and it will output an approximate uptime.
+We have created the [PiJuice Battery Discharge Time Calculator](https://www.pi-supply.com/battery-levels/) and a [spreadsheet](https://github.com/PiSupply/PiJuice/blob/master/Hardware/Batteries/PiJuice%20Battery%20Discharge%20Levels.xlsx) which gives some typical battery capacities and usage scenarios ([with thanks to Alex from RasPi.TV for his testing efforts](http://raspi.tv/2017/how-much-power-does-pi-zero-w-use)) on all the versions of the Raspberry Pi and how they then relate to approcimate uptime of the Pi when using the PiJuice. Obviously these are pretty basic theoretical estimations and if the uptime is "mission-critical" then you should definitely perform real-life testing before relying on these figures but these should give you a good idea. In the not-too-distant future we will have a dynamic calculator where you can plug in the figures to this equation for your usage scenario and it will output an approximate uptime.
 
 #### Battery charge level notes
 

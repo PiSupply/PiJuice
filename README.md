@@ -40,11 +40,19 @@ PiJuice is a fully [CE and FCC tested](https://github.com/PiSupply/PiJuice/tree/
 
 PiJuice will actually work straight out of the box, with no software, to power the Pi and for some other basic functionality. However to get the most out of PiJuice you really need to install the software packages. For PiJuice we have created a Raspbian / Debian Package to make it extra simple to obtain and install the necessary software. At the command line simply type:
 ```bash
-sudo apt-get install pijuice
+sudo apt-get install pijuice-gui
 ``` 
-After a restart a new icon "PiJuice Configuration" will appear under Menu>Preferences. Please refer to our [software section](https://github.com/PiSupply/PiJuice/tree/master/Software) to find out more.
+After a restart a new icon "PiJuice Settings" will appear under Menu>Preferences.
 
-Soon we will have a "headless" version of the software which will not require a GUI to operate. In fact, you can already operate the software just using the JSON configuration file that sits behind the GUI, but the installer requires the GUI to install currently. We are working hard to fix this.
+![pijuice](https://raw.githubusercontent.com/PiSupply/PiJuice/master/Software/Source/data/images/pijuice.png)
+
+If you wish to install just the light version of PiJuice with no GUI:
+```bash
+sudo apt-get install pijuice-base
+``` 
+This is particularly indicated for Raspbian Lite or an headless installation.
+
+ Please refer to our [software section](https://github.com/PiSupply/PiJuice/tree/master/Software) to find out more.
 
 ## Basic functionality
 
@@ -136,6 +144,8 @@ You can find out more in the [software section](https://github.com/PiSupply/PiJu
 ## Additional content
 Apart from the material available on Github we are also preparing guides, tutorials and additional information on various platforms and media. This is a list of current and future resources:
 
+* Check the main [PiJuice Quick Start Guide and FAQ](https://www.pi-supply.com/make/pijuice-quick-start-guide-faq/) for a detailed assembly guide
+* Our [PiJuice Battery Discharge Time Calculator](https://www.pi-supply.com/battery-levels/)  
 * There is a "quick start guide" in the package [which you can see here](https://github.com/PiSupply/PiJuice/blob/master/Documentation/PiJuice%20Guide.pdf). As you can see it's pretty basic but really the PiJuice is quite intuitive and very easy to use. 
 * A lot of picture guides and tutorials are going up on our [Maker Zone](https://www.pi-supply.com/make) 
 * We will soon have the pinouts available at [Raspberry Pi Pinout](https://pinout.xyz/pinout/pijuice)
