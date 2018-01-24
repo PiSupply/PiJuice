@@ -15,4 +15,4 @@ pijuice-base (1.1-1) unstable; urgency=low
     - Now it can be set whether or not user wants to turn on 5V rail as soon as power input is connected and there is no battery.
     - Added configuration for 2 IO ports. They can be set to analog input, digital input, digital output and pwm output.
 
--- Milan Neskovic <milan@pi-supply.com>  Mon, 15 Jan 2018 00:00:00 +0000
+  -- Milan Neskovic <milan@pi-supply.com>  Mon, 15 Jan 2018 00:00:00 +0000

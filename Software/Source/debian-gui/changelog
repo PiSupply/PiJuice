@@ -16,4 +16,4 @@ pijuice-gui (1.1-1) unstable; urgency=low
     - Add versions info to About menu in tray
     - Make tray menu entry Settings launch pijuice_gui in separate process
 
--- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 12 Jan 2018 13:05:40 +0600
+  -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 12 Jan 2018 13:05:40 +0600
