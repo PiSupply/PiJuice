@@ -207,7 +207,7 @@ Last but very much not least is the firmware menu. This allows you to update the
 
 the filename would look like `PiJuice-V1.1-2018_01_15.elf.binary`
 
-If you want to use the GUI to update the firmware to a more recent version you will have to override this file with the new one that you can download from our Firmware section.
+If you want to use the GUI to update the firmware to a more recent version you will have to override this file with the new one that you can download from our [Firmware section](https://github.com/PiSupply/PiJuice/tree/master/Firmware).
 
 *Remember though that the firmware we provide in the software package you've obtained from either APT or Github is generally the only one you should ever use for that specific version of Software release, therefore only update the firmware if the GUI reports that the firmware is not up to date or if we instruct you to do so.* 
 
@@ -345,7 +345,7 @@ The user functions section of the JSON file looks like the following. To add USE
 ``` 
 
 ### Battery Profiles
-The default battery profile is defined by the DIP switch position. On v1.1 it is position 01 for BP7X, on v1.0 version, it might be different, you can try different positions, and power circle pijuice to get updated.
+The default battery profile is defined by the DIP switch position. On v1.1 it is position 01 for BP7X, on v1.0 version, it might be different, you can try different positions, and power circle pijuice to get updated. You can see a guide on positioning the DIP switch [here](https://github.com/PiSupply/PiJuice/blob/master/Hardware/Batteries/Pijuice_battery_config.xlsx).
 
 It is not possible to detect battery not present when powered through on board USB micro, so it might show 0% only.
 
