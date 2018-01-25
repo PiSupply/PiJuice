@@ -57,6 +57,8 @@ We have compiled the source code into a .deb Debian package file so it is super 
 
 Once you load the software, you will see the PiJuice icon appear in the system tray, as above. This icon shows you the status of the PiJuice - charging from Pi, charging from PiJuice, running on battery as you have in a normal laptop computer. Additionally you can hover over it to tell you the charge level of the battery.
 
+*Note that it is not possible to detect battery not present when powered through on board USB micro, so it might show 0% only.*
+
 ![bat-100](https://raw.githubusercontent.com/PiSupply/PiJuice/master/Software/Source/data/images/bat-90.png)
 ![bat-50](https://raw.githubusercontent.com/PiSupply/PiJuice/master/Software/Source/data/images/bat-50.png)
 ![bat-0](https://raw.githubusercontent.com/PiSupply/PiJuice/master/Software/Source/data/images/bat-0.png)
@@ -112,13 +114,15 @@ The watchdog timer has a configurable time-out. It defines the time after which 
 
 This is the system events menu tab. It allows you to trigger events for certain scenarios such as low charge, low voltage and more. Each paramater has a couple of preset options to choose from, and also you can select options from the "user scripts" tab which allows you to trigger your own custom scripts when certain system events occur for maximum flexibility.
 
-### User scripts menu
+### User Scripts menu
 
-![User scripts menu](https://user-images.githubusercontent.com/16068311/33845750-5a95cdf6-de9c-11e7-8840-b6dc7f079d35.png "User scripts menu")
+![User scripts menu](https://user-images.githubusercontent.com/16068311/35161237-7d653b8c-fd37-11e7-9a1e-be8b71e27a27.png "User scripts menu")
 
 This is the user scripts menu tab as we mentioned in the above screenshot description where you can add paths to custom scripts that you can trigger on events.
 
 User scripts can be assigned to user functions called by system task when configured event arise. This should be non-blocking callback function that implements customized system functions or event logging.
+
+User functions are 4 digit binary coded and have 15 combinations, code 0 is USER_EVENT meant that it will not be processed by system task, but left to user and python API to manage it. We thought that it should be a rare case that all 15 combinations would be needed on the GUI so we only provided 8. However if someone needs more scripts they can be manually added by editing config json file: /var/lib/pijuice/pijuice_config.JSON as explained in the [JSON file Section](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md#adding-user_func-from-9-to-15)
 
 ## PiJuice Configuration
 
@@ -173,8 +177,8 @@ Button events can be configured to trigger predefined or user functions.
 Perhaps our favourite options menu is the LEDs menu - as with the buttons we have made these super versatile. They can have standard functions as displayed above, they can have preset functions or you can define custom ways for them to behave.
 
 Each LED can be assigned to predefined predefined function or configured for user software control as User LED.
-* CHARGE STATUS. LED is configured to signal current charge level of battery. For level <= 15% red with configurable brightness. For level > 15% and level <=50% mix of red and green with configurable brightness. For level > 50% green with configurable brightness. When battery is charging blinking blue with configurable brightness is added to current charge level color. For full buttery state blue component is steady on.
-* USER LED. When LED is configured as User LED it can be directly controlled with User software via command interface. Initial PiJuice power on User LED state is defined with R, G, and B brightness level parameters.
+* **CHARGE STATUS**. LED is configured to signal current charge level of battery. For level <= 15% red with configurable brightness. For level > 15% and level <=50% mix of red and green with configurable brightness. For level > 50% green with configurable brightness. When battery is charging blinking blue with configurable brightness is added to current charge level color. For full buttery state blue component is steady on.
+* **USER LED**. When LED is configured as User LED it can be directly controlled with User software via command interface. Initial PiJuice power on User LED state is defined with R, G, and B brightness level parameters.
 
 ### PiJuice HAT Config Battery Menu
 
@@ -183,6 +187,8 @@ Each LED can be assigned to predefined predefined function or configured for use
 The battery menu is a very important one. It basically allows you to set charge profiles for the PiJuice charge chip in order to correctly and efficiently charge the battery, correctly monitor the charge percentages and more. We have got a number of built in presets such as the ones that will come with the PiJuice by default (the BP7X) and all of the other ones we will supply. But as promised, there is also the ability to add your own custom charge profiles and even your own battery temperature sensor in order to increase the safety and efficiency of charging your batteries.
 
 As previously mentioned, some of these are even hard coded into the firmware on the PiJuice which enables you to actually select profiles using the PiJuices on board DIP switch.
+
+More information on the default profiles and how to created additional ones can be found in the [Hardware Section](https://github.com/PiSupply/PiJuice/tree/master/Hardware#battery-profiles)
 
 ### PiJuice HAT Config IO Menu
 ![PiJuice HAT Config IO Menu](https://user-images.githubusercontent.com/16068311/35161231-7cc2820c-fd37-11e7-875b-b80b18c3a6ab.png "PiJuice HAT Config IO Menu")
@@ -219,12 +225,7 @@ If you want to use the GUI to update the firmware to a more recent version you w
 
 During the update the window may become unresponsive. **Wait until the update is finished** before you continue with anything else.
 
-### Automatic wake-up
-PiJuice can be configured to automatically wake-up system in several ways: on charge level, when power source appears, by RTC Alarm.
-* **Wakeup on charge**: When power source appears and battery starts charging this function can be configured to wakeup system when charge level reaches settable trigger level. Trigger level can be set in range 0%-100%. Setting trigger level to 0 means that system will wake-up as soon as power source appears and battery starts charging.
-* **Wake-up Alarm**: PiJuice features real-time clock with Alarm function that can be configured to wake-up system at programmed date/time.
-
-### JSON configuration file
+## JSON configuration file
 Changes made on tabs "System Task", "System Events" and "User Scripts" on the main windows will be saved on a JSON file.
 
 `/var/lib/pijuice/pijuice_config.JSON`
@@ -331,6 +332,8 @@ Here is a list of accepted values for the various fields above.
 * **user_functions**: 
     - absolute path to user defined script
 
+### Adding USER_FUNC from 9 to 15
+
 The user functions section of the JSON file looks like the following. To add USER_FUNC from 9 to 15 simply append them to the existing ones.
 
 ```text
@@ -349,10 +352,3 @@ The user functions section of the JSON file looks like the following. To add USE
   },
 
 ``` 
-
-### Battery Profiles
-The default battery profile is defined by the DIP switch position. On v1.1 it is position 01 for BP7X, on v1.0 version, it might be different, you can try different positions, and power circle pijuice to get updated. You can see a guide on positioning the DIP switch [here](https://github.com/PiSupply/PiJuice/blob/master/Hardware/Batteries/Pijuice_battery_config.xlsx).
-
-It is not possible to detect battery not present when powered through on board USB micro, so it might show 0% only.
-
-User functions are 4 digit binary coded and have 15 combinations, code 0 is USER_EVENT meant that it will not be processed by system task, but left to user and python API to manage it. I thought it is rare case that all 15 will be needed so on gui there is 8 (it will make big window also). However if someone needs more scripts it can be manualy added by editing config json file: /var/lib/pijuice/pijuice_config.JSON. Also all other configurations can be managed manually in this file if the GUI is not available.

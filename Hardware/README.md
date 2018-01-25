@@ -10,14 +10,14 @@ The following lists the default function/configuration (these can be easily over
 
 ### Buttons
 
-* SW1/J5 is power button by default:
+* **SW1/J5** is power button by default:
     * Single press to power on (release in less than 800 ms)
     * Long press of at least 10 seconds to halt
     * Long press of at least 20 seconds to cut power
-* SW2 is user button by default, configured to trigger user scripts:
+* **SW2** is user button by default, configured to trigger user scripts:
     * Single press in less than 400ms to invoke “USER_FUNC1”
     * Double press within 600ms to invoke “USER_FUNC2”
-* SW3 is user button by default, configured to trigger user scripts:
+* **SW3** is user button by default, configured to trigger user scripts:
     * Press will invoke “USER_FUNC3”
     * Release will invoke “USER_FUNC4”
 
@@ -62,17 +62,19 @@ We have also provided [this document](https://github.com/PiSupply/PiJuice/tree/m
 
 Whether you use the DIP switch and the resistor configuration by populating R20 you can always override the settings using the software configuration GUI. From the Pijuice HAT configuration window on the "Battery" tab choose battery profile from drop down list. You can also return to DIP switch selected profile by choosing "DEFAULT" from drop-down list.
 
+*Note that it is not possible to detect battery not present when powered through on board USB micro, so it might show 0% only.*
+
 ## LEDs
 
 On board of the PiJuice there are two multicolour LEDs highlighted in orange in the picture above.
 
-- LED1 (D1) is the charge status by default. It will blink when the MCU detects the current load to be below 50mA. The MCU will then set itself in Low Power Mode to conserve as much as possible energy.
+* **LED1** (D1) is the charge status by default. It will blink when the MCU detects the current load to be below 50mA. The MCU will then set itself in Low Power Mode to conserve as much as possible energy.
 When the Pi is on or in halt state the LED will be a steady colour with exception of the charging mode which will always be blinking as far as there is a battery charging.
     * ![#00FF00](http://via.placeholder.com/15x15/00FF00/000000?text=+) Green: Power on - Battery over 50%
     * ![#0000FF](http://via.placeholder.com/15x15/0000FF/000000?text=+) Blue: Charging
     * ![#FFA500](http://via.placeholder.com/15x15/FFA500/000000?text=+) Orange: Low battery - level < 50%
     * ![#FF0000](http://via.placeholder.com/15x15/FF0000/000000?text=+) Red: Low battery - level < 15% or battery absent
-- LED2 (D2) is the user LED by default.
+* **LED2** (D2) is the user LED by default.
 
 You can look at the [demo script](https://github.com/PiSupply/PiJuice/blob/master/Software/Test/pijuicetest.py) provided in the code base to see how to use it in Python.
 
@@ -84,21 +86,21 @@ On board the PiJuice there are several connectors. The connectors / headers avai
 
 ### Top of the board
 
-- J4 is an alternative to the PiJuice microUSB micro input. Pad holes are provided to solder a 2.54mm header...any type (straight or right angle, female or male) and length can fit.
+* **J4** is an alternative to the PiJuice microUSB micro input. Pad holes are provided to solder a 2.54mm header...any type (straight or right angle, female or male) and length can fit.
   You can plug in power sources to this connector with input voltage between 4.2V and 10V. A minimum current of 80mA will be sufficient for the battery to charge.
   *Note: Although this connector may be used for some types of solar panels be aware that we only support the use of the official panels.*
 
-- The screw terminal can be used to connect an off-board / external battery instead of the provided onboard battery (the BP7X). We recommend you use a battery with an NTC thermistor integrated with the battery and used for temperature regulation of battery during charging we also recommend that the battery have onboard over charge / over current etc. protection (this is not essential, but it is far safer if you have them - lithium batteries can be dangerous so it is wise to think about safety). The requirements are that battery uses a 10KOhm NTC resistor with known thermistor B constant which can be entered as profile data in config GUI "Battery" tab. There are regulation threshold data points that can be entered for custom batteries like Cold, Cool, Warm and HOT temperatures that are derived from the battery manufacturers specification. The ID pin is not used and it is just reserved for possible future use. It could for example be used to automatically recognise which battery is connected when using BP7X or BP6X.
+* The **screw terminal** can be used to connect an off-board / external battery instead of the provided onboard battery (the BP7X). We recommend you use a battery with an NTC thermistor integrated with the battery and used for temperature regulation of battery during charging we also recommend that the battery have onboard over charge / over current etc. protection (this is not essential, but it is far safer if you have them - lithium batteries can be dangerous so it is wise to think about safety). The requirements are that battery uses a 10KOhm NTC resistor with known thermistor B constant which can be entered as profile data in config GUI "Battery" tab. There are regulation threshold data points that can be entered for custom batteries like Cold, Cool, Warm and HOT temperatures that are derived from the battery manufacturers specification. The ID pin is not used and it is just reserved for possible future use. It could for example be used to automatically recognise which battery is connected when using BP7X or BP6X.
 
-- P3 is an expansion header which provides access to two unused GPIO pins on the ARM Cortex M0 (STM32-F0) MCU on board the PiJuice. There is also a regulated 3V3 and 5V0 pin, a GND pin and a VSYS pin which has the same function as VSYS on J3. VSYS is a switchable battery voltage for system use and can be used with boards like PiBot to provide power. VSYS output is programmable via with software with "OFF", "ON 500mA current limit" and "ON 2100mA current limit".
+* **P3** is an expansion header which provides access to two unused GPIO pins on the ARM Cortex M0 (STM32-F0) MCU on board the PiJuice. There is also a regulated 3V3 and 5V0 pin, a GND pin and a VSYS pin which has the same function as VSYS on J3. VSYS is a switchable battery voltage for system use and can be used with boards like PiBot to provide power. VSYS output is programmable via with software with "OFF", "ON 500mA current limit" and "ON 2100mA current limit".
   The 5V pin is wired with the GPIO header and is then share amongst the Raspberry Pi's electronics and the PiJuice for battery charging. The available current that this pin can supply is around 800mA.
   As for the 3V3 a maximum of 100mA sourced by the internal LDO. 
 
 ### Bottom of the board
 
-- J3 provides the same VSYS as per P3. J3 is a battery output for external load connections with current limit, we use this for external boards such as PiBot. Current limit prevents power loss on the Raspberry Pi if load draws excessive current. 
-- J7 is a development header to be used in conjunction with an ST-Link programmer for the MCU and a [Tag-Connect cable](http://www.tag-connect.com/TC2050-IDC). It is used to download firmware or perform debugging. It can be also used during production to write the firmware. It requires a [Tag-connect TC2050 ARM20-10](http://www.tag-connect.com/TC2050-ARM2010) adapter to connect ST-Link to cable. This connector is not intended for end users.
-- J6 is used to program the ID EEPROM during production. There is no adapter board and it needs to be wired manually to some programming tool. It requires a [Tag-Connect cable](http://www.tag-connect.com/TC2030-IDC). It provides an additional option to program the EEPROM in case it cannot be pre-programmed before assembly. This connector is not intended for end users.
+* **J3** provides the same VSYS as per P3. J3 is a battery output for external load connections with current limit, we use this for external boards such as PiBot. Current limit prevents power loss on the Raspberry Pi if load draws excessive current. 
+* **J7** is a development header to be used in conjunction with an ST-Link programmer for the MCU and a [Tag-Connect cable](http://www.tag-connect.com/TC2050-IDC). It is used to download firmware or perform debugging. It can be also used during production to write the firmware. It requires a [Tag-connect TC2050 ARM20-10](http://www.tag-connect.com/TC2050-ARM2010) adapter to connect ST-Link to cable. This connector is not intended for end users.
+* **J6** is used to program the ID EEPROM during production. There is no adapter board and it needs to be wired manually to some programming tool. It requires a [Tag-Connect cable](http://www.tag-connect.com/TC2030-IDC). It provides an additional option to program the EEPROM in case it cannot be pre-programmed before assembly. This connector is not intended for end users.
 
 ## Pinout
 
@@ -197,30 +199,30 @@ J7
 
 The picture above highlights the main ICs used on PiJuice. Links to the various datasheets have been provided in line with the description.
 
-1. Microcontroller is an [ST Micro STM32F030CCT6](https://github.com/PiSupply/PiJuice/tree/master/Hardware/STM32F030CCT6.pdf) ARM Cortex-M0, 48MHz, F64KB, R8KB, I2C, SPI, USART, 2.4-3.6V
-2. Charge IC - [BQ24160RGET](https://github.com/PiSupply/PiJuice/tree/master/Hardware/BQ24160RGET.pdf) Charger IC Lithium-Ion/Polymer, 2.5A, 4.2-10V
-3. Fuel gauge IC - [LC709203FQH-01TWG](https://github.com/PiSupply/PiJuice/tree/master/Hardware/LC709203FQH.pdf) Battery Fuel Gauge, 1-Cell Li-ion, 2.8%
-4. High side power-distribution switch - [NCP380LMUAJAATBG](https://github.com/PiSupply/PiJuice/tree/master/Hardware/NCP380-D.pdf) Fixed/Adjustable Current‐Limiting Power‐Distribution Switch
-5. EEPROM - [CAT24C32WI-GT3](https://github.com/PiSupply/PiJuice/tree/master/Hardware/CAT24C32-D.pdf) EEPROM, I2C, 32KBIT, 400KHZ, 1V7-5V5
+1. **Microcontroller** is an [ST Micro STM32F030CCT6](https://github.com/PiSupply/PiJuice/tree/master/Hardware/STM32F030CCT6.pdf) ARM Cortex-M0, 48MHz, F64KB, R8KB, I2C, SPI, USART, 2.4-3.6V
+2. **Charge IC** - [BQ24160RGET](https://github.com/PiSupply/PiJuice/tree/master/Hardware/BQ24160RGET.pdf) Charger IC Lithium-Ion/Polymer, 2.5A, 4.2-10V
+3. **Fuel gauge IC** - [LC709203FQH-01TWG](https://github.com/PiSupply/PiJuice/tree/master/Hardware/LC709203FQH.pdf) Battery Fuel Gauge, 1-Cell Li-ion, 2.8%
+4. **High side power-distribution switch** - [NCP380LMUAJAATBG](https://github.com/PiSupply/PiJuice/tree/master/Hardware/NCP380-D.pdf) Fixed/Adjustable Current‐Limiting Power‐Distribution Switch
+5. **EEPROM** - [CAT24C32WI-GT3](https://github.com/PiSupply/PiJuice/tree/master/Hardware/CAT24C32-D.pdf) EEPROM, I2C, 32KBIT, 400KHZ, 1V7-5V5
 
 ### Unpopulated
 
 You may notice that there are several components which have not be installed on your board. This section aims to explain what they are and which are for user customisation.
 
-- TP1, 2 and 3 should be used to install the pogo / spring pin (Mill-Max 0929-7-15-20-75-14-11-0 or 0929-7-15-20-77-14-11-0) for the wake on function. Each is located with respect to the "Run" pad on the various Raspberry Pi layouts:
+* **TP1, 2 and 3** should be used to install the pogo / spring pin (Mill-Max 0929-7-15-20-75-14-11-0 or 0929-7-15-20-77-14-11-0) for the wake on function. Each is located with respect to the "Run" pad on the various Raspberry Pi layouts:
     - TP1 - Pi 3B
     - TP2 - Pi Zero
     - TP3 - Pi B+ and 2B
 
-- R20 is place to solder resistor that provides an additional way to configure battery profile without using software configuration additional to DIP switch where the charging current and the charging voltage are encoded with the resistance of the resistor. This approach also allows for a wider choice of battery profiles. You can in fact choose 16 profiles with as many resistor values as opposed to 4 via the dip switch. Please refer to [this document](https://github.com/PiSupply/PiJuice/tree/master/Hardware/Batteries/Pijuice_battery_config.xlsx). In the "Charge settings" you can find how to choose the resistor value for desired charge settings. In the "Profile selection" you can find how to choose the resistor to select one of predefined battery profiles. *Note that R20 should be through hole and with 0.1% tolerance.* It is also possible to override the resistor settings in software. In the Pijuice HAT configuration window on the "Battery" tab check "Custom" and edit battery charging parameters to desired values, then click apply. You can return to resistor settings by choosing "DEFAULT" from the drop-down list.
+* **R20** is place to solder resistor that provides an additional way to configure battery profile without using software configuration additional to DIP switch where the charging current and the charging voltage are encoded with the resistance of the resistor. This approach also allows for a wider choice of battery profiles. You can in fact choose 16 profiles with as many resistor values as opposed to 4 via the dip switch. Please refer to [this document](https://github.com/PiSupply/PiJuice/tree/master/Hardware/Batteries/Pijuice_battery_config.xlsx). In the "Charge settings" you can find how to choose the resistor value for desired charge settings. In the "Profile selection" you can find how to choose the resistor to select one of predefined battery profiles. *Note that R20 should be through hole and with 0.1% tolerance.* It is also possible to override the resistor settings in software. In the Pijuice HAT configuration window on the "Battery" tab check "Custom" and edit battery charging parameters to desired values, then click apply. You can return to resistor settings by choosing "DEFAULT" from the drop-down list.
 
-- R13, R22, R51 and C31 are hardware configuration options for measuring battery temperature using NTC and an alternative to fuel gauge and these are mostly for development purposes not for end users.
+* **R13, R22, R51 and C31** are hardware configuration options for measuring battery temperature using NTC and an alternative to fuel gauge and these are mostly for development purposes not for end users.
 
-- R26 is reserved for future development and is used to add different possibilities with resistor configuration.
+* **R26** is reserved for future development and is used to add different possibilities with resistor configuration.
 
-- D3 is a charger IC status LED. It is on during active charging of charger IC and it is used for firmware development purposes and debugging.
+* **D3** is a charger IC status LED. It is on during active charging of charger IC and it is used for firmware development purposes and debugging.
 
-- TP4-TP23 are test points used during the production and test phase of the board. They provide a means to temporarily connect custom bed of nails or spring pins and not intended for end users.
+* **TP4-TP23** are test points used during the production and test phase of the board. They provide a means to temporarily connect custom bed of nails or spring pins and not intended for end users.
 
 ## Power management and batteries
 
@@ -230,26 +232,30 @@ Another USB Micro power input feature is Dynamic Power Management Loop (DPM). Th
 
 ### 5V Power Regulator
 5V Power regulator supplies 5V power Rail with up to 2.5A of continuous current. Regulator can be set in one of 3 modes of operation:
-1. DCDC Switching Mode. In this mode 5V Rail voltage is regulated to 5V with 2.5% tolerance, typically 5.07V at mid-loaded conditions. This is the most efficient operation mode.
-2. LDO Mode. This mode regulates 5V Rail voltage to 4.79V. In this mode output voltage has lowest output ripple.
-3. POWER SOURCE DETECTION Mode. In this mode regulator switches between DCDC switching mode and LDO mode with most of time in DCDC switching mode. This is mode has high efficiency but increased voltage ripple.
+* **DCDC Switching Mode**. In this mode 5V Rail voltage is regulated to 5V with 2.5% tolerance, typically 5.07V at mid-loaded conditions. This is the most efficient operation mode.
+* **LDO Mode**. This mode regulates 5V Rail voltage to 4.79V. In this mode output voltage has lowest output ripple.
+* **POWER SOURCE DETECTION Mode**. In this mode regulator switches between DCDC switching mode and LDO mode with most of time in DCDC switching mode. This is mode has high efficiency but increased voltage ripple.
 
 ### 5V GPIO Rail power source detection
 Pijuice can detect when power source is connected through 5V GPIO rail. If power source at 5V GPIO Rail is detected pijuice will take power from it to charge battery. If power source is not detected pijuice will automatically supply 5V GPIO Rail with 5V regulator powered from battery. For reliable Power source detection 5v Power regulator needs to be set in POWER SOURCE DETECTION Mode or LDO Mode and power source connected to 5V GPIO Rail needs to provide voltage between 4.8V and 5.25V.
 
+### Automatic wake-up
+PiJuice can be configured to automatically wake-up system in several ways: on charge level, when power source appears, by RTC Alarm.
+* **Wakeup on charge**: When power source appears and battery starts charging this function can be configured to wakeup system when charge level reaches settable trigger level. Trigger level can be set in range 0%-100%. Setting trigger level to 0 means that system will wake-up as soon as power source appears and battery starts charging.
+* **Wake-up Alarm**: PiJuice features real-time clock with Alarm function that can be configured to wake-up system at programmed date/time.
 
 ### Which micro USB connector to use
 
 PiJuice allows for multiple ways of providing power to its battery and to the Raspberry Pi. When deciding whether to use the Pi's micro USB or the PiJuice micro USB you need to take into consideration the following:
-- Powering from the Pi's micro USB
+* **Powering from the Pi's micro USB**
     - Powering from the Pi's input is more efficient, this is usually an advantage in UPS applications, but the maximum charger input from the GPIO pins is 1.5A.
     - Requires installation of the spring / pogo pin to do timed wake ups of the Pi and to use SW1 to wake the Pi
-- Powering from the PiJuice's micro USB
+* **Powering from the PiJuice's micro USB**
     - Powering via the PiJuice micro USB offers a wider input voltage range. 
     - Additionally the maximum current from HAT USB micro is 2.5A, but it needs to go through two regulators to power the Raspberry Pi and is hence less efficient. This input should be used in most battery powered applications and harvesting sources like solar panels.
     - If you wish to start your Raspberry Pi using the PiJuice SW1 you'll have to connect the micro USB to the PiJuice directly (unless you use a spring pin)
 
-- When plugging a 2.5A PSU (or a solar panel or other device with more capacity) into the onboard microUSB port on PiJuice, you may notice that with the BP7X battery it only draws 0.75A. This is normal because PiJuice has an efficient charger, based on switching not linear principle so calculation for input current when charging with no load is `Iinput ~ Ibat * Vbat/Vin / k`, for exmple in case `Vbat = 3.7`, `Vin = 5V`, `Ibat = 0.925`, `k ~ 0.92` efficiency coefficient, gives around 0.75A. So the current draw depends on charging current Ibat from the mentioned equation. Charging current is configurable and differs for different batteries (the figures used in example are for the BP7X), for the 5000mAH pkcell battery that we offer Ibat is set to 2.5A. Charging current is specified by battery manufacturer but general spec if no data available is around 0.5C where C is battery capacity.
+When plugging a 2.5A PSU (or a solar panel or other device with more capacity) into the onboard microUSB port on PiJuice, you may notice that with the BP7X battery it only draws 0.75A. This is normal because PiJuice has an efficient charger, based on switching not linear principle so calculation for input current when charging with no load is `Iinput ~ Ibat * Vbat/Vin / k`, for exmple in case `Vbat = 3.7`, `Vin = 5V`, `Ibat = 0.925`, `k ~ 0.92` efficiency coefficient, gives around 0.75A. So the current draw depends on charging current Ibat from the mentioned equation. Charging current is configurable and differs for different batteries (the figures used in example are for the BP7X), for the 5000mAH pkcell battery that we offer Ibat is set to 2.5A. Charging current is specified by battery manufacturer but general spec if no data available is around 0.5C where C is battery capacity.
 
 ### Max. current that the PiJuice will be able to supply 
 
@@ -268,17 +274,17 @@ The best way to generate new battery profiles when the datasheet is unknown and 
 There are two other sheets in the [excel file](https://github.com/PiSupply/PiJuice/tree/master/Hardware/Batteries/Pijuice_battery_config.xlsx) Profile selection and Charge settings where you have a column R [KOhm] for R20 resistance choices.
 
 Battery profile defines charging, discharging parameters for PiJuice Battery. Also profile defines normal working conditions according JEITA safety standard, and temperature sensor parameters if integrated with battery.
-* Capacity. Charge capacity of battery.
-* Charge current. [550mA – 2500mA]. Defines constant current that PiJuice battery is charged in current regulation phase of charging process.
-* Termination current. [50mA – 400mA]. When charging current drops below termination current threshold in voltage regulation phase charging process terminates.
-* Regulation voltage. [3500mV – 4440mV]. Defines constant voltage to which voltage over battery is regulated in voltage regulation phase of charging process.
-* Cut-off voltage. [0mV – 5100mV]. Defines minimum voltage at which battery is fully discharged.
-* Cold temperature. Defines temperature threshold according to JEITA standard below which charging is suspended.
-* Cool temperature. Defines temperature threshold according to JEITA standard below which charge current is reduced to half of programmed charge current. This threshold should be set above cold temperature.
-* Warm temperature. Defines temperature threshold according to JEITA standard above which the battery regulation voltage is reduced by 140mV from the programmed regulation voltage. This threshold should be set above cool temperature.
-* Hot temperature.  Defines temperature threshold according to JEITA standard above which charging is suspended. This threshold should be set above warm temperature.
-* NTC  B constant. Defines thermistor B constant of NTC temperature sensor if it is integrated with battery.
-* NTC resistance. Defines nominal thermistor resistance at 25°C of NTC temperature sensor if it is integrated with battery.
+* **Capacity**. Charge capacity of battery.
+* **Charge current**. [550mA – 2500mA]. Defines constant current that PiJuice battery is charged in current regulation phase of charging process.
+* **Termination current**. [50mA – 400mA]. When charging current drops below termination current threshold in voltage regulation phase charging process terminates.
+* **Regulation voltage**. [3500mV – 4440mV]. Defines constant voltage to which voltage over battery is regulated in voltage regulation phase of charging process.
+* **Cut-off voltage**. [0mV – 5100mV]. Defines minimum voltage at which battery is fully discharged.
+* **Cold temperature**. Defines temperature threshold according to JEITA standard below which charging is suspended.
+* **Cool temperature**. Defines temperature threshold according to JEITA standard below which charge current is reduced to half of programmed charge current. This threshold should be set above cold temperature.
+* **Warm temperature**. Defines temperature threshold according to JEITA standard above which the battery regulation voltage is reduced by 140mV from the programmed regulation voltage. This threshold should be set above cool temperature.
+* **Hot temperature**.  Defines temperature threshold according to JEITA standard above which charging is suspended. This threshold should be set above warm temperature.
+* **NTC  B constant**. Defines thermistor B constant of NTC temperature sensor if it is integrated with battery.
+* **NTC resistance**. Defines nominal thermistor resistance at 25°C of NTC temperature sensor if it is integrated with battery.
 
 #### Predefined Profiles
 
@@ -335,7 +341,6 @@ PiJuice has set of predefined profiles for set of tested compatible batteries th
   - NTC  B constant: 3380 K,
   - NTC resistance 10000 Ω.
 
-
 ### Battery charge/discharge
 
 #### Battery uptime calculations
@@ -364,6 +369,6 @@ Last but not least, we will likely try to fix this in a future software update b
 
 ## Misc
 
-- RF clips (M1-M4): You can use the optional RF Shield - Harwin S02-20150300 under the following circumnstances:
+* **RF clips (M1-M4)**: You can use the optional RF Shield - Harwin S02-20150300 under the following circumnstances:
     - You experience greater heating of Pijuice board
     - When there is sensitive electronics around the board like radios or sensor hats sensitive to 1.5MHz and harmonics or 2.5MHz and harmonics that are frequencies of PiJuice regulators
