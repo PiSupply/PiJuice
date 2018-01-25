@@ -152,12 +152,6 @@ def reload_settings(signum=None, frame=None):
 
 
 def main():
-	pid = str(os.getpid())
-	file(PID_FILE, 'w').write(pid)
-
-	if not os.path.exists(configPath):
-		open(configPath, 'w+').write(json.dumps(configData)).close()
-
 	global pijuice
 	global btConfig
 	global configData 
@@ -171,6 +165,12 @@ def main():
 	global lowChgEn
 	global lowBatVolEn
 	global noPowEn
+
+	pid = str(os.getpid())
+	file(PID_FILE, 'w').write(pid)
+
+	if not os.path.exists(configPath):
+		open(configPath, 'w+').write(json.dumps(configData)).close()
 
 	try:
 		pijuice = PiJuice(1,0x14)
