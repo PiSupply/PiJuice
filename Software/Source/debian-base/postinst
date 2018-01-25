@@ -55,13 +55,11 @@ if [ ! -f /sys/class/i2c-dev/i2c-1/dev ]; then
 fi
 
 if [ -f /sys/class/i2c-dev/i2c-1/dev ]; then
-	if [ "`systemctl is-active pijuice.service`" != "active" ]; then 
-		echo "pijuice.service is not active running, attempting to enable"
-		systemctl unmask pijuice.service
-		systemctl enable pijuice.service
-		systemctl restart pijuice.service
-		#systemctl status pijuice.service
-	fi 
+	echo "pijuice.service is not active running, attempting to enable"
+	systemctl unmask pijuice.service
+	systemctl enable pijuice.service
+	systemctl restart pijuice.service
+	#systemctl status pijuice.service
 fi
 
 exit 0
