@@ -16,9 +16,15 @@ This is particularly indicated for Raspbian Lite or an headless installation.
 
 ### Manual process
 
-Copy the deb package to the pi home and install the package.
+Copy either of the deb packages to the pi home and install it.
 
-`sudo dpkg -i ./pijuice_1.0-1_all.deb`
+For example for the full version with GUI:
+
+`sudo dpkg -i ./pijuice-gui_1.1-1_all.deb`
+
+For the light version:
+
+`sudo dpkg -i ./pijuice-base_1.1-1_all.deb`
 
 Should the installation complain about missing dependencies you need to sort them first and try with the installation once again.
 
