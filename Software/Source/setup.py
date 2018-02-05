@@ -108,8 +108,8 @@ except:
 setup(
     name=name,
     version=version,
-    author="Milan Neskovic",
-    author_email="milan@pi-supply.com",
+    author="Denis Khrutsky",
+    author_email="dkhrutsky@protonmail.com",
     description=description,
     url="https://github.com/PiSupply/PiJuice/",
     license='GPL v2',

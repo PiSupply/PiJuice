@@ -1,3 +1,10 @@
+pijuice-gui (1.2-1) unstable; urgency=low
+
+  * src/pijuice_gui.py:
+    - Fix layout for IO tab
+
+  -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 4 Feb 2018 18:12:32 +0600
+
 pijuice-gui (1.1-1) unstable; urgency=low
 
   * data/images/:

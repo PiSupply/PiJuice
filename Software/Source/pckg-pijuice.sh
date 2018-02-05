@@ -9,7 +9,7 @@ python setup.py --command-packages=stdeb.command bdist_deb
 mkdir -p ./deb_dist/pijuice-base-$PIJUICE_VERSION/bin/
 cp -a ./bin/. ./deb_dist/pijuice-base-$PIJUICE_VERSION/bin/
 
-cp -a ./debian-base/. ./deb_dist/pijuice-base-1.1/debian/
+cp -a ./debian-base/. ./deb_dist/pijuice-base-$PIJUICE_VERSION/debian/
 (cd ./deb_dist/pijuice-base-$PIJUICE_VERSION && dpkg-buildpackage -b -rfakeroot -us -uc)
 
 mv deb_dist deb_dist_base
@@ -19,5 +19,5 @@ unset PIJUICE_BUILD_BASE
 
 python setup.py --command-packages=stdeb.command bdist_deb
 
-cp -a ./debian-gui/. ./deb_dist/pijuice-gui-1.1/debian/
+cp -a ./debian-gui/. ./deb_dist/pijuice-gui-$PIJUICE_VERSION/debian/
 (cd ./deb_dist/pijuice-gui-$PIJUICE_VERSION && dpkg-buildpackage -b -rfakeroot -us -uc)
