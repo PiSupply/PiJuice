@@ -1,3 +1,12 @@
+## Version 1.2
+Added packages to both Raspbian Jessie and Stretch
+
+### Software
+pijuice-gui (1.1-1) unstable; urgency=low
+
+* src/pijuice_gui.py:
+     - Fix layout for parameters labels on IO tab
+
 ## Version 1.1
 
 ### Software
