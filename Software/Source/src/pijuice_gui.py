@@ -20,6 +20,8 @@ except:
     pijuice = None
 
 PID_FILE = '/var/run/pijuice.pid'
+USER_FUNCS_TOTAL = 15
+USER_FUNCS_MINI = 8
 pijuiceConfigData = {}
 PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON' #os.getcwd() + '/pijuice_config.JSON'
 
@@ -1080,22 +1082,47 @@ class PiJuiceUserScriptConfig:
     def __init__(self, master):
         self.frame = Frame(master, name='userscript')
         self.frame.grid(row=0, column=0, sticky=W)
-        self.frame.rowconfigure(10, weight=1)
-        self.frame.columnconfigure((0,3), weight=1, uniform=1)
+        self.frame.columnconfigure((1, 3), weight=1, uniform=1)
         self.frame.columnconfigure(0, weight=0)
 
         global pijuiceConfigData
         self.pathEdits = []
+        self.pathLabels = []
         self.paths = []
-        for i in range(0, 8):
-            Label(self.frame, text='USER FUNC'+str(i+1)+':').grid(row=i, column=0, padx=(2, 20), pady=(4, 0), sticky = W)
+        self.displayAll = False
+
+        self.visibilityToggleButton = Button(self.frame, text='Show more', command=self._ToggleFuncsDisplay)
+
+        for i in range(USER_FUNCS_TOTAL):
+            self.pathLabels.append(Label(self.frame, text='USER FUNC'+str(i+1)+':'))
             self.paths.append(StringVar())
             self.pathEdits.append(Entry(self.frame,textvariable=self.paths[i]))
-            self.pathEdits[i].grid(row=i, column=1, padx=(2, 2), pady=(4, 0), columnspan = 3, sticky='WE')
             self.pathEdits[i].bind("<Return>", lambda x, id=i: self._UpdatePath(id))
             if ('user_functions' in pijuiceConfigData) and (('USER_FUNC'+str(i+1)) in pijuiceConfigData['user_functions']):
                 self.paths[i].set(pijuiceConfigData['user_functions']['USER_FUNC'+str(i+1)])
             self.paths[i].trace("w", lambda name, index, mode, id = i: self._UpdatePath(id))
+        
+        for i in range(USER_FUNCS_MINI):
+            self.pathLabels[i].grid(row=i, column=0, padx=(2, 20), pady=(4, 0), sticky = W)
+            self.pathEdits[i].grid(row=i, column=1, padx=2, pady=(4, 0), columnspan = 3, sticky='WE')
+        
+        self.visibilityToggleButton.grid(row=USER_FUNCS_MINI, column=0, padx=2, pady=2)
+
+    def _ToggleFuncsDisplay(self):
+        self.displayAll ^= True
+        self.visibilityToggleButton.grid_forget()
+        if self.displayAll:
+            self.visibilityToggleButton.grid(row=USER_FUNCS_TOTAL, column=0, padx=2, pady=2)
+            self.visibilityToggleButton.config(text='Show less')
+            for i in range(USER_FUNCS_MINI, USER_FUNCS_TOTAL):
+                self.pathLabels[i].grid(row=i, column=0, padx=(2, 20), pady=(4, 0), sticky = W)
+                self.pathEdits[i].grid(row=i, column=1, padx=2, pady=(4, 0), columnspan = 3, sticky='WE')
+        else:
+            self.visibilityToggleButton.grid(row=USER_FUNCS_MINI, column=0, padx=2, pady=2)
+            self.visibilityToggleButton.config(text='Show more')
+            for i in range(USER_FUNCS_MINI, USER_FUNCS_TOTAL):
+                self.pathLabels[i].grid_forget()
+                self.pathEdits[i].grid_forget()
 
     def _UpdatePath(self, id):
         if not 'user_functions' in pijuiceConfigData:
