@@ -4,6 +4,7 @@
 from Tkinter import *
 from ttk import *
 from pijuice import *
+from tkColorChooser import askcolor
 import tkMessageBox
 import tkFileDialog
 import copy
@@ -507,9 +508,8 @@ class PiJuiceLedConfig:
 
         # frame to hold contentx
         self.frame = Frame(master, name='led')
-        self.frame.rowconfigure(14, weight=1)
         self.frame.columnconfigure(0, minsize=100, weight=0)
-        self.frame.columnconfigure(1, weight=5, uniform=1)
+        # self.frame.columnconfigure(1, weight=5, uniform=1)
         self.frame.columnconfigure(2, weight=1)
 
         self.ledConfigsSel = []
@@ -525,35 +525,38 @@ class PiJuiceLedConfig:
             ledConfigSel = Combobox(self.frame, textvariable=ledConfig, state='readonly')
             ledConfigSel['values'] = pijuice.config.ledFunctionsOptions
             #ledConfigSel.set('')
-            ledConfigSel.grid(column=1, row=i*5, padx=(5, 5), pady=(20, 0), sticky = W)
+            ledConfigSel.grid(column=1, row=i*5, padx=5, pady=(20, 0), sticky = W)
             self.ledConfigsSel.append(ledConfigSel)
 
-            Label(self.frame, text=pijuice.config.leds[i]+" parameter:").grid(row=i*5+1, column=0, padx=(5, 5), pady=(10, 0), sticky = W)
+            Label(self.frame, text=pijuice.config.leds[i]+" parameter:").grid(row=i*5+1, column=0, padx=5, pady=(10, 0), sticky = W)
 
-            Label(self.frame, text="R:").grid(row=i*5+2, column=0, padx=(5, 5), pady=(2, 2), sticky = W)
+            Label(self.frame, text="R:").grid(row=i*5+2, column=0, padx=5, pady=2, sticky = W)
             paramR = StringVar()
             self.paramList.append(paramR)
             ind = i * 3
             ent = Entry(self.frame,textvariable=self.paramList[ind])
-            ent.grid(row=i*5+2, column=1, padx=(2, 2), pady=(2, 2), sticky='W')
+            ent.grid(row=i*5+2, column=1, padx=(2, 2), pady=2, sticky='W')
             self.paramEntryList.append(ent)
 
-            Label(self.frame, text="G:").grid(row=i*5+3, column=0, padx=(5, 5), pady=(2, 2), sticky = W)
+            Label(self.frame, text="G:").grid(row=i*5+3, column=0, padx=5, pady=2, sticky = W)
             paramG = StringVar()
             self.paramList.append(paramG)
             ind = i * 3 + 1
             ent = Entry(self.frame,textvariable=self.paramList[ind])
-            ent.grid(row=i*5+3, column=1, padx=(2, 2), pady=(2, 2), sticky='W')
+            ent.grid(row=i*5+3, column=1, padx=(2, 2), pady=2, sticky='W')
             self.paramEntryList.append(ent)
 
-            Label(self.frame, text="B:").grid(row=i*5+4, column=0, padx=(5, 5), pady=(2, 2), sticky = W)
+            Label(self.frame, text="B:").grid(row=i*5+4, column=0, padx=5, pady=2, sticky = W)
             paramB = StringVar()
             self.paramList.append(paramB)
             ind = i * 3 + 2
             ent = Entry(self.frame,textvariable=self.paramList[ind])
-            ent.grid(row=i*5+4, column=1, padx=(2, 2), pady=(2, 2), sticky='W')
+            ent.grid(row=i*5+4, column=1, padx=(2, 2), pady=2, sticky='W')
             self.paramEntryList.append(ent)
 
+            # Color picker button
+            Button(self.frame, text='Choose color', command=lambda idx=i * 3: self._pickColor(idx)).grid(
+                row=i*5+1, column=1, padx=2, pady=5, sticky=E)
 
             config = pijuice.config.GetLedConfiguration(pijuice.config.leds[i])
             self.configs.append({})
@@ -582,6 +585,19 @@ class PiJuiceLedConfig:
         self.apply = StringVar()
         self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=lambda v=self.apply: self._ApplyNewConfig(v))
         self.applyBtn.grid(row=10, column=2, padx=5, sticky=E)
+
+    def _pickColor(self, idx):
+        init_color = [param.get() for param in self.paramList[idx:idx + 3]]
+        for i in range(3):
+            try:
+                init_color[i] = int(init_color[i])
+            except ValueError:
+                init_color[i] = 0
+        init_color = "#%02x%02x%02x" % tuple(init_color)
+        params, color = askcolor(init_color, title="Color for D%i" % (idx / 3), parent=self.frame)
+        if params:
+            for i in range(3):
+                self.paramList[idx + i].set(str(params[i]))
 
     def _NewConfigSelected(self, event, i):
         self.applyBtn.configure(state="normal")
