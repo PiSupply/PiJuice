@@ -503,6 +503,7 @@ User functions are 4 digit binary coded and have 15 combinations, code 0 is USER
 
 ## I2C Command API
 PiJuice HAT provides control, status and configuration of supported features through I2C Command API. Read/write commands are based on I2C block read/write transfers where messages carrying data are exchanged with Master. Message starts with one byte command code, followed by data payload and with checksum byte at the end of message. Checksum is 8-bit XOR calculated over all data payload bytes.
+
 ### Command Abstraction Layer
 In order to facilitate communication with PiJuice HAT using I2C Command API there is abstraction layer hat encapsulates commands into more intuitive interface to configure, control and retrieve status of PiJuice features. This layer is implemented as python script module pijuice.py. Different types of interface function are encapsulated in next set of classes:
 * **PiJuiceInterface**. Functions for low level message exchange end error checking through I2C bus.
