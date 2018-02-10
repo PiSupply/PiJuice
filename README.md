@@ -163,4 +163,4 @@ Here are some links to reviews and articles from around the web:
 # Third party software libraries
 It is safe to say we have an awesome and growing community of people using PiJuice to add battery power to their projects  - both from our Kickstarter and beyond. We get a huge amount of contributions of code, some of which we can easily integrate here and others which we can't (we are only a small team). However we want to make sure that any contributions are easy to find, for anyone looking. So here is a list of other software libraries that might be useful to you (if you have one of your own, please visit the "Issues" tab above and let us know!):
 
-* this is just a placeholder for now
+* Power outage monitor (using PiJuice and PaPiRus) by Frederick Vandenbosch. You can find punctures and code [here](http://frederickvandenbosch.be/?p=2876)
