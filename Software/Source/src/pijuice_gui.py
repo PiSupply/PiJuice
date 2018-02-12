@@ -1677,7 +1677,7 @@ class PiJuiceConfigGui(Frame):
 
     def apply_settings(self, event=None):
         # Apply user scripts paths
-        for i in range(0, 8):
+        for i in range(0, 15):
             self.userScriptTab._UpdatePath(i)
         # Apply system task params
         for param in (self.sysTaskConfig.watchdogParam, self.sysTaskConfig.wakeupChargeParam, self.sysTaskConfig.minChargeParam, self.sysTaskConfig.minVoltageParam):
@@ -1710,8 +1710,8 @@ def notify_service():
             "See system logs and 'systemctl status pijuice.service' for details.", parent=root)
 
 
-def PiJuiceGuiOnclosing():
-    save_config()
+def PiJuiceGuiOnclosing(gui):
+    gui.apply_settings()
     global root
     root.destroy()
 
@@ -1736,13 +1736,13 @@ def start_app():
     if theme_name in s.theme_names():
         s.theme_use(theme_name)
         configure_style(s)
-    root.protocol("WM_DELETE_WINDOW", PiJuiceGuiOnclosing)
     if pijuice is None:
         tkMessageBox.showerror('PuJuice Interfacing', 'Failed to use I2C bus. Check if I2C is enabled', parent=root)
     root.update()
     root.minsize(400, 400)
-
-    PiJuiceConfigGui().mainloop()
+    gui = PiJuiceConfigGui()
+    root.protocol("WM_DELETE_WINDOW", lambda x=gui: PiJuiceGuiOnclosing(gui))
+    gui.mainloop()
 
 if __name__ == '__main__':
     start_app()
