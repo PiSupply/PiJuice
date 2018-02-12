@@ -5,6 +5,7 @@ from Tkinter import *
 from ttk import *
 from pijuice import *
 from tkColorChooser import askcolor
+from Tkinter import Button as tkButton
 import tkMessageBox
 import tkFileDialog
 import copy
@@ -1082,13 +1083,14 @@ class PiJuiceUserScriptConfig:
     def __init__(self, master):
         self.frame = Frame(master, name='userscript')
         self.frame.grid(row=0, column=0, sticky=W)
-        self.frame.columnconfigure((1, 3), weight=1, uniform=1)
+        self.frame.columnconfigure(1, weight=1, uniform=1)
         self.frame.columnconfigure(0, weight=0)
 
         global pijuiceConfigData
         self.pathEdits = []
         self.pathLabels = []
         self.paths = []
+        self.browseButtons = []
         self.displayAll = False
 
         self.visibilityToggleButton = Button(self.frame, text='Show more', command=self._ToggleFuncsDisplay)
@@ -1101,10 +1103,12 @@ class PiJuiceUserScriptConfig:
             if ('user_functions' in pijuiceConfigData) and (('USER_FUNC'+str(i+1)) in pijuiceConfigData['user_functions']):
                 self.paths[i].set(pijuiceConfigData['user_functions']['USER_FUNC'+str(i+1)])
             self.paths[i].trace("w", lambda name, index, mode, id = i: self._UpdatePath(id))
+            self.browseButtons.append(tkButton(self.frame, text="…", bd=0, command=lambda id=i: self._BrowseScript(id)))
         
         for i in range(USER_FUNCS_MINI):
             self.pathLabels[i].grid(row=i, column=0, padx=(2, 20), pady=(4, 0), sticky = W)
-            self.pathEdits[i].grid(row=i, column=1, padx=2, pady=(4, 0), columnspan = 3, sticky='WE')
+            self.pathEdits[i].grid(row=i, column=1, padx=2, pady=(4, 0), sticky='WE')
+            self.browseButtons[i].grid(row=i, column=2, padx=2, pady=(4, 0), sticky='WE')
         
         self.visibilityToggleButton.grid(row=USER_FUNCS_MINI, column=0, padx=2, pady=2)
 
@@ -1116,13 +1120,19 @@ class PiJuiceUserScriptConfig:
             self.visibilityToggleButton.config(text='Show less')
             for i in range(USER_FUNCS_MINI, USER_FUNCS_TOTAL):
                 self.pathLabels[i].grid(row=i, column=0, padx=(2, 20), pady=(4, 0), sticky = W)
-                self.pathEdits[i].grid(row=i, column=1, padx=2, pady=(4, 0), columnspan = 3, sticky='WE')
+                self.pathEdits[i].grid(row=i, column=1, padx=2, pady=(4, 0), sticky='WE')
+                self.browseButtons[i].grid(row=i, column=2, padx=2, pady=(4, 0), sticky='WE')
         else:
             self.visibilityToggleButton.grid(row=USER_FUNCS_MINI, column=0, padx=2, pady=2)
             self.visibilityToggleButton.config(text='Show more')
             for i in range(USER_FUNCS_MINI, USER_FUNCS_TOTAL):
                 self.pathLabels[i].grid_forget()
                 self.pathEdits[i].grid_forget()
+    
+    def _BrowseScript(self, id):
+        new_file = tkFileDialog.askopenfilename(parent=self.frame, title='Select script file for USER_FUNC ' + str(id+1))
+        if new_file:
+            self.paths[id].set(new_file)
 
     def _UpdatePath(self, id):
         if not 'user_functions' in pijuiceConfigData:
