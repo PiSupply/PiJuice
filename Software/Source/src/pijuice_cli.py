@@ -19,7 +19,7 @@ def get_status():
     """
     status = pijuice.status.GetStatus().get('data', {})
     charge_level = pijuice.status.GetChargeLevel().get('data', -1)
-    general_info = "%i%" % (charge_level)
+    general_info = "%i%%" % (charge_level)
 
     voltage = float(pijuice.status.GetBatteryVoltage().get('data', 0))  # mV
     if voltage:
@@ -57,21 +57,27 @@ def get_status():
 
 
 def show_status(stdscr):
-    general_info, gpio_info, usb_power, fault, sys_sw_status = get_status()
-    stdscr.addstr(0, 0, "HAT status")
-    stdscr.addstr(1, 0, "Battery: " + general_info)
-    stdscr.addstr(2, 0, "GPIO power input: " + gpio_info)
-    stdscr.addstr(3, 0, "USB Micro power input: " + str(usb_power))
-    stdscr.addstr(4, 0, "Fault: " + fault)
-    stdscr.addstr(5, 0, "System switch: " + sys_sw_status)
+    while True:
+        general_info, gpio_info, usb_power, fault, sys_sw_status = get_status()
+        stdscr.addstr(0, 0, "HAT status")
+        stdscr.addstr(1, 0, "Battery: " + general_info)
+        stdscr.addstr(2, 0, "GPIO power input: " + gpio_info)
+        stdscr.addstr(3, 0, "USB Micro power input: " + str(usb_power))
+        stdscr.addstr(4, 0, "Fault: " + str(fault))
+        stdscr.addstr(5, 0, "System switch: " + str(sys_sw_status))
 
-    stdscr.refresh()
-    stdscr.getkey()
+        stdscr.refresh()
+        time.sleep(REFRESH_INTERVAL)
+    # stdscr.getkey()
 
 
 def main(stdscr):
     stdscr.clear()
-    show_status(stdscr)
+    try:
+        show_status(stdscr)
+    except KeyboardInterrupt:
+        pass
+    stdscr.getkey()
 
 
 stdscr = curses.initscr()
