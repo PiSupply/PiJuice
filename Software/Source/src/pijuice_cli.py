@@ -71,7 +71,8 @@ def show_status(button=None):
     }
     text = urwid.Text("HAT status\n\n"
                       "Battery: {battery}\nGPIO power input: {gpio}\n"
-                      "USB Micro power input: {usb}\nFault: {fault}\nSystem switch: {sys_sw}\n".format(**status_args))
+                      "USB Micro power input: {usb}\nFault: {fault}\n"
+                      "System switch: {sys_sw}\n".format(**status_args))
     refresh_btn = urwid.Button('Refresh', on_press=show_status)
     main_menu_btn = urwid.Button('Back', on_press=main_menu)
     pwr_switch_btn = urwid.Button('Change Power switch', on_press=change_power_switch)
@@ -116,90 +117,113 @@ def confirmation_dialog(text, next, single_option=True):
     main.original_widget = urwid.Filler(urwid.Pile(elements))
 
 
-def get_current_fw_version():
-    # Returns current version as int (first 4 bits - minor, second 4 bits - major)
-    status = pijuice.config.GetFirmwareVersion()
+class FirmwareTab(object):
+    def __init__(self, *args):
+        self.firmware_path = None
+        self.show_firmware()
 
-    if status['error'] == 'NO_ERROR':
-        major, minor = status['data']['version'].split('.')
-    else:
-        major = minor = 0
-    current_version = (int(major) << 4) + int(minor)
-    return current_version
+    def get_current_fw_version(self):
+        # Returns current version as int (first 4 bits - minor, second 4 bits - major)
+        status = pijuice.config.GetFirmwareVersion()
 
-
-def check_for_fw_updates():
-    # Check /usr/share/pijuice/data/firmware/ for new version of firmware.
-    # Returns (version, path)
-    bin_file = None
-    bin_dir = '/usr/share/pijuice/data/firmware/'
-
-    try:
-        files = [f for f in os.listdir(bin_dir) if os.path.isfile(os.path.join(bin_dir, f))]
-    except:
-        files = []
-    latest_version = 0
-    firmware_path = ""
-
-    regex = re.compile(r"PiJuice-V(\d+)\.(\d+)_(\d+_\d+_\d+).elf.binary")
-    for f in files:
-        # 1 - major, 2 - minor, 3 - date
-        match = regex.match(f)
-        if match:
-            major = int(match.group(1))
-            minor = int(match.group(2))
-            version = (major << 4) + minor
-            if version >= latest_version:
-                latest_version = version
-                bin_file = bin_dir + f
-                firmware_path = bin_file
-
-    return latest_version, firmware_path
-
-
-def get_fw_status():
-    current_version = get_current_fw_version()
-    latest_version, firmware_path = check_for_fw_updates()
-    new_firmware_path = None
-
-    if current_version and latest_version:
-        if latest_version > current_version:
-            firmware_status = 'New firmware (V' + version_to_str(latest_version) + ') is available'
-            new_firmware_path = firmware_path
+        if status['error'] == 'NO_ERROR':
+            major, minor = status['data']['version'].split('.')
         else:
-            firmware_status = 'up to date'
-    elif not current_version:
-        firmware_status = 'unknown'
-    else:
-        firmware_status = 'Missing/wrong firmware file'
-    return current_version, latest_version, firmware_status, new_firmware_path
+            major = minor = 0
+        current_version = (int(major) << 4) + int(minor)
+        return current_version
 
+    def check_for_fw_updates(self):
+        # Check /usr/share/pijuice/data/firmware/ for new version of firmware.
+        # Returns (version, path)
+        bin_file = None
+        bin_dir = '/usr/share/pijuice/data/firmware/'
 
-def update_firmware_start(path):
-    device_status = pijuice.status.GetStatus()
+        try:
+            files = [f for f in os.listdir(bin_dir) if os.path.isfile(os.path.join(bin_dir, f))]
+        except:
+            files = []
+        latest_version = 0
+        firmware_path = ""
 
-    if device_status['error'] == 'NO_ERROR':
-        if device_status['data']['powerInput'] != 'PRESENT' and device_status['data']['powerInput5vIo'] != 'PRESENT' and pijuice.status.GetChargeLevel().get('data', 0) < 20:
-            # Charge level is too low
-            return confirmation_dialog("Charge level is too low", next=show_firmware, single_option=True)
-    confirmation_dialog("Are you sure you want to update the firmware?", next=update_firmware)
+        regex = re.compile(r"PiJuice-V(\d+)\.(\d+)_(\d+_\d+_\d+).elf.binary")
+        for f in files:
+            # 1 - major, 2 - minor, 3 - date
+            match = regex.match(f)
+            if match:
+                major = int(match.group(1))
+                minor = int(match.group(2))
+                version = (major << 4) + minor
+                if version >= latest_version:
+                    latest_version = version
+                    bin_file = bin_dir + f
+                    firmware_path = bin_file
 
+        return latest_version, firmware_path
 
-def update_firmware(path):
-    pass
+    def get_fw_status(self):
+        current_version = self.get_current_fw_version()
+        latest_version, firmware_path = self.check_for_fw_updates()
+        new_firmware_path = None
 
+        if current_version and latest_version:
+            if latest_version > current_version:
+                firmware_status = 'New firmware (V' + version_to_str(latest_version) + ') is available'
+                new_firmware_path = firmware_path
+            else:
+                firmware_status = 'up to date'
+        elif not current_version:
+            firmware_status = 'unknown'
+        else:
+            firmware_status = 'Missing/wrong firmware file'
+        return current_version, latest_version, firmware_status, new_firmware_path
 
-def show_firmware(button=None):
-    current_version, latest_version, firmware_status, firmware_path = get_fw_status()
-    current_version_txt = urwid.Text("Current version: " + version_to_str(current_version))
-    status_txt = urwid.Text("Status: " + firmware_status)
-    elements = [urwid.Text("Firmware"), urwid.Divider(), current_version_txt, status_txt, urwid.Divider()]
-    if latest_version > current_version:
-        update_btn = urwid.Button('Update')
-        urwid.connect_signal(update_btn, 'click', update_firmware, firmware_path)
-        elements.append(update_btn)
-    elements.append(urwid.Button('Back', on_press=main_menu))
-    main.original_widget = urwid.Filler(urwid.Pile(elements))
+    def update_firmware_start(self, path):
+        device_status = pijuice.status.GetStatus()
+
+        if device_status['error'] == 'NO_ERROR':
+            if device_status['data']['powerInput'] != 'PRESENT' and \
+                device_status['data']['powerInput5vIo'] != 'PRESENT' and \
+                pijuice.status.GetChargeLevel().get('data', 0) < 20:
+                # Charge level is too low
+                return confirmation_dialog("Charge level is too low", next=self.show_firmware, single_option=True)
+        confirmation_dialog("Are you sure you want to update the firmware?", next=self.update_firmware)
+
+    def update_firmware(self, button=None):
+        current_addr = pijuice.config.interface.GetAddress()
+        error_status = None
+        if current_addr:
+            main.original_widget = urwid.Filler(urwid.Pile([urwid.Text("Updating firmware. Interrupting this process can lead to non-functional device.")]))
+            addr = format(current_addr, 'x')
+            result = 256 - subprocess.call(['pijuiceboot', addr, path])
+            if result != 256:
+                error_status = FIRMWARE_UPDATE_ERRORS[result] if result < 11 else 'UNKNOWN'
+                messages = {
+                    "I2C_BUS_ACCESS_ERROR": 'Check if I2C bus is enabled.',
+                    "INPUT_FILE_OPEN_ERROR": 'Firmware binary file might be missing or damaged.',
+                    "STARTING_BOOTLOADER_ERROR": 'Try to start bootloader manually. Press and hold button SW3 while powering up RPI and PiJuice.',
+                    "UNKNOWN_ADDRESS": "Unknown PiJuice I2C address",
+                }
+        else:
+            error_status = "UNKNOWN_ADDRESS"
+
+        if error_status:
+            message = "Firmware update failed.\nReason: " + error_status + '. ' + messages.get(error_status, '')
+        else:
+            message = "Firmware update successful"
+
+        confirmation_dialog(message, single_option=True, next=self.show_firmware)
+
+    def show_firmware(self, button=None):
+        current_version, latest_version, firmware_status, firmware_path = self.get_fw_status()
+        current_version_txt = urwid.Text("Current version: " + version_to_str(current_version))
+        status_txt = urwid.Text("Status: " + firmware_status)
+        elements = [urwid.Text("Firmware"), urwid.Divider(), current_version_txt, status_txt, urwid.Divider()]
+        if latest_version > current_version:
+            self.firmware_path = firmware_path
+            elements.append(urwid.Button('Update', on_press=self.update_firmware))
+        elements.append(urwid.Button('Back', on_press=main_menu))
+        main.original_widget = urwid.Filler(urwid.Pile(elements))
 
 
 def menu(title, choices):
@@ -238,7 +262,7 @@ menu_mapping = {
     "Battery profile": not_implemented_yet,
     "IO": not_implemented_yet,
     "Wakeup Alarm": not_implemented_yet,
-    "Firmware": show_firmware,
+    "Firmware": FirmwareTab,
     "Exit": exit_program
 }
 
