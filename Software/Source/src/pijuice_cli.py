@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import os
 import re
 import time
@@ -213,7 +215,7 @@ class FirmwareTab(object):
             message = "Firmware update successful"
 
         confirmation_dialog(message, single_option=True, next=self.show_firmware)
-
+    
     def show_firmware(self, button=None):
         current_version, latest_version, firmware_status, firmware_path = self.get_fw_status()
         current_version_txt = urwid.Text("Current version: " + version_to_str(current_version))
@@ -224,6 +226,147 @@ class FirmwareTab(object):
             elements.append(urwid.Button('Update', on_press=self.update_firmware))
         elements.append(urwid.Button('Back', on_press=main_menu))
         main.original_widget = urwid.Filler(urwid.Pile(elements))
+
+
+class GeneralTab(object):
+    RUN_PIN_VALUES = pijuice.config.runPinConfigs
+    EEPROM_ADDRESSES = pijuice.config.idEepromAddresses
+    INPUTS_PRECEDENCE = pijuice.config.powerInputs
+    USB_CURRENT_LIMITS = pijuice.config.usbMicroCurrentLimits
+    USB_MICRO_IN_DPMS = pijuice.config.usbMicroDPMs
+    POWER_REGULATOR_MODES = pijuice.config.powerRegulatorModes
+
+    def __init__(self, *args):
+        try:
+            self.current_config = self._get_device_config()
+            self.show_general()
+        except:
+            confirmation_dialog("Unable to connect to device", single_option=True, next=main_menu)
+
+    def _get_device_config(self):
+        config = {}
+        config['run_pin'] = self.RUN_PIN_VALUES.index(pijuice.config.GetRunPinConfig().get('data'))
+        config['i2c_addr'] = int(pijuice.config.GetAddress(1).get('data'))
+        config['i2c_addr_rtc'] = int(pijuice.config.GetAddress(2).get('data'))
+        config['eeprom_addr'] = self.EEPROM_ADDRESSES.index(pijuice.config.GetIdEepromAddress().get('data'))
+        config['eeprom_write_unprotected'] = not pijuice.config.GetIdEepromWriteProtect().get('data', False)
+        result = pijuice.config.GetPowerInputsConfig()
+        if result['error'] == 'NO_ERROR':
+            pow_config = result['data']
+            config['precedence'] = self.INPUTS_PRECEDENCE.index(pow_config['precedence'])
+            config['gpio_in_enabled'] = pow_config['gpio_in_enabled']
+            config['usb_micro_current_limit'] = self.USB_CURRENT_LIMITS.index(pow_config['usb_micro_current_limit'])
+            config['usb_micro_dpm'] = self.USB_MICRO_IN_DPMS.index(pow_config['usb_micro_dpm'])
+            config['no_battery_turn_on'] = pow_config['no_battery_turn_on']
+
+        config['power_reg_mode'] = self.POWER_REGULATOR_MODES.index(pijuice.config.GetPowerRegulatorMode().get('data'))
+        config['charging_enabled'] = pijuice.config.GetChargingConfig().get('data', {}).get('charging_enabled')
+        return config
+
+    def show_general(self, *args):
+        elements = [urwid.Text("General settings"), urwid.Divider()]
+
+        options_with_lists = [
+            {'title': 'Run pin', 'list': self.RUN_PIN_VALUES, 'key': 'run_pin'},
+            {'title': 'EEPROM address', 'list': self.EEPROM_ADDRESSES, 'key': 'eeprom_addr'},
+            {'title': 'Inputs precedence', 'list': self.INPUTS_PRECEDENCE, 'key': 'precedence'},
+            {'title': 'USB micro current limit', 'list': self.USB_CURRENT_LIMITS, 'key': 'usb_micro_current_limit'},
+            {'title': 'USB micro IN DPM', 'list': self.USB_MICRO_IN_DPMS, 'key': 'usb_micro_dpm'},
+            {'title': 'Power regulator mode', 'list': self.POWER_REGULATOR_MODES, 'key': 'power_reg_mode'},
+        ]
+
+        options_with_checkboxes = [
+            {'title': "GPIO input enable", 'key': 'gpio_in_enabled'},
+            {'title': "EEPROM write unprotect", 'key': 'eeprom_write_unprotected'},
+            {'title': "Charging enabled", 'key': 'charging_enabled'},
+            {'title': "No battery turn on", 'key': 'no_battery_turn_on'},
+        ]
+
+        # I2C address
+        i2c_addr_edit = urwid.Edit("I2C address: ", edit_text=str(self.current_config['i2c_addr']))
+        urwid.connect_signal(i2c_addr_edit, 'change', lambda x, text: self.current_config.update({'i2c_addr': text}))
+        elements.append(i2c_addr_edit)
+
+        # I2C address RTC
+        i2c_addr_rtc_edit = urwid.Edit("I2C address RTC: ", edit_text=str(self.current_config['i2c_addr_rtc']))
+        urwid.connect_signal(i2c_addr_rtc_edit, 'change', lambda x, text: self.current_config.update({'i2c_addr_rtc': text}))
+        elements.append(i2c_addr_rtc_edit)
+
+        for option in options_with_checkboxes:
+            elements.append(urwid.CheckBox(option['title'], state=self.current_config[option['key']],
+                                           on_state_change=lambda x, state, key: self.current_config.update({key: state}),
+                                           user_data=option['key']))
+
+        for option in options_with_lists:
+            elements.append(urwid.Button("{title}: {value}".format(title=option['title'], value=option['list'][self.current_config[option['key']]]),
+                                         on_press=self._list_options, user_data=option))
+
+        elements.extend([urwid.Divider(), urwid.Button("Apply settings", on_press=self._apply_settings),
+                         urwid.Button('Back', on_press=main_menu),
+                         urwid.Button("Show config", on_press=self.show_config),  # XXX: For debug purposes
+                         ])
+        main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(elements)), left=2, right=2)
+    
+    def _list_options(self, button, data):
+        body = [urwid.Text(data['title']), urwid.Divider()]
+        self.bgroup = []
+        for choice in data['list']:
+            button = urwid.RadioButton(self.bgroup, choice)
+            body.append(button)
+        self.bgroup[self.current_config[data['key']]].toggle_state()
+        body.extend([urwid.Divider(), urwid.Button('Back', on_press=self._set_option, user_data=data)])
+        main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(body)), left=2, right=2)
+    
+    def _set_option(self, button, data):
+        states = [c.state for c in self.bgroup]
+        self.current_config[data['key']] = states.index(True)
+        self.bgroup = []
+        self.show_general()
+
+    def show_config(self, *args):
+        main.original_widget = urwid.Filler(urwid.Pile([urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.show_general)]))
+    
+    def _apply_settings(self, *args):
+        self.device_config = self._get_device_config()
+        changed = [key for key in self.current_config.keys() if self.current_config[key] != self.device_config[key]]
+
+        if 'run_pin' in changed:
+            pijuice.config.SetRunPinConfig(self.current_config['run_pin'])
+
+        # XXX: unstable
+        # for i, addr in enumerate('i2c_addr', 'i2c_addr_rtc'):
+        #     if addr in changed:
+        #         value = self.device_config[addr]
+        #         try:
+        #             new_value = int(str(self.current_config[addr]), 16)
+        #             if new_value <= 0x7F:
+        #                 value = self.current_config[addr]
+        #         except:
+        #             pass
+        #         pijuice.config.SetAddress(i + 1, value)
+
+        if 'eeprom_addr' in changed:
+            pijuice.config.SetIdEepromAddress(self.EEPROM_ADDRESSES[self.current_config['eeprom_addr']])
+        if 'eeprom_write_unprotected' in changed:
+            pijuice.config.SetIdEepromWriteProtect(not self.current_config['eeprom_write_unprotected'])
+
+        if set(['precedence', 'gpio_in_enabled', 'usb_micro_current_limit', 'usb_micro_dpm', 'no_battery_turn_on']) & set(changed):
+            config = {
+                'precedence': self.current_config['precedence'],
+                'gpio_in_enabled': self.current_config['gpio_in_enabled'],
+                'no_battery_turn_on': self.current_config['no_battery_turn_on'],
+                'usb_micro_current_limit': self.current_config['usb_micro_current_limit'],
+                'usb_micro_dpm': self.current_config['usb_micro_dpm'],
+            }
+            pijuice.config.SetPowerInputsConfig(config, True)
+        
+        if 'power_reg_mode' in changed:
+            pijuice.config.SetPowerRegulatorMode(self.POWER_REGULATOR_MODES[self.current_config['power_reg_mode']])
+        if 'charging_enabled' in changed:
+            pijuice.config.SetChargingConfig({'charging_enabled': self.current_config['charging_enabled']}, True)
+        
+        self.device_config = self.current_config = self._get_device_config()
+        confirmation_dialog("Settings successfully updated", single_option=True, next=self.show_general)
 
 
 def menu(title, choices):
@@ -256,7 +399,7 @@ def exit_program(button=None):
 
 menu_mapping = {
     "Status": show_status,
-    "General": not_implemented_yet,
+    "General": GeneralTab,
     "Buttons": not_implemented_yet,
     "LEDs": not_implemented_yet,
     "Battery profile": not_implemented_yet,
@@ -272,7 +415,7 @@ choices = ["Status", "General", "Buttons", "LEDs", "Battery profile",
 
 main = urwid.Padding(menu(MAIN_MENU_TITLE, choices), left=2, right=2)
 top = urwid.Overlay(main, urwid.SolidFill(u'\N{MEDIUM SHADE}'),
-    align='center', width=('relative', 60),
-    valign='middle', height=('relative', 60),
+    align='center', width=('relative', 80),
+    valign='middle', height=('relative', 80),
     min_width=20, min_height=9)
 urwid.MainLoop(top, palette=[('reversed', 'standout', '')]).run()
