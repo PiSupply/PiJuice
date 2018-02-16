@@ -19,87 +19,6 @@ except:
     pijuice = None
 
 
-def get_status():
-    """
-    HAT tab in GUI. Shows general status of the device.
-    """
-    status = pijuice.status.GetStatus().get('data', {})
-    charge_level = pijuice.status.GetChargeLevel().get('data', -1)
-    general_info = "%i%%" % (charge_level)
-
-    voltage = float(pijuice.status.GetBatteryVoltage().get('data', 0))  # mV
-    if voltage:
-        general_info += ", %.3fV, %s" % (voltage / 1000, status['battery'])
-    
-    usb_power = status.get('power_input', 0)
-
-    io_voltage = float(pijuice.status.GetIoVoltage().get('data', 0))  # mV
-    io_current = float(pijuice.status.GetIoCurrent().get('data', 0))  # mA
-    gpio_info = "%.3fV, %.3fA, %s" % (io_voltage / 1000, io_current / 1000, status['powerInput5vIo'])
-
-    fault_info = pijuice.status.GetFaultStatus()
-    if fault_info['error'] == 'NO_ERROR':
-        bpi = None
-        if ('battery_profile_invalid' in fault_info['data']) and fault_info['data']['battery_profile_invalid']:
-            bpi = 'battery profile invalid'
-        cti = None
-        if ('charging_temperature_fault' in fault_info['data']) and (fault_info['data']['charging_temperature_fault'] != 'NORMAL'):
-            cti = 'charging temperature' + fault_info['data']['charging_temperature_fault']
-        if not (bpi or cti):
-            fault = None
-        else:
-            faults = [x for x in (bpi, cti) if x]
-            fault = ', '.join(faults)
-    else:
-        fault = fault_info['error']
-    
-    sys_sw_status = pijuice.power.GetSystemPowerSwitch().get('data', None)
-    
-    return (general_info,
-            gpio_info,
-            str(usb_power),
-            str(fault),
-            str(sys_sw_status) + "mA")
-
-
-def show_status(button=None):
-    general_info, gpio_info, usb_power, fault, sys_sw_status = get_status()
-    status_args = {
-        "battery": general_info,
-        "gpio": gpio_info,
-        "usb": usb_power,
-        "fault": fault,
-        "sys_sw": sys_sw_status
-    }
-    text = urwid.Text("HAT status\n\n"
-                      "Battery: {battery}\nGPIO power input: {gpio}\n"
-                      "USB Micro power input: {usb}\nFault: {fault}\n"
-                      "System switch: {sys_sw}\n".format(**status_args))
-    refresh_btn = urwid.Button('Refresh', on_press=show_status)
-    main_menu_btn = urwid.Button('Back', on_press=main_menu)
-    pwr_switch_btn = urwid.Button('Change Power switch', on_press=change_power_switch)
-    main.original_widget = urwid.Filler(
-        urwid.Pile([text, urwid.Divider(), refresh_btn, pwr_switch_btn, main_menu_btn]))
-
-
-def change_power_switch(button=None):
-    elements = [urwid.Text("Choose value for System Power switch"), urwid.Divider()]
-    values = [0, 500, 2100]
-    for value in values:
-        text = str(value) + " mA" if value else "Off"
-        btn = urwid.Button(text)
-        urwid.connect_signal(btn, 'click', set_power_switch, value)
-        elements.append(btn)
-    elements.extend([urwid.Divider(),
-                     urwid.Button("Back", on_press=show_status)])
-    main.original_widget = urwid.Filler(urwid.Pile(elements))
-
-
-def set_power_switch(button, value):
-    pijuice.power.SetSystemPowerSwitch(int(value))
-    show_status()
-
-
 def version_to_str(number):
     # Convert int version to str {major}.{minor}
     return "{}.{}".format(number >> 4, number & 15)
@@ -117,6 +36,82 @@ def confirmation_dialog(text, next, single_option=True):
         elements.extend([yes_btn, no_btn])
 
     main.original_widget = urwid.Filler(urwid.Pile(elements))
+
+class GeneralTab(object):
+    def __init__(self, *args):
+        self.main()
+
+    def get_status(self):
+        """
+        HAT tab in GUI. Shows general status of the device.
+        """
+        status = pijuice.status.GetStatus().get('data', {})
+        charge_level = pijuice.status.GetChargeLevel().get('data', -1)
+        general_info = "%i%%" % (charge_level)
+
+        voltage = float(pijuice.status.GetBatteryVoltage().get('data', 0))  # mV
+        if voltage:
+            general_info += ", %.3fV, %s" % (voltage / 1000, status['battery'])
+        
+        usb_power = status.get('power_input', 0)
+
+        io_voltage = float(pijuice.status.GetIoVoltage().get('data', 0))  # mV
+        io_current = float(pijuice.status.GetIoCurrent().get('data', 0))  # mA
+        gpio_info = "%.3fV, %.3fA, %s" % (io_voltage / 1000, io_current / 1000, status['powerInput5vIo'])
+
+        fault_info = pijuice.status.GetFaultStatus()
+        if fault_info['error'] == 'NO_ERROR':
+            bpi = None
+            if ('battery_profile_invalid' in fault_info['data']) and fault_info['data']['battery_profile_invalid']:
+                bpi = 'battery profile invalid'
+            cti = None
+            if ('charging_temperature_fault' in fault_info['data']) and (fault_info['data']['charging_temperature_fault'] != 'NORMAL'):
+                cti = 'charging temperature' + fault_info['data']['charging_temperature_fault']
+            if not (bpi or cti):
+                fault = None
+            else:
+                faults = [x for x in (bpi, cti) if x]
+                fault = ', '.join(faults)
+        else:
+            fault = fault_info['error']
+        
+        sys_sw_status = pijuice.power.GetSystemPowerSwitch().get('data', None)
+        return {
+            "battery": general_info,
+            "gpio": gpio_info,
+            "usb": str(usb_power),
+            "fault": str(fault),
+            "sys_sw": str(sys_sw_status) + "mA"
+        }
+
+
+    def main(self, *args):
+        status_args = self.get_status()
+        text = urwid.Text("HAT status\n\n"
+                        "Battery: {battery}\nGPIO power input: {gpio}\n"
+                        "USB Micro power input: {usb}\nFault: {fault}\n"
+                        "System switch: {sys_sw}\n".format(**status_args))
+        refresh_btn = urwid.Button('Refresh', on_press=self.main)
+        main_menu_btn = urwid.Button('Back', on_press=main_menu)
+        pwr_switch_btn = urwid.Button('Change Power switch', on_press=self.change_power_switch)
+        main.original_widget = urwid.Filler(
+            urwid.Pile([text, urwid.Divider(), refresh_btn, pwr_switch_btn, main_menu_btn]))
+
+
+    def change_power_switch(self, *args):
+        elements = [urwid.Text("Choose value for System Power switch"), urwid.Divider()]
+        values = [0, 500, 2100]
+        for value in values:
+            text = str(value) + " mA" if value else "Off"
+            elements.append(urwid.Button(text, on_press=self.set_power_switch, user_data=value))
+        elements.extend([urwid.Divider(),
+                        urwid.Button("Back", on_press=self.main)])
+        main.original_widget = urwid.Filler(urwid.Pile(elements))
+
+
+    def set_power_switch(self, button, value):
+        pijuice.power.SetSystemPowerSwitch(int(value))
+        self.main()
 
 
 class FirmwareTab(object):
@@ -239,7 +234,7 @@ class GeneralTab(object):
     def __init__(self, *args):
         try:
             self.current_config = self._get_device_config()
-            self.show_general()
+            self.main()
         except:
             confirmation_dialog("Unable to connect to device", single_option=True, next=main_menu)
 
@@ -263,7 +258,7 @@ class GeneralTab(object):
         config['charging_enabled'] = pijuice.config.GetChargingConfig().get('data', {}).get('charging_enabled')
         return config
 
-    def show_general(self, *args):
+    def main(self, *args):
         elements = [urwid.Text("General settings"), urwid.Divider()]
 
         options_with_lists = [
@@ -303,7 +298,7 @@ class GeneralTab(object):
 
         elements.extend([urwid.Divider(), urwid.Button("Apply settings", on_press=self._apply_settings),
                          urwid.Button('Back', on_press=main_menu),
-                         urwid.Button("Show config", on_press=self.show_config),  # XXX: For debug purposes
+                         urwid.Button("Show config", on_press=self._show_current_config),  # XXX: For debug purposes
                          ])
         main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(elements)), left=2, right=2)
     
@@ -321,10 +316,10 @@ class GeneralTab(object):
         states = [c.state for c in self.bgroup]
         self.current_config[data['key']] = states.index(True)
         self.bgroup = []
-        self.show_general()
+        self.main()
 
-    def show_config(self, *args):
-        main.original_widget = urwid.Filler(urwid.Pile([urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.show_general)]))
+    def _show_current_config(self, *args):
+        main.original_widget = urwid.Filler(urwid.Pile([urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
     
     def _apply_settings(self, *args):
         self.device_config = self._get_device_config()
@@ -366,7 +361,15 @@ class GeneralTab(object):
             pijuice.config.SetChargingConfig({'charging_enabled': self.current_config['charging_enabled']}, True)
         
         self.device_config = self.current_config = self._get_device_config()
-        confirmation_dialog("Settings successfully updated", single_option=True, next=self.show_general)
+        confirmation_dialog("Settings successfully updated", single_option=True, next=self.main)
+
+
+class LEDTab(object):
+    def __init__(self, *args):
+        pass
+    
+    def main(self, *args):
+        pass
 
 
 def menu(title, choices):
