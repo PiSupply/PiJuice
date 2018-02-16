@@ -37,7 +37,7 @@ def confirmation_dialog(text, next, single_option=True):
 
     main.original_widget = urwid.Filler(urwid.Pile(elements))
 
-class GeneralTab(object):
+class StatusTab(object):
     def __init__(self, *args):
         self.main()
 
@@ -322,8 +322,8 @@ class GeneralTab(object):
         main.original_widget = urwid.Filler(urwid.Pile([urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
     
     def _apply_settings(self, *args):
-        self.device_config = self._get_device_config()
-        changed = [key for key in self.current_config.keys() if self.current_config[key] != self.device_config[key]]
+        device_config = self._get_device_config()
+        changed = [key for key in self.current_config.keys() if self.current_config[key] != device_config[key]]
 
         if 'run_pin' in changed:
             pijuice.config.SetRunPinConfig(self.current_config['run_pin'])
@@ -360,16 +360,105 @@ class GeneralTab(object):
         if 'charging_enabled' in changed:
             pijuice.config.SetChargingConfig({'charging_enabled': self.current_config['charging_enabled']}, True)
         
-        self.device_config = self.current_config = self._get_device_config()
+        self.current_config = self._get_device_config()
         confirmation_dialog("Settings successfully updated", single_option=True, next=self.main)
 
 
 class LEDTab(object):
+    LED_FUNCTIONS_OPTIONS = pijuice.config.ledFunctionsOptions
+    LED_NAMES = pijuice.config.leds
+
     def __init__(self, *args):
-        pass
+        self._refresh_settings()
+        self.main()
     
     def main(self, *args):
-        pass
+        elements = [urwid.Text("LED settings"), urwid.Divider()]
+        for i in range(len(self.LED_NAMES)):
+            elements.append(urwid.Button(self.LED_NAMES[i], on_press=self.configure_led, user_data=i))
+
+        elements.extend([urwid.Divider(),
+                         urwid.Button("Apply settings", on_press=self._apply_settings),
+                         urwid.Button("Refresh", on_press=self._refresh_settings),
+                         urwid.Button("Back", on_press=main_menu),
+                         urwid.Button("Show config", on_press=self._show_current_config),  # XXX: For debug purposes
+                         ])
+        main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(elements)), left=2, right=2)
+    
+    def configure_led(self, button, index):
+        elements = [urwid.Text("LED " + self.LED_NAMES[index]), urwid.Divider()]
+        colors = ('R', 'G', 'B')
+        elements.append(urwid.Button("Function: {value}".format(value=self.current_config[index]['function']),
+                                         on_press=self._list_functions, user_data=index))
+        for color in colors:
+            color_edit = urwid.Edit(color + ": ", edit_text=str(self.current_config[index]['color'][colors.index(color)]))
+            urwid.connect_signal(color_edit, 'change', self._set_color, {'color_index': colors.index(color), 'led_index': index})
+            elements.append(color_edit)
+        elements.extend([urwid.Divider(), urwid.Button("Back", on_press=self.main)])
+        main.original_widget = urwid.Filler(urwid.Pile(elements))
+    
+    def _get_led_config(self):
+        config = []
+        for i in range(len(self.LED_NAMES)):
+            result = pijuice.config.GetLedConfiguration(self.LED_NAMES[i])
+            led_config = {}
+            try:
+                led_config['function'] = result['data']['function']
+            except ValueError:
+                led_config['function'] = self.LED_FUNCTIONS_OPTIONS[0]
+            led_config['color'] = [result['data']['parameter']['r'], result['data']['parameter']['g'], result['data']['parameter']['b']]
+            config.append(led_config)
+        return config
+    
+    def _refresh_settings(self, *args):
+        self.current_config = self._get_led_config()
+    
+    def _apply_settings(self, *args):
+        device_config = self._get_led_config()
+        for i in range(len(self.LED_NAMES)):
+            changed = [key for key in device_config[i].keys() if device_config[i][key] != self.current_config[i][key]]
+            if changed:
+                config = {
+                    "function": self.current_config[i]['function'],
+                    "parameter": {
+                        "r": self.current_config[i]['color'][0],
+                        "g": self.current_config[i]['color'][1],
+                        "b": self.current_config[i]['color'][2],
+                    }
+                }
+                pijuice.config.SetLedConfiguration(self.LED_NAMES[i], config)
+        
+        self.current_config = self._get_led_config()
+        confirmation_dialog("Settings successfully updated", single_option=True, next=self.main)
+    
+    def _list_functions(self, button, led_index):
+        body = [urwid.Text("Choose function for " + self.LED_NAMES[led_index]), urwid.Divider()]
+        self.bgroup = []
+        for choice in self.LED_FUNCTIONS_OPTIONS:
+            button = urwid.RadioButton(self.bgroup, choice)
+            body.append(button)
+        self.bgroup[self.LED_FUNCTIONS_OPTIONS.index(self.current_config[led_index]['function'])].toggle_state()
+        body.extend([urwid.Divider(), urwid.Button('Back', on_press=self._set_function, user_data=led_index)])
+        main.original_widget = urwid.Filler(urwid.Pile(body))
+    
+    def _set_function(self, button, led_index):
+        states = [c.state for c in self.bgroup]
+        self.current_config[led_index]['function'] = self.LED_FUNCTIONS_OPTIONS[states.index(True)]
+        self.bgroup = []
+        self.configure_led(None, led_index)
+
+    def _set_color(self, edit, text, data):
+        led_index = data['led_index']
+        color_index = data['color_index']
+        try:
+            value = int(text)
+        except ValueError:
+            value = self.current_config[led_index]['color'][color_index]
+        if value >= 0 and value <= 255:
+            self.current_config[led_index]['color'][color_index] = value
+    
+    def _show_current_config(self, *args):
+        main.original_widget = urwid.Filler(urwid.Pile([urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
 
 
 def menu(title, choices):
@@ -401,10 +490,10 @@ def exit_program(button=None):
 
 
 menu_mapping = {
-    "Status": show_status,
+    "Status": StatusTab,
     "General": GeneralTab,
     "Buttons": not_implemented_yet,
-    "LEDs": not_implemented_yet,
+    "LEDs": LEDTab,
     "Battery profile": not_implemented_yet,
     "IO": not_implemented_yet,
     "Wakeup Alarm": not_implemented_yet,
