@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 import os
 import re
+import subprocess
 import time
 
 import urwid
-import pijuice as PiJuice
+from pijuice import PiJuice
 
 BUS = 1
 ADDRESS = 0x14
@@ -14,7 +15,7 @@ FIRMWARE_UPDATE_ERRORS = ['NO_ERROR', 'I2C_BUS_ACCESS_ERROR', 'INPUT_FILE_OPEN_E
                           'EEPROM_ERASE_ERROR', 'INPUT_FILE_READ_ERROR', 'PAGE_WRITE_ERROR', 'PAGE_READ_ERROR', 'PAGE_VERIFY_ERROR', 'CODE_EXECUTE_ERROR']
 
 try:
-    pijuice = PiJuice.PiJuice(BUS, ADDRESS)
+    pijuice = PiJuice(BUS, ADDRESS)
 except:
     pijuice = None
 
@@ -175,7 +176,7 @@ class FirmwareTab(object):
             firmware_status = 'Missing/wrong firmware file'
         return current_version, latest_version, firmware_status, new_firmware_path
 
-    def update_firmware_start(self, path):
+    def update_firmware_start(self, *args):
         device_status = pijuice.status.GetStatus()
 
         if device_status['error'] == 'NO_ERROR':
@@ -184,7 +185,7 @@ class FirmwareTab(object):
                 pijuice.status.GetChargeLevel().get('data', 0) < 20:
                 # Charge level is too low
                 return confirmation_dialog("Charge level is too low", next=self.show_firmware, single_option=True)
-        confirmation_dialog("Are you sure you want to update the firmware?", next=self.update_firmware)
+        confirmation_dialog("Are you sure you want to update the firmware?", next=self.update_firmware, single_option=False)
 
     def update_firmware(self, button=None):
         current_addr = pijuice.config.interface.GetAddress()
@@ -192,7 +193,7 @@ class FirmwareTab(object):
         if current_addr:
             main.original_widget = urwid.Filler(urwid.Pile([urwid.Text("Updating firmware. Interrupting this process can lead to non-functional device.")]))
             addr = format(current_addr, 'x')
-            result = 256 - subprocess.call(['pijuiceboot', addr, path])
+            result = 256 - subprocess.call(['pijuiceboot', addr, self.firmware_path])
             if result != 256:
                 error_status = FIRMWARE_UPDATE_ERRORS[result] if result < 11 else 'UNKNOWN'
                 messages = {
@@ -218,7 +219,7 @@ class FirmwareTab(object):
         elements = [urwid.Text("Firmware"), urwid.Divider(), current_version_txt, status_txt, urwid.Divider()]
         if latest_version > current_version:
             self.firmware_path = firmware_path
-            elements.append(urwid.Button('Update', on_press=self.update_firmware))
+            elements.append(urwid.Button('Update', on_press=self.update_firmware_start))
         elements.append(urwid.Button('Back', on_press=main_menu))
         main.original_widget = urwid.Filler(urwid.Pile(elements))
 
