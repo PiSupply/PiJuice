@@ -6,13 +6,10 @@ import subprocess
 import time
 
 import urwid
-from pijuice import PiJuice
+from pijuice import PiJuice, pijuice_hard_functions, pijuice_sys_functions, pijuice_user_functions
 
 BUS = 1
 ADDRESS = 0x14
-MAIN_MENU_TITLE = u'PiJuice HAT CLI'
-FIRMWARE_UPDATE_ERRORS = ['NO_ERROR', 'I2C_BUS_ACCESS_ERROR', 'INPUT_FILE_OPEN_ERROR', 'STARTING_BOOTLOADER_ERROR', 'FIRST_PAGE_ERASE_ERROR',
-                          'EEPROM_ERASE_ERROR', 'INPUT_FILE_READ_ERROR', 'PAGE_WRITE_ERROR', 'PAGE_READ_ERROR', 'PAGE_VERIFY_ERROR', 'CODE_EXECUTE_ERROR']
 
 try:
     pijuice = PiJuice(BUS, ADDRESS)
@@ -116,6 +113,9 @@ class StatusTab(object):
 
 
 class FirmwareTab(object):
+    FIRMWARE_UPDATE_ERRORS = ['NO_ERROR', 'I2C_BUS_ACCESS_ERROR', 'INPUT_FILE_OPEN_ERROR', 'STARTING_BOOTLOADER_ERROR', 'FIRST_PAGE_ERASE_ERROR',
+                              'EEPROM_ERASE_ERROR', 'INPUT_FILE_READ_ERROR', 'PAGE_WRITE_ERROR', 'PAGE_READ_ERROR', 'PAGE_VERIFY_ERROR', 'CODE_EXECUTE_ERROR']
+
     def __init__(self, *args):
         self.firmware_path = None
         self.show_firmware()
@@ -195,7 +195,7 @@ class FirmwareTab(object):
             addr = format(current_addr, 'x')
             result = 256 - subprocess.call(['pijuiceboot', addr, self.firmware_path])
             if result != 256:
-                error_status = FIRMWARE_UPDATE_ERRORS[result] if result < 11 else 'UNKNOWN'
+                error_status = self.FIRMWARE_UPDATE_ERRORS[result] if result < 11 else 'UNKNOWN'
                 messages = {
                     "I2C_BUS_ACCESS_ERROR": 'Check if I2C bus is enabled.',
                     "INPUT_FILE_OPEN_ERROR": 'Firmware binary file might be missing or damaged.',
@@ -474,6 +474,10 @@ class LEDTab(object):
         main.original_widget = urwid.Filler(urwid.Pile([urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
 
 
+class ButtonsTab(object):
+    FUNCTIONS = ['NO_FUNC'] + pijuice_hard_functions + pijuice_sys_functions + pijuice_user_functions
+
+
 def menu(title, choices):
     body = [urwid.Text(title), urwid.Divider()]
     for c in choices:
@@ -495,7 +499,7 @@ def not_implemented_yet(*args):
 
 
 def main_menu(button=None):
-    main.original_widget = urwid.Padding(menu(MAIN_MENU_TITLE, choices), left=2, right=2)
+    main.original_widget = urwid.Padding(menu("PiJuice HAT CLI", choices), left=2, right=2)
 
 
 def exit_program(button=None):
@@ -518,7 +522,7 @@ menu_mapping = {
 choices = ["Status", "General", "Buttons", "LEDs", "Battery profile",
            "IO", "Wakeup Alarm", "Firmware", "Exit"]
 
-main = urwid.Padding(menu(MAIN_MENU_TITLE, choices), left=2, right=2)
+main = urwid.Padding(menu("PiJuice HAT CLI", choices), left=2, right=2)
 top = urwid.Overlay(main, urwid.SolidFill(u'\N{MEDIUM SHADE}'),
     align='center', width=('relative', 80),
     valign='middle', height=('relative', 80),
