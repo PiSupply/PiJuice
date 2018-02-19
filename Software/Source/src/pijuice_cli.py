@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable=import-error
 import os
 import re
 import subprocess
@@ -476,6 +477,118 @@ class LEDTab(object):
 
 class ButtonsTab(object):
     FUNCTIONS = ['NO_FUNC'] + pijuice_hard_functions + pijuice_sys_functions + pijuice_user_functions
+    BUTTONS = pijuice.config.buttons
+    EVENTS = pijuice.config.buttonEvents
+
+    def __init__(self):
+        self.device_config = self._get_device_config()
+        self.current_config = self._get_device_config()
+        self.main()
+
+    def main(self, *args):
+        elements = [urwid.Text("Buttons"), urwid.Divider()]
+        for sw_id in self.BUTTONS:
+            elements.append(urwid.Button(sw_id, on_press=self.configure_sw, user_data=sw_id))
+        elements.append(urwid.Divider())
+        if self.device_config != self.current_config:
+            elements.append(urwid.Button("Apply settings", on_press=self._apply_settings))
+        elements.extend([urwid.Button("Refresh", on_press=self._refresh_settings),
+                         urwid.Button("Back", on_press=main_menu),
+                         # XXX: For debug purposes
+                         urwid.Button("Show config", on_press=self._show_current_config),
+                         ])
+        main.original_widget = urwid.Padding(urwid.ListBox(
+            urwid.SimpleFocusListWalker(elements)), left=2, right=2)
+    
+    def configure_sw(self, button, sw_id):
+        elements = [urwid.Text("Settings for " + sw_id), urwid.Divider()]
+        config = self.current_config[sw_id]
+        for action, parameters in config.items():
+            elements.append(urwid.Button("{action}: {function}, {parameter}".format(
+                action=action, function=parameters['function'], parameter=parameters['parameter']),
+                on_press=self.configure_action, user_data={'sw_id': sw_id, 'action': action}))
+        elements += [urwid.Divider(), urwid.Button("Back", on_press=self.main)]
+        main.original_widget = urwid.Padding(urwid.ListBox(
+            urwid.SimpleFocusListWalker(elements)), left=2, right=2)
+    
+    def configure_action(self, button, data):
+        sw_id = data['sw_id']
+        action = data['action']
+        functions_btn = urwid.Button("Function: {}".format(self.current_config[sw_id][action]['function']),
+                                     on_press=self._set_function, user_data={'sw_id': sw_id, 'action': action})
+        parameter_edit = urwid.Edit("Parameter: ", edit_text=str(self.current_config[sw_id][action]['parameter']))
+        urwid.connect_signal(parameter_edit, 'change', self._set_parameter, {'sw_id': sw_id, 'action': action})
+        back_btn = urwid.Button("Back", on_press=self.configure_sw, user_data=sw_id)
+        elements = [urwid.Text("Set function for {} on {}".format(action, sw_id)),
+                    urwid.Divider(),
+                    functions_btn, parameter_edit,
+                    urwid.Divider(),
+                    back_btn]
+        main.original_widget = urwid.Padding(urwid.ListBox(
+            urwid.SimpleFocusListWalker(elements)), left=2, right=2)
+    
+    def _refresh_settings(self, *args):
+        self.device_config = self._get_device_config()
+        self.current_config = self._get_device_config()
+        confirmation_dialog("Settings have been refreshed", next=self.main, single_option=True)
+    
+    def _set_function(self, button, data):
+        sw_id = data['sw_id']
+        action = data['action']
+        body = [urwid.Text("Choose function for {} on {}".format(action, sw_id)), urwid.Divider()]
+        self.bgroup = []
+        for function in self.FUNCTIONS:
+            button = urwid.RadioButton(self.bgroup, function)
+            body.append(button)
+        self.bgroup[self.FUNCTIONS.index(self.current_config[sw_id][action]['function'])].toggle_state()
+        body.extend([urwid.Divider(), urwid.Button('Back', on_press=self._on_function_chosen, user_data=data)])
+        main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(body)), left=2, right=2)
+    
+    def _on_function_chosen(self, button, data):
+        states = [c.state for c in self.bgroup]
+        self.current_config[data['sw_id']][data['action']]['function'] = self.FUNCTIONS[states.index(True)]
+        self.bgroup = []
+        self.configure_action(None, data)
+    
+    def _set_parameter(self, edit, text, data):
+        sw_id = data['sw_id']
+        action = data['action']
+        self.current_config[sw_id][action]['parameter'] = text
+    
+    def _get_device_config(self):
+        config = {}
+        got_error = False
+        for button in self.BUTTONS:
+            button_config = pijuice.config.GetButtonConfiguration(button)
+            if button_config.get('error', 'NO_ERROR'):
+                config[button] = button_config.get('data')
+            else:
+                config[button] = {}
+                got_error = True
+
+        if got_error:
+            confirmation_dialog("Failed to connect to PiJuice", next=main_menu, single_option=True)
+        else:
+            return config
+    
+    def _apply_settings(self, *args):
+        got_error = False
+        errors = []
+        for button in self.BUTTONS:
+            error_msg = pijuice.config.SetButtonConfiguration(button, self.current_config[button]).get('error', 'NO_ERROR')
+            errors.append(error_msg)
+            got_error |= error_msg != "NO_ERROR"
+
+        self.device_config = self._get_device_config()
+        self.current_config = self._get_device_config()
+        if got_error:
+            confirmation_dialog("Failed to apply settings: " + str(errors), next=self.main, single_option=True)
+        else:
+            confirmation_dialog("Settings have been applied", next=self.main, single_option=True)
+    
+    def _show_current_config(self, *args):
+        main.original_widget = urwid.Filler(urwid.Pile(
+            [urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
 
 
 def menu(title, choices):
@@ -509,7 +622,7 @@ def exit_program(button=None):
 menu_mapping = {
     "Status": StatusTab,
     "General": GeneralTab,
-    "Buttons": not_implemented_yet,
+    "Buttons": ButtonsTab,
     "LEDs": LEDTab,
     "Battery profile": not_implemented_yet,
     "IO": not_implemented_yet,
