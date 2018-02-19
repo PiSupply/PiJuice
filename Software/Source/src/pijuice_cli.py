@@ -297,8 +297,10 @@ class GeneralTab(object):
                                          on_press=self._list_options, user_data=option))
 
         elements.extend([urwid.Divider(), urwid.Button("Apply settings", on_press=self._apply_settings),
+                         urwid.Button('Reset to default', on_press=lambda x: confirmation_dialog("This action will reset all settings on your device to their default values.\n"
+                                                                                                 "Do you want to proceed?", single_option=False, next=self._reset_settings)),
                          urwid.Button('Back', on_press=main_menu),
-                         urwid.Button("Show config", on_press=self._show_current_config),  # XXX: For debug purposes
+                        #  urwid.Button("Show config", on_press=self._show_current_config),  # XXX: For debug purposes
                          ])
         main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(elements)), left=2, right=2)
     
@@ -362,6 +364,16 @@ class GeneralTab(object):
         
         self.current_config = self._get_device_config()
         confirmation_dialog("Settings successfully updated", single_option=True, next=self.main)
+
+    def _reset_settings(self, button, is_confirmed):
+        if is_confirmed:
+            error = pijuice.config.SetDefaultConfiguration().get('error', 'NO_ERROR')
+            if error == "NO_ERROR":
+                confirmation_dialog("Settings have been reset to their default values", single_option=True, next=main_menu)
+            else:
+                confirmation_dialog("Failed to reset settings: " + error, single_option=True, next=main_menu)
+        else:
+            self.main()
 
 
 class LEDTab(object):
