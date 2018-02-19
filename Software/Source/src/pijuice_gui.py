@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+from __future__ import print_function
 from Tkinter import *
 from ttk import *
 from pijuice import *
@@ -1029,7 +1029,7 @@ class PiJuiceIoConfig:
             if self.paramConfig2[i]:
                 newCfg[self.paramConfig2[i]['name']] = self.param2[i].get()
 
-            print newCfg
+            print(newCfg)
             ret = pijuice.config.SetIoConfiguration(i+1, newCfg, True)
             if ret['error'] != 'NO_ERROR':
                 tkMessageBox.showerror('IO' + str(i+1) + ' Configuration', 'Reason: ' + ret['error'], parent=self.frame)
@@ -1128,6 +1128,7 @@ class PiJuiceUserScriptConfig:
             for i in range(USER_FUNCS_MINI, USER_FUNCS_TOTAL):
                 self.pathLabels[i].grid_forget()
                 self.pathEdits[i].grid_forget()
+                self.browseButtons[i].grid_forget()
     
     def _BrowseScript(self, id):
         new_file = tkFileDialog.askopenfilename(parent=self.frame, title='Select script file for USER_FUNC ' + str(id+1))
@@ -1265,7 +1266,7 @@ class PiJuiceWakeupConfig:
 
     def _SetTime(self, v):
         t = datetime.datetime.utcnow()
-        print pijuice.rtcAlarm.SetTime({'second':t.second, 'minute':t.minute, 'hour':t.hour, 'weekday':t.weekday()+1, 'day':t.day,  'month':t.month, 'year':t.year, 'subsecond':t.microsecond/1000000})
+        print(pijuice.rtcAlarm.SetTime({'second':t.second, 'minute':t.minute, 'hour':t.hour, 'weekday':t.weekday()+1, 'day':t.day,  'month':t.month, 'year':t.year, 'subsecond':t.microsecond/1000000}))
 
     def _WakeupEnableChecked(self, *args):
         ret = pijuice.rtcAlarm.SetWakeupEnabled(self.wakeupEnabled.get())
@@ -1282,7 +1283,7 @@ class PiJuiceWakeupConfig:
 
         if self.aMinuteOrPeriod.get() == 2:
             a['minute_period'] = self.aMinute.get()
-            print a['minute_period']
+            print(a['minute_period'])
         elif self.aMinuteOrPeriod.get() == 1:
             a['minute'] = self.aMinute.get()
 
@@ -1309,7 +1310,7 @@ class PiJuiceWakeupConfig:
         else:
             self.status.set('')
 
-        print pijuice.rtcAlarm.GetAlarm()
+        print(pijuice.rtcAlarm.GetAlarm())
 
 class PiJuiceSysEventConfig:
     def __init__(self, master):
@@ -1641,7 +1642,7 @@ class PiJuiceConfigGui(Frame):
                 pijuiceConfigData = json.load(outputConfig)
         except:
             pijuiceConfigData = {}
-            print 'Failed to load ', PiJuiceConfigDataPath
+            print('Failed to load ' + PiJuiceConfigDataPath)
 
         # create the notebook
         nb = Notebook(self, name='notebook')
@@ -1688,7 +1689,7 @@ class PiJuiceConfigGui(Frame):
 def save_config():
     #if tkMessageBox.askokcancel("Quit", "Do you want to quit?"):
     if not os.path.exists(os.path.dirname(PiJuiceConfigDataPath)):
-        print os.path.dirname(PiJuiceConfigDataPath)
+        print(os.path.dirname(PiJuiceConfigDataPath))
         os.makedirs(os.path.dirname(PiJuiceConfigDataPath))
     #try:
     with open(PiJuiceConfigDataPath , 'w+') as outputConfig:
