@@ -23,6 +23,26 @@ def version_to_str(number):
     return "{}.{}".format(number >> 4, number & 15)
 
 
+def validate_value(text, type, min, max, old):
+    if type == 'int':
+        var_type = int
+    elif type == 'float':
+        var_type = float
+    else:
+        return text
+
+    try:
+        value = var_type(text)
+        if min is not None:
+            value = value if value >= min else min
+        if max is not None:
+            value = value if value <= max else max
+    except ValueError:
+        value = old
+
+    return value
+
+
 def confirmation_dialog(text, next, single_option=True):
     elements = [urwid.Text(text), urwid.Divider()]
     if single_option:
@@ -591,6 +611,161 @@ class ButtonsTab(object):
             [urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
 
 
+class IOTab(object):
+    IO_PINS_COUNT = 2
+    IO_CONFIG_PARAMS = pijuice.config.ioConfigParams  # mode: [var_1, var_2]
+    IO_SUPPORTED_MODES = pijuice.config.ioSupportedModes
+    IO_PULL_OPTIONS = pijuice.config.ioPullOptions
+
+    def __init__(self):
+        self.current_config = self._get_device_config()
+        self.main()
+    
+    def main(self, *args):
+        elements = [urwid.Text("IO settings"), urwid.Divider()]
+        for i in range(self.IO_PINS_COUNT):
+            elements.append(urwid.Button("IO" + str(i + 1), on_press=self.configure_io, user_data=i))
+
+        elements.extend([urwid.Divider(),
+                         urwid.Button("Apply settings", on_press=self._apply_settings, user_data=self.IO_PINS_COUNT),
+                         urwid.Button("Back", on_press=main_menu),
+                         # XXX: For debug purposes
+                         urwid.Button("Show config", on_press=self._show_current_config),
+                         ])
+        main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(elements)), left=2, right=2)
+    
+    def configure_io(self, button, pin_id):
+        elements = [urwid.Text("IO{}".format(pin_id + 1)), urwid.Divider()]
+        pin_config = self.current_config[pin_id]
+        mode = pin_config['mode']
+        pull = pin_config['pull']
+        # < Mode >  
+        mode_select_btn = urwid.Button("Mode: {}".format(mode),
+                                       on_press=self._select_mode, user_data=pin_id)
+        # < Pull >
+        pull_select_btn = urwid.Button("Pull: {}".format(pull),
+                                       on_press=self._select_pull, user_data=pin_id)
+        elements += [mode_select_btn, pull_select_btn]
+        # Edits for vars
+        # XXX: Hack to pass var parameters
+        if len(self.IO_CONFIG_PARAMS.get(mode, [])) > 0:
+            var_config = self.IO_CONFIG_PARAMS[mode][0]
+            var_name = var_config.get('name', '')
+            var_unit = var_config.get('unit')
+            label = "{} [{}]: ".format(
+                var_name, var_unit) if var_unit else "{}: ".format(var_name)
+            var_edit_1 = urwid.Edit(label, edit_text=str(pin_config[var_name]))
+            # Validate int/float
+            urwid.connect_signal(var_edit_1, 'change', lambda x, text: self.current_config[pin_id].update(
+                {self.IO_CONFIG_PARAMS[mode][0]['name']: validate_value(
+                    text,
+                    self.IO_CONFIG_PARAMS[mode][0].get('type', 'str'),
+                    self.IO_CONFIG_PARAMS[mode][0].get('min'),
+                    self.IO_CONFIG_PARAMS[mode][0].get('max'),
+                    pin_config[var_name])}))
+            elements.append(var_edit_1)
+
+        if len(self.IO_CONFIG_PARAMS.get(mode, [])) > 1:
+            var_config = self.IO_CONFIG_PARAMS[mode][1]
+            var_name = var_config.get('name', '')
+            var_unit = var_config.get('unit')
+            label = "{} [{}]: ".format(
+                var_name, var_unit) if var_unit else "{}: ".format(var_name)
+            var_edit_2 = urwid.Edit(label, edit_text=str(pin_config[var_name]))
+            # Validate int/float
+            urwid.connect_signal(var_edit_2, 'change', lambda x, text: self.current_config[pin_id].update(
+                {self.IO_CONFIG_PARAMS[mode][1]['name']: validate_value(
+                    text,
+                    self.IO_CONFIG_PARAMS[mode][1].get('type', 'str'),
+                    self.IO_CONFIG_PARAMS[mode][1].get('min'),
+                    self.IO_CONFIG_PARAMS[mode][1].get('max'),
+                    pin_config[var_name])}))
+            elements.append(var_edit_2)
+
+        elements += [urwid.Divider(),
+                     urwid.Button("Apply", on_press=self._apply_settings, user_data=pin_id),
+                     urwid.Button("Back", on_press=self.main)]
+        main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(elements)), left=2, right=2)
+    
+    def _select_mode(self, button, pin_id):
+        elements = [urwid.Text("Mode for IO{}".format(pin_id + 1)), urwid.Divider()]
+        self.bgroup = []
+        for choice in self.IO_SUPPORTED_MODES[pin_id + 1]:
+            elements.append(urwid.RadioButton(self.bgroup, choice))
+        # Toggle the configured state
+        self.bgroup[self.IO_SUPPORTED_MODES[pin_id + 1].index(self.current_config[pin_id]['mode'])].toggle_state()
+
+        elements.extend([urwid.Divider(), urwid.Button('Back', on_press=self._on_mode_selected, user_data=pin_id)])
+        main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(elements)), left=2, right=2)
+    
+    def _on_mode_selected(self, button, pin_id):
+        states = [c.state for c in self.bgroup]
+        mode = self.IO_SUPPORTED_MODES[pin_id + 1][states.index(True)]
+        pull = self.current_config[pin_id]['pull']
+        config = {
+            'mode': mode, 'pull': pull
+        }
+        for var in self.IO_CONFIG_PARAMS.get(mode, []):
+            config[var['name']] = ''
+        self.current_config[pin_id] = config
+        self.bgroup = []
+        self.configure_io(None, pin_id)
+
+    def _select_pull(self, button, pin_id):
+        elements = [urwid.Text("Pull for IO{}".format(pin_id + 1)), urwid.Divider()]
+        self.bgroup = []
+        for choice in self.IO_PULL_OPTIONS:
+            elements.append(urwid.RadioButton(self.bgroup, choice))
+        # Toggle the configured state
+        self.bgroup[self.IO_PULL_OPTIONS.index(self.current_config[pin_id]['pull'])].toggle_state()
+
+        elements.extend([urwid.Divider(), urwid.Button('Back', on_press=self._on_pull_selected, user_data=pin_id)])
+        main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(elements)), left=2, right=2)
+    
+    def _on_pull_selected(self, button, pin_id):
+        states = [c.state for c in self.bgroup]
+        self.current_config[pin_id]['pull'] = self.IO_PULL_OPTIONS[states.index(True)]
+        self.bgroup = []
+        self.configure_io(None, pin_id)
+
+    def _get_device_config(self, *args):
+        config = []
+        for i in range(self.IO_PINS_COUNT):
+            result = pijuice.config.GetIoConfiguration(i + 1)
+            if result['error'] != 'NO_ERROR':
+                confirmation_dialog("Unable to connect to device: {}".format(result['error']), next=main_menu, single_option=True)
+            else:
+                config.append(result['data'])
+        return config
+    
+    def _apply_settings(self, button, pin_id):
+        if pin_id >= self.IO_PINS_COUNT:
+            # Apply for all pins
+            errors = []
+            for i in range(self.IO_PINS_COUNT):
+                error_msg = self._apply_for_pin(i)
+                if error_msg != 'NO_ERROR':
+                    errors.append(error_msg)
+            if errors:
+                confirmation_dialog("Failed to apply some settings. Error: {}".format(errors), next=self.main, single_option=True)
+            else:
+                confirmation_dialog("Updated settings for all pins", next=self.main, single_option=True)
+        else:
+            error_msg = self._apply_for_pin(pin_id)
+            if error_msg != 'NO_ERROR':
+                confirmation_dialog("Failed to apply settings for IO{}. Error: {}".format(pin_id + 1, error_msg), next=self.main, single_option=True)
+            else:
+                confirmation_dialog("Updated settings for IO{}".format(pin_id + 1), next=self.main, single_option=True)
+
+    def _apply_for_pin(self, pin_id):
+        result = pijuice.config.SetIoConfiguration(pin_id + 1, self.current_config[pin_id], True)
+        return result.get('error', 'NO_ERROR')
+
+    def _show_current_config(self, *args):
+        main.original_widget = urwid.Filler(urwid.Pile(
+            [urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
+
+
 def menu(title, choices):
     body = [urwid.Text(title), urwid.Divider()]
     for c in choices:
@@ -625,7 +800,7 @@ menu_mapping = {
     "Buttons": ButtonsTab,
     "LEDs": LEDTab,
     "Battery profile": not_implemented_yet,
-    "IO": not_implemented_yet,
+    "IO": IOTab,
     "Wakeup Alarm": not_implemented_yet,
     "Firmware": FirmwareTab,
     "Exit": exit_program
