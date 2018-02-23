@@ -766,6 +766,232 @@ class IOTab(object):
             [urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
 
 
+class BatteryProfileTab(object):
+    BATTERY_PROFILES = pijuice.config.batteryProfiles + ['CUSTOM', 'DEFAULT']
+    TEMP_SENSE_OPTIONS = pijuice.config.batteryTempSenseOptions
+    EDIT_KEYS = ['capacity', 'chargeCurrent', 'terminationCurrent', 'regulationVoltage', 'cutoffVoltage',
+                 'tempCold', 'tempCool', 'tempWarm', 'tempHot', 'ntcB', 'ntcResistance']
+
+    def __init__(self, *args):
+        self.status_text = ""
+        self.custom_values = False
+        self.refresh()
+    
+    def main(self, *args):
+        elements = [urwid.Text("Battery settings"),
+                    urwid.Divider(),
+                    urwid.Text("Status: " +  self.status_text),
+                    urwid.Button("Profile: {}".format(self.profile_name), on_press=self.select_profile),
+                    urwid.Divider(),
+                    urwid.CheckBox("Custom", state=self.custom_values, on_state_change=self._toggle_custom_values),
+        ]
+
+        self.param_edits = [
+            urwid.IntEdit("Capacity [mAh]: ", default=self.profile_data['capacity']),
+            urwid.IntEdit("Charge current [mA]: ", default=self.profile_data['chargeCurrent']),
+            urwid.IntEdit("Termination current [mA]: ", default=self.profile_data['terminationCurrent']),
+            urwid.IntEdit("Regulation voltage [mV]: ", default=self.profile_data['regulationVoltage']),
+            urwid.IntEdit("Cutoff voltage [mV]: ", default=self.profile_data['cutoffVoltage']),
+            urwid.IntEdit("Cold temperature [C]: ", default=self.profile_data['tempCold']),
+            urwid.IntEdit("Cool temperature [C]: ", default=self.profile_data['tempCool']),
+            urwid.IntEdit("Warm temperature [C]: ", default=self.profile_data['tempWarm']),
+            urwid.IntEdit("Hot temperature [C]: ", default=self.profile_data['tempHot']),
+            urwid.IntEdit("NTC B constant [1k]: ", default=self.profile_data['ntcB']),
+            urwid.IntEdit("NTC resistance [ohm]: ", default=self.profile_data['ntcResistance']),
+        ]
+
+        for i, edit in enumerate(self.param_edits):
+            urwid.connect_signal(edit, 'change', lambda x, text, idx: self.profile_data.update({self.EDIT_KEYS[idx]: text}), i)
+
+        if self.custom_values:
+            elements += self.param_edits
+        else:
+            elements += [
+            urwid.Text("Capacity [mAh]: " + str(self.profile_data['capacity'])),
+            urwid.Text("Charge current [mA]: " + str(self.profile_data['chargeCurrent'])),
+            urwid.Text("Termination current [mA]: " + str(self.profile_data['terminationCurrent'])),
+            urwid.Text("Regulation voltage [mV]: " + str(self.profile_data['regulationVoltage'])),
+            urwid.Text("Cutoff voltage [mV]: " + str(self.profile_data['cutoffVoltage'])),
+            urwid.Text("Cold temperature [C]: " + str(self.profile_data['tempCold'])),
+            urwid.Text("Cool temperature [C]: " + str(self.profile_data['tempCool'])),
+            urwid.Text("Warm temperature [C]: " + str(self.profile_data['tempWarm'])),
+            urwid.Text("Hot temperature [C]: " + str(self.profile_data['tempHot'])),
+            urwid.Text("NTC B constant [1k]: " + str(self.profile_data['ntcB'])),
+            urwid.Text("NTC resistance [ohm]: " + str(self.profile_data['ntcResistance'])),
+        ]
+
+        elements.extend([urwid.Divider(),
+                         urwid.Button("Temperature sense: {}".format(
+                             self.TEMP_SENSE_OPTIONS[self.temp_sense_profile_idx]), on_press=self.select_sense),
+                         urwid.Divider(),
+                         urwid.Button("Refresh", on_press=self.refresh),
+                         urwid.Button("Apply settings", on_press=self._apply_settings),
+                         urwid.Button("Back", on_press=main_menu),
+                         # XXX: For debug purposes
+                         urwid.Button(
+                             "Show config", on_press=self._show_current_config),
+                         ])
+        main.original_widget = urwid.Padding(urwid.ListBox(
+            urwid.SimpleFocusListWalker(elements)), left=2, right=2)
+    
+    def refresh(self, *args):
+        self._read_profile_status()
+        self._read_profile_data()
+        self._read_temp_sense()
+        self.main()
+    
+    def _read_profile_data(self, *args):
+        config = pijuice.config.GetBatteryProfile()
+        if config['error'] == 'NO_ERROR':
+            self.profile_data = config['data']
+        else:
+            confirmation_dialog("Unable to read battery data. Error: {}".format(config['error']), next=main_menu, single_option=True)
+    
+    def _read_profile_status(self, *args):
+        self.profile_name = 'CUSTOM'
+        self.status_text = ''
+        status = pijuice.config.GetBatteryProfileStatus()
+        if status['error'] == 'NO_ERROR':
+            self.profile_status = status['data']
+
+            if self.profile_status['validity'] == 'VALID':
+                if self.profile_status['origin'] == 'PREDEFINED':
+                    self.profile_name = self.profile_status['profile']
+            else:
+                self.status_text = 'Invalid profile'
+
+            if self.profile_status['source'] == 'DIP_SWITCH' and self.profile_status['origin'] == 'PREDEFINED' and self.BATTERY_PROFILES.index(self.profile_name) == 1:
+                self.status_text = 'Default profile'
+            else:
+                self.status_text = 'Custom profile by: ' if self.profile_status['origin'] == 'CUSTOM' else 'Profile selected by: '
+                self.status_text += self.profile_status['source']
+        else:
+            confirmation_dialog("Unable to read battery data. Error: {}".format(
+                status['error']), next=main_menu, single_option=True)
+    
+    def _read_temp_sense(self, *args):
+        temp_sense_config = pijuice.config.GetBatteryTempSenseConfig()
+        if temp_sense_config['error'] == 'NO_ERROR':
+            self.temp_sense_profile_idx = self.TEMP_SENSE_OPTIONS.index(temp_sense_config['data'])
+        else:
+            confirmation_dialog("Unable to read battery data. Error: {}".format(
+                temp_sense_config['error']), next=main_menu, single_option=True)
+
+    def _clear_text_edits(self, *args):
+        for edit in self.param_edits:
+            edit.set_edit_text("")
+    
+    def _toggle_custom_values(self, *args):
+        self.custom_values ^= True
+        self.main()
+    
+    def select_profile(self, *args):
+        body = [urwid.Text("Select battery profile"), urwid.Divider()]
+        self.bgroup = []
+        for choice in self.BATTERY_PROFILES:
+            button = urwid.RadioButton(self.bgroup, choice)
+            body.append(button)
+        self.bgroup[self.BATTERY_PROFILES.index(self.profile_name)].toggle_state()
+        body.extend([urwid.Divider(), urwid.Button('Back', on_press=self._set_profile)])
+        main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(body)), left=2, right=2)
+    
+    def _set_profile(self, *args):
+        states = [c.state for c in self.bgroup]
+        self.profile_name = self.BATTERY_PROFILES[states.index(True)]
+        self.bgroup = []
+        self.main()
+
+    def select_sense(self, *args):
+        body = [urwid.Text("Select temperature sense"), urwid.Divider()]
+        self.bgroup = []
+        for choice in self.TEMP_SENSE_OPTIONS:
+            button = urwid.RadioButton(self.bgroup, choice)
+            body.append(button)
+        self.bgroup[self.temp_sense_profile_idx].toggle_state()
+        body.extend([urwid.Divider(), urwid.Button(
+            'Back', on_press=self._set_sense)])
+        main.original_widget = urwid.Padding(urwid.ListBox(
+            urwid.SimpleFocusListWalker(body)), left=2, right=2)
+
+    def _set_sense(self, *args):
+        states = [c.state for c in self.bgroup]
+        self.temp_sense_profile_idx = states.index(True)
+        self.bgroup = []
+        self.main()
+
+    def _apply_settings(self, *args):
+        status = pijuice.config.SetBatteryTempSenseConfig(self.TEMP_SENSE_OPTIONS[self.temp_sense_profile_idx])
+        if status['error'] != 'NO_ERROR':
+            confirmation_dialog('Failed to apply temperature sense options. Error: {}'.format(
+                status['error']), next=main_menu, single_option=True)
+
+        if self.custom_values:
+            status = self.write_custom_values()
+        else:
+            status = pijuice.config.SetBatteryProfile(self.profile_name)
+
+        if status['error'] != 'NO_ERROR':
+            confirmation_dialog('Failed to apply profile options. Error: {}'.format(
+                status['error']), next=main_menu, single_option=True)
+        else:
+            confirmation_dialog("Settings successfully updated", single_option=True, next=self.refresh)
+    
+    def write_custom_values(self, *args):
+        # Keys for config are given in order of Edit widgets (self.param_edits)
+        # edit_keys = ['capacity', 'chargeCurrent', 'terminationCurrent', 'regulationVoltage', 'cutoffVoltage',
+        #              'tempCold', 'tempCool', 'tempWarm', 'tempHot', 'ntcB', 'ntcResistance']
+        CHARGE_CURRENT_MIN = 550
+        CHARGE_CURRENT_MAX = 2500
+        TERMINATION_CURRENT_MIN = 50
+        TERMINATION_CURRENT_MAX = 400
+        REGULATION_VOLTAGE_MIN = 3500
+        REGULATION_VOLTAGE_MAX = 4440
+
+        profile = {}
+        profile['capacity'] = int(self.param_edits[0].value())
+
+        charge_current = int(self.param_edits[1].value())
+        if charge_current < CHARGE_CURRENT_MIN:
+            charge_current = CHARGE_CURRENT_MIN
+        elif charge_current > CHARGE_CURRENT_MAX:
+            charge_current = CHARGE_CURRENT_MAX
+        profile['chargeCurrent'] = charge_current
+
+        termination_current = int(self.param_edits[2].value())
+        if termination_current < TERMINATION_CURRENT_MIN:
+            termination_current = TERMINATION_CURRENT_MIN
+        elif termination_current > TERMINATION_CURRENT_MAX:
+            termination_current = TERMINATION_CURRENT_MAX
+        profile['terminationCurrent'] = termination_current
+
+        regulation_voltage = int(self.param_edits[3].value())
+        if regulation_voltage < REGULATION_VOLTAGE_MIN:
+            regulation_voltage = REGULATION_VOLTAGE_MIN
+        elif regulation_voltage > REGULATION_VOLTAGE_MAX:
+            regulation_voltage = REGULATION_VOLTAGE_MAX
+        profile['regulationVoltage'] = regulation_voltage
+
+        profile['cutoffVoltage'] = int(self.param_edits[4].value())
+        profile['tempCold'] = int(self.param_edits[5].value())
+        profile['tempCool'] = int(self.param_edits[6].value())
+        profile['tempWarm'] = int(self.param_edits[7].value())
+        profile['tempHot'] = int(self.param_edits[8].value())
+        profile['ntcB'] = int(self.param_edits[9].value())
+        profile['ntcResistance'] = int(self.param_edits[10].value())
+
+        return pijuice.config.SetCustomBatteryProfile(profile)
+
+    def _show_current_config(self, *args):
+        current_config = {
+            'profile': self.profile_name,
+            'profile_status': self.profile_status,
+            'profile_data': self.profile_data,
+            'status_text': self.status_text,
+        }
+        main.original_widget = urwid.Filler(urwid.Pile(
+            [urwid.Text(str(current_config)), urwid.Button('Back', on_press=self.main)]))
+
+
 def menu(title, choices):
     body = [urwid.Text(title), urwid.Divider()]
     for c in choices:
@@ -799,7 +1025,7 @@ menu_mapping = {
     "General": GeneralTab,
     "Buttons": ButtonsTab,
     "LEDs": LEDTab,
-    "Battery profile": not_implemented_yet,
+    "Battery profile": BatteryProfileTab,
     "IO": IOTab,
     "Wakeup Alarm": not_implemented_yet,
     "Firmware": FirmwareTab,
