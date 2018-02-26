@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-__version__ = "1.2"
 from __future__ import division, print_function
+__version__ = "1.2"
 
 import calendar
 import ctypes
@@ -413,6 +413,73 @@ class PiJuiceStatus():
                     },
                 'error': 'NO_ERROR'
             }
+    
+    def GetIoDigitalInput(self, pin):
+        if not (pin == 1 or pin == 2):
+            return {'error': 'BAD_ARGUMENT'}
+        ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
+        if ret['error'] != 'NO_ERROR':
+            return ret
+        else:
+            d = ret['data']
+            b = 1 if d[0] == 0x01 else 0
+            return {'data': b, 'error': 'NO_ERROR'}
+
+    def SetIoDigitalOutput(self, pin, value):
+        if not (pin == 1 or pin == 2):
+            return {'error': 'BAD_ARGUMENT'}
+        d = [0x00, 0x00]
+        d[1] = 0x00 if value == 0 else 0x01
+        return self.interface.WriteData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, d)
+
+    def GetIoDigitalOutput(self, pin):
+        if not (pin == 1 or pin == 2):
+            return {'error': 'BAD_ARGUMENT'}
+        ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
+        if ret['error'] != 'NO_ERROR':
+            return ret
+        else:
+            d = ret['data']
+            b = 1 if d[1] == 0x01 else 0
+            return {'data': b, 'error': 'NO_ERROR'}
+
+    def GetIoAnalogInput(self, pin):
+        if not (pin == 1 or pin == 2):
+            return {'error': 'BAD_ARGUMENT'}
+        ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
+        if ret['error'] != 'NO_ERROR':
+            return ret
+        else:
+            d = ret['data']
+            return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
+
+    def SetIoPWM(self, pin, dutyCircle):
+        if not (pin == 1 or pin == 2):
+            return {'error': 'BAD_ARGUMENT'}
+        d = [0xFF, 0xFF]
+        try:
+            dc = float(dutyCircle)
+        except:
+            return {'error': 'BAD_ARGUMENT'}
+        if dc < 0 or dc > 100:
+            return {'error': 'INVALID_DUTY_CIRCLE'}
+        elif dc < 100:
+            dci = int(round(dc * 65534 // 100))
+            d[0] = dci & 0xFF
+            d[1] = (dci >> 8) & 0xFF
+        return self.interface.WriteData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, d)
+
+    def GetIoPWM(self, pin):
+        if not (pin == 1 or pin == 2):
+            return {'error': 'BAD_ARGUMENT'}
+        ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
+        if ret['error'] != 'NO_ERROR':
+            return ret
+        else:
+            d = ret['data']
+            dci = d[0] | (d[1] << 8)
+            dc = float(dci) * 100 // 65534 if dci < 65535 else 100
+            return {'data': dc, 'error': 'NO_ERROR'}
 
 
 class PiJuiceRtcAlarm():
@@ -500,7 +567,7 @@ class PiJuiceRtcAlarm():
 
         dt['year'] = ((d[6] >> 4) & 0x0F) * 10 + (d[6] & 0x0F) + 2000
 
-        dt['subsecond'] = d[7] / 256
+        dt['subsecond'] = d[7] // 256
 
         if (d[8] & 0x03) == 2:
             dt['daylightsaving'] = 'SUB1H'
@@ -530,7 +597,7 @@ class PiJuiceRtcAlarm():
                 return {'error': 'INVALID_SECOND'}
             if s < 0 or s > 60:
                 return {'error': 'INVALID_SECOND'}
-            d[0] = ((s / 10) & 0x0F) << 4
+            d[0] = ((s // 10) & 0x0F) << 4
             d[0] = d[0] | ((s % 10) & 0x0F)
 
         if 'minute' in dt:
@@ -540,7 +607,7 @@ class PiJuiceRtcAlarm():
                 return {'error': 'INVALID_MINUTE'}
             if m < 0 or m > 60:
                 return {'error': 'INVALID_MINUTE'}
-            d[1] = ((m / 10) & 0x0F) << 4
+            d[1] = ((m // 10) & 0x0F) << 4
             d[1] = d[1] | ((m % 10) & 0x0F)
 
         if 'hour' in dt:
@@ -552,21 +619,21 @@ class PiJuiceRtcAlarm():
                             hi = int(h.split('PM')[0])
                             if hi < 1 or hi > 12:
                                 return {'error': 'INVALID_HOUR'}
-                            d[2] = (((hi / 10) & 0x03) << 4)
+                            d[2] = (((hi // 10) & 0x03) << 4)
                             d[2] = d[2] | ((hi % 10) & 0x0F)
                             d[2] = d[2] | 0x20 | 0x40
                         else:
                             hi = int(h.split('AM')[0])
                             if hi < 1 or hi > 12:
                                 return {'error': 'INVALID_HOUR'}
-                            d[2] = (((hi / 10) & 0x03) << 4)
+                            d[2] = (((hi // 10) & 0x03) << 4)
                             d[2] = d[2] | ((hi % 10) & 0x0F)
                             d[2] = d[2] | 0x40
                     else:
                         h = int(h)
                         if h < 0 or h > 23:
                             return {'error': 'INVALID_HOUR'}
-                        d[2] = (((h / 10) & 0x03) << 4)
+                        d[2] = (((h // 10) & 0x03) << 4)
                         d[2] = d[2] | ((h % 10) & 0x0F)
 
                 elif isinstance(h, int):
@@ -594,7 +661,7 @@ class PiJuiceRtcAlarm():
                 return {'error': 'INVALID_DAY'}
             if da < 1 or da > 31:
                 return {'error': 'INVALID_DAY'}
-            d[4] = ((da / 10) & 0x03) << 4
+            d[4] = ((da // 10) & 0x03) << 4
             d[4] = d[4] | ((da % 10) & 0x0F)
 
         if 'month' in dt:
@@ -604,7 +671,7 @@ class PiJuiceRtcAlarm():
                 return {'error': 'INVALID_MONTH'}
             if m < 1 or m > 12:
                 return {'error': 'INVALID_MONTH'}
-            d[5] = ((m / 10) & 0x01) << 4
+            d[5] = ((m // 10) & 0x01) << 4
             d[5] = d[5] | ((m % 10) & 0x0F)
 
         if 'year' in dt:
@@ -614,7 +681,7 @@ class PiJuiceRtcAlarm():
                 return {'error': 'INVALID_YEAR'}
             if y < 0 or y > 99:
                 return {'error': 'INVALID_YEAR'}
-            d[6] = ((y / 10) & 0x0F) << 4
+            d[6] = ((y // 10) & 0x0F) << 4
             d[6] = d[6] | ((y % 10) & 0x0F)
 
         if 'subsecond' in dt:
@@ -1005,6 +1072,27 @@ class PiJuiceConfig():
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         return False  # Don't suppress exceptions.
+
+    def SetChargingConfig(self, config, non_volatile = False):
+        try:
+            nv = 0x80 if non_volatile == True else 0x00
+            if config['charging_enabled'] == True:
+                chEn = 0x01
+            elif config['charging_enabled'] == False:
+                chEn = 0x00
+            else:
+                return {'error':'BAD_ARGUMENT'}
+        except:
+            return {'error':'BAD_ARGUMENT'}
+        d = [nv | chEn]
+        return self.interface.WriteDataVerify(self.CHARGING_CONFIG_CMD, d)
+    
+    def GetChargingConfig(self):  
+        ret = self.interface.ReadData(self.CHARGING_CONFIG_CMD, 1)
+        if ret['error'] != 'NO_ERROR':
+            return ret
+        else:
+            return {'data':{'charging_enabled':bool(ret['data'][0]&0x01)}, 'non_volatile':bool(ret['data'][0]&0x80), 'error':'NO_ERROR'}
 
     batteryProfiles = ['BP6X', 'BP7X', 'SNN5843', 'LIPO8047109']
     def SetBatteryProfile(self, profile):
