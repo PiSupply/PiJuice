@@ -1,22 +1,31 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-from Tkinter import *
-from ttk import *
-from pijuice import *
-from tkColorChooser import askcolor
-from Tkinter import Button as tkButton
-import tkMessageBox
-import tkFileDialog
+
+import calendar
 import copy
+import datetime
+import json
 import os
 import re
-import subprocess
-import json
 import signal
+import subprocess
+import time
+
+from Tkinter import Button as tkButton
+from Tkinter import (Tk, BooleanVar, IntVar, StringVar, Toplevel,
+                     N, W, S, E, X, Y, BOTH, RIGHT)
+from ttk import (Button, Checkbutton, Combobox, Entry, Frame, Label, Notebook,
+                 Radiobutton, Style)
+from tkColorChooser import askcolor
+from tkFileDialog import askopenfilename
+import tkMessageBox
+
+from pijuice import (PiJuice, pijuice_hard_functions, pijuice_sys_functions,
+                     pijuice_user_functions)
 
 try:
-    pijuice = PiJuice(1,0x14)
+    pijuice = PiJuice(1, 0x14)
 except:
     pijuice = None
 
@@ -29,32 +38,32 @@ PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON' #os.getcwd() + '/
 def _ValidateIntEntry(var, oldVar, min, max):
     new_value = var.get()
     try:
-        if var.get() != '':
-            chg = int(var.get())
+        if new_value != '':
+            chg = int(new_value)
             if chg > max or chg < min:
                 var.set(oldVar.get())
             else:
-                oldVar.set(var.get())
+                oldVar.set(new_value)
         else:
-            oldVar.set(var.get())
+            oldVar.set(new_value)
     except:
         var.set(oldVar.get())
-    oldVar.set(var.get())
+    oldVar.set(new_value)
 
 def _ValidateFloatEntry(var, oldVar, min, max):
     new_value = var.get()
     try:
-        if var.get() != '':
-            chg = float(var.get())
+        if new_value != '':
+            chg = float(new_value)
             if chg > max or chg < min:
                 var.set(oldVar.get())
             else:
-                oldVar.set(var.get())
+                oldVar.set(new_value)
         else:
-            oldVar.set(var.get())
+            oldVar.set(new_value)
     except:
         var.set(oldVar.get())
-    oldVar.set(var.get())
+    oldVar.set(new_value)
 
 class PiJuiceFirmware:
     def __init__(self, master):
@@ -141,7 +150,7 @@ class PiJuiceFirmware:
         return msg
 
     def _SetFirmwarePath(self, event=None):
-        new_file = tkFileDialog.askopenfilename(parent=self.frame, title='Select firmware file')
+        new_file = askopenfilename(parent=self.frame, title='Select firmware file')
         if new_file:
             self.binFile = new_file
             self.firmwareFilePath.set(self.binFile)
@@ -309,9 +318,9 @@ class PiJuiceHATConfig:
         self.chargingEnabled.trace("w", self._UpdateChargingConfig)
 
         self.defaultConfigBtn = Button(self.frame, text='Reset to default configuration', state="normal", underline=0, command= self._ResetToDefaultConfigCmd)
-        self.defaultConfigBtn.grid(row=14, column=0, padx=(2, 2), pady=(20, 0), sticky = SW)
+        self.defaultConfigBtn.grid(row=14, column=0, padx=(2, 2), pady=(20, 0), sticky = S+W)
 
-        Label(self.frame, text="Changes on this tab apply instantly.").grid(row=14, columnspan=3, column=1, sticky=SE)
+        Label(self.frame, text="Changes on this tab apply instantly.").grid(row=14, columnspan=3, column=1, sticky=S+E)
 
     def _ResetToDefaultConfigCmd(self):
         q = tkMessageBox.askokcancel('Reset Configuration','Warning! This action will reset PiJuice HAT configuration to default settings.', parent=self.frame)
@@ -374,17 +383,17 @@ class PiJuiceHATConfig:
     def _ValidateSlaveAdr(self, var, id):
         new_value = var.get()
         try:
-            if var.get() != '':
-                adr = int(str(var.get()), 16)
+            if new_value != '':
+                adr = int(str(new_value), 16)
                 if adr > 0x7F:
                     var.set(self.oldAdr[id])
                 else:
-                    self.oldAdr[id] = var.get()
+                    self.oldAdr[id] = new_value
             else:
-                self.oldAdr[id] = var.get()
+                self.oldAdr[id] = new_value
         except:
             var.set(self.oldAdr[id])
-        self.oldAdr[id] = var.get()
+        self.oldAdr[id] = new_value
 
 class PiJuiceButtonsConfig:
     def __init__(self, master):
@@ -479,7 +488,7 @@ class PiJuiceButtonsConfig:
     def ReadConfig(self, bind):
         config = pijuice.config.GetButtonConfiguration(pijuice.config.buttons[bind])
         for j in range(0, len(pijuice.config.buttonEvents)):
-            r = bind * (len(pijuice.config.buttonEvents) + 1) + j + 1
+            # r = bind * (len(pijuice.config.buttonEvents) + 1) + j + 1
             ind = bind * len(pijuice.config.buttonEvents) + j
             if config['error'] == 'NO_ERROR':
                 try:
@@ -597,7 +606,7 @@ class PiJuiceLedConfig:
             except ValueError:
                 init_color[i] = 0
         init_color = "#%02x%02x%02x" % tuple(init_color)
-        params, color = askcolor(init_color, title="Color for D%i" % (idx / 3), parent=self.frame)
+        params, _ = askcolor(init_color, title="Color for D%i" % (idx / 3), parent=self.frame)
         if params:
             for i in range(3):
                 self.paramList[idx + i].set(str(params[i]))
@@ -1131,7 +1140,7 @@ class PiJuiceUserScriptConfig:
                 self.browseButtons[i].grid_forget()
     
     def _BrowseScript(self, id):
-        new_file = tkFileDialog.askopenfilename(parent=self.frame, title='Select script file for USER_FUNC ' + str(id+1))
+        new_file = askopenfilename(parent=self.frame, title='Select script file for USER_FUNC ' + str(id+1))
         if new_file:
             self.paths[id].set(new_file)
 
