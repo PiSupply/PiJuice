@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-__version__ = "1.2.1"
+__version__ = "1.2"
+from __future__ import print_function 
+from __future__ import division
 from smbus import SMBus
 import time
 import datetime
@@ -139,7 +141,7 @@ class PiJuiceInterface():
 				#return {'error':'COMMUNICATION_ERROR'}
 		
 		if self._GetChecksum(d[0:-1]) != d[-1]:
-			print self._GetChecksum(d), d, length
+			print(self._GetChecksum(d), d, length)
 			return {'error':'DATA_CORRUPTED'}
 		del d[-1]
 		return {'data':d, 'error':'NO_ERROR'}
@@ -187,8 +189,8 @@ class PiJuiceInterface():
 				if (data==result['data']):
 					return {'error':'NO_ERROR'}
 				else:
-					print 'wr', data
-					print 'rd', result['data']
+					print('wr', data)
+					print('rd', result['data'])
 					# result['data']
 					return {'error':'WRITE_FAILED'}
 
@@ -313,7 +315,7 @@ class PiJuiceStatus():
 		else:
 			d = result['data']
 			temp = d[1]
-			temp = temp << 8;
+			temp = temp << 8
 			temp = temp | d[0]
 			return {'data':temp, 'error':'NO_ERROR'}
 		
@@ -394,73 +396,6 @@ class PiJuiceStatus():
 		else:
 			d = ret['data']
 			return {'data':{'count':d[0], 'rgb1':d[1:4], 'period1':d[4]*10, 'rgb2':d[5:8], 'period2':d[8]*10}, 'error':'NO_ERROR'}
-			
-	def GetIoDigitalInput(self, pin):
-		if not (pin == 1 or pin == 2): 
-			return {'error':'BAD_ARGUMENT'}
-		ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
-		if ret['error'] != 'NO_ERROR':
-			return ret
-		else: 
-			d = ret['data']
-			b = 1 if d[0] == 0x01 else 0
-			return {'data':b, 'error':'NO_ERROR'}
-			
-	def SetIoDigitalOutput(self, pin, value):
-		if not (pin == 1 or pin == 2): 
-			return {'error':'BAD_ARGUMENT'}
-		d = [0x00, 0x00]
-		d[1] = 0x00 if value == 0 else 0x01
-		return self.interface.WriteData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, d)
-		
-	def GetIoDigitalOutput(self, pin):
-		if not (pin == 1 or pin == 2): 
-			return {'error':'BAD_ARGUMENT'}
-		ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
-		if ret['error'] != 'NO_ERROR':
-			return ret
-		else: 
-			d = ret['data']
-			b = 1 if d[1] == 0x01 else 0
-			return {'data':b, 'error':'NO_ERROR'}
-			
-	def GetIoAnalogInput(self, pin):
-		if not (pin == 1 or pin == 2): 
-			return {'error':'BAD_ARGUMENT'}
-		ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
-		if ret['error'] != 'NO_ERROR':
-			return ret
-		else: 
-			d = ret['data']
-			return {'data':(d[1] << 8) | d[0], 'error':'NO_ERROR'}
-			
-	def SetIoPWM(self, pin, dutyCircle):
-		if not (pin == 1 or pin == 2): 
-			return {'error':'BAD_ARGUMENT'}
-		d = [0xFF, 0xFF]
-		try:
-			dc = float(dutyCircle)
-		except:
-			return {'error':'BAD_ARGUMENT'}
-		if dc < 0 or dc > 100:
-			return {'error':'INVALID_DUTY_CIRCLE'}
-		elif dc < 100:
-			dci = int(round(dc*65534/100))
-			d[0] = dci&0xFF
-			d[1] = (dci>>8)&0xFF
-		return self.interface.WriteData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, d)
-		
-	def GetIoPWM(self, pin):
-		if not (pin == 1 or pin == 2): 
-			return {'error':'BAD_ARGUMENT'}
-		ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
-		if ret['error'] != 'NO_ERROR':
-			return ret
-		else:
-			d = ret['data']
-			dci = d[0] | (d[1] << 8)
-			dc = float(dci) * 100 / 65534 if dci < 65535 else 100
-			return {'data':dc, 'error':'NO_ERROR'}
 			
 class PiJuiceRtcAlarm():
 
@@ -620,8 +555,8 @@ class PiJuiceRtcAlarm():
 					#assume 24 hour format
 					if h < 0 or h > 23:
 						return {'error':'INVALID_HOUR'}
-					d[2] = (((int(h) / 10)&0x03) << 4)
-					d[2] = d[2] | ((int(h) % 10)&0x0F)
+					d[2] = (((int(h) // 10) & 0x03) << 4)
+					d[2] = d[2] | ((int(h) % 10) & 0x0F)
 			except:
 				return {'error':'INVALID_HOUR'}
 			
@@ -833,12 +768,12 @@ class PiJuiceRtcAlarm():
 							d[2] = d[2] | ((hi % 10)&0x0F)
 							d[2] = d[2] | 0x40
 					else:
-						d[2] = (((int(h) / 10)&0x03) << 4)
+						d[2] = (((int(h) // 10) & 0x03) << 4)
 						d[2] = d[2] | ((int(h) % 10)&0x0F)
 						
 				elif isinstance(h, int):
 					#assume 24 hour format
-					d[2] = (((int(h) / 10)&0x03) << 4)
+					d[2] = (((int(h) // 10) & 0x03) << 4)
 					d[2] = d[2] | ((int(h) % 10)&0x0F)
 					
 				elif (isinstance(h, str) and h.find(';')>=0):
@@ -864,11 +799,11 @@ class PiJuiceRtcAlarm():
 							hs = hs | (0x00000001<<int(i))
 					#d[2] = d[2] | (0x40 if hFormat == '12' else 0x00)
 					d[2] = 0x80
-					d[4] = hs&0x000000FF;
-					hs = hs >> 8;
-					d[5] = hs&0x000000FF;
-					hs = hs >> 8;
-					d[6] = hs&0x000000FF;
+					d[4] = hs&0x000000FF
+					hs = hs >> 8
+					d[5] = hs&0x000000FF
+					hs = hs >> 8
+					d[6] = hs&0x000000FF
 			except:
 				return {'error':'INVALID_HOUR'}
 		else:
@@ -1010,7 +945,7 @@ class PiJuicePower():
 			
 	def SetSystemPowerSwitch(self, state):
 		try:
-			d = int(state)/100
+			d = int(state) // 100
 		except:
 			return {'error':'BAD_ARGUMENT'}
 		return self.interface.WriteData(self.SYSTEM_POWER_SWITCH_CTRL_CMD, [d])
@@ -1050,27 +985,6 @@ class PiJuiceConfig():
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		return False  # Don't suppress exceptions.
 
-	def SetChargingConfig(self, config, non_volatile = False):
-		try:
-			nv = 0x80 if non_volatile == True else 0x00
-			if config['charging_enabled'] == True:
-				chEn = 0x01
-			elif config['charging_enabled'] == False:
-				chEn = 0x00
-			else:
-				return {'error':'BAD_ARGUMENT'}
-		except:
-			return {'error':'BAD_ARGUMENT'}
-		d = [nv | chEn]
-		return self.interface.WriteDataVerify(self.CHARGING_CONFIG_CMD, d)
-	
-	def GetChargingConfig(self):  
-		ret = self.interface.ReadData(self.CHARGING_CONFIG_CMD, 1)
-		if ret['error'] != 'NO_ERROR':
-			return ret
-		else:
-			return {'data':{'charging_enabled':bool(ret['data'][0]&0x01)}, 'non_volatile':bool(ret['data'][0]&0x80), 'error':'NO_ERROR'}
-			
 	batteryProfiles = ['BP6X', 'BP7X', 'SNN5843', 'LIPO8047109']
 	def SetBatteryProfile(self, profile):
 		id = None
@@ -1133,10 +1047,10 @@ class PiJuiceConfig():
 			c = profile['capacity']
 			d[0] = c&0xFF
 			d[1] = (c >> 8)&0xFF
-			d[2] = int(round((profile['chargeCurrent'] - 550) / 75))
-			d[3] = int(round((profile['terminationCurrent'] - 50) / 50))
-			d[4] = int(round((profile['regulationVoltage'] - 3500) / 20))
-			d[5] = int(round(profile['cutoffVoltage'] / 20))
+			d[2] = int(round((profile['chargeCurrent'] - 550) // 75))
+			d[3] = int(round((profile['terminationCurrent'] - 50) // 50))
+			d[4] = int(round((profile['regulationVoltage'] - 3500) // 20))
+			d[5] = int(round(profile['cutoffVoltage'] // 20))
 			d[6] = ctypes.c_ubyte(profile['tempCold']).value
 			d[7] = ctypes.c_ubyte(profile['tempCool']).value
 			d[8] = ctypes.c_ubyte(profile['tempWarm']).value
@@ -1149,7 +1063,7 @@ class PiJuiceConfig():
 			d[13] = (R >> 8)&0xFF
 		except:
 			return {'error':'BAD_ARGUMENT'}
-		#print d
+		print(d)
 		return self.interface.WriteDataVerify(self.BATTERY_PROFILE_CMD, d, 0.2)
 	
 	batteryTempSenseOptions = ['NOT_USED', 'NTC', 'ON_BOARD', 'AUTO_DETECT']
@@ -1213,7 +1127,7 @@ class PiJuiceConfig():
 	buttonEvents = ['PRESS', 'RELEASE', 'SINGLE_PRESS', 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
 	#functionTypes = ['HARDWARE', 'SYSTEM', 'USER']
 	def GetButtonConfiguration(self, button):
-		returnObj = {}
+		# returnObj = {}
 		b = None
 		try: 
 			b = self.buttons.index(button)
@@ -1453,7 +1367,7 @@ class PiJuiceConfig():
 	def SetDefaultConfiguration(self):
 		return self.interface.WriteData(self.RESET_TO_DEFAULT_CMD, [0xaa, 0x55, 0x0a, 0xa3])		
 		
-	def GetFirmwareVersion(self):	
+	def GetFirmwareVersion(self):
 		ret = self.interface.ReadData(self.FIRMWARE_VERSION_CMD, 2)
 		if ret['error'] != 'NO_ERROR':
 			return ret
@@ -1501,8 +1415,8 @@ def get_versions():
 if __name__ == '__main__':
 	if sys.argv[1] == '--version':
 		sw_version, fw_version, os_version = get_versions()
-		print "Software version: %s" % sw_version
+		print("Software version: %s" % sw_version)
 		if fw_version is None:
 			fw_version = "No connection to PiJuice"
-		print "Firmware version: %s" % fw_version
-		print "OS version: %s" % os_version
+		print("Firmware version: %s" % fw_version)
+		print("OS version: %s" % os_version)
