@@ -114,6 +114,20 @@ The watchdog timer has a configurable time-out. It defines the time after which 
 
 This is the system events menu tab. It allows you to trigger events for certain scenarios such as low charge, low voltage and more. Each paramater has a couple of preset options to choose from, and also you can select options from the "user scripts" tab which allows you to trigger your own custom scripts when certain system events occur for maximum flexibility.
 
+* **Low charge**. System task monitors charge level and generates this event when charge drops below configurable threshold.
+* **Low battery voltage**. This event is generated when battery voltage drops below configurable threshold.
+* **No power**. System task generates this event when power source disappears and system is powered only with energy from battery.
+* **Watchdog reset**. If watchdog reset happened for some reason PiJuice raises watchdog reset fault flag that system task can detect immediately after boot.
+* **Button power off**. This event is raised after boot if there was power off triggered by button press.
+* **Forced power off**. If there was forced power off caused by loss of energy (battery voltage approached cut-off threshold), PiJuice raises forced power off fault flag that system task can detect immediately after boot.
+* **Forced sys power off**. This event is raised if there was forced system switch turn off caused by loss of energy. 
+
+#### System Functions
+* **HALT**. System is halted.
+* **HALT AND POWER OFF**. System halts, 5V regulator and system switch are set off.
+* **SYSTEM SWITCH OFF AND HALT**. System is halted, System switch is set off and system halts.
+* **REBOOT**. System reboots.
+
 ### User Scripts menu
 
 ![User scripts menu](https://user-images.githubusercontent.com/16068311/35161237-7d653b8c-fd37-11e7-9a1e-be8b71e27a27.png "User scripts menu")
@@ -305,7 +319,7 @@ Here is a list of accepted values for the various fields above.
             - NO_FUNC
             - SYS_FUNC_HALT
             - SYS_FUNC_HALT_POW_OFF
-            - SYS_FUNC_HALT_POW_OFF
+            - SYS_FUNC_SYS_OFF_HALT
             - SYS_FUNC_REBOOT
             - USER_EVENT
             - USER_FUNC1 .. USER_FUNC15
