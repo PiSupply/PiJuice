@@ -27,7 +27,6 @@ minBatVolEn = False
 lowChgEn = False
 lowBatVolEn = False
 chargeLevel = 50
-timeCnt = 5
 noPowEn = False
 noPowCnt = 100
 logger = None
@@ -175,7 +174,6 @@ def main():
     global status
     global sysEvEn
     global chargeLevel
-    global timeCnt
     global logger
     global minChgEn
     global minBatVolEn
@@ -251,6 +249,8 @@ def main():
     lowBatVolEn = sysEvEn and configData.get('system_events', {}).get('low_battery_voltage', {}).get('enabled', False)
     noPowEn = sysEvEn and configData.get('system_events', {}).get('no_power', {}).get('enabled', False)
 
+    timeCnt = 5
+
     while dopoll:
         if configData.get('system_task', {}).get('enabled'):
             ret = pijuice.status.GetStatus()
@@ -259,7 +259,7 @@ def main():
                 if status['isButton']:
                     _EvalButtonEvents()
 
-                timeCnt = timeCnt - 1
+                timeCnt -= 1
                 if timeCnt == 0:
                     timeCnt = 5
                     if ('isFault' in status) and status['isFault']:
@@ -271,7 +271,7 @@ def main():
                     if noPowEn:
                         _EvalPowerInputs(status)
 
-        time.sleep(5)
+        time.sleep(1)
 
 
 if __name__ == '__main__':
