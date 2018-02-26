@@ -7,7 +7,6 @@ import time
 import datetime
 import calendar
 import sys, getopt
-from ctypes import *
 from fcntl import ioctl
 import struct 
 import ctypes
