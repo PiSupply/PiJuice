@@ -18,7 +18,7 @@ REFRESH_INTERVAL = 5000
 ICON_DIR = '/usr/share/pijuice/data/images'
 
 
-class PiJuiceStatusTray:
+class PiJuiceStatusTray(object):
 
 	def __init__(self):
 		self.tray = gtk.StatusIcon()

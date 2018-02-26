@@ -79,7 +79,7 @@ def _ValidateFloatEntry(var, oldVar, min, max):
         var.set(oldVar.get())
     oldVar.set(new_value)
 
-class PiJuiceFirmware:
+class PiJuiceFirmware(object):
     def __init__(self, master):
         self.frame = Frame(master, name='firmware')
         self.frame.grid(row=0, column=0, sticky=W)
@@ -209,7 +209,7 @@ class PiJuiceFirmware:
             else:
                 MessageBox.showerror('Firmware update', 'Unknown PiJuice I2C address', parent=self.frame)
 
-class PiJuiceHATConfig:
+class PiJuiceHATConfig(object):
     def __init__(self, master):
         self.frame = Frame(master, name='hat')
         self.frame.grid(row=0, column=0, sticky=W)
@@ -409,7 +409,7 @@ class PiJuiceHATConfig:
             var.set(self.oldAdr[id])
         self.oldAdr[id] = new_value
 
-class PiJuiceButtonsConfig:
+class PiJuiceButtonsConfig(object):
     def __init__(self, master):
         # frame to hold contentx
         self.frame = Frame(master, name='buttons')
@@ -529,7 +529,7 @@ class PiJuiceButtonsConfig:
     def _ConfigFuncSelected(self, event):
         self.applyBtn.configure(state="normal")
 
-class PiJuiceLedConfig:
+class PiJuiceLedConfig(object):
     def __init__(self, master):
 
         # frame to hold contentx
@@ -655,7 +655,7 @@ class PiJuiceLedConfig:
                     MessageBox.showerror('Apply LED Configuration', status['error'], parent=self.frame)
                     #event.widget.set(status['error'])
 
-class PiJuiceBatteryConfig:
+class PiJuiceBatteryConfig(object):
     def __init__(self, master):
         # frame to hold contentx
         self.frame = Frame(master, name='battery')
@@ -926,7 +926,7 @@ class PiJuiceBatteryConfig:
             self.ReadProfileData()
             self.applyBtn.configure(state="disabled")
 
-class PiJuiceIoConfig:
+class PiJuiceIoConfig(object):
     def __init__(self, master):
 
         # frame to hold contentx
@@ -1057,7 +1057,7 @@ class PiJuiceIoConfig:
             if ret['error'] != 'NO_ERROR':
                 MessageBox.showerror('IO' + str(i+1) + ' Configuration', 'Reason: ' + ret['error'], parent=self.frame)
 
-class PiJuiceHATConfigGui():
+class PiJuiceHATConfigGui(object):
 
     def __init__(self, isapp=True, name='pijuiceConfig'):
         #Frame.__init__(self, name=name)
@@ -1102,7 +1102,7 @@ class PiJuiceHATConfigGui():
         t.update()
         t.minsize(t.winfo_width(), t.winfo_height())
 
-class PiJuiceUserScriptConfig:
+class PiJuiceUserScriptConfig(object):
     def __init__(self, master):
         self.frame = Frame(master, name='userscript')
         self.frame.grid(row=0, column=0, sticky=W)
@@ -1163,7 +1163,7 @@ class PiJuiceUserScriptConfig:
             pijuiceConfigData['user_functions'] = {}
         pijuiceConfigData['user_functions']['USER_FUNC'+str(id+1)] = self.paths[id].get()
 
-class PiJuiceWakeupConfig:
+class PiJuiceWakeupConfig(object):
     def __init__(self, master):
         self.frame = Frame(master, name='wakeup')
         self.frame.grid(row=0, column=0, sticky=W)
@@ -1335,7 +1335,7 @@ class PiJuiceWakeupConfig:
 
         print(pijuice.rtcAlarm.GetAlarm())
 
-class PiJuiceSysEventConfig:
+class PiJuiceSysEventConfig(object):
     def __init__(self, master):
         self.frame = Frame(master, name='system_events')
         self.frame.grid(row=0, column=0, sticky=W)
@@ -1445,7 +1445,7 @@ class PiJuiceSysEventConfig:
             pijuiceConfigData['system_events'][self.sysEvents[i]['id']] = {}
         pijuiceConfigData['system_events'][self.sysEvents[i]['id']]['function'] = self.funcConfigsSel[i].get()
 
-class PiJuiceConfigParamEdit:
+class PiJuiceConfigParamEdit(object):
     def __init__(self, master, r, config, name, paramDes, id, paramId, type, min, max):
         self.frame = master
         self.config = config
@@ -1506,7 +1506,7 @@ class PiJuiceConfigParamEdit:
             self.config[self.id] = {}
         self.config[self.id][self.paramId] = self.param.get()
 
-class PiJuiceSysTaskTab:
+class PiJuiceSysTaskTab(object):
     def __init__(self, master):
         self.frame = Frame(master, name='sys_task')
         self.frame.grid(row=0, column=0, sticky=W)
@@ -1541,7 +1541,7 @@ class PiJuiceSysTaskTab:
         else:
             pijuiceConfigData['system_task']['enabled'] = False
 
-class PiJuiceHatTab:
+class PiJuiceHatTab(object):
     def __init__(self, master):
         self.frame = Frame(master, name='hat')
         self.frame.grid(row=0, column=0, sticky=W)
