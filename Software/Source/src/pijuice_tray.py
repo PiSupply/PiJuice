@@ -9,8 +9,15 @@ import time
 from glob import glob
 from multiprocessing import Process
 
-import gobject
-import gtk
+try:
+	# Python 2
+	import gtk
+	import gobject
+except ImportError:
+	# Python 3
+	from gi.repository import Gtk as gtk
+	from gi.repository import GObject as gobject
+
 from pijuice import PiJuice, get_versions
 from pijuice_gui import start_app
 
