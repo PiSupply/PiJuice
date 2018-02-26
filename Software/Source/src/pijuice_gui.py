@@ -10,16 +10,30 @@ import os
 import re
 import signal
 import subprocess
+import sys
 import time
 
-from Tkinter import Button as tkButton
-from Tkinter import (Tk, BooleanVar, IntVar, StringVar, Toplevel,
-                     N, W, S, E, X, Y, BOTH, RIGHT)
-from ttk import (Button, Checkbutton, Combobox, Entry, Frame, Label, Notebook,
-                 Radiobutton, Style)
-from tkColorChooser import askcolor
-from tkFileDialog import askopenfilename
-import tkMessageBox
+try:
+    # Python 2
+    from Tkinter import Button as tkButton
+    from Tkinter import (Tk, BooleanVar, IntVar, StringVar, Toplevel,
+                         N, W, S, E, X, Y, BOTH, RIGHT)
+    from ttk import (Button, Checkbutton, Combobox, Entry, Frame, Label,
+                     Notebook, Radiobutton, Style)
+    from tkColorChooser import askcolor
+    from tkFileDialog import askopenfilename
+    import tkMessageBox as MessageBox
+except ImportError:
+    # Python 3
+    from tkinter import Button as tkButton
+    from tkinter import (Tk, BooleanVar, IntVar, StringVar, Toplevel,
+                         N, W, S, E, X, Y, BOTH, RIGHT)
+    from tkinter.ttk import (Button, Checkbutton, Combobox, Entry, Frame, Label,
+                             Notebook, Radiobutton, Style)
+    from tkinter.colorchooser import askcolor
+    from tkinter.filedialog import askopenfilename
+    import tkinter.messagebox as MessageBox
+
 
 from pijuice import (PiJuice, pijuice_hard_functions, pijuice_sys_functions,
                      pijuice_user_functions)
@@ -164,10 +178,10 @@ class PiJuiceFirmware:
             if ret['data']['powerInput'] != 'PRESENT' and ret['data']['powerInput5vIo'] != 'PRESENT':
                 ret = pijuice.status.GetChargeLevel()
                 if ret['error'] == 'NO_ERROR' and float(ret['data']) < 20:
-                    tkMessageBox.showerror('Update Firmware','Cannot update, charge level is too low', parent=self.frame)
+                    MessageBox.showerror('Update Firmware','Cannot update, charge level is too low', parent=self.frame)
                     return
 
-        q = tkMessageBox.showwarning('Update Firmware','Warning! Interrupting firmware update may lead to non functional PiJuice HAT.', parent=self.frame)
+        q = MessageBox.showwarning('Update Firmware','Warning! Interrupting firmware update may lead to non functional PiJuice HAT.', parent=self.frame)
         if q:
             #print 'Updating fimware'
             #inputFile = '/usr/share/pijuice/data/firmware/PiJuice.elf.binary'
@@ -178,7 +192,7 @@ class PiJuiceFirmware:
                 ret = 256 - subprocess.call(['pijuiceboot', adr, self.binFile])  # subprocess.call([os.getcwd() + '/stmboot', adr, inputFile])
                 msgbox.destroy()
                 if ret == 256:
-                    tkMessageBox.showinfo('Firmware update', 'Finished successfully!', parent=self.frame)
+                    MessageBox.showinfo('Firmware update', 'Finished successfully!', parent=self.frame)
                     self.newFirmStatus.set('Firmware is up to date')
                     self.firmVer.set(self.newVerStr)
                     self.defaultConfigBtn.configure(state="disabled")
@@ -191,9 +205,9 @@ class PiJuiceFirmware:
                         msg = 'Firmware binary file might be missing or damaged.'
                     elif errorStatus == 'STARTING_BOOTLOADER_ERROR':
                         msg = 'Try to start bootloader manually. Press and hold button SW3 while powering up RPI and PiJuice.'
-                    tkMessageBox.showerror('Firmware update failed', 'Reason: ' + errorStatus + '. ' + msg, parent=self.frame)
+                    MessageBox.showerror('Firmware update failed', 'Reason: ' + errorStatus + '. ' + msg, parent=self.frame)
             else:
-                tkMessageBox.showerror('Firmware update', 'Unknown PiJuice I2C address', parent=self.frame)
+                MessageBox.showerror('Firmware update', 'Unknown PiJuice I2C address', parent=self.frame)
 
 class PiJuiceHATConfig:
     def __init__(self, master):
@@ -323,39 +337,39 @@ class PiJuiceHATConfig:
         Label(self.frame, text="Changes on this tab apply instantly.").grid(row=14, columnspan=3, column=1, sticky=S+E)
 
     def _ResetToDefaultConfigCmd(self):
-        q = tkMessageBox.askokcancel('Reset Configuration','Warning! This action will reset PiJuice HAT configuration to default settings.', parent=self.frame)
+        q = MessageBox.askokcancel('Reset Configuration','Warning! This action will reset PiJuice HAT configuration to default settings.', parent=self.frame)
         if q:
             status = pijuice.config.SetDefaultConfiguration()
             if status['error'] != 'NO_ERROR':
-                tkMessageBox.showerror('Reset to default configuration', status['error'], parent=self.frame)
+                MessageBox.showerror('Reset to default configuration', status['error'], parent=self.frame)
 
     def _WriteSlaveAddress(self, id):
-        q = tkMessageBox.askquestion('Address update','Are you sure you want to change address?', parent=self.frame)
+        q = MessageBox.askquestion('Address update','Are you sure you want to change address?', parent=self.frame)
         if q == 'yes':
             status = pijuice.config.SetAddress(id+1, self.slaveAddr[id].get())
             if status['error'] != 'NO_ERROR':
                 #self.slaveAddr[id].set(status['error'])
-                tkMessageBox.showerror('Address update', status['error'], parent=self.frame)
+                MessageBox.showerror('Address update', status['error'], parent=self.frame)
             else:
-                tkMessageBox.showinfo('Address update', "Success!", parent=self.frame)
+                MessageBox.showinfo('Address update', "Success!", parent=self.frame)
 
     def _RunPinConfigSelected(self, event):
         status = pijuice.config.SetRunPinConfig(self.runPinConfig.get())
         if status['error'] != 'NO_ERROR':
             self.runPinConfig.set(status['error'])
-            tkMessageBox.showerror('Run pin config', status['error'], parent=self.frame)
+            MessageBox.showerror('Run pin config', status['error'], parent=self.frame)
 
     def _IdEepromAddrSelected(self, event):
         status = pijuice.config.SetIdEepromAddress(self.idEepromAddr.get())
         if status['error'] != 'NO_ERROR':
             self.idEepromAddr.set(status['error'])
-            tkMessageBox.showerror('ID EEPROM Address select', status['error'], parent=self.frame)
+            MessageBox.showerror('ID EEPROM Address select', status['error'], parent=self.frame)
 
     def _IdEepromWpDisableCheck(self, *args):
         status = pijuice.config.SetIdEepromWriteProtect(not self.idEepromWpDisable.get())
         if status['error'] != 'NO_ERROR':
             self.idEepromWpDisable.set(not self.idEepromWpDisable.get())
-            tkMessageBox.showerror('ID EEPROM write protect', status['error'], parent=self.frame)
+            MessageBox.showerror('ID EEPROM write protect', status['error'], parent=self.frame)
 
     def _UpdatePowerInputsConfig(self, *args):
         config = {}
@@ -366,19 +380,19 @@ class PiJuiceHATConfig:
         config['usb_micro_dpm'] = self.usbMicroInDpm.get()
         status = pijuice.config.SetPowerInputsConfig(config, True)
         if status['error'] != 'NO_ERROR':
-            tkMessageBox.showerror('Power Inputs Configuration', status['error'], parent=self.frame)
+            MessageBox.showerror('Power Inputs Configuration', status['error'], parent=self.frame)
 
     def _PowerRegModeSelected(self, event):
         status = pijuice.config.SetPowerRegulatorMode(self.powerRegMode.get())
         if status['error'] != 'NO_ERROR':
             self.powerRegMode.set(status['error'])
-            tkMessageBox.showerror('ID EEPROM Address select', status['error'], parent=self.frame)
+            MessageBox.showerror('ID EEPROM Address select', status['error'], parent=self.frame)
 
     def _UpdateChargingConfig(self, *args):
         config = {'charging_enabled':self.chargingEnabled.get()}
         status = pijuice.config.SetChargingConfig(config, True)
         if status['error'] != 'NO_ERROR':
-            tkMessageBox.showerror('Charging configuration', status['error'], parent=self.frame)
+            MessageBox.showerror('Charging configuration', status['error'], parent=self.frame)
 
     def _ValidateSlaveAdr(self, var, id):
         new_value = var.get()
@@ -638,7 +652,7 @@ class PiJuiceLedConfig:
                     #else:
                     #	event.widget.set(config['error'])
                 else:
-                    tkMessageBox.showerror('Apply LED Configuration', status['error'], parent=self.frame)
+                    MessageBox.showerror('Apply LED Configuration', status['error'], parent=self.frame)
                     #event.widget.set(status['error'])
 
 class PiJuiceBatteryConfig:
@@ -1041,7 +1055,7 @@ class PiJuiceIoConfig:
             print(newCfg)
             ret = pijuice.config.SetIoConfiguration(i+1, newCfg, True)
             if ret['error'] != 'NO_ERROR':
-                tkMessageBox.showerror('IO' + str(i+1) + ' Configuration', 'Reason: ' + ret['error'], parent=self.frame)
+                MessageBox.showerror('IO' + str(i+1) + ' Configuration', 'Reason: ' + ret['error'], parent=self.frame)
 
 class PiJuiceHATConfigGui():
 
@@ -1280,7 +1294,7 @@ class PiJuiceWakeupConfig:
     def _WakeupEnableChecked(self, *args):
         ret = pijuice.rtcAlarm.SetWakeupEnabled(self.wakeupEnabled.get())
         if ret['error'] != 'NO_ERROR':
-            tkMessageBox.showerror('Alarm set', 'Failed to enable wakeup: ' + ret['error'], parent=self.frame)
+            MessageBox.showerror('Alarm set', 'Failed to enable wakeup: ' + ret['error'], parent=self.frame)
             self.status.set(ret['error'])
             self.wakeupEnabled.set(not self.wakeupEnabled.get())
         else:
@@ -1314,7 +1328,7 @@ class PiJuiceWakeupConfig:
 
         ret = pijuice.rtcAlarm.SetAlarm(a)
         if ret['error'] != 'NO_ERROR':
-            tkMessageBox.showerror('Alarm set', 'Reason: ' + ret['error'], parent=self.frame)
+            MessageBox.showerror('Alarm set', 'Reason: ' + ret['error'], parent=self.frame)
             self.status.set(ret['error'])
         else:
             self.status.set('')
@@ -1696,7 +1710,7 @@ class PiJuiceConfigGui(Frame):
 
 
 def save_config():
-    #if tkMessageBox.askokcancel("Quit", "Do you want to quit?"):
+    #if MessageBox.askokcancel("Quit", "Do you want to quit?"):
     if not os.path.exists(os.path.dirname(PiJuiceConfigDataPath)):
         print(os.path.dirname(PiJuiceConfigDataPath))
         os.makedirs(os.path.dirname(PiJuiceConfigDataPath))
@@ -1716,7 +1730,7 @@ def notify_service():
     except OSError:
         os.system("sudo kill -s SIGHUP %i" % pid)
     except:
-        tkMessageBox.showerror('PuJuice Service', "Failed to communicate with PiJuice service.\n"
+        MessageBox.showerror('PuJuice Service', "Failed to communicate with PiJuice service.\n"
             "See system logs and 'systemctl status pijuice.service' for details.", parent=root)
 
 
@@ -1747,7 +1761,7 @@ def start_app():
         s.theme_use(theme_name)
         configure_style(s)
     if pijuice is None:
-        tkMessageBox.showerror('PuJuice Interfacing', 'Failed to use I2C bus. Check if I2C is enabled', parent=root)
+        MessageBox.showerror('PuJuice Interfacing', 'Failed to use I2C bus. Check if I2C is enabled', parent=root)
     root.update()
     root.minsize(400, 400)
     gui = PiJuiceConfigGui()
