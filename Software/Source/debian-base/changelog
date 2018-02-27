@@ -1,3 +1,9 @@
+pijuice-base (1.2.1-1) unstable; urgency=low
+
+  * Fixed permissions setting for configuration file
+
+  -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 4 Feb 2018 18:12:32 +0600
+
 pijuice-base (1.2-1) unstable; urgency=low
 
   * Bump version
