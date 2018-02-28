@@ -1670,7 +1670,11 @@ class PiJuiceConfigGui(Frame):
         # self.grid(row=0, column=0)
         self.pack(expand=True, fill=BOTH)
         #self.master.maxsize(width=650, height=500)
-        self.master.title('PiJuice Settings')
+        
+        if sys.version_info > (3, 0):
+            self.master.title('PiJuice Settings (Python 3 version)')
+        else:
+            self.master.title('PiJuice Settings')
         self.isapp = isapp
 
         global PiJuiceConfigDataPath
