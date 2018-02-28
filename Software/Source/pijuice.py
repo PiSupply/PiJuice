@@ -387,7 +387,7 @@ class PiJuiceStatus(object):
         try:
             i = self.leds.index(led)
             d = [count & 0xFF] + rgb1*1 + \
-                [(period1/10) & 0xFF] + rgb2*1 + [(period2/10) & 0xFF]
+                [(period1//10) & 0xFF] + rgb2*1 + [(period2//10) & 0xFF]
         except:
             return {'error': 'BAD_ARGUMENT'}
         return self.interface.WriteData(self.LED_BLINK_CMD + i, d)
@@ -1413,7 +1413,7 @@ class PiJuiceConfig(object):
                 if dc < 0 or dc > 100:
                     return {'error': 'INVALID_CONFIG'}
                 elif dc < 100:
-                    dci = int(round(dc*65534/100))
+                    dci = int(dc*65534//100)
                     d[3] = dci & 0xFF
                     d[4] = (dci >> 8) & 0xFF
         except:
