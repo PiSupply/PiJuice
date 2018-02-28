@@ -623,7 +623,8 @@ class PiJuiceLedConfig(object):
         params, _ = askcolor(init_color, title="Color for D%i" % (idx / 3), parent=self.frame)
         if params:
             for i in range(3):
-                self.paramList[idx + i].set(str(params[i]))
+                # Converting to int implicitly because askcolor returns floats in Python3
+                self.paramList[idx + i].set(str(int(params[i])))
 
     def _NewConfigSelected(self, event, i):
         self.applyBtn.configure(state="normal")
