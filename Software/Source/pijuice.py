@@ -199,15 +199,15 @@ class PiJuiceInterface(object):
 
 class PiJuiceStatus(object):
 
-    STATUS_CMD = 0X40
-    FAULT_EVENT_CMD = 0X44
-    CHARGE_LEVEL_CMD = 0X41
-    BUTTON_EVENT_CMD = 0X45
-    BATTERY_TEMPERATURE_CMD = 0X47
-    BATTERY_VOLTAGE_CMD = 0X49
-    BATTERY_CURRENT_CMD = 0X4b
-    IO_VOLTAGE_CMD = 0X4d
-    IO_CURRENT_CMD = 0X4f
+    STATUS_CMD = 0x40
+    FAULT_EVENT_CMD = 0x44
+    CHARGE_LEVEL_CMD = 0x41
+    BUTTON_EVENT_CMD = 0x45
+    BATTERY_TEMPERATURE_CMD = 0x47
+    BATTERY_VOLTAGE_CMD = 0x49
+    BATTERY_CURRENT_CMD = 0x4b
+    IO_VOLTAGE_CMD = 0x4d
+    IO_CURRENT_CMD = 0x4f
     LED_STATE_CMD = 0x66
     LED_BLINK_CMD = 0x68
     IO_PIN_ACCESS_CMD = 0x75
@@ -972,10 +972,10 @@ class PiJuiceRtcAlarm(object):
 
 class PiJuicePower(object):
 
-    WATCHDOG_ACTIVATION_CMD = 0X61
+    WATCHDOG_ACTIVATION_CMD = 0x61
     POWER_OFF_CMD = 0x62
     WAKEUP_ON_CHARGE_CMD = 0x63
-    SYSTEM_POWER_SWITCH_CTRL_CMD = 0X64
+    SYSTEM_POWER_SWITCH_CTRL_CMD = 0x64
 
     def __init__(self, interface):
         self.interface = interface
@@ -996,7 +996,7 @@ class PiJuicePower(object):
     def SetWakeUpOnCharge(self, arg):
         try:
             if arg == 'DISABLED':
-                d = 0X7F
+                d = 0x7F
             elif int(arg) >= 0 and int(arg) <= 100:
                 d = int(arg)
         except:
@@ -1017,7 +1017,7 @@ class PiJuicePower(object):
     # input argument 1 - 65535 minutes activates watchdog, 0 disables watchdog
     def SetWatchdog(self, minutes):
         try:
-            d = int(minutes) & 0XFFFF
+            d = int(minutes) & 0xFFFF
         except:
             return {'error': 'BAD_ARGUMENT'}
         return self.interface.WriteData(self.WATCHDOG_ACTIVATION_CMD, [d & 0xFF, (d >> 8) & 0xFF])
@@ -1052,8 +1052,8 @@ class PiJuiceConfig(object):
     BATTERY_PROFILE_CMD = 0x53
     BATTERY_TEMP_SENSE_CONFIG_CMD = 0x5D
     POWER_INPUTS_CONFIG_CMD = 0x5E
-    RUN_PIN_CONFIG_CMD = 0X5F
-    POWER_REGULATOR_CONFIG_CMD = 0X60
+    RUN_PIN_CONFIG_CMD = 0x5F
+    POWER_REGULATOR_CONFIG_CMD = 0x60
     LED_CONFIGURATION_CMD = 0x6A
     BUTTON_CONFIGURATION_CMD = 0x6E
     IO_CONFIGURATION_CMD = 0x72
@@ -1061,7 +1061,7 @@ class PiJuiceConfig(object):
     ID_EEPROM_WRITE_PROTECT_CTRL_CMD = 0x7E
     ID_EEPROM_ADDRESS_CMD = 0x7F
     RESET_TO_DEFAULT_CMD = 0xF0
-    FIRMWARE_VERSION_CMD = 0XFD
+    FIRMWARE_VERSION_CMD = 0xFD
 
     def __init__(self, interface):
         self.interface = interface
