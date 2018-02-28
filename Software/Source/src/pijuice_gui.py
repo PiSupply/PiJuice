@@ -636,6 +636,21 @@ class PiJuiceLedConfig(object):
     def _ApplyNewConfig(self, v):
         for i in range(0, len(pijuice.config.leds)):
             ledConfig = {'function':self.ledConfigsSel[i].get(), 'parameter':{'r':self.paramList[i*3].get(), 'g':self.paramList[i*3+1].get(), 'b':self.paramList[i*3+2].get()}}
+            # Validate values
+            for color in ('r', 'g', 'b'):
+                try:
+                    if int(ledConfig['parameter'][color]) < 0:
+                        ledConfig['parameter'][color] = '0'
+                    if int(ledConfig['parameter'][color]) > 255:
+                        ledConfig['parameter'][color] = '255'
+                    self.paramList[i * 3 + ('r', 'g', 'b').index(color)].set(
+                        str(ledConfig['parameter'][color]))
+                except ValueError:
+                    # If not int, set old value
+                    ledConfig['parameter'][color] = self.configs[i]['parameter'][color]
+                    self.paramList[i * 3 + ('r', 'g', 'b').index(color)].set(
+                        str(ledConfig['parameter'][color]))
+
             if ( self.configs[i] == None
                 or ledConfig['function'] != self.configs[i]['function']
                 or ledConfig['parameter']['r'] != self.configs[i]['parameter']['r']
