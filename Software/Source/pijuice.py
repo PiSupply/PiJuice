@@ -553,11 +553,11 @@ class PiJuiceRtcAlarm(object):
         dt['minute'] = ((d[1] >> 4) & 0x07) * 10 + (d[1] & 0x0F)
 
         if (d[2] & 0x40):
-            hourFormat = '12'
+            # hourFormat = '12'
             ampm = 'PM' if (d[2] & 0x20) else 'AM'
             dt['hour'] = str(((d[2] >> 4) & 0x01) * 10 + (d[2] & 0x0F)) + ' ' + ampm
         else:
-            hourFormat = '24'
+            # hourFormat = '24'
             dt['hour'] = ((d[2] >> 4) & 0x03) * 10 + (d[2] & 0x0F)
 
         dt['weekday'] = d[3] & 0x07
@@ -739,11 +739,11 @@ class PiJuiceRtcAlarm(object):
 
         if (d[2] & 0x80) == 0x00:
             if (d[2] & 0x40):
-                hourFormat = '12'
+                # hourFormat = '12'
                 ampm = 'PM' if (d[2] & 0x20) else 'AM'
                 alarm['hour'] = str(((d[2] >> 4) & 0x01) * 10 + (d[2] & 0x0F)) + ' ' + ampm
             else:
-                hourFormat = '24'
+                # hourFormat = '24'
                 alarm['hour'] = ((d[2] >> 4) & 0x03) * 10 + (d[2] & 0x0F)
         else:
             if d[4] == 0xFF and d[5] == 0xFF and d[6] == 0xFF:
@@ -863,7 +863,7 @@ class PiJuiceRtcAlarm(object):
 
                 elif (isinstance(h, str) and h.find(';') >= 0):
                     hs = 0x00000000
-                    hFormat = ''
+                    # hFormat = ''
                     hl = h.split(';')
                     # remove ending empty string if there is ; at the end of list
                     hl = hl[0:-1] if (not bool(hl[-1].strip())) else hl
