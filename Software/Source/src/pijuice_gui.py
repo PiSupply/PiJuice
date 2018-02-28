@@ -47,7 +47,7 @@ PID_FILE = '/var/run/pijuice.pid'
 USER_FUNCS_TOTAL = 15
 USER_FUNCS_MINI = 8
 pijuiceConfigData = {}
-PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON' #os.getcwd() + '/pijuice_config.JSON'
+PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON'  # os.getcwd() + '/pijuice_config.JSON'
 
 def _ValidateIntEntry(var, oldVar, min, max):
     new_value = var.get()

@@ -57,7 +57,7 @@ class PiJuiceInterface():
         #     self._device.close()
         #     self._device = None
         self.i2cbus = None
-        return False  # Don't suppress exceptions.
+        return False  # Don't suppress exceptions
 
     def GetAddress(self):
         return self.addr
