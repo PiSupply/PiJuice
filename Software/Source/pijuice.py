@@ -19,7 +19,7 @@ pijuice_sys_functions = ['SYS_FUNC_HALT', 'SYS_FUNC_HALT_POW_OFF', 'SYS_FUNC_SYS
 pijuice_user_functions = ['USER_EVENT'] + ['USER_FUNC' + str(i+1) for i in range(0, 15)]
 
 
-class PiJuiceInterface():
+class PiJuiceInterface(object):
     I2C_SLAVE = 0x0703  # Use this slave address
     I2C_SLAVE_FORCE = 0x0706  # Use this slave address, even if
                                 # is already in use by a driver!
@@ -197,7 +197,7 @@ class PiJuiceInterface():
                     return {'error': 'WRITE_FAILED'}
 
 
-class PiJuiceStatus():
+class PiJuiceStatus(object):
 
     STATUS_CMD = 0X40
     FAULT_EVENT_CMD = 0X44
@@ -482,7 +482,7 @@ class PiJuiceStatus():
             return {'data': dc, 'error': 'NO_ERROR'}
 
 
-class PiJuiceRtcAlarm():
+class PiJuiceRtcAlarm(object):
 
     RTC_ALARM_CMD = 0xB9
     RTC_TIME_CMD = 0xB0
@@ -805,7 +805,7 @@ class PiJuiceRtcAlarm():
                 return {'error': 'INVALID_SECOND'}
             if s < 0 or s > 60:
                 return {'error': 'INVALID_SECOND'}
-            d[0] = ((s / 10) & 0x0F) << 4
+            d[0] = ((s // 10) & 0x0F) << 4
             d[0] = d[0] | ((s % 10) & 0x0F)
 
         if 'minute' in alarm:
@@ -815,7 +815,7 @@ class PiJuiceRtcAlarm():
                 return {'error': 'INVALID_MINUTE'}
             if m < 0 or m > 60:
                 return {'error': 'INVALID_MINUTE'}
-            d[1] = ((m / 10) & 0x0F) << 4
+            d[1] = ((m // 10) & 0x0F) << 4
             d[1] = d[1] | ((m % 10) & 0x0F)
         else:
             d[1] = d[1] | 0x80  # every minute
@@ -844,12 +844,12 @@ class PiJuiceRtcAlarm():
                     if (h.find('AM') > -1) or (h.find('PM') > -1):
                         if (h.find('PM') > -1):
                             hi = int(h.split('PM')[0])
-                            d[2] = (((hi / 10) & 0x03) << 4)
+                            d[2] = (((hi // 10) & 0x03) << 4)
                             d[2] = d[2] | ((hi % 10) & 0x0F)
                             d[2] = d[2] | 0x20 | 0x40
                         else:
                             hi = int(h.split('AM')[0])
-                            d[2] = (((hi / 10) & 0x03) << 4)
+                            d[2] = (((hi // 10) & 0x03) << 4)
                             d[2] = d[2] | ((hi % 10) & 0x0F)
                             d[2] = d[2] | 0x40
                     else:
@@ -928,7 +928,7 @@ class PiJuiceRtcAlarm():
 
                 else:
                     dm = int(day)
-                    d[3] = (((dm / 10) & 0x03) << 4)
+                    d[3] = (((dm // 10) & 0x03) << 4)
                     d[3] = d[3] | ((dm % 10) & 0x0F)
             except:
                 return {'error': 'INVALID_DAY_OF_MONTH'}
@@ -970,7 +970,7 @@ class PiJuiceRtcAlarm():
                 return {'error': 'WRITE_FAILED'}
 
 
-class PiJuicePower():
+class PiJuicePower(object):
 
     WATCHDOG_ACTIVATION_CMD = 0X61
     POWER_OFF_CMD = 0x62
@@ -1045,7 +1045,7 @@ class PiJuicePower():
             return {'data': ret['data'][0] * 100, 'error': 'NO_ERROR'}
 
 
-class PiJuiceConfig():
+class PiJuiceConfig(object):
 
     CHARGING_CONFIG_CMD = 0x51
     BATTERY_PROFILE_ID_CMD = 0x52
@@ -1291,7 +1291,7 @@ class PiJuiceConfig():
                             config[self.buttonEvents[i]]['function']) + 0x20
                     except:
                         data[i*2] = 0
-            data[i*2+1] = (config[self.buttonEvents[i]]['parameter'] / 100) & 0xff
+            data[i*2+1] = (config[self.buttonEvents[i]]['parameter'] // 100) & 0xff
         return self.interface.WriteDataVerify(self.BUTTON_CONFIGURATION_CMD + b, data, 0.4)
 
     leds = ['D1', 'D2']
@@ -1402,7 +1402,7 @@ class PiJuiceConfig():
                 d[1] = int(config['value']) & 0x01  # output value
             elif config['mode'] == 'PWM_OUT_PUSHPULL' or config['mode'] == 'PWM_OUT_OPEN_DRAIN':
                 if config['period'] >= 2:
-                    p = int(config['period']) / 2 - 1
+                    p = int(config['period']) // 2 - 1
                 else:
                     return {'error': 'INVALID_PERIOD'}
                 d[1] = p & 0xFF
@@ -1435,7 +1435,7 @@ class PiJuiceConfig():
             elif mode == 'PWM_OUT_PUSHPULL' or mode == 'PWM_OUT_OPEN_DRAIN':
                 per = ((d[1] | (d[2] << 8)) + 1) * 2
                 dci = d[3] | (d[4] << 8)
-                dc = float(dci) * 100 / 65534 if dci < 65535 else 100
+                dc = float(dci) * 100 // 65534 if dci < 65535 else 100
                 return {'data': {'mode': mode, 'pull': pull, 'period': per, 'duty_circle': dc},
                         'non_volatile': nv, 'error': 'NO_ERROR'}
             else:
