@@ -1168,7 +1168,7 @@ class PiJuiceConfig():
             B = profile['ntcB']
             d[10] = B & 0xFF
             d[11] = (B >> 8) & 0xFF
-            R = profile['ntcResistance'] / 10
+            R = profile['ntcResistance'] // 10
             d[12] = R & 0xFF
             d[13] = (R >> 8) & 0xFF
         except:
