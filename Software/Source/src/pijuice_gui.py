@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
+from __future__ import print_function, division
 
 import calendar
 import copy
@@ -64,6 +64,7 @@ def _ValidateIntEntry(var, oldVar, min, max):
         var.set(oldVar.get())
     oldVar.set(new_value)
 
+
 def _ValidateFloatEntry(var, oldVar, min, max):
     new_value = var.get()
     try:
@@ -78,6 +79,7 @@ def _ValidateFloatEntry(var, oldVar, min, max):
     except:
         var.set(oldVar.get())
     oldVar.set(new_value)
+
 
 class PiJuiceFirmware(object):
     def __init__(self, master):
@@ -208,6 +210,7 @@ class PiJuiceFirmware(object):
                     MessageBox.showerror('Firmware update failed', 'Reason: ' + errorStatus + '. ' + msg, parent=self.frame)
             else:
                 MessageBox.showerror('Firmware update', 'Unknown PiJuice I2C address', parent=self.frame)
+
 
 class PiJuiceHATConfig(object):
     def __init__(self, master):
@@ -409,6 +412,7 @@ class PiJuiceHATConfig(object):
             var.set(self.oldAdr[id])
         self.oldAdr[id] = new_value
 
+
 class PiJuiceButtonsConfig(object):
     def __init__(self, master):
         # frame to hold contentx
@@ -529,6 +533,7 @@ class PiJuiceButtonsConfig(object):
     def _ConfigFuncSelected(self, event):
         self.applyBtn.configure(state="normal")
 
+
 class PiJuiceLedConfig(object):
     def __init__(self, master):
 
@@ -620,7 +625,7 @@ class PiJuiceLedConfig(object):
             except ValueError:
                 init_color[i] = 0
         init_color = "#%02x%02x%02x" % tuple(init_color)
-        params, _ = askcolor(init_color, title="Color for D%i" % (idx / 3), parent=self.frame)
+        params, _ = askcolor(init_color, title="Color for D%i" % (idx // 3), parent=self.frame)
         if params:
             for i in range(3):
                 # Converting to int implicitly because askcolor returns floats in Python3
@@ -670,6 +675,7 @@ class PiJuiceLedConfig(object):
                 else:
                     MessageBox.showerror('Apply LED Configuration', status['error'], parent=self.frame)
                     #event.widget.set(status['error'])
+
 
 class PiJuiceBatteryConfig(object):
     def __init__(self, master):
@@ -942,6 +948,7 @@ class PiJuiceBatteryConfig(object):
             self.ReadProfileData()
             self.applyBtn.configure(state="disabled")
 
+
 class PiJuiceIoConfig(object):
     def __init__(self, master):
 
@@ -1073,6 +1080,7 @@ class PiJuiceIoConfig(object):
             if ret['error'] != 'NO_ERROR':
                 MessageBox.showerror('IO' + str(i+1) + ' Configuration', 'Reason: ' + ret['error'], parent=self.frame)
 
+
 class PiJuiceHATConfigGui(object):
 
     def __init__(self, isapp=True, name='pijuiceConfig'):
@@ -1117,6 +1125,7 @@ class PiJuiceHATConfigGui(object):
 
         t.update()
         t.minsize(t.winfo_width(), t.winfo_height())
+
 
 class PiJuiceUserScriptConfig(object):
     def __init__(self, master):
@@ -1178,6 +1187,7 @@ class PiJuiceUserScriptConfig(object):
         if not 'user_functions' in pijuiceConfigData:
             pijuiceConfigData['user_functions'] = {}
         pijuiceConfigData['user_functions']['USER_FUNC'+str(id+1)] = self.paths[id].get()
+
 
 class PiJuiceWakeupConfig(object):
     def __init__(self, master):
@@ -1305,7 +1315,7 @@ class PiJuiceWakeupConfig(object):
 
     def _SetTime(self, v):
         t = datetime.datetime.utcnow()
-        print(pijuice.rtcAlarm.SetTime({'second':t.second, 'minute':t.minute, 'hour':t.hour, 'weekday':t.weekday()+1, 'day':t.day,  'month':t.month, 'year':t.year, 'subsecond':t.microsecond/1000000}))
+        print(pijuice.rtcAlarm.SetTime({'second':t.second, 'minute':t.minute, 'hour':t.hour, 'weekday':t.weekday()+1, 'day':t.day,  'month':t.month, 'year':t.year, 'subsecond':t.microsecond//1000000}))
 
     def _WakeupEnableChecked(self, *args):
         ret = pijuice.rtcAlarm.SetWakeupEnabled(self.wakeupEnabled.get())
@@ -1350,6 +1360,7 @@ class PiJuiceWakeupConfig(object):
             self.status.set('')
 
         print(pijuice.rtcAlarm.GetAlarm())
+
 
 class PiJuiceSysEventConfig(object):
     def __init__(self, master):
@@ -1461,6 +1472,7 @@ class PiJuiceSysEventConfig(object):
             pijuiceConfigData['system_events'][self.sysEvents[i]['id']] = {}
         pijuiceConfigData['system_events'][self.sysEvents[i]['id']]['function'] = self.funcConfigsSel[i].get()
 
+
 class PiJuiceConfigParamEdit(object):
     def __init__(self, master, r, config, name, paramDes, id, paramId, type, min, max):
         self.frame = master
@@ -1522,6 +1534,7 @@ class PiJuiceConfigParamEdit(object):
             self.config[self.id] = {}
         self.config[self.id][self.paramId] = self.param.get()
 
+
 class PiJuiceSysTaskTab(object):
     def __init__(self, master):
         self.frame = Frame(master, name='sys_task')
@@ -1556,6 +1569,7 @@ class PiJuiceSysTaskTab(object):
             pijuiceConfigData['system_task']['enabled'] = True
         else:
             pijuiceConfigData['system_task']['enabled'] = False
+
 
 class PiJuiceHatTab(object):
     def __init__(self, master):
@@ -1617,7 +1631,7 @@ class PiJuiceHatTab(object):
 
             volt = pijuice.status.GetBatteryVoltage()
             if volt['error'] == 'NO_ERROR':
-                self.status.set(str(chg['data'])+'%, '+str(float(volt['data'])/1000)+'V, '+ret['data']['battery'])
+                self.status.set(str(chg['data'])+'%, '+str(float(volt['data']) / 1000)+'V, '+ret['data']['battery'])
             else:
                 self.status.set(volt['error'])
 
@@ -1629,7 +1643,7 @@ class PiJuiceHatTab(object):
 
             v5v = pijuice.status.GetIoVoltage()
             if v5v['error'] == 'NO_ERROR':
-                self.gpioPower.set(str(float(v5v['data'])/1000)+'V, ' + curr + ret['data']['powerInput5vIo'])
+                self.gpioPower.set(str(float(v5v['data']) / 1000)+'V, ' + curr + ret['data']['powerInput5vIo'])
             else:
                 self.gpioPower.set(v5v['error'])
 
@@ -1662,6 +1676,7 @@ class PiJuiceHatTab(object):
     def _HatConfigCmd(self):
         if pijuice != None:
             self.advWindow = PiJuiceHATConfigGui()
+
 
 class PiJuiceConfigGui(Frame):
 
