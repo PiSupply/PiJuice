@@ -7,6 +7,6 @@ Standards-Version: 3.9.6
 
 Package: pijuice-base
 Architecture: all
-Depends: python (>= 2.6), i2c-tools, python-smbus
+Depends: python (>= 2.6), i2c-tools, python-smbus, python-urwid
 Conflicts: pijuice
 Description: Packaging a PiJuice Python script as DEB
