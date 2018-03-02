@@ -324,7 +324,6 @@ class GeneralTab(object):
                              "This action will reset all settings on your device to their default values.\n"
                              "Do you want to proceed?", single_option=False, next=self._reset_settings)),
                          urwid.Button('Back', on_press=main_menu),
-                        #  urwid.Button("Show config", on_press=self._show_current_config),  # XXX: For debug purposes
                          ])
         main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(elements)), left=2, right=2)
     
@@ -344,9 +343,6 @@ class GeneralTab(object):
         self.bgroup = []
         self.main()
 
-    def _show_current_config(self, *args):
-        main.original_widget = urwid.Filler(urwid.Pile([urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
-    
     def _apply_settings(self, *args):
         device_config = self._get_device_config()
         changed = [key for key in self.current_config.keys() if self.current_config[key] != device_config[key]]
@@ -417,7 +413,6 @@ class LEDTab(object):
                          urwid.Button("Apply settings", on_press=self._apply_settings),
                          urwid.Button("Refresh", on_press=self._refresh_settings),
                          urwid.Button("Back", on_press=main_menu),
-                         urwid.Button("Show config", on_press=self._show_current_config),  # XXX: For debug purposes
                          ])
         main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(elements)), left=2, right=2)
     
@@ -493,9 +488,6 @@ class LEDTab(object):
         if value >= 0 and value <= 255:
             self.current_config[led_index]['color'][color_index] = value
     
-    def _show_current_config(self, *args):
-        main.original_widget = urwid.Filler(urwid.Pile([urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
-
 
 class ButtonsTab(object):
     FUNCTIONS = ['NO_FUNC'] + pijuice_hard_functions + pijuice_sys_functions + pijuice_user_functions
@@ -516,8 +508,6 @@ class ButtonsTab(object):
             elements.append(urwid.Button("Apply settings", on_press=self._apply_settings))
         elements.extend([urwid.Button("Refresh", on_press=self._refresh_settings),
                          urwid.Button("Back", on_press=main_menu),
-                         # XXX: For debug purposes
-                         urwid.Button("Show config", on_press=self._show_current_config),
                          ])
         main.original_widget = urwid.Padding(urwid.ListBox(
             urwid.SimpleFocusListWalker(elements)), left=2, right=2)
@@ -608,10 +598,6 @@ class ButtonsTab(object):
         else:
             confirmation_dialog("Settings have been applied", next=self.main, single_option=True)
     
-    def _show_current_config(self, *args):
-        main.original_widget = urwid.Filler(urwid.Pile(
-            [urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
-
 
 class IOTab(object):
     IO_PINS_COUNT = 2
@@ -631,8 +617,6 @@ class IOTab(object):
         elements.extend([urwid.Divider(),
                          urwid.Button("Apply settings", on_press=self._apply_settings, user_data=self.IO_PINS_COUNT),
                          urwid.Button("Back", on_press=main_menu),
-                         # XXX: For debug purposes
-                         urwid.Button("Show config", on_press=self._show_current_config),
                          ])
         main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(elements)), left=2, right=2)
     
@@ -763,10 +747,6 @@ class IOTab(object):
         result = pijuice.config.SetIoConfiguration(pin_id + 1, self.current_config[pin_id], True)
         return result.get('error', 'NO_ERROR')
 
-    def _show_current_config(self, *args):
-        main.original_widget = urwid.Filler(urwid.Pile(
-            [urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
-
 
 class BatteryProfileTab(object):
     BATTERY_PROFILES = pijuice.config.batteryProfiles + ['CUSTOM', 'DEFAULT']
@@ -829,9 +809,6 @@ class BatteryProfileTab(object):
                          urwid.Button("Refresh", on_press=self.refresh),
                          urwid.Button("Apply settings", on_press=self._apply_settings),
                          urwid.Button("Back", on_press=main_menu),
-                         # XXX: For debug purposes
-                         urwid.Button(
-                             "Show config", on_press=self._show_current_config),
                          ])
         main.original_widget = urwid.Padding(urwid.ListBox(
             urwid.SimpleFocusListWalker(elements)), left=2, right=2)
@@ -983,15 +960,15 @@ class BatteryProfileTab(object):
 
         return pijuice.config.SetCustomBatteryProfile(profile)
 
-    def _show_current_config(self, *args):
-        current_config = {
-            'profile': self.profile_name,
-            'profile_status': self.profile_status,
-            'profile_data': self.profile_data,
-            'status_text': self.status_text,
-        }
-        main.original_widget = urwid.Filler(urwid.Pile(
-            [urwid.Text(str(current_config)), urwid.Button('Back', on_press=self.main)]))
+    # def _show_current_config(self, *args):
+    #     current_config = {
+    #         'profile': self.profile_name,
+    #         'profile_status': self.profile_status,
+    #         'profile_data': self.profile_data,
+    #         'status_text': self.status_text,
+    #     }
+    #     main.original_widget = urwid.Filler(urwid.Pile(
+    #         [urwid.Text(str(current_config)), urwid.Button('Back', on_press=self.main)]))
 
 
 class WakeupAlarmTab(object):
@@ -1195,16 +1172,9 @@ class WakeupAlarmTab(object):
             urwid.Divider(),
             urwid.Button("Set alarm", on_press=self._set_alarm),
             urwid.Button("Back", on_press=main_menu),
-            # XXX: For debug purposes
-            urwid.Button("Show config", on_press=self._show_current_config),
         ]
         main.original_widget = urwid.Padding(urwid.ListBox(
             urwid.SimpleFocusListWalker(elements)), left=2, right=2)
-
-    def _show_current_config(self, *args):
-        main.original_widget = urwid.Filler(urwid.Pile(
-            [urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
-
 
 
 def menu(title, choices):
