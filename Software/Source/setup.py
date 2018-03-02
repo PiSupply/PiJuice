@@ -82,7 +82,7 @@ version = os.environ.get('PIJUICE_VERSION')
 if int(os.environ.get('PIJUICE_BUILD_BASE', 0)) > 0:
     name = "pijuice-base"
     data_files = [('share/pijuice/data/firmware', glob.glob('data/firmware/*'))]
-    scripts = ['src/pijuice_sys.py']
+    scripts = ['src/pijuice_sys.py', 'src/pijuice_cli.py']
     description = "Software package for PiJuice"
     py_modules=['pijuice']
 else:

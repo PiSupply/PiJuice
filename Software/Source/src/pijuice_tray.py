@@ -92,7 +92,7 @@ class PiJuiceStatusTray(object):
 
 			if charge['error'] == 'NO_ERROR':
 				b_level = charge['data']
-				print(b_level + '%')
+				print('{}%'.format(b_level))
 			else:
 				print(charge)
 

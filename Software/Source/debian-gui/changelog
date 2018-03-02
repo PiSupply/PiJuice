@@ -1,3 +1,14 @@
+pijuice-gui (1.3-1) unstable; urgency=low
+
+  * src/pijuice_gui.py:
+    - Python 3 support
+    - Minor bug fixes
+  
+  * src/pijuice_tray.py:
+    - Python 3 support
+
+  -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 2 Mar 2018 17:35:10 +0600
+
 pijuice-gui (1.2-1) unstable; urgency=low
 
   * src/pijuice_gui.py:
