@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # pylint: disable=import-error
+import datetime
 import os
 import re
 import subprocess
@@ -319,8 +320,9 @@ class GeneralTab(object):
                                          on_press=self._list_options, user_data=option))
 
         elements.extend([urwid.Divider(), urwid.Button("Apply settings", on_press=self._apply_settings),
-                         urwid.Button('Reset to default', on_press=lambda x: confirmation_dialog("This action will reset all settings on your device to their default values.\n"
-                                                                                                 "Do you want to proceed?", single_option=False, next=self._reset_settings)),
+                         urwid.Button('Reset to default', on_press=lambda x: confirmation_dialog(
+                             "This action will reset all settings on your device to their default values.\n"
+                             "Do you want to proceed?", single_option=False, next=self._reset_settings)),
                          urwid.Button('Back', on_press=main_menu),
                         #  urwid.Button("Show config", on_press=self._show_current_config),  # XXX: For debug purposes
                          ])
@@ -992,6 +994,219 @@ class BatteryProfileTab(object):
             [urwid.Text(str(current_config)), urwid.Button('Back', on_press=self.main)]))
 
 
+class WakeupAlarmTab(object):
+    def __init__(self, *args):
+        try:
+            self.current_config = self._get_alarm()
+        except Exception as e:
+            confirmation_dialog("Unable to connect to device: {}".format(
+                str(e)), next=main_menu, single_option=True)
+        else:
+            self.status = 'OK'
+            self.device_time = self._get_device_time()
+            self.main()
+
+    def _get_alarm(self, *args):
+        status = {unit: {} for unit in ('day', 'hour', 'minute', 'second')}
+        # Empty by default
+        for unit in ('day', 'hour', 'minute', 'second'):
+            status[unit]['value'] = ''
+
+        ctr = pijuice.rtcAlarm.GetControlStatus()
+        if ctr['error'] != 'NO_ERROR':
+            raise Exception(ctr['error'])
+        status['enabled'] = ctr['data']['alarm_wakeup_enabled']
+
+        alarm = pijuice.rtcAlarm.GetAlarm()
+        if alarm['error'] != 'NO_ERROR':
+            raise Exception(alarm['error'])
+
+        alarm = alarm['data']
+
+        if 'day' in alarm:
+            status['day']['type'] = 0  # Day number
+            if alarm['day'] == 'EVERY_DAY':
+                status['day']['every_day'] = True
+            else:
+                status['day']['every_day'] = False
+                status['day']['value'] = alarm['day']
+        elif 'weekday' in alarm:
+            status['day']['type'] = 1  # Day of week number
+            if alarm['weekday'] == 'EVERY_DAY':
+                status['day']['every_day'] = True
+            else:
+                status['day']['every_day'] = False
+                status['day']['value'] = alarm['weekday']
+
+        if 'hour' in alarm:
+            if alarm['hour'] == 'EVERY_HOUR':
+                status['hour']['every_hour'] = True
+            else:
+                status['hour']['every_hour'] = False
+                status['hour']['value'] = alarm['hour']
+
+        if 'minute' in alarm:
+            status['minute']['type'] = 0  # Minute
+            status['minute']['value'] = alarm['minute']
+        elif 'minute_period' in alarm:
+            status['minute']['type'] = 1  # Minute period
+            status['minute']['value'] = alarm['minute_period']
+
+        if 'second' in alarm:
+            status['second']['value'] = alarm['second']
+
+        return status
+
+    def _get_device_time(self, *args):
+        device_time = ''
+        t = pijuice.rtcAlarm.GetTime()
+        if t['error'] == 'NO_ERROR':
+            t = t['data']
+            dt = datetime.datetime(t['year'], t['month'], t['day'], t['hour'], t['minute'], t['second'])
+            dt_fmt = "%a %Y-%m-%d %H:%M:%S"
+            device_time = dt.strftime(dt_fmt)
+        else:
+            device_time = t['error']
+
+        s = pijuice.rtcAlarm.GetControlStatus()
+        if s['error'] == 'NO_ERROR' and s['data']['alarm_flag']:
+            self._update_status('Last: {}:{}:{}'.format(str(t['hour']).rjust(2, '0'),
+                                                        str(t['minute']).rjust(2, '0'),
+                                                        str(t['second']).rjust(2, '0')))
+
+        return device_time
+
+    def _update_status(self, status):
+        self.status = status
+        self.status_text.set_text("Status: " + self.status)
+
+    def _update_time(self, *args):
+        self.device_time = self._get_device_time()
+        self.time_text.set_text("UTC Time: " + self.device_time)
+
+    def _set_alarm(self, *args):
+        alarm = {}
+        if self.current_config['second'].get('value'):
+            alarm['second'] = self.current_config['second']['value']
+
+        if self.current_config['minute'].get('value'):
+            if self.current_config['minute']['type'] == 0:
+                alarm['minute'] = self.current_config['minute']['value']
+            elif self.current_config['minute']['type'] == 1:
+                alarm['minute_period'] = self.current_config['minute']['value']
+
+        if self.current_config['hour'].get('value') or self.current_config['hour']['every_hour']:
+            alarm['hour'] = 'EVERY_HOUR' if self.current_config['hour']['every_hour'] else self.current_config['hour']['value']
+
+        if self.current_config['day'].get('value') or self.current_config['day']['every_day']:
+            if self.current_config['day']['type'] == 0:
+                alarm['day'] = 'EVERY_DAY' if self.current_config['day']['every_day'] else self.current_config['day']['value']
+            elif self.current_config['day']['type'] == 1:
+                alarm['weekday'] = 'EVERY_DAY' if self.current_config['day']['every_day'] else self.current_config['day']['value']
+
+        status = pijuice.rtcAlarm.SetAlarm(alarm)
+
+        if status['error'] != 'NO_ERROR':
+            confirmation_dialog('Failed to apply wakeup alarm options. Error: {}'.format(
+                status['error']), next=main_menu, single_option=True)
+        else:
+            confirmation_dialog('Wakeup alarm has been set successfully.', next=self.main, single_option=True)
+
+    def _toggle_wakeup(self, checkbox, state, *args):
+        self.current_config['enabled'] = state
+        ret = pijuice.rtcAlarm.SetWakeupEnabled(state)
+        if ret['error'] != 'NO_ERROR':
+            self.current_config['enabled'] = not state
+            checkbox.set_state(False, do_callback=False)
+            confirmation_dialog('Failed to toggle alarm. Error: {}'.format(ret['error']), next=main_menu, single_option=True)
+
+    def _set_time(self, *args):
+        t = datetime.datetime.utcnow()
+        pijuice.rtcAlarm.SetTime({
+            'second': t.second,
+            'minute': t.minute,
+            'hour': t.hour,
+            'weekday': t.weekday() + 1,
+            'day': t.day,
+            'month': t.month,
+            'year': t.year,
+            'subsecond': t.microsecond // 1000000
+        })
+        self._update_time()
+
+    def _set_day_type(self, rb, state, period_type):
+        if state:
+            self.current_config['day']['type'] = period_type
+
+    def _set_minute_type(self, rb, state, period_type):
+        if state:
+            self.current_config['minute']['type'] = period_type
+
+    def main(self, *args):
+        self.status_text = urwid.Text("Status: " + self.status)
+        self.time_text = urwid.Text("UTC Time: " + self._get_device_time())
+        wakeup_cbox = urwid.CheckBox("Wakeup enabled", state=self.current_config['enabled'],
+                                     on_state_change=self._toggle_wakeup)
+        elements = [urwid.Text("Wakeup Alarm"),
+                    urwid.Divider(),
+                    self.status_text,
+                    self.time_text,
+                    wakeup_cbox,
+                    urwid.Button("Set system time", on_press=self._set_time),
+                    urwid.Divider(),
+        ]
+        self.day_bgroup = []
+        day_radio = urwid.RadioButton(self.day_bgroup, "Day", on_state_change=self._set_day_type, user_data=0)
+        weekday_radio = urwid.RadioButton(self.day_bgroup, "Weekday", on_state_change=self._set_day_type, user_data=1)
+        self.day_bgroup[self.current_config['day']['type']].set_state(True, do_callback=False)
+        day_type_row = urwid.Columns([day_radio, weekday_radio])
+
+        day_edit = urwid.Edit("Day: ", edit_text=str(self.current_config['day']['value']))
+        urwid.connect_signal(day_edit, 'change', lambda x, text: self.current_config['day'].update({'value': text}))
+        day_checkbox = urwid.CheckBox("Every day", state=self.current_config['day']['every_day'],
+                                      on_state_change=lambda x, state: self.current_config['day'].update({'every_day': state}))
+        day_value_row = urwid.Columns([day_edit, day_checkbox])
+
+        hour_edit = urwid.Edit("Hour: ", edit_text=str(self.current_config['hour']['value']))
+        urwid.connect_signal(hour_edit, 'change', lambda x, text: self.current_config['hour'].update({'value': text}))
+        hour_checkbox = urwid.CheckBox("Every hour", state=self.current_config['hour']['every_hour'],
+                                      on_state_change=lambda x, state: self.current_config['hour'].update({'every_hour': state}))
+        hour_value_row = urwid.Columns([hour_edit, hour_checkbox])
+
+        self.minute_bgroup = []
+        minute_radio = urwid.RadioButton(self.minute_bgroup, "Minute", on_state_change=self._set_minute_type, user_data=0)
+        minute_period_radio = urwid.RadioButton(
+            self.minute_bgroup, "Minutes period", on_state_change=self._set_minute_type, user_data=1)
+        self.minute_bgroup[self.current_config['minute']['type']].toggle_state()
+        minute_type_row = urwid.Columns([minute_radio, minute_period_radio])
+
+        minute_edit = urwid.Edit("Minute: ", edit_text=str(self.current_config['minute']['value']))
+        urwid.connect_signal(minute_edit, 'change', lambda x, text: self.current_config['minute'].update({'value': text}))
+
+        second_edit = urwid.Edit("Second: ", edit_text=str(self.current_config['second']['value']))
+        urwid.connect_signal(second_edit, 'change', lambda x, text: self.current_config['second'].update({'value': text}))
+
+        elements += [
+            day_type_row, day_value_row,
+            hour_value_row,
+            urwid.Divider(),
+            minute_type_row, minute_edit,
+            second_edit,
+            urwid.Divider(),
+            urwid.Button("Set alarm", on_press=self._set_alarm),
+            urwid.Button("Back", on_press=main_menu),
+            # XXX: For debug purposes
+            urwid.Button("Show config", on_press=self._show_current_config),
+        ]
+        main.original_widget = urwid.Padding(urwid.ListBox(
+            urwid.SimpleFocusListWalker(elements)), left=2, right=2)
+
+    def _show_current_config(self, *args):
+        main.original_widget = urwid.Filler(urwid.Pile(
+            [urwid.Text(str(self.current_config)), urwid.Button('Back', on_press=self.main)]))
+
+
+
 def menu(title, choices):
     body = [urwid.Text(title), urwid.Divider()]
     for c in choices:
@@ -1027,7 +1242,7 @@ menu_mapping = {
     "LEDs": LEDTab,
     "Battery profile": BatteryProfileTab,
     "IO": IOTab,
-    "Wakeup Alarm": not_implemented_yet,
+    "Wakeup Alarm": WakeupAlarmTab,
     "Firmware": FirmwareTab,
     "Exit": exit_program
 }
