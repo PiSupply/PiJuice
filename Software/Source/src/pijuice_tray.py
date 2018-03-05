@@ -118,9 +118,13 @@ class PiJuiceStatusTray(object):
 					b_file = ICON_DIR + '/bat-' + str((b_level/10)*10) + '.png'
 			else:
 				b_file = ICON_DIR + '/connection-error.png'
-				self.tray.set_blinking(b_level < 5)
+				try:
+					self.tray.set_blinking(b_level < 5)
+				except AttributeError:
+					# XXX: Fix for Python 3
+					pass
 
-			self.tray.set_tooltip("%d%%" % (b_level))
+			self.tray.set_tooltip_text("%d%%" % (b_level))
 			if os.path.exists(b_file):
 				self.tray.set_from_file(b_file)
 			else:
