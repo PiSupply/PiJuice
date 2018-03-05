@@ -182,10 +182,12 @@ def main():
     global noPowEn
 
     pid = str(os.getpid())
-    open(PID_FILE, 'w').write(pid).close()
+    with open(PID_FILE, 'w') as pid_f:
+        pid_f.write(pid)
 
     if not os.path.exists(configPath):
-        open(configPath, 'w+').write(json.dumps(configData)).close()
+        with open(configPath, 'w+') as conf_f:
+            conf_f.write(json.dumps(configData))
 
     try:
         pijuice = PiJuice(1, 0x14)
