@@ -72,8 +72,8 @@ class StatusTab(object):
         voltage = float(pijuice.status.GetBatteryVoltage().get('data', 0))  # mV
         if voltage:
             general_info += ", %.3fV, %s" % (voltage / 1000, status['battery'])
-        
-        usb_power = status.get('power_input', 0)
+
+        usb_power = status.get('powerInput', 0)
 
         io_voltage = float(pijuice.status.GetIoVoltage().get('data', 0))  # mV
         io_current = float(pijuice.status.GetIoCurrent().get('data', 0))  # mA
