@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division
 
@@ -10,8 +10,10 @@ import os
 import re
 import signal
 import subprocess
+import fcntl
 import sys
 import time
+from signal import SIGUSR1, SIGUSR2
 
 try:
     # Python 2
@@ -44,6 +46,8 @@ except:
     pijuice = None
 
 PID_FILE = '/var/run/pijuice.pid'
+TRAY_PID_FILE = '/tmp/pijuice_tray.pid'
+LOCK_FILE = '/tmp/pijuice_gui.lock'
 USER_FUNCS_TOTAL = 15
 USER_FUNCS_MINI = 8
 pijuiceConfigData = {}
@@ -1083,15 +1087,13 @@ class PiJuiceIoConfig(object):
 
 class PiJuiceHATConfigGui(object):
 
-    def __init__(self, isapp=True, name='pijuiceConfig'):
-        #Frame.__init__(self, name=name)
-        #self.grid(row=0, column=0)#self.pack(expand=Y, fill=BOTH)
-        #self.master.maxsize(width=650, height=500)
-        #self.master.title('PiJuice Advanced Configuration')
-        #self.isapp = isapp
+    def __init__(self, cfg_hat_button):
+        self.cfg_hat_button = cfg_hat_button
+        self.cfg_hat_button.state(["disabled"])
 
         t = Toplevel()
         t.wm_title('PiJuice HAT Configuration')
+        t.protocol("WM_DELETE_WINDOW", lambda x=self.cfg_hat_button, y=t: close_hat_config(x, y))
 
         # create the notebook
         nb = Notebook(t, name='notebook', width=640, height=480)
@@ -1126,6 +1128,9 @@ class PiJuiceHATConfigGui(object):
         t.update()
         t.minsize(t.winfo_width(), t.winfo_height())
 
+def close_hat_config(button, toplevel):
+    button.state(["!disabled"])
+    toplevel.destroy()
 
 class PiJuiceUserScriptConfig(object):
     def __init__(self, master):
@@ -1675,7 +1680,7 @@ class PiJuiceHatTab(object):
         pijuice.power.SetSystemPowerSwitch(self.sysSwLimit.get())
     def _HatConfigCmd(self):
         if pijuice != None:
-            self.advWindow = PiJuiceHATConfigGui()
+            self.advWindow = PiJuiceHATConfigGui(self.hatConfigBtn)
 
 
 class PiJuiceConfigGui(Frame):
@@ -1770,10 +1775,17 @@ def notify_service():
 
 
 def PiJuiceGuiOnclosing(gui):
-    gui.apply_settings()
-    global root
-    root.destroy()
+    global pid, root
 
+    gui.apply_settings()
+
+    # Send signal to pijuice_tray to enable the 'Settings' menuitem again
+    try:
+        os.kill(pid, SIGUSR2)
+    except:
+        pass
+
+    root.destroy()
 
 def configure_style(style):
     DISABLED_BG_COLOR = 'gray80'
@@ -1788,7 +1800,7 @@ def configure_style(style):
 
 
 def start_app():
-    global root
+    global root, pid
     root = Tk()
     s = Style()
     theme_name = 'clam'
@@ -1796,7 +1808,30 @@ def start_app():
         s.theme_use(theme_name)
         configure_style(s)
     if pijuice is None:
-        MessageBox.showerror('PuJuice Interfacing', 'Failed to use I2C bus. Check if I2C is enabled', parent=root)
+        root.withdraw()
+        MessageBox.showerror('PiJuice Settings', 'Failed to use I2C bus. Check if I2C is enabled', parent=root)
+        sys.exit()
+
+    # Acquire lock on lock file
+    lock_file = open(LOCK_FILE, 'w')
+    try:
+        fcntl.lockf(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        root.withdraw()
+        MessageBox.showerror('PiJucie Settings', 'An other instance of PiJuice Settings is already running')
+        sys.exit()
+
+    # Send signal to pijuice_tray to disable the 'Settings' menuitem
+    try:
+        with open(TRAY_PID_FILE, 'r') as f:
+            pid = int(f.read())
+    except:
+        pid = -1
+    try:
+        os.kill(pid, SIGUSR1)
+    except:
+        pass
+
     root.update()
     root.minsize(400, 400)
     gui = PiJuiceConfigGui()
