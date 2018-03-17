@@ -6,7 +6,7 @@ if [ -d "/var/lib" ]; then
 		echo directory created
 	fi
 	if [ ! -f "/var/lib/pijuice/pijuice_config.JSON" ]; then
-		echo "{\"system_task\":{\"enabled\": false}}" > /var/lib/pijuice/pijuice_config.JSON
+		echo "{\"system_task\":{\"enabled\": true}}" > /var/lib/pijuice/pijuice_config.JSON
 		echo settings file created
 	fi
 	chmod -R 777 /var/lib/pijuice
