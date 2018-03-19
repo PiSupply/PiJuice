@@ -1821,7 +1821,7 @@ def start_app():
         fcntl.lockf(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except IOError:
         root.withdraw()
-        MessageBox.showerror('PiJucie Settings', 'Another instance of PiJuice Settings is already running')
+        MessageBox.showerror('PiJuice Settings', 'Another instance of PiJuice Settings is already running')
         sys.exit()
 
     # Send signal to pijuice_tray to disable the 'Settings' menuitem
