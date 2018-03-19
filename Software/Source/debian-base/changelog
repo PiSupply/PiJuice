@@ -1,3 +1,11 @@
+pijuice-base (1.3.2-1) unstable; urgency=low
+
+  * src/pijuice_cli.py:
+    - Fix displaying USB power input
+
+  -- Denis Khrutsky <denis.xpy@gmail.com>  Mon, 19 Mar 2018 18:21:33 +0600
+
+
 pijuice-base (1.3.1-1) unstable; urgency=low
 
   * src/pijuice_cli.py:
