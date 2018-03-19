@@ -15,7 +15,9 @@ import sys
 import time
 from signal import SIGUSR1, SIGUSR2
 
-try:
+py3 = sys.version_info > (3, 0)
+
+if not py3:
     # Python 2
     from Tkinter import Button as tkButton
     from Tkinter import (Tk, BooleanVar, IntVar, StringVar, Toplevel,
@@ -25,7 +27,7 @@ try:
     from tkColorChooser import askcolor
     from tkFileDialog import askopenfilename
     import tkMessageBox as MessageBox
-except ImportError:
+else:
     # Python 3
     from tkinter import Button as tkButton
     from tkinter import (Tk, BooleanVar, IntVar, StringVar, Toplevel,
@@ -1678,6 +1680,7 @@ class PiJuiceHatTab(object):
 
     def _SetSysSwitch(self, *args):
         pijuice.power.SetSystemPowerSwitch(self.sysSwLimit.get())
+
     def _HatConfigCmd(self):
         if pijuice != None:
             self.advWindow = PiJuiceHATConfigGui(self.hatConfigBtn)
@@ -1818,7 +1821,7 @@ def start_app():
         fcntl.lockf(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except IOError:
         root.withdraw()
-        MessageBox.showerror('PiJucie Settings', 'An other instance of PiJuice Settings is already running')
+        MessageBox.showerror('PiJucie Settings', 'Another instance of PiJuice Settings is already running')
         sys.exit()
 
     # Send signal to pijuice_tray to disable the 'Settings' menuitem

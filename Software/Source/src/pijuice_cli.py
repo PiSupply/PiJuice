@@ -1223,7 +1223,7 @@ choices = ["Status", "General", "Buttons", "LEDs", "Battery profile",
 
 main = urwid.Padding(menu("PiJuice HAT CLI", choices), left=2, right=2)
 top = urwid.Overlay(main, urwid.SolidFill(u'\N{MEDIUM SHADE}'),
-    align='center', width=('relative', 80),
-    valign='middle', height=('relative', 80),
-    min_width=20, min_height=9)
+                    align='center', width=('relative', 80),
+                    valign='middle', height=('relative', 80),
+                    min_width=20, min_height=9)
 urwid.MainLoop(top, palette=[('reversed', 'standout', '')]).run()
