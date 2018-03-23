@@ -378,3 +378,10 @@ Last but not least, we will likely try to fix this in a future software update b
 We have created a label you can stick to your battery to remind you of some of the common features of PiJuice. You can [find the sticker under the documentation section of our GitHub](https://github.com/PiSupply/PiJuice/blob/master/Documentation/Battery-Sticker.pdf). As shown below, you need to print it 43mm wide by 40mm wide for it to be the correct size to stick onto your battery.
 
 ![image](https://user-images.githubusercontent.com/3359418/37776742-e1fd155c-2ddd-11e8-85a7-460377883496.png)  
+
+### 3D Design Files
+
+We have had a number of people request 3D design files for the HAT (so they can design their own cases etc) as well as for the surround (so they can modify the surround and/or print their own at home). You can find those files on out GitHub at the following locations:
+
+* [HAT 3D Files](https://github.com/PiSupply/PiJuice/tree/master/Hardware/3D/HAT)
+* [Surround 3D Files](https://github.com/PiSupply/PiJuice/tree/master/Hardware/3D/Surround)
