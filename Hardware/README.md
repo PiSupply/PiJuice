@@ -372,8 +372,8 @@ Last but not least, we will likely try to fix this in a future software update b
 ### RF shield clips (M1-M4) 
 
 You can use the optional RF Shield - Harwin S02-20150300 under the following circumnstances:
-    - You experience greater heating of Pijuice board
-    - When there is sensitive electronics around the board like radios or sensor hats sensitive to 1.5MHz and harmonics or 2.5MHz and harmonics that are frequencies of PiJuice regulators
+* You experience greater heating of Pijuice board
+* When there is sensitive electronics around the board like radios or sensor hats sensitive to 1.5MHz and harmonics or 2.5MHz and harmonics that are frequencies of PiJuice regulators
 
 ### Battery Label Sticker
 
