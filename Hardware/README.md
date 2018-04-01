@@ -369,6 +369,21 @@ Last but not least, we will likely try to fix this in a future software update b
 
 ## Misc
 
-* **RF clips (M1-M4)**: You can use the optional RF Shield - Harwin S02-20150300 under the following circumnstances:
-    - You experience greater heating of Pijuice board
-    - When there is sensitive electronics around the board like radios or sensor hats sensitive to 1.5MHz and harmonics or 2.5MHz and harmonics that are frequencies of PiJuice regulators
+### RF shield clips (M1-M4) 
+
+You can use the optional RF Shield - Harwin S02-20150300 under the following circumnstances:
+* You experience greater heating of Pijuice board
+* When there is sensitive electronics around the board like radios or sensor hats sensitive to 1.5MHz and harmonics or 2.5MHz and harmonics that are frequencies of PiJuice regulators
+
+### Battery Label Sticker
+
+We have created a label you can stick to your battery to remind you of some of the common features of PiJuice. You can [find the sticker under the documentation section of our GitHub](https://github.com/PiSupply/PiJuice/blob/master/Documentation/Battery-Sticker.pdf). As shown below, you need to print it 43mm wide by 40mm wide for it to be the correct size to stick onto your battery.
+
+![image](https://user-images.githubusercontent.com/3359418/37776742-e1fd155c-2ddd-11e8-85a7-460377883496.png)  
+
+### 3D Design Files
+
+We have had a number of people request 3D design files for the HAT (so they can design their own cases etc) as well as for the surround (so they can modify the surround and/or print their own at home). You can find those files on out GitHub at the following locations:
+
+* [HAT 3D Files](https://github.com/PiSupply/PiJuice/tree/master/Hardware/3D/HAT)
+* [Surround 3D Files](https://github.com/PiSupply/PiJuice/tree/master/Hardware/3D/Surround)

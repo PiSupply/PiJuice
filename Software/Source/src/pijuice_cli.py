@@ -209,7 +209,7 @@ class FirmwareTab(object):
                 return confirmation_dialog("Charge level is too low", next=self.show_firmware, single_option=True)
         confirmation_dialog("Are you sure you want to update the firmware?", next=self.update_firmware, single_option=False)
 
-    def update_firmware(self, button=None):
+    def update_firmware(self, *args):
         current_addr = pijuice.config.interface.GetAddress()
         error_status = None
         if current_addr:
@@ -234,7 +234,7 @@ class FirmwareTab(object):
 
         confirmation_dialog(message, single_option=True, next=self.show_firmware)
     
-    def show_firmware(self, button=None):
+    def show_firmware(self, *args):
         current_version, latest_version, firmware_status, firmware_path = self.get_fw_status()
         current_version_txt = urwid.Text("Current version: " + version_to_str(current_version))
         status_txt = urwid.Text("Status: " + firmware_status)
@@ -1223,7 +1223,7 @@ choices = ["Status", "General", "Buttons", "LEDs", "Battery profile",
 
 main = urwid.Padding(menu("PiJuice HAT CLI", choices), left=2, right=2)
 top = urwid.Overlay(main, urwid.SolidFill(u'\N{MEDIUM SHADE}'),
-    align='center', width=('relative', 80),
-    valign='middle', height=('relative', 80),
-    min_width=20, min_height=9)
+                    align='center', width=('relative', 80),
+                    valign='middle', height=('relative', 80),
+                    min_width=20, min_height=9)
 urwid.MainLoop(top, palette=[('reversed', 'standout', '')]).run()
