@@ -1109,19 +1109,16 @@ class WakeupAlarmTab(object):
 
         s = pijuice.rtcAlarm.GetControlStatus()
         if s['error'] == 'NO_ERROR' and s['data']['alarm_flag']:
-            self._update_status('Last: {}:{}:{}'.format(str(t['hour']).rjust(2, '0'),
-                                                        str(t['minute']).rjust(2, '0'),
-                                                        str(t['second']).rjust(2, '0')))
-
+            self.status = 'Last: {}:{}:{}'.format(str(t['hour']).rjust(2, '0'),
+                                                  str(t['minute']).rjust(2, '0'),
+                                                  str(t['second']).rjust(2, '0'))
+            pijuice.rtcAlarm.ClearAlarmFlag()
         return device_time
-
-    def _update_status(self, status):
-        self.status = status
-        self.status_text.set_text("Status: " + self.status)
 
     def _update_time(self, *args):
         self.device_time = self._get_device_time()
         self.time_text.set_text("UTC Time: " + self.device_time)
+        self.status_text.set_text("Status: " + self.status)
         loop.set_alarm_in(1, self._update_time)
 
     def _set_alarm(self, *args):
@@ -1183,8 +1180,8 @@ class WakeupAlarmTab(object):
             self.current_config['minute']['type'] = period_type
 
     def main(self, *args):
-        self.status_text = urwid.Text("Status: " + self.status)
         self.time_text = urwid.Text("UTC Time: " + self._get_device_time())
+        self.status_text = urwid.Text("Status: " + self.status)
         wakeup_cbox = urwid.Padding(attrmap(urwid.CheckBox("Wakeup enabled", state=self.current_config['enabled'],
                                      on_state_change=self._toggle_wakeup)), width=19)
         elements = [urwid.Text("Wakeup Alarm"),
