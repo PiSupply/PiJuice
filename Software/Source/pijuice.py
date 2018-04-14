@@ -453,16 +453,16 @@ class PiJuiceStatus(object):
             d = ret['data']
             return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
 
-    def SetIoPWM(self, pin, dutyCircle):
+    def SetIoPWM(self, pin, dutyCycle):
         if not (pin == 1 or pin == 2):
             return {'error': 'BAD_ARGUMENT'}
         d = [0xFF, 0xFF]
         try:
-            dc = float(dutyCircle)
+            dc = float(dutyCycle)
         except:
             return {'error': 'BAD_ARGUMENT'}
         if dc < 0 or dc > 100:
-            return {'error': 'INVALID_DUTY_CIRCLE'}
+            return {'error': 'INVALID_DUTY_CYCLE'}
         elif dc < 100:
             dci = int(round(dc * 65534 // 100))
             d[0] = dci & 0xFF
@@ -1291,7 +1291,7 @@ class PiJuiceConfig(object):
                             config[self.buttonEvents[i]]['function']) + 0x20
                     except:
                         data[i*2] = 0
-            data[i*2+1] = (config[self.buttonEvents[i]]['parameter'] // 100) & 0xff
+            data[i*2+1] = (int(config[self.buttonEvents[i]]['parameter']) // 100) & 0xff
         return self.interface.WriteDataVerify(self.BUTTON_CONFIGURATION_CMD + b, data, 0.4)
 
     leds = ['D1', 'D2']
@@ -1386,9 +1386,9 @@ class PiJuiceConfig(object):
         'DIGITAL_OUT_PUSHPULL': [{'name': 'value', 'type': 'int', 'min': 0, 'max': 1}],
         'DIGITAL_IO_OPEN_DRAIN': [{'name': 'value', 'type': 'int', 'min': 0, 'max': 1}],
         'PWM_OUT_PUSHPULL': [{'name': 'period', 'unit': 'us', 'type': 'int', 'min': 2, 'max': 65536 * 2},
-                             {'name': 'duty_circle', 'unit': '%', 'type': 'float', 'min': 0, 'max': 100}],
+                             {'name': 'duty_cycle', 'unit': '%', 'type': 'float', 'min': 0, 'max': 100}],
         'PWM_OUT_OPEN_DRAIN': [{'name': 'period', 'unit': 'us', 'type': 'int', 'min': 2, 'max': 65536 * 2},
-                               {'name': 'duty_circle', 'unit': '%', 'type': 'float', 'min': 0, 'max': 100}]
+                               {'name': 'duty_cycle', 'unit': '%', 'type': 'float', 'min': 0, 'max': 100}]
     }
     def SetIoConfiguration(self, io_pin, config, non_volatile=False):
         d = [0x00, 0x00, 0x00, 0x00, 0x00]
@@ -1409,7 +1409,7 @@ class PiJuiceConfig(object):
                 d[2] = (p >> 8) & 0xFF
                 d[3] = 0xFF
                 d[4] = 0xFF
-                dc = float(config['duty_circle'])
+                dc = float(config['duty_cycle'])
                 if dc < 0 or dc > 100:
                     return {'error': 'INVALID_CONFIG'}
                 elif dc < 100:
@@ -1436,7 +1436,7 @@ class PiJuiceConfig(object):
                 per = ((d[1] | (d[2] << 8)) + 1) * 2
                 dci = d[3] | (d[4] << 8)
                 dc = float(dci) * 100 // 65534 if dci < 65535 else 100
-                return {'data': {'mode': mode, 'pull': pull, 'period': per, 'duty_circle': dc},
+                return {'data': {'mode': mode, 'pull': pull, 'period': per, 'duty_cycle': dc},
                         'non_volatile': nv, 'error': 'NO_ERROR'}
             else:
                 return {'data': {'mode': mode, 'pull': pull},

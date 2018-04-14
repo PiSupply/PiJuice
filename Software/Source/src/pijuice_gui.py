@@ -1212,7 +1212,7 @@ class PiJuiceWakeupConfig(object):
         self.currTimeLbl = Label(self.frame, textvariable=self.currTime, text="", font = "Verdana 10 bold").grid(row=1, column=0, padx=(2, 2), pady=(2, 0), columnspan = 2, sticky='W')
 
         self.setTime = StringVar()
-        self.setTimeBtn = Button(self.frame, text='Set system time', underline=0, command=lambda v=self.setTime: self._SetTime(v))
+        self.setTimeBtn = Button(self.frame, text='Set RTC time', underline=0, command=lambda v=self.setTime: self._SetTime(v))
         self.setTimeBtn.grid(row=1, column=2, padx=(10, 2), pady=(2,0), sticky = W)
 
         self.aDayOrWeekDay = IntVar()
@@ -1314,7 +1314,7 @@ class PiJuiceWakeupConfig(object):
         if t['error'] == 'NO_ERROR':
             t = t['data']
 
-            self.currTime.set(calendar.day_abbr[t['weekday']-1]+'  '+str(t['year'])+'-'+str(t['month']).rjust(2, '0')+'-'+str(t['day']).rjust(2, '0')+'  '+str(t['hour']).rjust(2, '0')+':'+str(t['minute']).rjust(2, '0')+':'+str(t['second']).rjust(2, '0')+'.'+str(t['subsecond']).rjust(2, '0'))
+            self.currTime.set(calendar.day_abbr[(t['weekday']+5) % 7]+'  '+str(t['year'])+'-'+str(t['month']).rjust(2, '0')+'-'+str(t['day']).rjust(2, '0')+'  '+str(t['hour']).rjust(2, '0')+':'+str(t['minute']).rjust(2, '0')+':'+str(t['second']).rjust(2, '0')+'.'+str(t['subsecond']).rjust(2, '0'))
         s = pijuice.rtcAlarm.GetControlStatus()
         if s['error'] == 'NO_ERROR' and s['data']['alarm_flag']:
             pijuice.rtcAlarm.ClearAlarmFlag()
@@ -1322,7 +1322,7 @@ class PiJuiceWakeupConfig(object):
 
     def _SetTime(self, v):
         t = datetime.datetime.utcnow()
-        print(pijuice.rtcAlarm.SetTime({'second':t.second, 'minute':t.minute, 'hour':t.hour, 'weekday':t.weekday()+1, 'day':t.day,  'month':t.month, 'year':t.year, 'subsecond':t.microsecond//1000000}))
+        print(pijuice.rtcAlarm.SetTime({'second':t.second, 'minute':t.minute, 'hour':t.hour, 'weekday':(t.weekday()+1) % 7 + 1, 'day':t.day,  'month':t.month, 'year':t.year, 'subsecond':t.microsecond//1000000}))
 
     def _WakeupEnableChecked(self, *args):
         ret = pijuice.rtcAlarm.SetWakeupEnabled(self.wakeupEnabled.get())
@@ -1818,7 +1818,7 @@ def start_app():
     # Acquire lock on lock file
     lock_file = open(LOCK_FILE, 'w')
     try:
-        fcntl.lockf(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except IOError:
         root.withdraw()
         MessageBox.showerror('PiJuice Settings', 'Another instance of PiJuice Settings is already running')
