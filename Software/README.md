@@ -367,6 +367,13 @@ The user functions section of the JSON file looks like the following. To add USE
 
 ``` 
 
+## Headless mode
+
+To be able to manage the PiJuice settings in a headless mode or via the command line run `pijuice_cli.py`. There you can for example check the status, change the general settings and setup the wakeup alarm.
+
+![image](https://user-images.githubusercontent.com/1785641/39098814-ac575038-4670-11e8-928b-0a6b971bf289.png)
+
+
 ## I2C Command API
 PiJuice HAT provides control, status and configuration of supported features through I2C Command API. Read/write commands are based on I2C block read/write transfers where messages carrying data are exchanged with Master. Message starts with one byte command code, followed by data payload and with checksum byte at the end of message. Checksum is 8-bit XOR calculated over all data payload bytes.
 
