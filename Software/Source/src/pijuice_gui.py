@@ -1783,10 +1783,12 @@ def PiJuiceGuiOnclosing(gui):
     gui.apply_settings()
 
     # Send signal to pijuice_tray to enable the 'Settings' menuitem again
-    try:
-        os.kill(pid, SIGUSR2)
-    except:
-        pass
+    if pid != -1:
+        # See comment on pid -1 in start_app() below
+        try:
+            os.kill(pid, SIGUSR2)
+        except:
+            pass
 
     root.destroy()
 
@@ -1830,10 +1832,13 @@ def start_app():
             pid = int(f.read())
     except:
         pid = -1
-    try:
-        os.kill(pid, SIGUSR1)
-    except:
-        pass
+    if pid != -1:
+        # Do not send SIGUSR1 to pid -1, this will kill all the processes of the user
+        # and thus terminate the login session
+        try:
+            os.kill(pid, SIGUSR1)
+        except:
+            pass
 
     root.update()
     root.minsize(400, 400)
