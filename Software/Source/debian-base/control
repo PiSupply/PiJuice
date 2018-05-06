@@ -9,4 +9,10 @@ Package: pijuice-base
 Architecture: all
 Depends: python (>= 2.6), i2c-tools, python-smbus, python-urwid
 Conflicts: pijuice
-Description: Packaging a PiJuice Python script as DEB
+Description: Basic support for Pi-Supply's PiJuice HAT
+ This package contains the following python scripts:
+ * The low level interface (pijuice.py)
+ * The supporting service (pijuice_sys.py)
+ * and the command line interface (pijuice_cli.py)
+ .
+ The dekstop applications are in the pijuice-gui package which depends on this one.

@@ -154,9 +154,9 @@ class PiJuiceStatusTray(object):
                 elif self.status['battery'] == 'CHARGING_FROM_IN' or self.status['powerInput'] != 'NOT_PRESENT':
                     b_file = ICON_DIR + '/bat-in-' + str((b_level//10)*10) + '.png'
                 elif self.status['battery'] == 'CHARGING_FROM_5V_IO' or self.status['powerInput5vIo'] != 'NOT_PRESENT':
-                    b_file = ICON_DIR + '/bat-rpi-' + str((b_level/10)*10) + '.png'
+                    b_file = ICON_DIR + '/bat-rpi-' + str((b_level//10)*10) + '.png'
                 else:
-                    b_file = ICON_DIR + '/bat-' + str((b_level/10)*10) + '.png'
+                    b_file = ICON_DIR + '/bat-' + str((b_level//10)*10) + '.png'
             else:
                 b_file = ICON_DIR + '/connection-error.png'
                 if py3 == False:

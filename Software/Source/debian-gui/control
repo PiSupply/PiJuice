@@ -7,6 +7,11 @@ Standards-Version: 3.9.6
 
 Package: pijuice-gui
 Architecture: all
-Depends: python (>= 2.6), pijuice-base (>= 1.3), python-tk
+Depends: python (>= 2.6), pijuice-base (>= 1.3), python-tk, python-gtk2
 Conflicts: pijuice
-Description: Packaging a PiJuice Python script as DEB
+Description: The desktop applications for the Pi-Supply PiJuice HAT
+ This package contains the desktop configuration utility (pijuice_gui.py)
+ and the tray application (pijuice_tray.py) indicating the battery charge level.
+ It also makes an entry in the Preferences pointing to the configuration utility.
+ .
+ The basic PiJuice support is in the pijuice-base package.
