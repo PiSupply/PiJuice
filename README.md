@@ -56,6 +56,8 @@ This is particularly indicated for Raspbian Lite or an headless installation.
 
 ## Basic functionality
 
+**Important note**: If your PiJuice was supplied with a battery fitted, you will **need to remove the little plastic battery isolation tab**. If you don't remove that plastic tab, your PiJuice will not charge up, and will report 0% battery level.
+
 Once the battery is slotted into place (make sure you remove the little plastic battery isolation tab too!) LED1 will start blinking in green. This doesn't mean your Raspberry Pi is yet receiving power it is just telling you that the PiJuice MCU is receiving power and is in standby.   
 
 ### Power On and Off the Pi
