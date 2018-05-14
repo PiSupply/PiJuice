@@ -5,14 +5,16 @@
 At the command line simply type:
 ```bash
 sudo apt-get install pijuice-gui
-``` 
+```
 PiJuice depends on other libraries to be present, the package is designed to raise them and let apt-get resolve them.
 
 If you wish to install just the light version of PiJuice with no GUI:
 ```bash
 sudo apt-get install pijuice-base
-``` 
+```
 This is particularly indicated for Raspbian Lite or an headless installation.
+
+Note: Users using Debian Jessie must run `sudo apt-get update` & `sudo apt-get upgrade` followed by `sudo apt-get install pijuice-gui` or `sudo apt-get install pijuice-base`
 
 ### Manual process
 
@@ -80,17 +82,38 @@ You can also right click on this icon to load the configuration menu, instead of
 
 ## PiJuice Settings
 
-### Main software menu, with no battery attached
-
-![Main software menu, with no battery attached](https://user-images.githubusercontent.com/16068311/35161233-7cfa5fce-fd37-11e7-83ec-72a8043ee0c0.png "Main software menu, with no battery attached")
-
-This picture is how the PiJuice Settings software looks when it loads up. This also shows some basic information about the battery charge, battery voltage, and where it is charging from....here is it showing 0% and a low voltage on the battery - because there is no battery installed! You can also see that it is charging from the Pi GPIO (meaning it is plugged in to the Pis microUSB) and it also shows the rail voltages and current draw over the GPIO pins. Below that is the PiJuice microUSB and as you can see in this screenshot that is not currently plugged in. There is a fault checker, a system switch state and also a link to a HAT config menu (more on that later! - see PiJuice HAT Configuration Menu screenshot).
-
-### Main software menu, with battery attached
+### Main software menu
 
 ![Main software menu, with battery attached](https://user-images.githubusercontent.com/16068311/35161234-7d125174-fd37-11e7-9383-e2e80044258d.png "Main software menu, with battery attached")
 
-This screenshot shows the same menu as in the previous screenshot, the only difference being there is now a battery installed in the PiJuice.
+This picture is how the PiJuice Settings software looks when it loads up. This also shows some basic information about the battery charge, battery voltage, and where it is charging from....here is it showing 97% and a high voltage on the battery. You can also see that it is charging from the Pi GPIO (meaning it is plugged in to the Pis microUSB) and it also shows the rail voltages and current draw over the GPIO pins. Below that is the PiJuice microUSB and as you can see in this screenshot that is plugged in. There is a fault checker, a system switch state and also a link to a HAT config menu (more on that later! - see PiJuice HAT Configuration Menu screenshot).
+
+- **Battery:**
+ - Battery Charge - 0-100%
+ - Battery Voltage - Current battery voltage level
+ - Battery Status:
+  - **NOT_PRESENT** - Battery is not detected or not installed
+  - **CHARGING_FROM_IN** - Battery is charging from PiJuice USB power connector
+  - **CHARGING_FROM_5V_IO** - Battery is charging from GPIO pin (Will occur if powered through Raspberry Pi power connector)
+  - **NORMAL** - Battery is present but not charging
+- **GPIO power input:**
+ - Voltage provided/received from the GPIO pins
+ - Amperage provided/received from the GPIO pins
+ - GPIO Input Status (Powered from Raspberry Pi)
+  - **NOT_PRESENT** - No power supply connected to GPIO pins (i.e Raspberry Pi)
+  - **BAD** - GPIO power is bad, find an alternative power supply with a higher rating
+  - **WEAK** - GPIO power is weak i.e. power supply cannot charge the PiJuice and provide power to the Raspberry Pi
+  - **PRESENT** - GPIO power is good
+- **USB Micro power input:** - PiJuice Micro USB input status
+ - **NOT_PRESENT** - Power supply is not connected to the PiJuice micro USB connector
+ - **BAD** - Power supply is connected but is not providing enough power
+ - **WEAK** - Power supply is connected but is weak
+ - **PRESENT** - Power supply is connected and is providing good power to the PiJuice
+- **FAULT:** - Displays any faults
+- **System Switch:** for use with VSYS on J3 to provide power to external devices
+ - **off** - VSYS pin is off
+ - **500mA** - VSYS pin provides up to 500mA of power
+ - **2100mA** - VSYS pin provides up to 2100mA of power
 
 ### Wakeup Alarm Menu
 
@@ -98,7 +121,7 @@ This screenshot shows the same menu as in the previous screenshot, the only diff
 
 In this screenshot we have moved over to the Wakeup alarm tab of the config menu and as you can see this is an area where you can set schedules for the Pi to automatically wake up. This is useful for remote monitoring applications.
 
-This feature will only work if you are either plugged in to the PiJuice microUSB / running on battery. If the battery is low and you are plugged in via the Raspberry Pis GPIO the only way to enable this feature is by soldering the optional "spring pin" that comes with the PiJuice HAT.
+This feature will only work if you are either plugged in to the PiJuice microUSB / running on battery. If the battery is low and you are plugged in via the Raspberry Pis GPIO the only way to enable this feature is by soldering the optional "spring pin" that comes with the PiJuice HAT (See the [hardware section](https://github.com/PiSupply/PiJuice/tree/master/Hardware#unpopulated) for further details).
 
 ### System Task Menu
 
@@ -108,25 +131,36 @@ Here we have the system task menu tab. This enables you to set the external watc
 
 The watchdog timer has a configurable time-out. It defines the time after which it will power cycle if it doesn't receive a heartbeat signal. The time step is in minutes so the minimum time-out period is one minute and the maximum is 65535 minutes. The number can be any whole number between one and 65535. If you set the time to zero the watchdog timer will be disabled.
 
+**System task enabled** - Check this box to enable one or more of the following options:
+**Watchdog** - You can set a delay here in minutes (maximum of 65535) as to when to power cycle the Raspberry Pi when a heartbeat signal is not detected anymore. Usually this would occur when the system has crashed.
+**Wakeup on charge** - Set a percentage battery value when to wakeup the Raspberry Pi whilst on charge. Usually this value would be high, between 90-100%. This is usually used in-conjunction with "Minimum charge".
+**Minimum charge** - Set a minimum battery percentage level to safely shutdown the Raspberry Pi when the battery is below this value. Low values should be typically between 5-10%. NOTE: The type of system shutdown can be set under "System Events" under "Low charge" menu.
+**Minimum battery voltage** - Set a minimum battery voltage level to safely shutdown the Raspberry Pi when below the set level. Note: The type of system shutdown can be set under "System Events" under "Low battery voltage" menu.
+
 ### System Events Menu
 
 ![System Events Menu](https://user-images.githubusercontent.com/16068311/35161235-7d31d544-fd37-11e7-92b4-dc0ccab55c56.png "System Events Menu")
 
-This is the system events menu tab. It allows you to trigger events for certain scenarios such as low charge, low voltage and more. Each paramater has a couple of preset options to choose from, and also you can select options from the "user scripts" tab which allows you to trigger your own custom scripts when certain system events occur for maximum flexibility.
+This is the system events menu tab. It allows you to trigger events for certain scenarios such as low charge, low voltage and more. Each parameter has a couple of preset options to choose from, and also you can select options from the "user scripts" tab which allows you to trigger your own custom scripts when certain system events occur for maximum flexibility.
 
-* **Low charge**. System task monitors charge level and generates this event when charge drops below configurable threshold.
-* **Low battery voltage**. This event is generated when battery voltage drops below configurable threshold.
+* **Low charge**. System task monitors charge level and generates this event when charge drops below configurable threshold as set in "System Task"
+* **Low battery voltage**. This event is generated when battery voltage drops below configurable threshold as set in "System Task"
 * **No power**. System task generates this event when power source disappears and system is powered only with energy from battery.
 * **Watchdog reset**. If watchdog reset happened for some reason PiJuice raises watchdog reset fault flag that system task can detect immediately after boot.
 * **Button power off**. This event is raised after boot if there was power off triggered by button press.
 * **Forced power off**. If there was forced power off caused by loss of energy (battery voltage approached cut-off threshold), PiJuice raises forced power off fault flag that system task can detect immediately after boot.
-* **Forced sys power off**. This event is raised if there was forced system switch turn off caused by loss of energy. 
+* **Forced sys power off**. This event is raised if there was forced system switch turn off caused by loss of energy.
 
 #### System Functions
-* **HALT**. System is halted.
-* **HALT AND POWER OFF**. System halts, 5V regulator and system switch are set off.
-* **SYSTEM SWITCH OFF AND HALT**. System is halted, System switch is set off and system halts.
-* **REBOOT**. System reboots.
+
+* **NO_FUNC** - Do nothing when system event is triggered.
+* **SYS_FUNC_HALT** - System is halted
+* **SYS_FUNC_HALT_POW_OFF** - System halts and 5V power regulator and system switch are set to off
+* **SYS_FUNC_SYS_OFF_HALT** - System is halted and system switch is set to off and system halts
+* **SYS_FUNC_REBOOT** - System reboots
+* **USER_EVENT** - Script will not be processed by system task
+* **USER_FUNCX** - Run a custom script as set in "User Scripts"
+
 
 ### User Scripts menu
 
@@ -235,7 +269,7 @@ the filename would look like `PiJuice-V1.1-2018_01_15.elf.binary`
 
 If you want to use the GUI to update the firmware to a more recent version you will have to override this file with the new one that you can download from our [Firmware section](https://github.com/PiSupply/PiJuice/tree/master/Firmware).
 
-*Remember though that the firmware we provide in the software package you've obtained from either APT or Github is generally the only one you should ever use for that specific version of Software release, therefore only update the firmware if the GUI reports that the firmware is not up to date or if we instruct you to do so.* 
+*Remember though that the firmware we provide in the software package you've obtained from either APT or Github is generally the only one you should ever use for that specific version of Software release, therefore only update the firmware if the GUI reports that the firmware is not up to date or if we instruct you to do so.*
 
 During the update the window may become unresponsive. **Wait until the update is finished** before you continue with anything else.
 
@@ -250,60 +284,60 @@ here is an example of a configuration.
 {
   "system_events": {
     "low_battery_voltage": {
-      "function": "SYS_FUNC_HALT", 
+      "function": "SYS_FUNC_HALT",
       "enabled": true
-    }, 
+    },
     "low_charge": {
-      "function": "NO_FUNC", 
+      "function": "NO_FUNC",
       "enabled": true
-    }, 
+    },
     "button_power_off": {
-      "function": "USER_FUNC1", 
+      "function": "USER_FUNC1",
       "enabled": true
-    }, 
+    },
     "forced_power_off": {
-      "function": "USER_FUNC2", 
+      "function": "USER_FUNC2",
       "enabled": true
-    }, 
+    },
     "no_power": {
-      "function": "SYS_FUNC_HALT_POW_OFF", 
+      "function": "SYS_FUNC_HALT_POW_OFF",
       "enabled": true
-    }, 
+    },
     "forced_sys_power_off": {
-      "function": "USER_FUNC3", 
+      "function": "USER_FUNC3",
       "enabled": true
-    }, 
+    },
     "watchdog_reset": {
-      "function": "USER_EVENT", 
+      "function": "USER_EVENT",
       "enabled": true
     }
-  }, 
+  },
   "user_functions": {
-    "USER_FUNC8": "", 
-    "USER_FUNC1": "/home/pi/user-script.sh", 
-    "USER_FUNC2": "", 
-    "USER_FUNC3": "", 
-    "USER_FUNC4": "", 
-    "USER_FUNC5": "", 
-    "USER_FUNC6": "", 
+    "USER_FUNC8": "",
+    "USER_FUNC1": "/home/pi/user-script.sh",
+    "USER_FUNC2": "",
+    "USER_FUNC3": "",
+    "USER_FUNC4": "",
+    "USER_FUNC5": "",
+    "USER_FUNC6": "",
     "USER_FUNC7": ""
-  }, 
+  },
   "system_task": {
     "watchdog": {
-      "enabled": true, 
+      "enabled": true,
       "period": "60"
-    }, 
+    },
     "min_bat_voltage": {
-      "threshold": "1", 
+      "threshold": "1",
       "enabled": true
-    }, 
+    },
     "min_charge": {
-      "threshold": "1", 
+      "threshold": "1",
       "enabled": true
-    }, 
-    "enabled": true, 
+    },
+    "enabled": true,
     "wakeup_on_charge": {
-      "enabled": true, 
+      "enabled": true,
       "trigger_level": "1"
     }
   }
@@ -332,18 +366,18 @@ Here is a list of accepted values for the various fields above.
 * **system_task**:
     - enabled: true, false
     - watchdog
-        - enabled: true, false 
+        - enabled: true, false
         - period (minutes): 1..65535
     - min_bat_voltage
         - enabled: true, false
-        - threshold (%): 0..100 
+        - threshold (%): 0..100
     - min_charge
         - enabled: true, false
-        - threshold (%): 0..100 
+        - threshold (%): 0..100
     - wakeup_on_charge
         - enabled: true, false
         - trigger_level (Volts): 0..10
-* **user_functions**: 
+* **user_functions**:
     - absolute path to user defined script
 
 ### Adding USER_FUNC from 9 to 15
@@ -365,7 +399,7 @@ The user functions section of the JSON file looks like the following. To add USE
     "USER_FUNC15": ""
   },
 
-``` 
+```
 
 ## I2C Command API
 PiJuice HAT provides control, status and configuration of supported features through I2C Command API. Read/write commands are based on I2C block read/write transfers where messages carrying data are exchanged with Master. Message starts with one byte command code, followed by data payload and with checksum byte at the end of message. Checksum is 8-bit XOR calculated over all data payload bytes.
@@ -499,7 +533,21 @@ Example:
 pijuice.status.SetLedBlink('D2', 10, [0,200,100], 1000, [100, 0, 0], 500)
 ```
 
-User functions are 4 digit binary coded and have 15 combinations, code 0 is USER_EVENT meant that it will not be processed by system task, but left to user and python API to manage it. I thought it is rare case that all 15 will be needed so on gui there is 8 (it will make big window also). However if someone needs more scripts it can be manualy added by editing config json file: /var/lib/pijuice/pijuice_config.JSON. Also all other configurations can be managed manually in this file if the GUI is not available.
+Note: SetLedBlink statement sends the command to the microprocessor on the PiJuice board, which then executes it. Therefore, you have to wait in your Python program before you send the next SetLedBlink.
+
+i.e.
+```python
+pijuice.status.SetLedBlink('D2', 1,(244, 66, 104), 0.3, (0, 0, 52), 0.1)
+pijuice.status.SetLedBlink('D2', 1,(255, 33, 52), 0.5, (0, 0, 0), 0.75)
+```
+must be written as:
+
+```python
+pijuice.status.SetLedBlink('D2', 1,[244, 66, 104], 300, [0, 0, 52], 100)
+sleep(0.4)
+pijuice.status.SetLedBlink('D2', 1,[255, 33, 52], 500, [0, 0, 0], 750)
+sleep(1.25)
+```
 
 ## I2C Command API
 PiJuice HAT provides control, status and configuration of supported features through I2C Command API. Read/write commands are based on I2C block read/write transfers where messages carrying data are exchanged with Master. Message starts with one byte command code, followed by data payload and with checksum byte at the end of message. Checksum is 8-bit XOR calculated over all data payload bytes.
