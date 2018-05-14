@@ -89,31 +89,31 @@ You can also right click on this icon to load the configuration menu, instead of
 This picture is how the PiJuice Settings software looks when it loads up. This also shows some basic information about the battery charge, battery voltage, and where it is charging from....here is it showing 97% and a high voltage on the battery. You can also see that it is charging from the Pi GPIO (meaning it is plugged in to the Pis microUSB) and it also shows the rail voltages and current draw over the GPIO pins. Below that is the PiJuice microUSB and as you can see in this screenshot that is plugged in. There is a fault checker, a system switch state and also a link to a HAT config menu (more on that later! - see PiJuice HAT Configuration Menu screenshot).
 
 - **Battery:**
- - Battery Charge - 0-100%
- - Battery Voltage - Current battery voltage level
- - Battery Status:
-  - **NOT_PRESENT** - Battery is not detected or not installed
-  - **CHARGING_FROM_IN** - Battery is charging from PiJuice USB power connector
-  - **CHARGING_FROM_5V_IO** - Battery is charging from GPIO pin (Will occur if powered through Raspberry Pi power connector)
-  - **NORMAL** - Battery is present but not charging
+  - Battery Charge - 0-100%
+  - Battery Voltage - Current battery voltage level
+  - Battery Status:
+    - **NOT_PRESENT** - Battery is not detected or not installed
+    - **CHARGING_FROM_IN** - Battery is charging from PiJuice USB power connector
+    - **CHARGING_FROM_5V_IO** - Battery is charging from GPIO pin (Will occur if powered through Raspberry Pi power connector)
+    - **NORMAL** - Battery is present but not charging
 - **GPIO power input:**
- - Voltage provided/received from the GPIO pins
- - Amperage provided/received from the GPIO pins
- - GPIO Input Status (Powered from Raspberry Pi)
-  - **NOT_PRESENT** - No power supply connected to GPIO pins (i.e Raspberry Pi)
-  - **BAD** - GPIO power is bad, find an alternative power supply with a higher rating
-  - **WEAK** - GPIO power is weak i.e. power supply cannot charge the PiJuice and provide power to the Raspberry Pi
-  - **PRESENT** - GPIO power is good
+  - Voltage provided/received from the GPIO pins
+  - Amperage provided/received from the GPIO pins
+  - GPIO Input Status (Powered from Raspberry Pi)
+    - **NOT_PRESENT** - No power supply connected to GPIO pins (i.e Raspberry Pi)
+    - **BAD** - GPIO power is bad, find an alternative power supply with a higher rating
+    - **WEAK** - GPIO power is weak i.e. power supply cannot charge the PiJuice and provide power to the Raspberry Pi
+    - **PRESENT** - GPIO power is good
 - **USB Micro power input:** - PiJuice Micro USB input status
- - **NOT_PRESENT** - Power supply is not connected to the PiJuice micro USB connector
- - **BAD** - Power supply is connected but is not providing enough power
- - **WEAK** - Power supply is connected but is weak
- - **PRESENT** - Power supply is connected and is providing good power to the PiJuice
-- **FAULT:** - Displays any faults
+  - **NOT_PRESENT** - Power supply is not connected to the PiJuice micro USB connector
+  - **BAD** - Power supply is connected but is not providing enough power
+  - **WEAK** - Power supply is connected but is weak
+  - **PRESENT** - Power supply is connected and is providing good power to the PiJuice
+  - **FAULT:** - Displays any faults
 - **System Switch:** for use with VSYS on J3 to provide power to external devices
- - **off** - VSYS pin is off
- - **500mA** - VSYS pin provides up to 500mA of power
- - **2100mA** - VSYS pin provides up to 2100mA of power
+  - **off** - VSYS pin is off
+  - **500mA** - VSYS pin provides up to 500mA of power
+  - **2100mA** - VSYS pin provides up to 2100mA of power
 
 ### Wakeup Alarm Menu
 
