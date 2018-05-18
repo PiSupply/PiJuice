@@ -103,6 +103,9 @@ ENV/
 # VS Code
 .vscode/
 
+# PyCharm
+.idea/
+
 # Packaging related
 Software/Source/pijuice-*.tar.gz
 MANIFEST
