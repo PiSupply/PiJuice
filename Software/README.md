@@ -242,8 +242,8 @@ Perhaps our favourite options menu is the LEDs menu - as with the buttons we hav
 Each LED can be assigned to predefined predefined function or configured for user software control as User LED.
 * **CHARGE STATUS**. LED is configured to signal current charge level of battery. For level <= 15% red with configurable brightness. For level > 15% and level <=50% mix of red and green with configurable brightness. For level > 50% green with configurable brightness. When battery is charging blinking blue with configurable brightness is added to current charge level color. For full buttery state blue component is steady on.
 
-**Red** - R parameter defines color component level of red below 15%
-**Green** - G parameter defines color component charge level over 50%
+**Red** - R parameter defines color component level of red below 15%\
+**Green** - G parameter defines color component charge level over 50%\
 **Blue** - B parameter defines color component for charging (blink) and fully charged states (constant)
 
 **NOTE:** Red LED and Green LED will show the charge status between 15% - 50%
