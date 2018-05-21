@@ -161,6 +161,7 @@ This is the system events menu tab. It allows you to trigger events for certain 
 * **USER_EVENT** - Script will not be processed by system task
 * **USER_FUNCX** - Run a custom script as set in "User Scripts"
 
+**NOTE:** SYS_FUNC_HALT_POW_OFF still provides power to the Raspberry Pi for a further 60 seconds after shutdown
 
 ### User Scripts menu
 
@@ -171,6 +172,20 @@ This is the user scripts menu tab as we mentioned in the above screenshot descri
 User scripts can be assigned to user functions called by system task when configured event arise. This should be non-blocking callback function that implements customized system functions or event logging.
 
 User functions are 4 digit binary coded and have 15 combinations, code 0 is USER_EVENT meant that it will not be processed by system task, but left to user and python API to manage it. We thought that it should be a rare case that all 15 combinations would be needed on the GUI so we only provided 8. However if someone needs more scripts they can be manually added by editing config json file: /var/lib/pijuice/pijuice_config.JSON as explained in the [JSON file Section](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md#adding-user_func-from-9-to-15)
+
+**NOTE:** In order for your user script to run you must make sure that it is executable and that system task is enabled in the **System Task** menu. If you are also assigning a user function to a button then you must also assign the user function under the **Buttons** tab in **PiJuice HAT Configuration**. To make your script executable you can do so from the command line with the following command:
+
+```bash
+chmod +x user_script.py
+```
+**NOTE:** Scripts executed by the pijuice.service will run as root not pi
+
+Alternatively you can simply add the following in the User Scripts tab under the function:
+
+```text
+python user_script.py
+```
+
 
 ## PiJuice Configuration
 
@@ -226,6 +241,13 @@ Perhaps our favourite options menu is the LEDs menu - as with the buttons we hav
 
 Each LED can be assigned to predefined predefined function or configured for user software control as User LED.
 * **CHARGE STATUS**. LED is configured to signal current charge level of battery. For level <= 15% red with configurable brightness. For level > 15% and level <=50% mix of red and green with configurable brightness. For level > 50% green with configurable brightness. When battery is charging blinking blue with configurable brightness is added to current charge level color. For full buttery state blue component is steady on.
+
+**Red** - R parameter defines color component level of red below 15%
+**Green** - G parameter defines color component charge level over 50%
+**Blue** - B parameter defines color component for charging (blink) and fully charged states (constant)
+
+**NOTE:** Red LED and Green LED will show the charge status between 15% - 50%
+
 * **USER LED**. When LED is configured as User LED it can be directly controlled with User software via command interface. Initial PiJuice power on User LED state is defined with R, G, and B brightness level parameters.
 
 ### PiJuice HAT Config Battery Menu
@@ -370,13 +392,13 @@ Here is a list of accepted values for the various fields above.
         - period (minutes): 1..65535
     - min_bat_voltage
         - enabled: true, false
-        - threshold (%): 0..100
+        - threshold (V): 0..10
     - min_charge
         - enabled: true, false
         - threshold (%): 0..100
     - wakeup_on_charge
         - enabled: true, false
-        - trigger_level (Volts): 0..10
+        - trigger_level (%): 0..100
 * **user_functions**:
     - absolute path to user defined script
 
