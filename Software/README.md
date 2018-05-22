@@ -217,6 +217,8 @@ There are a number of preset behaviours for the buttons - startup/shutdown etc a
 
 You can even trigger different events for a press, release, single press, double press and two lengths of long press - you can even configure the length of time these long presses would take before triggering the event. As you can see the first button is already configured for system power functionality and we would highly recommend that at least one of the buttons is configured to these settings or you may have issues turning your PiJuice on and off :-)
 
+**NOTE:** The parameter is set in milliseconds for each button press
+
 #### Button events:
 * **PRESS**. Triggered immediately after button is pressed
 * **RELEASE**: Triggered immediately after button is released
@@ -226,6 +228,18 @@ You can even trigger different events for a press, release, single press, double
 * **LONG PRESS 2**: Triggered if button is hold pressed hold for configurable time period 2.
 
 Button events can be configured to trigger predefined or user functions.
+
+#### User Functions
+
+* **NO_FUNC** - Do nothing when system event is triggered.
+* **SYS_FUNC_HALT** - System is halted
+* **SYS_FUNC_HALT_POW_OFF** - System halts and 5V power regulator and system switch are set to off
+* **SYS_FUNC_SYS_OFF_HALT** - System is halted and system switch is set to off and system halts
+* **SYS_FUNC_REBOOT** - System reboots
+* **USER_EVENT** - Script will not be processed by system task
+* **USER_FUNCX** - Run a custom script as set in "User Scripts"
+
+**NOTE:** SYS_FUNC_HALT_POW_OFF still provides power to the Raspberry Pi for a further 60 seconds after shutdown
 
 #### Hardware functions
 * **POWER ON**: This function will wake-up system. 5V regulator (5V GPIO rail) will be turned on if was off.
