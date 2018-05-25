@@ -436,6 +436,21 @@ The user functions section of the JSON file looks like the following. To add USE
   },
 
 ```
+When you manually edit the JSON file and save the settings, the changes will not take effect until the pijuice.service has been restarted. You can restart it by sending a SIGHUP signal to the pijuice.service using the following commands from the terminal window:
+
+1. First you need to find the process ID of the pijuice_sys.py by typing in the following command sin the terminal:
+
+ps ax | grep pijuice_sys | grep -v grep
+
+2. You should see something like the following:
+
+ 372 ?        Ss     0:12 /usr/bin/python /usr/bin/pijuice_sys.py
+
+3. Now to restart the process send the following command, which will restart and then loads the new JOSN configuration changes:
+
+sudo kill -SIGHUP 372
+
+**Note:** You process ID will differ from the above example
 
 ## I2C Command API
 PiJuice HAT provides control, status and configuration of supported features through I2C Command API. Read/write commands are based on I2C block read/write transfers where messages carrying data are exchanged with Master. Message starts with one byte command code, followed by data payload and with checksum byte at the end of message. Checksum is 8-bit XOR calculated over all data payload bytes.
