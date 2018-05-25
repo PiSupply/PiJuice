@@ -440,15 +440,15 @@ When you manually edit the JSON file and save the settings, the changes will not
 
 1. First you need to find the process ID of the pijuice_sys.py by typing in the following command sin the terminal:
 
-ps ax | grep pijuice_sys | grep -v grep
+`ps ax | grep pijuice_sys | grep -v grep`
 
 2. You should see something like the following:
 
- 372 ?        Ss     0:12 /usr/bin/python /usr/bin/pijuice_sys.py
+ `372 ?        Ss     0:12 /usr/bin/python /usr/bin/pijuice_sys.py`
 
 3. Now to restart the process send the following command, which will restart and then loads the new JOSN configuration changes:
 
-sudo kill -SIGHUP 372
+`sudo kill -SIGHUP 372`
 
 **Note:** You process ID will differ from the above example
 
