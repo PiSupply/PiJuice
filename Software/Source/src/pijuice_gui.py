@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/python
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division
 
@@ -9,7 +9,8 @@ import json
 import os
 import re
 import signal
-import subprocess
+from subprocess import Popen, PIPE
+from threading import Thread
 import fcntl
 import sys
 import time
@@ -20,24 +21,25 @@ py3 = sys.version_info > (3, 0)
 if not py3:
     # Python 2
     from Tkinter import Button as tkButton
-    from Tkinter import (Tk, BooleanVar, IntVar, StringVar, Toplevel,
-                         N, W, S, E, X, Y, BOTH, RIGHT)
+    from Tkinter import (Tk, BooleanVar, DoubleVar, IntVar, StringVar, Toplevel,
+                         N, W, S, E, X, Y, BOTH, RIGHT, HORIZONTAL)
     from ttk import (Button, Checkbutton, Combobox, Entry, Frame, Label,
-                     Notebook, Radiobutton, Style)
+                     Notebook, Progressbar, Radiobutton, Style)
     from tkColorChooser import askcolor
     from tkFileDialog import askopenfilename
     import tkMessageBox as MessageBox
+    from Queue import Queue, Empty
 else:
     # Python 3
     from tkinter import Button as tkButton
-    from tkinter import (Tk, BooleanVar, IntVar, StringVar, Toplevel,
-                         N, W, S, E, X, Y, BOTH, RIGHT)
+    from tkinter import (Tk, BooleanVar, DoubleVar, IntVar, StringVar, Toplevel,
+                         N, W, S, E, X, Y, BOTH, RIGHT, HORIZONTAL)
     from tkinter.ttk import (Button, Checkbutton, Combobox, Entry, Frame, Label,
-                             Notebook, Radiobutton, Style)
+                             Notebook, Progressbar, Radiobutton, Style)
     from tkinter.colorchooser import askcolor
     from tkinter.filedialog import askopenfilename
     import tkinter.messagebox as MessageBox
-
+    from queue import Queue, Empty
 
 from pijuice import (PiJuice, pijuice_hard_functions, pijuice_sys_functions,
                      pijuice_user_functions)
@@ -53,7 +55,7 @@ LOCK_FILE = '/tmp/pijuice_gui.lock'
 USER_FUNCS_TOTAL = 15
 USER_FUNCS_MINI = 8
 pijuiceConfigData = {}
-PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON'  # os.getcwd() + '/pijuice_config.JSON'
+PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON'
 
 def _ValidateIntEntry(var, oldVar, min, max):
     new_value = var.get()
@@ -86,13 +88,40 @@ def _ValidateFloatEntry(var, oldVar, min, max):
         var.set(oldVar.get())
     oldVar.set(new_value)
 
+def _Iter_except(function, exception):
+    """Works like builtin 2-argument `iter()`, but stops on `exception`."""
+    try:
+        while True:
+            yield function()
+    except exception:
+        return
+
+class PiJuiceFirmwareWait(object):
+    # Tab to show only during firmware update
+    def __init__(self, master):
+        self.frame = Frame(master, name='fwwait')
+        self.frame.grid(row=0, column=0, sticky=W)
+        self.progressvalue=DoubleVar()
+
+        l = Label(self.frame, text="Update in progress. Please wait", font='TkDefaultFont 22', foreground='red')
+        l.place(relx=0.5, rely=0.25, anchor='center')
+
+        self.progressbar = Progressbar(self.frame, style='green.Horizontal.TProgressbar', orient=HORIZONTAL, length=500, mode='determinate', variable=self.progressvalue)
+        self.progressbar.place(relx=0.5, rely=0.5, anchor='center')
+
+        self.waitrestart = Label(self.frame, text="Waiting for firmware restart ...", font='TkDefaultFont 18')
+        self.waitrestart.place(relx=0.5, rely=0.75, anchor='center')
+        self.waitrestart.pi = self.waitrestart.place_info()
 
 class PiJuiceFirmware(object):
-    def __init__(self, master):
+    def __init__(self, master, toplevelpath, waitwidgetclass):
         self.frame = Frame(master, name='firmware')
         self.frame.grid(row=0, column=0, sticky=W)
         self.frame.columnconfigure(0, weight=2)
         self.frame.columnconfigure(1, weight=1)
+        self.nb = master
+        self.toplevelpath = toplevelpath
+        self.waitwidgetclass = waitwidgetclass
 
         self.firmwareFilePath = StringVar()
 
@@ -108,7 +137,6 @@ class PiJuiceFirmware(object):
 
         Label(self.frame, text="Firmware file path:").grid(row=2, column=0, padx=2, pady=(10, 0), sticky=W)
         self.pathLabel = Label(self.frame, textvariable=self.firmwareFilePath, text="").grid(row=3, column=0, padx=2, pady=(10, 0), sticky=W)
-        # self.browseButton = Button(self.frame, text="Browse", command=self._SetFirmwarePath).grid(row=3, column=1, padx=2, pady=5, sticky=W)
 
         self.ver = None
         self.verStr = None
@@ -126,7 +154,6 @@ class PiJuiceFirmware(object):
         self.newVer = None
         self.binFile = None
         binDir = '/usr/share/pijuice/data/firmware/'
-        #binDir = '/home/pi/'
         try:
             files = [f for f in listdir(binDir) if isfile(join(binDir, f))]
         except:
@@ -164,22 +191,6 @@ class PiJuiceFirmware(object):
         self.firmUpdateErrors = ['NO_ERROR', 'I2C_BUS_ACCESS_ERROR', 'INPUT_FILE_OPEN_ERROR', 'STARTING_BOOTLOADER_ERROR', 'FIRST_PAGE_ERASE_ERROR',
         'EEPROM_ERASE_ERROR', 'INPUT_FILE_READ_ERROR', 'PAGE_WRITE_ERROR', 'PAGE_READ_ERROR', 'PAGE_VERIFY_ERROR', 'CODE_EXECUTE_ERROR']
     
-    def _WaitForUpdate(self, message="Update in progress. Please, wait.", title="Update in progress"):
-        msg = Toplevel(self.frame.master.master)
-        msg.transient()
-        msg.title(title)
-        Label(msg, text=message).grid(row=0, column=0, padx=30, pady=30)
-        return msg
-
-    def _SetFirmwarePath(self, event=None):
-        new_file = askopenfilename(parent=self.frame, title='Select firmware file')
-        if new_file:
-            self.binFile = new_file
-            self.firmwareFilePath.set(self.binFile)
-            if self.binFile:
-                self.newFirmStatus.set('Using manually chosen file')
-                self.defaultConfigBtn.configure(state="normal")
-
     def _UpdateFirmwareCmd(self):
         ret = pijuice.status.GetStatus()
         if ret['error'] == 'NO_ERROR':
@@ -189,21 +200,71 @@ class PiJuiceFirmware(object):
                     MessageBox.showerror('Update Firmware','Cannot update, charge level is too low', parent=self.frame)
                     return
 
-        q = MessageBox.showwarning('Update Firmware','Warning! Interrupting firmware update may lead to non functional PiJuice HAT.', parent=self.frame)
+        q = MessageBox.askyesno('Update Firmware','Warning! Interrupting firmware update may lead to non functional PiJuice HAT. Continue?', icon=MessageBox.WARNING, parent=self.frame)
         if q:
-            #print 'Updating fimware'
-            #inputFile = '/usr/share/pijuice/data/firmware/PiJuice.elf.binary'
             curAdr = pijuice.config.interface.GetAddress()
             if curAdr:
+
+                # Display only the 'Please Wait' Tab during update
+                self.nb.add(self.toplevelpath + '.notebook.fwwait')
+                self.nb.select(self.toplevelpath + '.notebook.fwwait')
+                self.nb.hide(self.toplevelpath + '.notebook.hat')
+                self.nb.hide(self.toplevelpath + '.notebook.buttons')
+                self.nb.hide(self.toplevelpath + '.notebook.led')
+                self.nb.hide(self.toplevelpath + '.notebook.battery')
+                self.nb.hide(self.toplevelpath + '.notebook.io')
+                self.nb.hide(self.toplevelpath + '.notebook.firmware')
+
+                # Hide the "Waiting for firmware restart" until upload finished
+                self.waitwidgetclass.waitrestart.place_forget()
+                self.nb.update()
+
+                self.uploadFinished = False
+                self.maxvar = 0
                 adr = format(curAdr, 'x')
-                msgbox = self._WaitForUpdate()
-                ret = 256 - subprocess.call(['pijuiceboot', adr, self.binFile])  # subprocess.call([os.getcwd() + '/stmboot', adr, inputFile])
-                msgbox.destroy()
+                # Redirect pijuiceboot output to a pipe. Read from the pipe
+                # in a separate thread to not block the main gui thread.
+                # The read thread puts the output in a queue.
+                # The main gui thread empties the queue and updates the progressbar.
+                self.process = Popen(['stdbuf', '-o0', 'pijuiceboot', adr, self.binFile], stdout=PIPE)
+                q = Queue(maxsize=512)
+                t = Thread(target = self.reader_thread, args = [q])
+                t.daemon = True
+                t.start()
+                self.update(q)
+                # Wait till upload finished while updating the progressbar
+                while self.uploadFinished == False:
+                    self.nb.update()
+                ret = 256 - self.returnCode
+
                 if ret == 256:
-                    MessageBox.showinfo('Firmware update', 'Finished successfully!', parent=self.frame)
+                    # Now show "Wait for firmware restart"
+                    self.waitwidgetclass.waitrestart.place(self.waitwidgetclass.waitrestart.pi)
+                    self.nb.update()
+                    version = '0'
+                    # Firmware has restarted if we can read the firmware version
+                    while version == '0':
+                        status = pijuice.config.GetFirmwareVersion()
+                        if status['error'] == 'NO_ERROR':
+                            version = status['data']['version']
+                    # and hide the "Wait for firmware restart" again
+                    self.waitwidgetclass.waitrestart.lower()
+
+                # Restore tabs, make firmware tab current and hide 'Please Wait' tab
+                self.nb.add(self.toplevelpath + '.notebook.hat')
+                self.nb.add(self.toplevelpath + '.notebook.buttons')
+                self.nb.add(self.toplevelpath + '.notebook.led')
+                self.nb.add(self.toplevelpath + '.notebook.battery')
+                self.nb.add(self.toplevelpath + '.notebook.io')
+                self.nb.add(self.toplevelpath + '.notebook.firmware')
+                self.nb.hide(self.toplevelpath + '.notebook.fwwait')
+                self.nb.select(self.toplevelpath + '.notebook.firmware')
+
+                if ret == 256:
                     self.newFirmStatus.set('Firmware is up to date')
                     self.firmVer.set(self.newVerStr)
                     self.defaultConfigBtn.configure(state="disabled")
+                    MessageBox.showinfo('Firmware update', 'Update finished successfully!', parent=self.frame)
                 else:
                     errorStatus = self.firmUpdateErrors[ret] if ret < 11 else '	UNKNOWN'
                     msg = ''
@@ -217,6 +278,33 @@ class PiJuiceFirmware(object):
             else:
                 MessageBox.showerror('Firmware update', 'Unknown PiJuice I2C address', parent=self.frame)
 
+    def reader_thread(self, q):
+        try:
+            with self.process.stdout as pipe:
+                for line in iter(pipe.readline, b''):
+                    q.put(line)
+        finally:
+            q.put(None)
+
+    def update(self, q):
+        # Use pijuiceboot output to compute progressvalue (0..100)
+        for line in _Iter_except(q.get_nowait, Empty):
+            if line is None:
+                self.uploadFinished = True
+                self.returnCode = self.process.wait()
+                return
+            else:
+                m = re.search('^page count (\d+)$', line)
+                if m:
+                    self.maxvar = int(m.group(1))
+                if self.maxvar > 0:
+                    m = re.search('^Page (\d+) programmed successfully$', line)
+                    if m:
+                        var = int(m.group(1))
+                        progress = (self.maxvar - var) / self.maxvar * 100
+                        self.waitwidgetclass.progressvalue.set(progress)
+                break
+        self.nb.after(10, self.update, q)
 
 class PiJuiceHATConfig(object):
     def __init__(self, master):
@@ -421,7 +509,6 @@ class PiJuiceHATConfig(object):
 
 class PiJuiceButtonsConfig(object):
     def __init__(self, master):
-        # frame to hold contentx
         self.frame = Frame(master, name='buttons')
         self.frame.grid(row=0, column=0, sticky=N+W+S+E)
         self.frame.columnconfigure(0, weight=0, minsize=120)
@@ -542,11 +629,8 @@ class PiJuiceButtonsConfig(object):
 
 class PiJuiceLedConfig(object):
     def __init__(self, master):
-
-        # frame to hold contentx
         self.frame = Frame(master, name='led')
         self.frame.columnconfigure(0, minsize=100, weight=0)
-        # self.frame.columnconfigure(1, weight=5, uniform=1)
         self.frame.columnconfigure(2, weight=1)
 
         self.ledConfigsSel = []
@@ -561,7 +645,6 @@ class PiJuiceLedConfig(object):
             self.ledConfigs.append(ledConfig)
             ledConfigSel = Combobox(self.frame, textvariable=ledConfig, state='readonly')
             ledConfigSel['values'] = pijuice.config.ledFunctionsOptions
-            #ledConfigSel.set('')
             ledConfigSel.grid(column=1, row=i*5, padx=5, pady=(20, 0), sticky = W)
             self.ledConfigsSel.append(ledConfigSel)
 
@@ -641,7 +724,6 @@ class PiJuiceLedConfig(object):
         self.applyBtn.configure(state="normal")
 
     def _ConfigEdited(self, sv):
-        #_ValidateIntEntry(sv, self.oldParamVal, 0, 255)
         self.applyBtn.configure(state="normal")
 
     def _ApplyNewConfig(self, v):
@@ -669,32 +751,21 @@ class PiJuiceLedConfig(object):
                 or ledConfig['parameter']['b'] != self.configs[i]['parameter']['b']
                 ):
                 status = pijuice.config.SetLedConfiguration(pijuice.config.leds[i], ledConfig)
-                #event.widget.set('')
                 if status['error'] == 'NO_ERROR':
                     self.applyBtn.configure(state="disabled")
-                    #time.sleep(0.2)
-                    #config = pijuice.config.GetLedConfiguration(pijuice.config.leds[i])
-                    #if config['error'] == 'NO_ERROR':
-                    #	event.widget.current(pijuice.config.ledFunctions.index(config['data']['function']))
-                    #else:
-                    #	event.widget.set(config['error'])
                 else:
                     MessageBox.showerror('Apply LED Configuration', status['error'], parent=self.frame)
-                    #event.widget.set(status['error'])
-
 
 class PiJuiceBatteryConfig(object):
     def __init__(self, master):
-        # frame to hold contentx
         self.frame = Frame(master, name='battery')
         self.frame.columnconfigure(0, weight=0, uniform=1)
 
-        # position and set resize behaviour
+        # Position and set resize behaviour
         self.frame.rowconfigure(14, weight=1)
         self.frame.columnconfigure((1,2), weight=1, uniform=1)
 
-        # widgets to be displayed on 'Description' tab
-
+        # Widgets to be displayed on 'Description' tab
         self.profileId = StringVar()
         self.profileSel = Combobox(self.frame, textvariable=self.profileId, state='readonly')
         vals = copy.deepcopy(pijuice.config.batteryProfiles)
@@ -785,10 +856,6 @@ class PiJuiceBatteryConfig(object):
         self.refreshConfigBtn = Button(self.frame, text='Refresh', underline=0, command=lambda v=self.refreshConfig: self.Refresh(v))
         self.refreshConfigBtn.grid(row=0, column=2, pady=(4,2), sticky = E)
 
-        #self.closeConfig = StringVar()
-        #self.closeBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=lambda v=self.closeConfig: self._Close(v))
-        #self.closeBtn.grid(row=13, column=2, pady=(4,2), sticky = E)
-
         self.Refresh(self.refreshConfig)
 
     def Refresh(self, v):
@@ -854,14 +921,12 @@ class PiJuiceBatteryConfig(object):
         if self.customCheck.get():
             self.WriteCustomProfileData()
         else:
-            #print self.profileSel.get()
             status = pijuice.config.SetBatteryProfile(self.profileSel.get())
             if status['error'] == 'NO_ERROR':
                 time.sleep(0.2)
                 self.ReadProfileStatus()
                 self.ReadProfileData()
                 self.applyBtn.configure(state="disabled")
-            #print status
 
     def _NewTempSenseConfigSel(self, event):
         status = pijuice.config.SetBatteryTempSenseConfig(self.tempSense.get())
@@ -874,7 +939,6 @@ class PiJuiceBatteryConfig(object):
 
     def ReadProfileStatus(self):
         self.profileId = None
-        #self.profileSel.configure(state="disabled")
         self.profileSel.set('')
         status = pijuice.config.GetBatteryProfileStatus()
         if status['error'] == 'NO_ERROR':
@@ -899,7 +963,6 @@ class PiJuiceBatteryConfig(object):
             self.profileSel.set('')
             self._ClearProfileEditParams()
             self.prfStatus.set(status['error'])
-            #print self.status
 
     def ReadProfileData(self):
         config = pijuice.config.GetBatteryProfile()
@@ -916,7 +979,6 @@ class PiJuiceBatteryConfig(object):
             self.tempHot.set(self.config['tempHot'])
             self.ntcB.set(self.config['ntcB'])
             self.ntcResistance.set(self.config['ntcResistance'])
-            #print self.config
         else:
             self.applyBtn.configure(state="disabled")
 
@@ -957,10 +1019,7 @@ class PiJuiceBatteryConfig(object):
 
 class PiJuiceIoConfig(object):
     def __init__(self, master):
-
-        # frame to hold contentx
         self.frame = Frame(master, name='io')
-
         self.frame.columnconfigure((1, 2), weight=1)
 
         self.config = [{}, {}]
@@ -1088,7 +1147,6 @@ class PiJuiceIoConfig(object):
 
 
 class PiJuiceHATConfigGui(object):
-
     def __init__(self, cfg_hat_button):
         self.cfg_hat_button = cfg_hat_button
         self.cfg_hat_button.state(["disabled"])
@@ -1097,16 +1155,15 @@ class PiJuiceHATConfigGui(object):
         t.wm_title('PiJuice HAT Configuration')
         t.protocol("WM_DELETE_WINDOW", lambda x=self.cfg_hat_button, y=t: close_hat_config(x, y))
 
-        # create the notebook
+        # Create the notebook
         nb = Notebook(t, name='notebook', width=640, height=480)
 
-        # extend bindings to top level window allowing
+        # Extend bindings to top level window allowing
         #   CTRL+TAB - cycles thru tabs
         #   SHIFT+CTRL+TAB - previous tab
         #   ALT+K - select tab using mnemonic (K = underlined letter)
         nb.enable_traversal()
 
-        # nb.grid(row=0, column=0)
         nb.pack(fill=BOTH, expand=Y, padx=2, pady=3)
 
         self.hatConfig = PiJuiceHATConfig(nb)
@@ -1124,7 +1181,11 @@ class PiJuiceHATConfigGui(object):
         self.ioConfig = PiJuiceIoConfig(nb)
         nb.add(self.ioConfig.frame, text='IO', underline=0, padding=2)
 
-        self.firmware = PiJuiceFirmware(nb)
+        self.wait = PiJuiceFirmwareWait(nb)
+        nb.add(self.wait.frame, text=' ... Wait ... ', underline=5, padding=2)
+        nb.hide(self.wait.frame)
+
+        self.firmware = PiJuiceFirmware(nb, str(t), self.wait)
         nb.add(self.firmware.frame, text='Firmware', underline=0, padding=2)
 
         t.update()
@@ -1401,16 +1462,6 @@ class PiJuiceSysEventConfig(object):
             self.sysEventEnable.append(BooleanVar())
             self.sysEventEnableCheck.append(Checkbutton(self.frame, text = self.sysEvents[i]['name']+":", variable = self.sysEventEnable[i]))
             self.sysEventEnableCheck[i].grid(row=i+1, column=0, sticky = W, padx=(5, 5))
-            #self.params.append(StringVar())
-            #self.paramsEntry.append(Entry(self.frame,textvariable=self.params[i]))
-            #self.oldParams.append(StringVar())
-            #self.paramsEntry[i].grid(row=1+i, column=1, sticky = W, padx=(2, 2), pady=(2, 0))
-            #if 'param' in self.sysEvents[i]:
-            #	unitText = (self.sysEvents[i]['param']['unit']+":")
-            #else:
-            #	self.paramsEntry[i].configure(state="disabled")
-            #	unitText = ''
-            #Label(self.frame, text=unitText).grid(row=1+i, column=2, padx=(5, 5), sticky = W)
             funcConfig = StringVar()
             self.funcConfigs.append(funcConfig)
             self.funcConfigsSel.append(Combobox(self.frame, textvariable=self.funcConfigs[i], state='readonly', width=combobox_length))
@@ -1418,8 +1469,6 @@ class PiJuiceSysEventConfig(object):
             self.funcConfigsSel[i].current(0)
             self.funcConfigsSel[i].grid(column=1, row=1+i, padx=(5, 5), pady=(0, 5), sticky = W+E)
 
-            #self.params[i].set('')
-            #self.oldParams[i].set('')
             if 'system_events' in pijuiceConfigData and self.sysEvents[i]['id'] in pijuiceConfigData['system_events']:
                 if 'enabled' in pijuiceConfigData['system_events'][self.sysEvents[i]['id']]:
                     if pijuiceConfigData['system_events'][self.sysEvents[i]['id']]['enabled'] != True:
@@ -1432,18 +1481,12 @@ class PiJuiceSysEventConfig(object):
                     self.sysEventEnable[i].set(False)
                     #self.paramsEntry[i].configure(state="disabled")
                     self.funcConfigsSel[i].configure(state="disabled")
-                #if 'param' in pijuiceConfigData['system_events'][self.sysEvents[i]['id']]:
-                    #self.params[i].set(pijuiceConfigData['system_events'][self.sysEvents[i]['id']]['param'])
-                    #self.oldParams[i].set(self.params[i].get())
                 if 'function' in pijuiceConfigData['system_events'][self.sysEvents[i]['id']]:
                     self.funcConfigsSel[i].current(self.sysEvents[i]['funcList'].index(pijuiceConfigData['system_events'][self.sysEvents[i]['id']]['function']))
             else:
                 self.sysEventEnable[i].set(False)
-                #self.paramsEntry[i].configure(state="disabled")
                 self.funcConfigsSel[i].configure(state="disabled")
             self.sysEventEnable[i].trace("w", lambda name, index, mode, var=self.sysEventEnable[i], id = i: self._SysEventEnableChecked(id))
-            #self.params[i].trace("w",  lambda name, index, mode, var=self.params[i], id = i: self._ParamEdited(id))
-            #self.paramsEntry[i].bind("<Return>", lambda x, id=i: self._WriteParam(id))
             self.funcConfigsSel[i].bind("<<ComboboxSelected>>", lambda event, idx=i: self._NewConfigSelected(event, idx))
 
     def _SysEventEnableChecked(self, i):
@@ -1454,10 +1497,7 @@ class PiJuiceSysEventConfig(object):
         pijuiceConfigData['system_events'][self.sysEvents[i]['id']]['enabled'] = self.sysEventEnable[i].get()
         if self.sysEventEnable[i].get():
             self.funcConfigsSel[i].configure(state="readonly")
-            #if 'param' in self.sysEvents[i]:
-                #self.paramsEntry[i].configure(state="normal")
         else:
-            #self.paramsEntry[i].configure(state="disabled")
             self.funcConfigsSel[i].configure(state="disabled")
 
     def _ParamEdited(self, i):
@@ -1469,7 +1509,6 @@ class PiJuiceSysEventConfig(object):
             pijuiceConfigData['system_events'] = {}
         if not (self.sysEvents[i]['id'] in pijuiceConfigData['system_events']):
             pijuiceConfigData['system_events'][self.sysEvents[i]['id']] = {}
-        #if not ('param' in pijuiceConfigData['system_events'][self.sysEvents[i]['name']]):
         pijuiceConfigData['system_events'][self.sysEvents[i]['id']]['param'] = self.params[i].get()
 
     def _NewConfigSelected(self, event, i):
@@ -1619,10 +1658,7 @@ class PiJuiceHatTab(object):
         self.hatConfigBtn = Button(self.frame, text='Configure HAT', state="normal", underline=0, command= self._HatConfigCmd)
         self.hatConfigBtn.grid(row=9, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
         self.counter = 0
-        #print 'hat _RefreshStatus()'
         self.frame.after(1000, self._RefreshStatus)
-        #self._RefreshStatus()
-        #print 'hat _RefreshStatus()  end'
 
     def _RefreshStatus(self):
         try:
@@ -1672,8 +1708,6 @@ class PiJuiceHatTab(object):
             ret = pijuice.power.GetSystemPowerSwitch()
             if ret['error'] == 'NO_ERROR':
                 self.sysSwLimit.set(ret['data'])
-            #else:
-            #	self.sysSwLimit = ret['error']
         except:
             pass
         self.frame.after(6000, self._RefreshStatus)
@@ -1687,12 +1721,9 @@ class PiJuiceHatTab(object):
 
 
 class PiJuiceConfigGui(Frame):
-
     def __init__(self, isapp=True, name='pijuiceConfig'):
         Frame.__init__(self, name=name)
-        # self.grid(row=0, column=0)
         self.pack(expand=True, fill=BOTH)
-        #self.master.maxsize(width=650, height=500)
         
         if sys.version_info > (3, 0):
             self.master.title('PiJuice Settings (Python 3 version)')
@@ -1710,30 +1741,26 @@ class PiJuiceConfigGui(Frame):
             pijuiceConfigData = {}
             print('Failed to load ' + PiJuiceConfigDataPath)
 
-        # create the notebook
+        # Create the notebook
         nb = Notebook(self, name='notebook')
 
-        # extend bindings to top level window allowing
+        # Extend bindings to top level window allowing
         #   CTRL+TAB - cycles thru tabs
         #   SHIFT+CTRL+TAB - previous tab
         #   ALT+K - select tab using mnemonic (K = underlined letter)
         nb.enable_traversal()
 
-        # nb.grid(row=0, column=0)
         nb.pack(fill=BOTH, expand=Y, padx=2, pady=3)
 
         self.hatTab = PiJuiceHatTab(nb)
         nb.add(self.hatTab.frame, text='HAT', underline=0, padding=2)
-        #print 'PiJuiceWakeupConfig'
+
         self.wakeupTab = PiJuiceWakeupConfig(nb)
         nb.add(self.wakeupTab.frame, text='Wakeup Alarm', underline=0, padding=2)
-        #print 'PiJuiceSysTaskTab'
         self.sysTaskConfig = PiJuiceSysTaskTab(nb)
         nb.add(self.sysTaskConfig.frame, text='System Task', underline=0, padding=2)
-        #print 'PiJuiceSysEventConfig'
         self.sysEventConfig = PiJuiceSysEventConfig(nb)
         nb.add(self.sysEventConfig.frame, text='System Events', underline=0, padding=2)
-        #print 'PiJuiceUserScriptConfig'
         self.userScriptTab = PiJuiceUserScriptConfig(nb)
         nb.add(self.userScriptTab.frame, text='User Scripts', underline=0, padding=2)
 
@@ -1753,16 +1780,11 @@ class PiJuiceConfigGui(Frame):
 
 
 def save_config():
-    #if MessageBox.askokcancel("Quit", "Do you want to quit?"):
     if not os.path.exists(os.path.dirname(PiJuiceConfigDataPath)):
-        print(os.path.dirname(PiJuiceConfigDataPath))
         os.makedirs(os.path.dirname(PiJuiceConfigDataPath))
-    #try:
     with open(PiJuiceConfigDataPath , 'w+') as outputConfig:
         json.dump(pijuiceConfigData, outputConfig, indent=2)
     notify_service()
-    #except:
-        #print
 
 
 def notify_service():
@@ -1802,6 +1824,7 @@ def configure_style(style):
 
     style.map('TEntry', fieldbackground=[('disabled', DISABLED_BG_COLOR), ('readonly', ENABLED_BG_COLOR)],
                             foreground=[('disabled', DISABLED_FONT_COLOR), ('readonly', ENABLED_FONT_COLOR)])
+    style.configure('green.Horizontal.TProgressbar', foreground='green', background='green')
 
 
 def start_app():
