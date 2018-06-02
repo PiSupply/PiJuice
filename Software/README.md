@@ -117,7 +117,7 @@ This picture is how the PiJuice Settings software looks when it loads up. This a
 
 ### Wakeup Alarm Menu
 
-![Wakeup Alarm Menu](https://user-images.githubusercontent.com/16068311/35161225-7bd18140-fd37-11e7-8889-e6715023b334.png "Wakeup Alarm Menu")
+<img src="https://user-images.githubusercontent.com/1197294/40877047-6eef9f0e-667b-11e8-91a7-df09da12b48c.png" width="478">
 
 In this screenshot we have moved over to the Wakeup alarm tab of the config menu and as you can see this is an area where you can set schedules for the Pi to automatically wake up. This is useful for remote monitoring applications.
 
@@ -165,13 +165,13 @@ This is the system events menu tab. It allows you to trigger events for certain 
 
 ### User Scripts menu
 
-![User scripts menu](https://user-images.githubusercontent.com/16068311/35161237-7d653b8c-fd37-11e7-9a1e-be8b71e27a27.png "User scripts menu")
+<img src="https://user-images.githubusercontent.com/1197294/40877048-6f17bef8-667b-11e8-85f5-8c296cb4bfd1.png" width="478">
 
 This is the user scripts menu tab as we mentioned in the above screenshot description where you can add paths to custom scripts that you can trigger on events.
 
 User scripts can be assigned to user functions called by system task when configured event arise. This should be non-blocking callback function that implements customized system functions or event logging.
 
-User functions are 4 digit binary coded and have 15 combinations, code 0 is USER_EVENT meant that it will not be processed by system task, but left to user and python API to manage it. We thought that it should be a rare case that all 15 combinations would be needed on the GUI so we only provided 8. However if someone needs more scripts they can be manually added by editing config json file: /var/lib/pijuice/pijuice_config.JSON as explained in the [JSON file Section](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md#adding-user_func-from-9-to-15)
+User functions are 4 digit binary coded and have 15 combinations, code 0 is USER_EVENT meant that it will not be processed by system task, but left to user and python API to manage it. The GUI initially only shows 8. Clicking the "Show more" button will show all 15.
 
 **NOTE:** In order for your user script to run you must make sure that it is executable and that system task is enabled in the **System Task** menu. If you are also assigning a user function to a button then you must also assign the user function under the **Buttons** tab in **PiJuice HAT Configuration**. To make your script executable you can do so from the command line with the following command:
 
@@ -292,7 +292,7 @@ Click Apply button to save new settings.
 
 ### PiJuice HAT Config Firmware Menu
 
-![PiJuice HAT Config Firmware Menu](https://user-images.githubusercontent.com/16068311/35274166-0879d4a0-0033-11e8-8d49-628c27d727f8.png "PiJuice HAT Config Firmware Menu")
+<img src="https://user-images.githubusercontent.com/1197294/40877060-868a9ff6-667b-11e8-976e-b1d4fcbd03a6.png" width="654">
 
 Last but very much not least is the firmware menu. This allows you to update the firmware on the PiJuice MCU chip as and when necessary meaning we can actively improve the firmware and any updates or improvements we make in the future can be retrospectively applied to all PiJuice HATs!
 
@@ -301,7 +301,7 @@ Last but very much not least is the firmware menu. This allows you to update the
 /usr/share/pijuice/data/firmware/
 ```
 
-the filename would look like `PiJuice-V1.1-2018_01_15.elf.binary`
+the filename would look like `PiJuice-V1.2-2018_05_02.elf.binary`
 
 If you want to use the GUI to update the firmware to a more recent version you will have to override this file with the new one that you can download from our [Firmware section](https://github.com/PiSupply/PiJuice/tree/master/Firmware).
 
