@@ -584,6 +584,7 @@ class PiJuiceButtonsConfig(object):
                     else:
                         self.configs[bind]['data'] = config
                         self.errorStatus.set('')
+                        notify_service()
 
         self.applyBtn.configure(state="disabled")
 
@@ -1791,11 +1792,9 @@ def notify_service():
     global root
     try:
         pid = int(open(PID_FILE, 'r').read())
-        os.kill(pid, signal.SIGHUP)
-    except OSError:
-        os.system("sudo kill -s SIGHUP %i" % pid)
+        os.system("sudo kill -SIGHUP " + str(pid))
     except:
-        MessageBox.showerror('PuJuice Service', "Failed to communicate with PiJuice service.\n"
+        MessageBox.showerror('PiJuice Service', "Failed to communicate with PiJuice service.\n"
             "See system logs and 'systemctl status pijuice.service' for details.", parent=root)
 
 
@@ -1808,7 +1807,7 @@ def PiJuiceGuiOnclosing(gui):
     if pid != -1:
         # See comment on pid -1 in start_app() below
         try:
-            os.kill(pid, SIGUSR2)
+            os.system("sudo kill -SIGUSR2 " + str (pid))
         except:
             pass
 
@@ -1859,7 +1858,7 @@ def start_app():
         # Do not send SIGUSR1 to pid -1, this will kill all the processes of the user
         # and thus terminate the login session
         try:
-            os.kill(pid, SIGUSR1)
+            os.system("sudo kill -SIGUSR1 " + str(pid))
         except:
             pass
 

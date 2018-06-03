@@ -161,10 +161,21 @@ def _EvalFaultFlags():
 
 
 def reload_settings(signum=None, frame=None):
+    global pijuice
     global configData
+    global btConfig
+
     with open(configPath, 'r') as outputConfig:
         config_dict = json.load(outputConfig)
         configData.update(config_dict)
+
+    try:
+        for b in pijuice.config.buttons:
+            conf = pijuice.config.GetButtonConfiguration(b)
+            if conf['error'] == 'NO_ERROR':
+                btConfig[b] = conf['data']
+    except:
+        pass
 
 
 def main():
@@ -196,24 +207,8 @@ def main():
 
     reload_settings()
 
-    try:
-        for b in pijuice.config.buttons:
-            conf = pijuice.config.GetButtonConfiguration(b)
-            if conf['error'] == 'NO_ERROR':
-                btConfig[b] = conf['data']
-    except:
-        # powButton = None
-        pass
-
     # Handle SIGHUP signal to reload settings
     signal.signal(signal.SIGHUP, reload_settings)
-
-    #logger = logging.getLogger('pijuice')
-    #hdlr = logging.FileHandler('/home/pi/pijuice.log')
-    #formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    #hdlr.setFormatter(formatter)
-    #logger.addHandler(hdlr)
-    #logger.setLevel(logging.INFO)
 
     if len(sys.argv) > 1 and str(sys.argv[1]) == 'stop':
         try:
@@ -226,7 +221,6 @@ def main():
                 if ret['error'] != 'NO_ERROR':
                     time.sleep(0.05)
                     ret = pijuice.power.SetWatchdog(0)
-                #logger.info('watchdog disabled')
         except:
             pass
         sys.exit(0)
@@ -239,10 +233,8 @@ def main():
         try:
             p = int(configData['system_task']['watchdog']['period'])
             ret = pijuice.power.SetWatchdog(p)
-            #logger.info('watchdog enabled')
         except:
             p = None
-            #logger.info('cannot enable watchdg')
 
     sysEvEn = 'system_events' in configData
     minChgEn = configData.get('system_task', {}).get('min_charge', {}).get('enabled', False)
