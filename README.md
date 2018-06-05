@@ -161,6 +161,7 @@ Here are some links to reviews and articles from around the web:
 * RasPi.TV technical discussion - [PiJuice – testing the software and hardware plus 6W 40W solar panels video?](http://raspi.tv/2017/pijuice-testing-the-software-and-hardware-plus-6w-40w-solar-panels-video)
 * RasPi.TV unboxing - [PiJuice – unboxing, first look and why it’s 2 years late?](http://raspi.tv/2017/pijuice-unboxing-first-look-and-why-its-2-years-late)
 * Michael Horne / Tim Richardson review - [PiJuice – portable battery power for your Raspberry Pi – a review](http://www.recantha.co.uk/blog/?p=17790)
+* Novaspirit Tech review / video - [PiJuice HAT Review](https://www.youtube.com/watch?v=VLNguCP7kjE)
 * Lots of info and images and updates available on the [PiJuice Kickstarter](https://www.kickstarter.com/projects/pijuice/pijuice-a-portable-project-platform-for-every-rasp/)
 
 # Third party software libraries and projects
