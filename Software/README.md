@@ -123,6 +123,29 @@ In this screenshot we have moved over to the Wakeup alarm tab of the config menu
 
 This feature will only work if you are either plugged in to the PiJuice microUSB / running on battery. If the battery is low and you are plugged in via the Raspberry Pis GPIO the only way to enable this feature is by soldering the optional "spring pin" that comes with the PiJuice HAT (See the [hardware section](https://github.com/PiSupply/PiJuice/tree/master/Hardware#unpopulated) for further details).
 
+When setting the Wakeup alarm for a repeated wakeup, after the initial reboot the Wakeup enabled capability is disabled due to the Raspbian RTC clock initialisation resetting the bit in the PiJuice firmware. To overcome this you will need to run a script to re-enable the wakeup-enable capability. The script is located in PiJuice > Software > Test > wakeup_enable.py
+
+```bash
+import pijuice
+pj = pijuice.PiJuice(1, 0x14)
+
+pj.rtcAlarm.SetWakeupEnabled(True)
+```
+
+To run the script every time the Raspberry Pi reboots you will need to add it to the cron table. From the command line run `crontab -e` to edit the cron table.
+
+The first time you run `crontab` you will be prompted to select an editor; if you are not sure which one to use, choose `nano` by pressing Enter.
+
+Add the following to the cron table:
+
+```bash
+@reboot /usr/bin/python /home/pi/PiJuice/Software/Test/wakeup_enable.py
+```
+
+To test the script simply disable the wakeup alarm in the GUI then reboot your Raspberry Pi. You should see that the wakeup alarm checked again.
+
+**Note: When using ID_EEPROM 0x52 the HAT configuration is not read by Raspbian when processing the device-tree. Therefore wakeup-enabled capability is still enabled after a reboot.**
+
 ### System Task Menu
 
 ![System Task Menu](https://user-images.githubusercontent.com/16068311/35161236-7d4e6f56-fd37-11e7-9209-7943e88a76d5.png "System Task Menu")
