@@ -7,18 +7,129 @@ import re
 import subprocess
 import time
 import fcntl
+import json
 
 import urwid
 from pijuice import PiJuice, pijuice_hard_functions, pijuice_sys_functions, pijuice_user_functions
 
 BUS = 1
 ADDRESS = 0x14
+PID_FILE = '/var/lib/pijuice/pijuice.pid'
 LOCK_FILE = '/tmp/pijuice_gui.lock'
 
 try:
     pijuice = PiJuice(BUS, ADDRESS)
 except:
     pijuice = None
+
+pijuiceConfigData = {}
+PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON'
+
+#### Following taken from urwid 2.0.2 to get a FloatEdit widget ###
+#
+# Urwid basic widget classes
+#    Copyright (C) 2004-2012  Ian Ward
+#
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation; either
+#    version 2.1 of the License, or (at your option) any later version.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# Urwid web site: http://excess.org/urwid/
+
+
+from urwid import Edit
+from decimal import Decimal
+#import re
+
+
+class NumEdit(Edit):
+    """NumEdit - edit numerical types
+
+    based on the characters in 'allowed' different numerical types
+    can be edited:
+      + regular int: 0123456789
+      + regular float: 0123456789.
+      + regular oct: 01234567
+      + regular hex: 0123456789abcdef
+    """
+    ALLOWED = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+    def __init__(self, allowed, caption, default, trimLeadingZeros=True):
+        super(NumEdit, self).__init__(caption, default)
+        self._allowed = allowed
+        self.trimLeadingZeros = trimLeadingZeros
+
+    def valid_char(self, ch):
+        """
+        Return true for allowed characters.
+        """
+        return len(ch) == 1 and ch.upper() in self._allowed
+
+    def keypress(self, size, key):
+        """
+        Handle editing keystrokes.  Remove leading zeros.
+        """
+        (maxcol,) = size
+        unhandled = Edit.keypress(self, (maxcol,), key)
+
+        if not unhandled:
+            if self.trimLeadingZeros:
+                # trim leading zeros
+                while self.edit_pos > 0 and self.edit_text[:1] == "0":
+                    self.set_edit_pos(self.edit_pos - 1)
+                    self.set_edit_text(self.edit_text[1:])
+
+        return unhandled
+
+
+class FloatEdit(NumEdit):
+    """Edit widget for float values."""
+
+    def __init__(self, caption="", default=None,
+                 preserveSignificance=False, decimalSeparator='.'):
+        """
+        caption -- caption markup
+        default -- default edit value
+        preserveSignificance -- return value has the same signif. as default
+        decimalSeparator -- use '.' as separator by default, optionally a ','
+        """
+        self.significance = None
+        self._decimalSeparator = decimalSeparator
+        if decimalSeparator not in ['.', ',']:
+            raise ValueError("invalid decimalSeparator: {}".format(
+                             decimalSeparator))
+
+        val = ""
+        if default is not None and default is not "":
+            if not isinstance(default, (int, str, Decimal)):
+                raise ValueError("default: Only 'str', 'int', "
+                                 "'long' or Decimal input allowed")
+
+            if isinstance(default, str) and len(default):
+                # check if it is a float, raises a ValueError otherwise
+                float(default)
+                default = Decimal(default)
+
+            if preserveSignificance:
+                self.significance = abs(default.as_tuple()[2])
+
+            val = str(default)
+
+        super(FloatEdit, self).__init__(self.ALLOWED[0:10] + decimalSeparator,
+                                        caption, val)
+
+####################################################################################
+
 
 def version_to_str(number):
     # Convert int version to str {major}.{minor}
@@ -42,13 +153,14 @@ def validate_value(text, type, min, max, old):
     except ValueError:
         value = old
 
-    return value
+    return str(value)
 
 
 def confirmation_dialog(text, next, nextno='', single_option=True):
-    elements = [urwid.Padding(urwid.Text(text), width='pack'), urwid.Divider()]
+    elements = [urwid.Padding(urwid.Text(text), align='center', width='pack'),
+                urwid.Divider()]
     if single_option:
-        elements.append(urwid.Padding(attrmap(urwid.Button("OK", on_press=next)), width=6))
+        elements.append(urwid.Padding(attrmap(urwid.Button("OK", on_press=next)), align='center', width=6))
     else:
         yes_btn = urwid.Button("Yes")
         no_btn  = urwid.Button("No")
@@ -640,6 +752,7 @@ class ButtonsTab(object):
         if got_error:
             confirmation_dialog("Failed to apply settings: " + str(errors), next=self.main, single_option=True)
         else:
+            notify_service()
             confirmation_dialog("Settings have been applied", next=self.main, single_option=True)
     
 
@@ -799,7 +912,7 @@ class IOTab(object):
 
     def _apply_for_pin(self, pin_id):
         result = pijuice.config.SetIoConfiguration(pin_id + 1, self.current_config[pin_id], True)
-        return result.get('error', 'NO_ERROR')
+        
 
 
 class BatteryProfileTab(object):
@@ -1238,15 +1351,311 @@ class WakeupAlarmTab(object):
         main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(elements))
         loop.set_alarm_in(1, self._update_time)
 
+class SystemTaskTab(object):
+    def __init__(self, *args):
+        global pijuiceConfigData
+        if pijuiceConfigData == None:
+            pijuiceConfigData = loadPiJuiceConfig()
+        self.main()
+
+    def main(self, *args):
+        global pijuiceConfigData
+        elements = [urwid.Text("System Task"),
+                    urwid.Divider()
+        ]
+
+        ## System Task ##
+        if not ('system_task' in pijuiceConfigData):
+            pijuiceConfigData['system_task'] = {}
+        if not ('enabled' in pijuiceConfigData['system_task']):
+            pijuiceConfigData['system_task']['enabled'] = False
+        elements.extend([attrmap(urwid.CheckBox('System task enabled',
+                                  state=pijuiceConfigData['system_task']['enabled'],
+                                  on_state_change = lambda x, state: pijuiceConfigData['system_task'].update({'enabled':state}))),
+                         urwid.Divider()
+                        ])
+
+        ## Watchdog ##
+        if not('watchdog' in pijuiceConfigData['system_task']):
+            pijuiceConfigData['system_task']['watchdog'] = {}
+        if not('enabled' in pijuiceConfigData['system_task']['watchdog']):
+            pijuiceConfigData['system_task']['watchdog']['enabled'] = False
+        self.wdenabled = pijuiceConfigData['system_task']['watchdog']['enabled']
+        if not('period' in pijuiceConfigData['system_task']['watchdog']):
+            pijuiceConfigData['system_task']['watchdog']['period'] = 4
+        wdCheckBox = attrmap(urwid.CheckBox('Watchdog', state=self.wdenabled,
+                             on_state_change=self._toggle_wdenabled))
+        wdperiodEdit = urwid.IntEdit("Expire period [minutes]: ", default = pijuiceConfigData['system_task']['watchdog']['period']) 
+        urwid.connect_signal(wdperiodEdit, 'change', self.validate_wdperiod)
+        wdperiodEditItem = attrmap(wdperiodEdit)
+        wdperiodTextItem = attrmap(urwid.Text("Expire period [minutes]: " + str(pijuiceConfigData['system_task']['watchdog']['period'])))
+        wdperiodItem = wdperiodEditItem if self.wdenabled else wdperiodTextItem 
+        wdperiodRow = urwid.Columns([urwid.Padding(wdCheckBox, width = 24), urwid.Padding(wdperiodItem, width=37)])
+        elements.extend([wdperiodRow,
+                        urwid.Divider()])
+
+        ## Wakeup on charge ##
+        if not('wakeup_on_charge' in pijuiceConfigData['system_task']):
+            pijuiceConfigData['system_task']['wakeup_on_charge'] = {}
+        if not('enabled' in pijuiceConfigData['system_task']['wakeup_on_charge']):
+            pijuiceConfigData['system_task']['wakeup_on_charge']['enabled'] = False
+        self.wkupenabled = pijuiceConfigData['system_task']['wakeup_on_charge']['enabled']
+        if not('trigger_level' in pijuiceConfigData['system_task']['wakeup_on_charge']):
+            pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'] = 50
+        wkupCheckBox = attrmap(urwid.CheckBox('Wakeup on charge', state=self.wkupenabled,
+                          on_state_change=self._toggle_wkupenabled))
+        wkuplevelEdit = urwid.IntEdit("Trigger level [%]: ", default = pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'])
+        urwid.connect_signal(wkuplevelEdit, 'change', self.validate_wkuplevel)
+        wkuplevelEditItem = attrmap(wkuplevelEdit)
+        wkuplevelTextItem = attrmap(urwid.Text("Trigger level [%]: " + str(pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'])))
+        wkuplevelItem = wkuplevelEditItem if self.wkupenabled else wkuplevelTextItem
+        wkuplevelRow = urwid.Columns([urwid.Padding(wkupCheckBox, width = 24), urwid.Padding(wkuplevelItem, width=37)])
+        elements.extend([wkuplevelRow,
+                         urwid.Divider()])
+
+        ## Minimum charge ##
+        if not('min_charge' in pijuiceConfigData['system_task']):
+            pijuiceConfigData['system_task']['min_charge'] = {}
+        if not('enabled' in pijuiceConfigData['system_task']['min_charge']):
+            pijuiceConfigData['system_task']['min_charge']['enabled'] = False
+        self.minchgenabled = pijuiceConfigData['system_task']['min_charge']['enabled']
+        if not('threshold' in pijuiceConfigData['system_task']['min_charge']):
+            pijuiceConfigData['system_task']['min_charge']['threshold'] = 10
+        minchgCheckBox = attrmap(urwid.CheckBox('Min charge', state=self.minchgenabled,
+                          on_state_change=self._toggle_minchgenabled))
+        thresholdEdit = urwid.IntEdit("Threshold [%]: ", default = pijuiceConfigData['system_task']['min_charge']['threshold'])
+        urwid.connect_signal(thresholdEdit, 'change', self.validate_minchglevel)
+        thresholdEditItem = attrmap(thresholdEdit)
+        thresholdTextItem = attrmap(urwid.Text("Threshold [%]: " + str(pijuiceConfigData['system_task']['min_charge']['threshold'])))
+        thresholdItem = thresholdEditItem if self.minchgenabled else thresholdTextItem
+        thresholdRow = urwid.Columns([urwid.Padding(minchgCheckBox, width = 24), urwid.Padding(thresholdItem, width=37)])
+        elements.extend([thresholdRow,
+                         urwid.Divider()])
+
+        # Min Battery voltage
+        if not('min_bat_voltage' in pijuiceConfigData['system_task']):
+            pijuiceConfigData['system_task']['min_bat_voltage'] = {}
+        if not('enabled' in pijuiceConfigData['system_task']['min_bat_voltage']):
+            pijuiceConfigData['system_task']['min_bat_voltage']['enabled'] = False
+        self.minbatvenabled = pijuiceConfigData['system_task']['min_bat_voltage']['enabled']
+        if not('threshold' in pijuiceConfigData['system_task']['min_bat_voltage']):
+            pijuiceConfigData['system_task']['min_bat_voltage']['threshold'] = 3.3
+        minbatvCheckBox = attrmap(urwid.CheckBox('Min battery voltage', state=self.minbatvenabled,
+                           on_state_change=self._toggle_minbatvenabled))
+        vthresholdEdit = FloatEdit(default = str(pijuiceConfigData['system_task']['min_bat_voltage']['threshold']))
+        urwid.connect_signal(vthresholdEdit, 'change', self.validate_minbatvlevel)
+        vthresholdEditItem = attrmap(vthresholdEdit)
+        vthresholdTextItem = attrmap(urwid.Text(str(pijuiceConfigData['system_task']['min_bat_voltage']['threshold'])))
+        vthresholdItem = vthresholdEditItem if self.minbatvenabled else vthresholdTextItem
+        vthresholdRow = urwid.Columns([urwid.Padding(minbatvCheckBox, width = 24), urwid.Padding(vthresholdItem, width=37)])
+        elements.extend([vthresholdRow,
+                          urwid.Divider()])
+
+        ## Footer ##
+        elements.extend([urwid.Padding(attrmap(urwid.Button("Refresh", on_press=self.refresh)), width=18),
+                         urwid.Padding(attrmap(urwid.Button("Apply settings", on_press=savePiJuiceConfig)), width=18),
+                         urwid.Padding(attrmap(urwid.Button("Back", on_press=main_menu)), width=18)
+                         ])
+        main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(elements))
+
+    def refresh(self, *args):
+        global pijuiceConfigData
+        pijuiceConfigData = loadPiJuiceConfig()
+        self.main()
+
+    def _toggle_wdenabled(self, *args):
+        global pijuiceConfigData
+        self.wdenabled ^= True
+        pijuiceConfigData['system_task']['watchdog']['enabled'] = self.wdenabled
+        self.main()
+
+    def _toggle_wkupenabled(self, *args):
+        global pijuiceConfigData
+        self.wkupenabled ^= True
+        pijuiceConfigData['system_task']['wakeup_on_charge']['enabled'] = self.wkupenabled
+        self.main()
+
+    def _toggle_minchgenabled(self, *args):
+        global pijuiceConfigData
+        self.minchgenabled ^= True
+        pijuiceConfigData['system_task']['min_charge']['enabled'] = self.minchgenabled
+        self.main()
+
+    def _toggle_minbatvenabled(self, *args):
+        global pijuiceConfigData
+        self.minbatvenabled ^= True
+        pijuiceConfigData['system_task']['min_bat_voltage']['enabled'] = self.minbatvenabled
+        self.main()
+
+    def validate_wdperiod(self, widget, newtext):
+        if newtext == '':
+            newtext = '0'
+        text = validate_value(newtext, 'int', 1, 65535,
+                              pijuiceConfigData['system_task']['watchdog']['period'])
+        pijuiceConfigData['system_task']['watchdog']['period'] = text
+        if text != newtext:
+            self.main()
+
+    def validate_wkuplevel(self, widget, newtext):
+        if newtext == "":
+            newtext = "0"
+        text = validate_value(newtext, 'int', 1, 100,
+                              pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'])
+        pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'] = text
+        if text != newtext:
+            self.main()
+
+    def validate_minchglevel(self, widget, newtext):
+        if newtext == "":
+            newtext = "0"
+        text = validate_value(newtext, 'int', 1, 100,
+                              pijuiceConfigData['system_task']['min_charge']['threshold'])
+        pijuiceConfigData['system_task']['min_charge']['threshold'] = text
+        if text != newtext:
+            self.main()
+
+    def validate_minbatvlevel(self, widget, newtext):
+        if newtext == "":
+            newtext = "0.0"
+        text = validate_value(newtext, 'float', 0.01, 10.0,
+                              pijuiceConfigData['system_task']['min_bat_voltage']['threshold'])
+        pijuiceConfigData['system_task']['min_bat_voltage']['threshold'] = text
+        if float(text) != float(newtext):
+            self.main()
+
+class SystemEventsTab(object):
+    EVENTS = ['low_charge', 'low_battery_voltage', 'no_power', 'watchdog_reset', 'button_power_off', 'forced_power_off',
+              'forced_sys_power_off']
+    EVTTXT = ['Low charge', 'Low battery voltage', 'No power', 'Watchdog reste', 'Button power off', 'Forced power off',
+              'Forced sys power off']
+    FUNCTIONS = ['NO_FUNC'] + pijuice_sys_functions + pijuice_user_functions
+
+    def __init__(self, *args):
+        global pijuiceConfigData
+        if pijuiceConfigData == None:
+            pijuiceConfigData = loadPiJuiceConfig()
+        if not ('system_events' in pijuiceConfigData):
+            pijuiceConfigData['system_events'] = {}
+        for event in self.EVENTS:
+            if not(event in pijuiceConfigData['system_events']):
+                pijuiceConfigData['system_events'][event] = {}
+            if not('enabled' in pijuiceConfigData['system_events'][event]):
+                pijuiceConfigData['system_events'][event]['enabled'] = False
+            if not('function' in pijuiceConfigData['system_events'][event]):
+                pijuiceConfigData['system_events'][event]['function'] = 'NO_FUNC'
+        self.main()
+
+    def main(self, *args):
+        global pijuiceConfigData
+        elements = [urwid.Text('System Events'),
+                    urwid.Divider()
+        ]
+
+        for i, event in enumerate(self.EVENTS):
+            eventchkbox = urwid.CheckBox(self.EVTTXT[i]+':', state=pijuiceConfigData['system_events'][event]['enabled'],
+                             on_state_change=self._toggle_eventenabled, user_data=event)
+            eventitem = attrmap(eventchkbox)
+            func = pijuiceConfigData['system_events'][event]['function']
+            fbutton = attrmap(urwid.Button(func, on_press = self.set_function, user_data = [i, func]))
+            ftext   = attrmap(urwid.Text('  ' + func))
+            funcitem = fbutton if eventchkbox.state else ftext
+            row = urwid.Columns([urwid.Padding(eventitem, width=25), urwid.Padding(funcitem, width = 25)])
+            elements.append(row)
+        elements.append(urwid.Divider())
+
+        ## Footer ##
+        elements.extend([urwid.Padding(attrmap(urwid.Button('Refresh', on_press=self.refresh)), width=18),
+                         urwid.Padding(attrmap(urwid.Button('Apply settings', on_press=savePiJuiceConfig)), width=18),
+                         urwid.Padding(attrmap(urwid.Button('Back', on_press=main_menu)), width=18)
+                         ])
+        main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(elements))
+
+    def refresh(self, *args):
+        global pijuiceConfigData
+        pijuiceConfigData = loadPiJuiceConfig()
+        self.main()
+
+    def _toggle_eventenabled(self, widget, state, event):
+        pijuiceConfigData['system_events'][event]['enabled'] = state
+        self.main()
+
+    def set_function(self, button, data):
+        global pijuiceConfigData
+        index = data[0]
+        func = data[1]
+        elements = [urwid.Text("Select function for '"+self.EVTTXT[index]+"'"),
+                    urwid.Divider()]
+        self.bgroup = []
+        for function in  self.FUNCTIONS:
+            button = attrmap(urwid.RadioButton(self.bgroup, function))
+            elements.append(button)
+        self.bgroup[self.FUNCTIONS.index(func)].toggle_state()
+        elements.extend([urwid.Divider(),
+                         urwid.Padding(attrmap(urwid.Button('Back', on_press=self._on_function_chosen, user_data=index)), width=8)
+                        ])
+        main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(elements))
+
+    def _on_function_chosen(self, button, index):
+        states = [c.state for c in self.bgroup]
+        pijuiceConfigData['system_events'][self.EVENTS[index]]['function']=self.FUNCTIONS[states.index(True)]
+        self.bgroup=[]
+        self.main()
+
+USER_FUNCS_TOTAL=15
+class UserScriptsTab(object):
+    def __init__(self, *args):
+        global pijuiceConfigData
+        if pijuiceConfigData == None:
+            pijuiceConfigData = loadPiJuiceConfig()
+        if not ('user_functions' in pijuiceConfigData):
+            pijuiceConfigData['user_functions'] = {}
+        for i in range(USER_FUNCS_TOTAL):
+            fkey = 'USER_FUNC' + str(i+1)
+            if not (fkey in pijuiceConfigData['user_functions']):
+                pijuiceConfigData['user_functions'][fkey] = ''
+        self.main()
+
+    def main(self, *args):
+        global pijuiceConfigData
+        elements = [urwid.Text("User Scripts"),
+                    urwid.Divider()
+        ]
+
+        for i in range(USER_FUNCS_TOTAL):
+            flabel = 'USER FUNC' + str(i+1) + ': '
+            fkey = 'USER_FUNC' + str(i+1)
+            edititem = urwid.Edit(flabel, edit_text=pijuiceConfigData['user_functions'][fkey])
+            urwid.connect_signal(edititem, 'change', self.updatetext, user_args = [fkey,])
+            elements.append(attrmap(edititem))
+        elements.append(urwid.Divider())
+
+        ## Footer ##
+        elements.extend([urwid.Padding(attrmap(urwid.Button("Refresh", on_press=self.refresh)), width=18),
+                         urwid.Padding(attrmap(urwid.Button("Apply settings", on_press=savePiJuiceConfig)), width=18),
+                         urwid.Padding(attrmap(urwid.Button("Back", on_press=main_menu)), width=18)
+                         ])
+        main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(elements))
+
+    def updatetext(self,  key, widget, text):
+        global pijuiceConfigData
+        pijuiceConfigData['user_functions'][key] = text
+
+    def refresh(self, *args):
+        global pijuiceConfigData
+        pijuiceConfigData = loadPiJuiceConfig()
+        self.main()
 
 def menu(title, choices):
     body = [urwid.Text(title), urwid.Divider()]
     for c in choices:
-        button = urwid.Button(c)
-        urwid.connect_signal(button, 'click', item_chosen, c)
-        #wrapped_button = urwid.Padding(urwid.AttrMap(button, None, focus_map='reversed'), width=20)
-        wrapped_button = urwid.Padding(attrmap(button), width=20)
-        body.append(wrapped_button)
+        if c != "":
+            button = urwid.Button(c)
+            urwid.connect_signal(button, 'click', item_chosen, c)
+            #wrapped_button = urwid.Padding(urwid.AttrMap(button, None, focus_map='reversed'), width=20)
+            wrapped_button = urwid.Padding(attrmap(button), width=20)
+            body.append(wrapped_button)
+        else:
+            body.append(urwid.Divider())
     return urwid.ListBox(urwid.SimpleFocusListWalker(body))
 
 
@@ -1271,6 +1680,36 @@ def exit_program(button=None):
 def attrmap(w):
     return urwid.AttrMap(w, None, focus_map='reversed')
 
+def loadPiJuiceConfig():
+    try:
+        with open(PiJuiceConfigDataPath, 'r') as outputConfig:
+            pijuiceConfigData = json.load(outputConfig)
+    except:
+        pijuiceConfigData = {}
+    return pijuiceConfigData
+
+def savePiJuiceConfig(*args):
+    try:
+        with open(PiJuiceConfigDataPath, 'w+') as outputConfig:
+            json.dump(pijuiceConfigData, outputConfig, indent=2)
+        ret = notify_service(*args)
+        text = "Settings saved"
+        if ret != 0:
+            text += ("\n\nFailed to communicate with PiJuice service.\n"
+                    "See system logs and 'systemctl status pijuice.service' for details.")
+        confirmation_dialog(text, next=main_menu)
+    except:
+        confirmation_dialog("Failed to save settings to " + PiJuiceConfigDataPath + "\n"
+                            "Check permissions of " + PiJuiceConfigDataPath, next=main_menu)
+
+def notify_service(*args):
+    ret = -1
+    try:
+        pid = int(open(PID_FILE, 'r').read())
+        ret = os.system("sudo kill -SIGHUP " + str(pid) + " > /dev/null 2>&1")
+    except:
+        pass
+    return ret
 
 menu_mapping = {
     "Status": StatusTab,
@@ -1281,12 +1720,15 @@ menu_mapping = {
     "IO": IOTab,
     "Wakeup Alarm": WakeupAlarmTab,
     "Firmware": FirmwareTab,
+    "System Task": SystemTaskTab,
+    "System Events": SystemEventsTab,
+    "User Scripts": UserScriptsTab,
     "Exit": exit_program
 }
 
 # Use list of entries to set order
-choices = ["Status", "General", "Buttons", "LEDs", "Battery profile",
-           "IO", "Wakeup Alarm", "Firmware", "Exit"]
+choices = ["Status", "General", "Buttons", "LEDs", "Battery profile", "IO", "Wakeup Alarm",
+           "Firmware", "", "System Task", "System Events", "User Scripts", "", "Exit"]
 
 nolock = False
 lock_file = open(LOCK_FILE, 'w')
@@ -1311,6 +1753,7 @@ elif nolock:
     elements.append(urwid.Padding(attrmap(urwid.Button("OK", on_press=exit_cli)), width=6, align='center'))
     main = urwid.Filler(urwid.Pile(elements))
 else:
+    pijuiceConfigData = None
     main = urwid.Padding(menu("PiJuice HAT Configuration", choices), left=2, right=2)
 
 top = urwid.Overlay(urwid.LineBox(main, title='PiJuice CLI'), urwid.SolidFill(u'\N{LIGHT SHADE}'),
@@ -1318,3 +1761,4 @@ top = urwid.Overlay(urwid.LineBox(main, title='PiJuice CLI'), urwid.SolidFill(u'
                     valign='middle', height=20)
 loop = urwid.MainLoop(top, palette=[('reversed', 'standout', '')])
 loop.run()
+
