@@ -169,3 +169,4 @@ It is safe to say we have an awesome and growing community of people using PiJui
 
 * Power outage monitor (using PiJuice and PaPiRus) by Frederick Vandenbosch. [You can find pictures and code here](http://frederickvandenbosch.be/?p=2876)
 * Build a wildlife camera using a Raspberry Pi and PiJuice [by Electromaker](https://www.electromaker.io/blog/article/build-a-wildlife-camera-using-a-raspberry-pi-and-pijuice)
+* CarPi - a Raspberry Pi, PiJuice and a HifiBerry all living neatly in a dashboard running Android Auto! [by Rick Tonoli](http://www.ricktonoli.com/2018/06/13/car-pi-hardware/)
