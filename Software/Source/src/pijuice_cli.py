@@ -192,7 +192,8 @@ class StatusTab(object):
 
         io_voltage = float(pijuice.status.GetIoVoltage().get('data', 0))  # mV
         io_current = float(pijuice.status.GetIoCurrent().get('data', 0))  # mA
-        gpio_info = "%.3fV, %.3fA, %s" % (io_voltage / 1000, io_current / 1000, status['powerInput5vIo'])
+        gpio_info = "%.3fV, %.3fA, %s" % (io_voltage / 1000, io_current / 1000,
+                    status['powerInput5vIo'] if not(status == {}) else 'N/A')
 
         fault_info = pijuice.status.GetFaultStatus()
         if fault_info['error'] == 'NO_ERROR':
@@ -225,7 +226,7 @@ class StatusTab(object):
                       "Battery: {battery}\nGPIO power input: {gpio}\n"
                       "USB Micro power input: {usb}\nFault: {fault}\n"
                       "System switch: {sys_sw}\n".format(**status_args))
-        loop.set_alarm_in(1, self.update_status, text)
+        self.alarm_handle = loop.set_alarm_in(1, self.update_status, text)
 
 
     def main(self, *args):
@@ -235,14 +236,15 @@ class StatusTab(object):
                         "USB Micro power input: {usb}\nFault: {fault}\n"
                         "System switch: {sys_sw}\n".format(**status_args))
         #refresh_btn = urwid.Padding(attrmap(urwid.Button('Refresh', on_press=self.main)), width=24)
-        main_menu_btn = urwid.Padding(attrmap(urwid.Button('Back', on_press=main_menu)), width=24)
+        main_menu_btn = urwid.Padding(attrmap(urwid.Button('Back', on_press=self._goto_main_menu)), width=24)
         pwr_switch_btn = urwid.Padding(attrmap(urwid.Button('Change Power switch', on_press=self.change_power_switch)), width=24)
         main.original_widget = urwid.Filler(
             #urwid.Pile([text, urwid.Divider(), refresh_btn, pwr_switch_btn, main_menu_btn]), valign='top')
             urwid.Pile([text, urwid.Divider(), pwr_switch_btn, main_menu_btn]), valign='top')
-        loop.set_alarm_in(1, self.update_status, text)
+        self.alarm_handle = loop.set_alarm_in(1, self.update_status, text)
 
     def change_power_switch(self, *args):
+        loop.remove_alarm(self.alarm_handle)
         elements = [urwid.Text("Choose value for System Power switch"), urwid.Divider()]
         values = [0, 500, 2100]
         for value in values:
@@ -257,6 +259,9 @@ class StatusTab(object):
         pijuice.power.SetSystemPowerSwitch(int(value))
         self.main()
 
+    def _goto_main_menu(self, *args):
+        loop.remove_alarm(self.alarm_handle)
+        main_menu()
 
 class FirmwareTab(object):
     FIRMWARE_UPDATE_ERRORS = ['NO_ERROR', 'I2C_BUS_ACCESS_ERROR', 'INPUT_FILE_OPEN_ERROR', 'STARTING_BOOTLOADER_ERROR', 'FIRST_PAGE_ERASE_ERROR',
@@ -591,17 +596,15 @@ class LEDTab(object):
     def _apply_settings(self, *args):
         device_config = self._get_led_config()
         for i in range(len(self.LED_NAMES)):
-            changed = [key for key in device_config[i].keys() if device_config[i][key] != self.current_config[i][key]]
-            if changed:
-                config = {
-                    "function": self.current_config[i]['function'],
-                    "parameter": {
-                        "r": self.current_config[i]['color'][0],
-                        "g": self.current_config[i]['color'][1],
-                        "b": self.current_config[i]['color'][2],
-                    }
+            config = {
+                "function": self.current_config[i]['function'],
+                "parameter": {
+                    "r": self.current_config[i]['color'][0],
+                    "g": self.current_config[i]['color'][1],
+                    "b": self.current_config[i]['color'][2],
                 }
-                pijuice.config.SetLedConfiguration(self.LED_NAMES[i], config)
+            }
+            pijuice.config.SetLedConfiguration(self.LED_NAMES[i], config)
         
         self.current_config = self._get_led_config()
         confirmation_dialog("Settings successfully updated", single_option=True, next=self.main)
@@ -912,7 +915,7 @@ class IOTab(object):
 
     def _apply_for_pin(self, pin_id):
         result = pijuice.config.SetIoConfiguration(pin_id + 1, self.current_config[pin_id], True)
-        
+        return result.get('error', 'NO_ERROR')
 
 
 class BatteryProfileTab(object):
@@ -1232,9 +1235,10 @@ class WakeupAlarmTab(object):
         self.device_time = self._get_device_time()
         self.time_text.set_text("UTC Time: " + self.device_time)
         self.status_text.set_text("Status: " + self.status)
-        loop.set_alarm_in(1, self._update_time)
+        self.alarm_handle = loop.set_alarm_in(1, self._update_time)
 
     def _set_alarm(self, *args):
+        loop.remove_alarm(self.alarm_handle)
         alarm = {}
         if self.current_config['second'].get('value'):
             alarm['second'] = self.current_config['second']['value']
@@ -1271,6 +1275,7 @@ class WakeupAlarmTab(object):
             confirmation_dialog('Failed to toggle alarm. Error: {}'.format(ret['error']), next=main_menu, single_option=True)
 
     def _set_time(self, *args):
+        loop.remove_alarm(self.alarm_handle)
         t = datetime.datetime.utcnow()
         pijuice.rtcAlarm.SetTime({
             'second': t.second,
@@ -1346,10 +1351,14 @@ class WakeupAlarmTab(object):
             urwid.Padding(attrmap(second_edit), width=11),
             urwid.Divider(),
             urwid.Padding(attrmap(urwid.Button("Set alarm", on_press=self._set_alarm)), width=13),
-            urwid.Padding(attrmap(urwid.Button("Back", on_press=main_menu)), width=13)
+            urwid.Padding(attrmap(urwid.Button("Back", on_press=self._goto_main_menu)), width=13)
         ]
         main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(elements))
-        loop.set_alarm_in(1, self._update_time)
+        self.alarm_handle = loop.set_alarm_in(1, self._update_time)
+
+    def _goto_main_menu(self, *args):
+        loop.remove_alarm(self.alarm_handle)
+        main_menu()
 
 class SystemTaskTab(object):
     def __init__(self, *args):
