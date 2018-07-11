@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Point-and-shoot camera for Raspberry Pi w/camera and Media Centre HAT.
 #
 # Prerequisite tutorials: aside from the basic Raspbian setup and
@@ -136,8 +137,6 @@ def printit():
     t.daemon = True
     t.start()
 
-    print "Here"
-#    printit()
     buttons = [
     # Screen mode 0 is photo playback
         [Button((0, 188, 320, 52), bg='done', cb=doneCallback),
@@ -645,7 +644,6 @@ while (True):
     # Process touchscreen input
     while True:
         batt = battRefresh()
-        print batt
         for s in buttons:  # For each screenful of buttons...
             for b in s:  # For each button on screen...
                 for i in icons:  # For each icon...
