@@ -495,17 +495,16 @@ class GeneralTab(object):
         if 'run_pin' in changed:
             pijuice.config.SetRunPinConfig(self.RUN_PIN_VALUES[self.current_config['run_pin']])
 
-        # XXX: unstable
-        # for i, addr in enumerate('i2c_addr', 'i2c_addr_rtc'):
-        #     if addr in changed:
-        #         value = self.device_config[addr]
-        #         try:
-        #             new_value = int(str(self.current_config[addr]), 16)
-        #             if new_value <= 0x7F:
-        #                 value = self.current_config[addr]
-        #         except:
-        #             pass
-        #         pijuice.config.SetAddress(i + 1, value)
+        for i, addr in enumerate(['i2c_addr', 'i2c_addr_rtc']):
+            if addr in changed:
+                value = device_config[addr]
+                try:
+                    new_value = int(str(self.current_config[addr]), 16)
+                    if new_value <= 0x7F:
+                        value = self.current_config[addr]
+                except:
+                    pass
+                pijuice.config.SetAddress(i + 1, value)
 
         if 'eeprom_addr' in changed:
             pijuice.config.SetIdEepromAddress(self.EEPROM_ADDRESSES[self.current_config['eeprom_addr']])
