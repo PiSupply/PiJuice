@@ -83,4 +83,8 @@ sudo bash media-center.sh 90
 
 ## Usage
 
+To launch the point and shoot camera software, simply double tab on the desktop icon.
+
+
+
 ### Configure DropBox

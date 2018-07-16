@@ -46,7 +46,7 @@ To recover from this issue follow these steps:
 1. Make sure that you Raspberry Pi is shutdown
 2. Disconnect all power to the PiJuice or Raspberry Pi and remove the PiJuice battery
 3. Hold down SW3 button on the PiJuice and connect power to the Raspberry Pi
-4. Release SW3 button after few seconds to enter bootloader mode
+4. Release SW3 button after few seconds to enter bootloader mode\
 **NOTE: LEDs on the PiJuice will remain off**
 5. Stop the pijuice service with `sudo systemctl stop pijuice.service`
 6. Run `pijuiceboot 14 <firmware version>`
