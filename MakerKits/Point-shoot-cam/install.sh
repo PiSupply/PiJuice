@@ -7,6 +7,7 @@ git clone https://github.com/PiSupply/Media-Center-HAT.git
 
 cd PiJuice/MakerKits/Point-shoot-cam
 sudo make
+cp Point-Shoot.desktop /home/pi/Desktop/
 cd ~
 
 grep "start_x=1" /boot/config.txt
@@ -15,7 +16,6 @@ then
         exit
 else
         sed -i "s/start_x=0/start_x=1/g" /boot/config.txt
-        reboot
 fi
 exit
 

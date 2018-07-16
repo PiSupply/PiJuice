@@ -23,3 +23,64 @@ There are three different ways in which you can run the software for this projec
 1. Download the pre-compiled image and flash to a micro SD card and insert it into the Raspberry Pi
 2. Use the auto installation script provided below
 3. Manual install the software using the below steps
+
+### 2. Auto-installation
+
+Just run the following script in a terminal window and the point and shoot camera software will be automatically setup:
+```bash
+# Run this line and the point and shoot software will be setup and installed
+curl -sSL https://raw.githubusercontent.com/PiSupply/PiJuice/master/MakerKits/Point-shoot-cam/install.sh | sudo bash
+```
+### 3. Manual Installation
+
+The manual installation process requires that you have the latest Raspbian Stretch which can be downloaded from the Raspberry Pi website and that you also known some basic linux commands.
+
+1. Make sure you have the most up to date version by running the following command:
+
+```bash
+sudo apt-get update
+```
+
+2. Install the PiJuice Base software which is required to interact with the PiJuice board. For this project we install the base package but you can also install the GUI:
+
+```bash
+#Install Base package
+sudo apt-get install pijuice-base
+
+#Install GUI package
+sudo apt-get install pijuice-gui
+```
+
+3. Download the PiJuice GitHub repository where you will find all the project files for the point and shoot camera:
+
+```bash
+git clone https://github.com/PiSupply/PiJuice.git
+```
+
+4. Compile the YUV to RGB convertor for the Raspberry Pi camera and copy the Desktop file to the Desktop directory:
+
+```bash
+cd PiJuice/MakerKits/Point-shoot-cam
+sudo make
+cp Point-Shoot.desktop /home/pi/Desktop/
+cd ~
+```
+
+5. Enable the Raspberry Pi camera by using either `raspi-config` or you can edit the `/boot/config.txt` and add the following line: `start_x=1`.
+
+6. Download the Media Center HAT GitHub repository:
+
+```bash
+git clone https://github.com/PiSupply/Media-Center-HAT.git
+```
+
+7. Install the Media Center HAT software:
+
+```bash
+cd Media-Center-HAT/Software/
+sudo bash media-center.sh 90
+```
+
+## Usage
+
+### Configure DropBox
