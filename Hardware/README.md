@@ -357,7 +357,7 @@ For example an idling Raspberry Pi 3B consuming 230mA running with our default b
 
 We have created the [PiJuice Battery Discharge Time Calculator](https://www.pi-supply.com/battery-levels/) and a [spreadsheet](https://github.com/PiSupply/PiJuice/blob/master/Hardware/Batteries/PiJuice%20Battery%20Discharge%20Levels.xlsx) which gives some typical battery capacities and usage scenarios ([with thanks to Alex from RasPi.TV for his testing efforts](http://raspi.tv/2017/how-much-power-does-pi-zero-w-use)) on all the versions of the Raspberry Pi and how they then relate to approximate uptime of the Pi when using the PiJuice. Obviously these are pretty basic theoretical estimations and if the uptime is "mission-critical" then you should definitely perform real-life testing before relying on these figures but these should give you a good idea.
 
-**NOTE** When PiJuice is in stand-by mode and 5V power has been removed, total current draw is 0.5mA from the battery
+**NOTE:** When PiJuice is in stand-by mode and 5V power has been removed, total current draw is 0.5mA from the battery
 
 #### Battery charge level notes
 
