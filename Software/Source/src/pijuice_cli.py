@@ -14,7 +14,7 @@ from pijuice import PiJuice, pijuice_hard_functions, pijuice_sys_functions, piju
 
 BUS = 1
 ADDRESS = 0x14
-PID_FILE = '/var/lib/pijuice/pijuice.pid'
+PID_FILE = '/var/run/pijuice.pid'
 LOCK_FILE = '/tmp/pijuice_gui.lock'
 
 try:
