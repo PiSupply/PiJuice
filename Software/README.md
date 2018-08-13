@@ -193,6 +193,8 @@ This is the system events menu tab. It allows you to trigger events for certain 
 
 **NOTE:** SYS_FUNC_HALT_POW_OFF still provides power to the Raspberry Pi for a further 60 seconds after shutdown
 
+**NOTE:** When PiJuice is in stand-by mode and 5V power has been removed, total current draw is 0.5mA from the battery
+
 ### User Scripts menu
 
 <img src="https://user-images.githubusercontent.com/1197294/40877048-6f17bef8-667b-11e8-85f5-8c296cb4bfd1.png" width="478">
@@ -270,6 +272,8 @@ Button events can be configured to trigger predefined or user functions.
 * **USER_FUNCX** - Run a custom script as set in "User Scripts"
 
 **NOTE:** SYS_FUNC_HALT_POW_OFF still provides power to the Raspberry Pi for a further 60 seconds after shutdown
+
+**NOTE:** When PiJuice is in stand-by mode and 5V power has been removed, total current draw is 0.5mA from the battery
 
 #### Hardware functions
 * **POWER ON**: This function will wake-up system. 5V regulator (5V GPIO rail) will be turned on if was off.
@@ -455,6 +459,8 @@ In the next menu option if you select one of the above you can change the type o
 **USER_FUNC1** - Runs a custom user script
 
 **NOTE: SYS_FUNC_HALT_POW_OFF still provides power to the Raspberry Pi for a further 60 seconds after shutdown**
+
+**NOTE:** When PiJuice is in stand-by mode and 5V power has been removed, total current draw is 0.5mA from the battery
 
 To set the Parameter of the button press simply enter its value in milliseconds to the Parameter field.
 

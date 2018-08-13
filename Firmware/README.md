@@ -1,6 +1,6 @@
 # Update PiJuice firmware
 
-There are two ways in which you can upgrade the firmware for the PiJuice. You can use the command line tool provided here or refer to the [Software section](https://github.com/PiSupply/PiJuice/tree/master/Software) to find out how to perform a firmware update via the GUI. 
+There are two ways in which you can upgrade the firmware for the PiJuice. You can use the command line tool provided here or refer to the [Software section](https://github.com/PiSupply/PiJuice/tree/master/Software) to find out how to perform a firmware update via the GUI.
 
 pijuiceboot needs to be made executable by running:
 ```bash
@@ -36,3 +36,19 @@ python pijuicetest.py
 The script should display the firmware status, it will print data read from the MCU on screen like battery voltage, charge, battery profile, etc.
 
 *Note: For old firmwares (prior to V1.0_2017_08_15) try to use the old firmware updater with a new firmware binary, or use ST debuger to erase flash.*
+
+## FAQ
+
+**PiJuice bricked after successful firmware update**
+
+To recover from this issue follow these steps:
+
+1. Make sure that you Raspberry Pi is shutdown
+2. Disconnect all power to the PiJuice or Raspberry Pi and remove the PiJuice battery
+3. Hold down SW3 button on the PiJuice and connect power to the Raspberry Pi
+4. Release SW3 button after few seconds to enter bootloader mode\
+**NOTE: LEDs on the PiJuice will remain off**
+5. Stop the pijuice service with `sudo systemctl stop pijuice.service`
+6. Run `pijuiceboot 14 <firmware version>`
+7. Shutdown the Raspberry Pi and remove power
+8. Connect the battery to the PiJuice and boot up as normal

@@ -146,10 +146,10 @@ You can find out more in the [software section](https://github.com/PiSupply/PiJu
 ## Additional content
 Apart from the material available on Github we are also preparing guides, tutorials and additional information on various platforms and media. This is a list of current and future resources:
 
-* Check the main [PiJuice Quick Start Guide and FAQ](https://www.pi-supply.com/make/pijuice-quick-start-guide-faq/) for a detailed assembly guide
-* Our [PiJuice Battery Discharge Time Calculator](https://www.pi-supply.com/battery-levels/)  
+* Check the main [PiJuice Quick Start Guide and FAQ](https://learn.pi-supply.com/make/pijuice-quick-start-guide-faq/) for a detailed assembly guide
+* Our [PiJuice Battery Discharge Time Calculator](https://learn.pi-supply.com/battery-levels/)  
 * There is a "quick start guide" in the package [which you can see here](https://github.com/PiSupply/PiJuice/blob/master/Documentation/PiJuice%20Guide.pdf). As you can see it's pretty basic but really the PiJuice is quite intuitive and very easy to use. 
-* A lot of picture guides and tutorials are going up on our [Maker Zone](https://www.pi-supply.com/make) 
+* A lot of picture guides and tutorials are going up on our [Maker Zone](https://learn.pi-supply.com/make) 
 * We will soon have the pinouts available at [Raspberry Pi Pinout](https://pinout.xyz/pinout/pijuice)
 * We will also have tutorials on [Instructables](http://www.instructables.com/member/PiJuice/) and [Hackster.io](https://www.hackster.io/PiJuice) 
 

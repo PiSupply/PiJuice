@@ -32,7 +32,7 @@ Default settings can be overridden in the "Buttons" tab of PiJuice HAT configura
 
 The DIP switch is preset for the BP7X battery that we supply with every PiJuice HAT.
 
-You can set the DIP Switch for four predefined battery profiles. 
+You can set the DIP Switch for four predefined battery profiles.
 
 ![PiJuice DIP Switch Settings](https://user-images.githubusercontent.com/16068311/34769251-25c7c3b6-f5f5-11e7-971f-e93f5d4d3cc0.jpg "PiJuice DIP Switch Settings")
 
@@ -94,11 +94,11 @@ On board the PiJuice there are several connectors. The connectors / headers avai
 
 * **P3** is an expansion header which provides access to two unused GPIO pins on the ARM Cortex M0 (STM32-F0) MCU on board the PiJuice. There is also a regulated 3V3 and 5V0 pin, a GND pin and a VSYS pin which has the same function as VSYS on J3. VSYS is a switchable battery voltage for system use and can be used with boards like PiBot to provide power. VSYS output is programmable via with software with "OFF", "ON 500mA current limit" and "ON 2100mA current limit".
   The 5V pin is wired with the GPIO header and is then share amongst the Raspberry Pi's electronics and the PiJuice for battery charging. The available current that this pin can supply is around 800mA.
-  As for the 3V3 a maximum of 100mA sourced by the internal LDO. 
+  As for the 3V3 a maximum of 100mA sourced by the internal LDO.
 
 ### Bottom of the board
 
-* **J3** provides the same VSYS as per P3. J3 is a battery output for external load connections with current limit, we use this for external boards such as PiBot. Current limit prevents power loss on the Raspberry Pi if load draws excessive current. 
+* **J3** provides the same VSYS as per P3. J3 is a battery output for external load connections with current limit, we use this for external boards such as PiBot. Current limit prevents power loss on the Raspberry Pi if load draws excessive current.
 * **J7** is a development header to be used in conjunction with an ST-Link programmer for the MCU and a [Tag-Connect cable](http://www.tag-connect.com/TC2050-IDC). It is used to download firmware or perform debugging. It can be also used during production to write the firmware. It requires a [Tag-connect TC2050 ARM20-10](http://www.tag-connect.com/TC2050-ARM2010) adapter to connect ST-Link to cable. This connector is not intended for end users.
 * **J6** is used to program the ID EEPROM during production. There is no adapter board and it needs to be wired manually to some programming tool. It requires a [Tag-Connect cable](http://www.tag-connect.com/TC2030-IDC). It provides an additional option to program the EEPROM in case it cannot be pre-programmed before assembly. This connector is not intended for end users.
 
@@ -251,13 +251,13 @@ PiJuice allows for multiple ways of providing power to its battery and to the Ra
     - Powering from the Pi's input is more efficient, this is usually an advantage in UPS applications, but the maximum charger input from the GPIO pins is 1.5A.
     - Requires installation of the spring / pogo pin to do timed wake ups of the Pi and to use SW1 to wake the Pi
 * **Powering from the PiJuice's micro USB**
-    - Powering via the PiJuice micro USB offers a wider input voltage range. 
+    - Powering via the PiJuice micro USB offers a wider input voltage range.
     - Additionally the maximum current from HAT USB micro is 2.5A, but it needs to go through two regulators to power the Raspberry Pi and is hence less efficient. This input should be used in most battery powered applications and harvesting sources like solar panels.
     - If you wish to start your Raspberry Pi using the PiJuice SW1 you'll have to connect the micro USB to the PiJuice directly (unless you use a spring pin)
 
 When plugging a 2.5A PSU (or a solar panel or other device with more capacity) into the onboard microUSB port on PiJuice, you may notice that with the BP7X battery it only draws 0.75A. This is normal because PiJuice has an efficient charger, based on switching not linear principle so calculation for input current when charging with no load is `Iinput ~ Ibat * Vbat/Vin / k`, for exmple in case `Vbat = 3.7`, `Vin = 5V`, `Ibat = 0.925`, `k ~ 0.92` efficiency coefficient, gives around 0.75A. So the current draw depends on charging current Ibat from the mentioned equation. Charging current is configurable and differs for different batteries (the figures used in example are for the BP7X), for the 5000mAH pkcell battery that we offer Ibat is set to 2.5A. Charging current is specified by battery manufacturer but general spec if no data available is around 0.5C where C is battery capacity.
 
-### Max. current that the PiJuice will be able to supply 
+### Max. current that the PiJuice will be able to supply
 
 The maximum current at 5V via the GPIO is 2.5A and via VSYS is 2.1A. This is also dependent on battery capacity. For BP7X battery for example we have measured around 1.1A at 5V GPIO and around 1.6A at VSYS output. To achieve the maximum of 2.5A you will need to use a battery of at least 3500mAh.
 
@@ -301,7 +301,7 @@ PiJuice has set of predefined profiles for set of tested compatible batteries th
   - Hot temperature: 59 °C,
   - NTC  B constant: 3380 K,
   - NTC resistance 10000 Ω.
-  
+
 * (1) BP7X
   - Capacity: 1820 mAh,
   - Charge current: 925 mA,
@@ -314,7 +314,7 @@ PiJuice has set of predefined profiles for set of tested compatible batteries th
   - Hot temperature: 59 °C,
   - NTC  B constant: 3380 K,
   - NTC resistance 10000 Ω.
-  
+
 * (2) SNN5843
   - Capacity: 2300 mAh,
   - Charge current: 1150 mA,
@@ -327,7 +327,7 @@ PiJuice has set of predefined profiles for set of tested compatible batteries th
   - Hot temperature: 59 °C,
   - NTC  B constant: 3380 K,
   - NTC resistance 10000 Ω.
-  
+
 * (3) LIPO8047109
   - Capacity: 5000 mAh,
   - Charge current: 2500 mA,
@@ -353,15 +353,17 @@ To get a good approximation of how long your PiJuice setup will run with your ch
 
 For example an idling Raspberry Pi 3B consuming 230mA running with our default battery BP7X with a capacity of 1820mAh and a voltage of 3.7V should be up for about 4 hours and 40 minutes.
 
-`((1820mAh * 3.7V) / (230mA * 5V)) * 0.75 = 4.39h` 
+`((1820mAh * 3.7V) / (230mA * 5V)) * 0.75 = 4.39h`
 
 We have created the [PiJuice Battery Discharge Time Calculator](https://www.pi-supply.com/battery-levels/) and a [spreadsheet](https://github.com/PiSupply/PiJuice/blob/master/Hardware/Batteries/PiJuice%20Battery%20Discharge%20Levels.xlsx) which gives some typical battery capacities and usage scenarios ([with thanks to Alex from RasPi.TV for his testing efforts](http://raspi.tv/2017/how-much-power-does-pi-zero-w-use)) on all the versions of the Raspberry Pi and how they then relate to approximate uptime of the Pi when using the PiJuice. Obviously these are pretty basic theoretical estimations and if the uptime is "mission-critical" then you should definitely perform real-life testing before relying on these figures but these should give you a good idea.
+
+**NOTE:** When PiJuice is in stand-by mode and 5V power has been removed, total current draw is 0.5mA from the battery
 
 #### Battery charge level notes
 
 There is a known quirk for lithium ion batteries whilst charging/discharging and the specific "fuel gauge" IC we are using on PiJuice. It is effectively about the measuring principle of the fuel gauge IC, that measures battery impedance to estimate charge level. Due to parasitic impedance (mostly due to the internal battery protection circuit - modern phones and tablets won't have this, but they tightly control their manufacturer of batteries which is far harder for a low volume product) there are measuring errors especially while charging because there are big currents over 1 Amp. We took the attitude that safety is a priority over charge level accuracy.
 
-The purpose for the charge level is to have estimation during discharging to know when it is near to empty... info that is useful for field applications. It is precise enough while powering Pi and discharging with no inputs. More accurate readings with this IC can be achieve by having a fixed battery type without protection circuit before fuel gauge connection point - that is the usual case in phones or laptops. The protection method is integrated within the BP7X battery we are using, which is an older battery that as you can see was removable. This introduces impedance measurement errors, it is about hardware not firmware. That is why on many older phones you do not even have charge level during charging but only blinking symbol. 
+The purpose for the charge level is to have estimation during discharging to know when it is near to empty... info that is useful for field applications. It is precise enough while powering Pi and discharging with no inputs. More accurate readings with this IC can be achieve by having a fixed battery type without protection circuit before fuel gauge connection point - that is the usual case in phones or laptops. The protection method is integrated within the BP7X battery we are using, which is an older battery that as you can see was removable. This introduces impedance measurement errors, it is about hardware not firmware. That is why on many older phones you do not even have charge level during charging but only blinking symbol.
 
 We have provided a sample [charge / discharge test log](https://github.com/PiSupply/PiJuice/blob/master/Hardware/Batteries/pijuice_charge.log), with charge level and voltage printed every minute during charging and discharging. There is an initial rise during charging to over 50%, but discharge is pretty linear.
 
@@ -369,7 +371,7 @@ Last but not least, we will likely try to fix this in a future software update b
 
 ## Misc
 
-### RF shield clips (M1-M4) 
+### RF shield clips (M1-M4)
 
 You can use the optional RF Shield - Harwin S02-20150300 under the following circumnstances:
 * You experience greater heating of Pijuice board
