@@ -1,14 +1,17 @@
-#!/usr/bin/env python
+#! /usr/bin/python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
 import calendar
 import datetime
 import getopt
+import grp
 import json
 import logging
 import os
+import pwd
 import signal
+import stat
 import subprocess
 import sys
 import time
@@ -31,7 +34,7 @@ noPowEn = False
 noPowCnt = 100
 logger = None
 dopoll = True
-PID_FILE = '/var/run/pijuice.pid'
+PID_FILE = '/tmp/pijuice_sys.pid'
 
 
 def _SystemHalt(event):
@@ -47,12 +50,10 @@ def _SystemHalt(event):
     pijuice.status.SetLedBlink('D2', 3, [150, 0, 0], 200, [0, 100, 0], 200)
     subprocess.call(["sudo", "halt"])
 
-
 def ExecuteFunc(func, event, param):
     if func == 'SYS_FUNC_HALT':
         #logger.info(func+' '+str(event)+' '+str(param))
         _SystemHalt(event)
-
     elif func == 'SYS_FUNC_HALT_POW_OFF':
         pijuice.power.SetSystemPowerSwitch(0)
         pijuice.power.SetPowerOff(60)
@@ -63,17 +64,58 @@ def ExecuteFunc(func, event, param):
     elif func == 'SYS_FUNC_REBOOT':
         subprocess.call(["sudo", "reboot"])
     elif ('USER_FUNC' in func) and ('user_functions' in configData) and (func in configData['user_functions']):
+        function=configData['user_functions'][func]
+        print("function=",function)
+        # Check function is defined
+        if function == "":
+            print(func + " not defined")
+            return
+        # Remove possible argumemts
+        cmd = function.split()[0]
+
+        # Check cmd is an executable file and the file owner belongs
+        # to the pijuice group.
+        # If so, execute the command as the file owner
+
         try:
-            os.system(
-                "{function} {event} {param}".format(
-                    function=configData['user_functions'][func],
-                    event=str(event),
-                    param=str(param)
-                )
-            )
-            #subprocess.call([configData['user_functions'][func], event, param])
+            statinfo = os.stat(cmd)
         except:
-            print('failed to execute user func')
+            # File not found
+            print(cmd + " not found")
+            return
+        # Get owner and ownergroup names
+        owner = pwd.getpwuid(statinfo.st_uid).pw_name
+        ownergroup = grp.getgrgid(statinfo.st_gid).gr_name
+        # Do not allow programs owned by root
+        if owner == 'root':
+            print("root owned " + cmd + " not allowed")
+            return
+        # Check cmd has executable permission
+        if statinfo.st_mode & stat.S_IXUSR == 0:
+            print(cmd + " is not executable")
+            return
+        # Owner of cmd must belong to mygroup ('pijuice')
+        mygroup = grp.getgrgid(os.getegid()).gr_name
+        # Find all groups owner belongs too
+        groups = [g.gr_name for g in grp.getgrall() if owner in g.gr_mem]
+        groups.append(ownergroup) # append primary group
+        # Does owner belong to mygroup?
+        found = 0
+        for g in groups:
+            if g == mygroup:
+                found = 1
+                break
+        if found == 0:
+            print(cmd + " owner ('" + owner + "') does not belong to '" + mygroup + "'")
+            return
+        # All checks passed
+        cmd = "sudo -u " + owner + " " + cmd + " {event} {param}".format(
+                                                      event=str(event),
+                                                      param=str(param))
+        try:
+            os.system(cmd)
+        except:
+            print('Failed to execute user func')
 
 
 def _EvalButtonEvents():
@@ -202,6 +244,7 @@ def main():
 
     try:
         pijuice = PiJuice(1, 0x14)
+        #pijuice = PiJuice(3, 0x14)
     except:
         sys.exit(0)
 

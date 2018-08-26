@@ -1,13 +1,10 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division
 
 import os
 import os.path
 import sys
-from time import sleep
-from glob import glob
-from multiprocessing import Process
 from signal import signal, SIGUSR1, SIGUSR2
 
 py3 = sys.version_info > (3, 0)
@@ -24,7 +21,6 @@ else:
     from gi.repository import GObject as gobject
 
 from pijuice import PiJuice, get_versions
-from pijuice_gui import start_app
 
 REFRESH_INTERVAL = 5000
 CHECK_SIGNAL_INTERVAL = 200
@@ -113,8 +109,7 @@ class PiJuiceStatusTray(object):
         widget.set_sensitive(True)
 
     def ConfigurePiJuice(self, widget):
-        p = Process(target=start_app)
-        p.start()
+        os.system("/usr/bin/pijuice_gui &")
 
     def check_signum(self):
         global sig

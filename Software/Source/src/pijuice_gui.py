@@ -49,7 +49,7 @@ try:
 except:
     pijuice = None
 
-PID_FILE = '/var/run/pijuice.pid'
+PID_FILE = '/tmp/pijuice_sys.pid'
 TRAY_PID_FILE = '/tmp/pijuice_tray.pid'
 LOCK_FILE = '/tmp/pijuice_gui.lock'
 USER_FUNCS_TOTAL = 15

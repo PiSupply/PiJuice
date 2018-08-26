@@ -1,4 +1,54 @@
 ![PiJuice Logo](https://user-images.githubusercontent.com/16068311/30545031-58b8fec6-9c80-11e7-8b3a-5e1f3aefd86c.png?raw=true "PiJuice Logo")
+# ** Notes for the 'pijuice-separate-normal-user' branch **
+This branch contains the modifications needed to run the pijuice service and the gui and cli programs as a separate normal (unprivileged) user with userid pijuice.
+The current distributed version runs user functions as root since they are started by the pijuice service which is running as user root. This is a big security hole since any user can replace a user function with a malicious one.<br/></br>
+See also the discussion in Issue #136
+
+Here is an outline of the changes:
+1. Add user pijuice if not defined.<br/></br>
+   Use 'id pijuice' to test for existence.<br/></br>
+   `add_user --shell /bin/false --home /var/lib/pijuice --disabled-login --gecos "" pijuice`
+2. Change owner of /var/lib/pijuice to pijuice.pijuice
+3. Set permissions of /var/lib/pijuice to 700 (rwx------)
+4. Set owner of /var/lib/pijuice/pijuice_config.JSON to pijuice.pijuice and its permissions to 600 (-rw------)
+5. Build setuid pijuice C wrapper for pijuice_gui and pijuice_cli and install them in /usr/bin
+6. Remove execute permission from pijuice_gui.py and pijuice_cli.py in /usr/bin since they will be called by their C wrapper
+7. In /lib/systemd/system/pijuice.service in the [Service] section add the line: `User=pijuice`.<br/></br>
+   Result: pijuice_sys.py runs under user pijuice.
+8. In /etc/sudoers.d add file 020_pijuice-nopasswd (owner root.root, permission 440 (-r--r----) with contents:
+```
+pijuice ALL=(ALL) NOPASSWD: /sbin/halt, /bin/kill -SIGUSR1 *, /bin/kill -SIGUSR2 *, /bin/kill -SIGHUP *
+pijuice ALL=(%pijuice) NOPASSWD: ALL
+```
+   Since pijuice_tray runs as user pi and pijuice_gui, pijuice_cli and pijuice_sys as user pijuice they need special permissions to send signals to each other.
+   Second line is to allow to execute user scripts from users belonging to group pijuice by pijuice_sys.
+
+9. in /etc/X11/Xsession.d add file 36x11-pijuice_xhost with contents:
+```
+# This file is sourced by Xsession(5), not executed.
+
+if type xhost >/dev/null 2>&1; then
+  xhost +si:localuser:pijuice || :
+fi
+```
+
+   pijuice_gui needs to be able to display on the X-server (desktop) started by user pi.
+
+10. Move all pid files to /tmp
+11. pijuice_tray.py<br/></br>
+    Use `os.system("/usr/bin/pijuice_gui &")` to start the C wrapper pijuice_gui since it runs under user pi.<br/></br>
+    The '&' makes it a 'fire and forget' launch.
+12. pijuice_sys.py<br/></br>
+    Change PID_FILE to /tmp/pijuice_sys.pid<br/></br>
+    Add code to check userfunc before execution:
+    - file has to be excutable and owner belongs to group pijuice
+    - execute file as owner (sudo -u owner)
+13. pijuice_gui.py and pijuice_cli.py<br/></br>
+    Change PID_FILE to /tmp/pijuice_sys.pid
+
+**Note**<br/></br>
+Remove this section when (eventually) this branch is merged with the main branch.
+
 # PiJuice
 Resources for the [PiJuice range](https://www.pi-supply.com/?s=pijuice&post_type=product&tags=1&limit=5&ixwps=1) (complete with our revolutionary [PiAnywhere](https://www.pi-supply.com/product-tag/pianywhere/) technology – the best way to take your Pi off the grid!). Originally funded on [Kickstarter](https://www.kickstarter.com/projects/pijuice/pijuice-a-portable-project-platform-for-every-rasp/).
 
