@@ -1,3 +1,4 @@
+![PiJuice Logo](https://user-images.githubusercontent.com/16068311/30545031-58b8fec6-9c80-11e7-8b3a-5e1f3aefd86c.png?raw=true "PiJuice Logo")
 
 # PiJuice Weather Station
 
@@ -36,11 +37,11 @@ Just run the following line in the terminal to automatically install all the lib
 Raspbian OS Install Script:
 ```bash
 # Run this line and the weather station will be setup and installed
-curl -sSL https://raw.githubusercontent.com/ChristopherRush/weather/master/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/PiSupply/PiJuice/master/MakerKits/Weather-station/install.sh | sudo bash
 ```
 Raspbian Lite Install script:
 ```bash
-curl -sSL https://raw.githubusercontent.com/ChristopherRush/weather/master/install_lite.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/PiSupply/PiJuice/master/MakerKits/Weather-station/install_lite.sh | sudo bash
 ```
 
 ### Adafruit DHT22 Library
@@ -79,7 +80,7 @@ running 'debug=True' causes the server to run with the reloader, therefore the a
 To download the weather station project files to your Raspberry Pi type the following in the terminal window:
 
 ```bash
-git clone https://github.com/ChristopherRush/weather.git
+git clone https://github.com/PiSupply/PiJuice.git
 
 ```
 
@@ -99,8 +100,6 @@ ifconfig wlan0
 #Ethernet
 ifconfig eth0
 ```
-
-![ipaddress](https://www.pi-supply.com/wp-content/uploads/2018/02/Screen-Shot-2018-02-14-at-11.11.06.png)
 
 ## Changing web page refresh rate
 
