@@ -1,0 +1,112 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="refresh" content="60" -->
+
+<script src="{{url_for('static', filename='javascript/justgage.js')}}"></script>
+<script src="{{url_for('static', filename='javascript/raphael-2.1.4.min.js')}}"></script>
+<html>
+<head>
+
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}"">
+
+
+</head>
+
+  <body>
+
+    <h1 style="text-align:center;"> PiJuice Weather Station</h1>
+<div id="wrapper">
+  <h1>Light & TMP36 Sensor Readings</h1>
+    <div class="block">
+      <div id="gauge1" class="gauge">
+        <script>
+        var gauge = new JustGage({
+          id: "gauge1",
+          value: {{light}},
+          levelColors: ['#EC7063', '#F4D03F', '#58D68D'],
+          min: 0,
+          decimals: 1,
+          max: 1024,
+          title: "Light Sensor"
+        });
+      </script>
+      </div>
+    </div>
+    <div class="block">
+      <div id="gauge2" class="gauge">
+        <script>
+        var gauge = new JustGage({
+          id: "gauge2",
+          value: {{temp}},
+          levelColors: ['#EC7063', '#F4D03F', '#58D68D'],
+          min: 0,
+          decimals: 0,
+          max: 30,
+          title: "TMP36"
+        });
+      </script>
+      </div>
+    </div>
+</div>
+
+<div id="dht22">
+         <h1> DHT22 Sensor Readings</h1>
+        <div class="block">
+                <div id="gauge4" class="gauge">
+                  <script>
+                  var gauge4 = new JustGage({
+                    id: "gauge4",
+                    value: {{temperature}},
+                    symbol: '\u2103',
+                    min: 0,
+                    decimals: 1,
+                    max: 50,
+                    title: "Temperature"
+                  });
+                </script>
+                </div>
+        </div>
+
+        <div class="block">
+          <div id="gauge5" class="gauge">
+            <script>
+            var gauge5 = new JustGage({
+              id: "gauge5",
+              value: {{humidity}},
+              symbol: "%",
+              min: 0,
+              decimals: 2,
+              max: 100,
+              title: "Humidity"
+            });
+          </script>
+          </div>
+        </div>
+
+  </div>
+
+  <div id="pijuice">
+           <h1> PiJuice battery</h1>
+          <div class="block" style="float:left">
+                  <div id="gauge6" class="gauge">
+                    <script>
+                    var gauge6 = new JustGage({
+                      id: "gauge6",
+                      value: {{battery}},
+                      symbol: "%",
+                      min: 0,
+                      max: 100,
+                      title: "Level"
+                    });
+                  </script>
+                  </div>
+          </div>
+          <div class="block">
+            <p style="padding-left:15px"><b>Power Input: {{power}}</b></p>
+            <p style="padding-left:15px"><b>Charge Status: {{charge}}</b></p>
+          </div>
+
+
+    </div>
+
+  </body>
+  </html>
