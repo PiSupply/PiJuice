@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division
 
@@ -7,18 +7,10 @@ import os.path
 import sys
 from signal import signal, SIGUSR1, SIGUSR2
 
-py3 = sys.version_info > (3, 0)
-
-if py3 == False:
-    # Python 2
-    import gtk
-    import gobject
-else:
-    # Python 3
-    import gi
-    gi.require_version('Gtk', '3.0')
-    from gi.repository import Gtk as gtk
-    from gi.repository import GObject as gobject
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk as gtk
+from gi.repository import GObject as gobject
 
 from pijuice import PiJuice, get_versions
 

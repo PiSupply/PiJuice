@@ -1,4 +1,6 @@
-#!/usr/bin/env python
+# This python script to be executed as user pijuice by the setuid program pijuice_cli 
+# Python 3 only
+#
 # -*- coding: utf-8 -*-
 # pylint: disable=import-error
 import datetime

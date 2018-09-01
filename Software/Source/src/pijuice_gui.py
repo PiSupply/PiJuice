@@ -1,4 +1,6 @@
-#! /usr/bin/env python
+# This python script to be executed as user pijuice by the setuid program pijuice_gui
+# Python 3 only
+#
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division
 
@@ -16,30 +18,15 @@ import sys
 import time
 from signal import SIGUSR1, SIGUSR2
 
-py3 = sys.version_info > (3, 0)
-
-if not py3:
-    # Python 2
-    from Tkinter import Button as tkButton
-    from Tkinter import (Tk, BooleanVar, DoubleVar, IntVar, StringVar, Toplevel,
-                         N, W, S, E, X, Y, BOTH, RIGHT, HORIZONTAL)
-    from ttk import (Button, Checkbutton, Combobox, Entry, Frame, Label,
-                     Notebook, Progressbar, Radiobutton, Style)
-    from tkColorChooser import askcolor
-    from tkFileDialog import askopenfilename
-    import tkMessageBox as MessageBox
-    from Queue import Queue, Empty
-else:
-    # Python 3
-    from tkinter import Button as tkButton
-    from tkinter import (Tk, BooleanVar, DoubleVar, IntVar, StringVar, Toplevel,
-                         N, W, S, E, X, Y, BOTH, RIGHT, HORIZONTAL)
-    from tkinter.ttk import (Button, Checkbutton, Combobox, Entry, Frame, Label,
-                             Notebook, Progressbar, Radiobutton, Style)
-    from tkinter.colorchooser import askcolor
-    from tkinter.filedialog import askopenfilename
-    import tkinter.messagebox as MessageBox
-    from queue import Queue, Empty
+from tkinter import Button as tkButton
+from tkinter import (Tk, BooleanVar, DoubleVar, IntVar, StringVar, Toplevel,
+                     N, W, S, E, X, Y, BOTH, RIGHT, HORIZONTAL)
+from tkinter.ttk import (Button, Checkbutton, Combobox, Entry, Frame, Label,
+                         Notebook, Progressbar, Radiobutton, Style)
+from tkinter.colorchooser import askcolor
+from tkinter.filedialog import askopenfilename
+import tkinter.messagebox as MessageBox
+from queue import Queue, Empty
 
 from pijuice import (PiJuice, pijuice_hard_functions, pijuice_sys_functions,
                      pijuice_user_functions)

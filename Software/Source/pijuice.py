@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import division, print_function
-__version__ = "1.3.3"
+__version__ = "1.4"
 
 import calendar
 import ctypes

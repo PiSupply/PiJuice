@@ -1,0 +1,9 @@
+# This file is sourced by Xsession(5), not executed.
+#
+# Allow user pijuice to display on the X-server (desktop) started
+# by the default user (normally pi)
+#
+if type xhost >/dev/null 2>&1; then
+  xhost +si:localuser:pijuice || :
+fi
+
