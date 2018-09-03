@@ -85,6 +85,50 @@ sudo bash media-center.sh 90
 
 To launch the point and shoot camera software, simply double tab on the desktop icon.
 
-
-
 ### Configure DropBox
+
+Dropbox is a cloud storage solution and synchronising service. Anyone can sign up for free to this service with a basic package of 2GB of storage, and you can increase this using a number of methods such as paying for a subscription or by inviting your friends to sign up.
+
+Due to the nature of the cloud service, it does require an internet connection either through WI-Fi or Ethernet, Wi-Fi being the most practical solution for this project.
+
+1. Create a Dropbox Account
+
+Create a Dropbox account if you don’t already have one. A basic Dropbox account is free and will give you 2GB of storage. Sign up at Dropbox.com
+
+2. Download the Dropbox software using the following commands:
+```bash
+wget https://github.com/andreafabrizi/Dropbox-Uploader/archive/master.zip
+unzip master.zip
+rm master.zip
+mv Dropbox-Uploader-master Dropbox-Uploader
+```
+3. Create a new Dropbox App
+
+Visit https://www.dropbox.com/developers/apps and log in with your Dropbox account credentials.
+
+Use the **“Create app”** button to begin the process. Select **“Dropbox API”** and **“Full Dropbox”**, then assign your app a unique name, then click **“Create App”**.
+
+In the setting tab of your new app, there is a section with the heading **“OAuth 2”**, look for the button **“Generate access token”**. This will give us a long string of seemingly random letters, which is a unique identifier for linking your camera to the Dropbox account.
+
+4. Set up Dropbox Uploader
+
+On the Raspberry Pi navigate to the Dropbox uploader directory with the following command:
+```bash
+cd /home/pi/Dropbox-Uploader
+```
+Now run the dropbox_uploader.sh script from that directory:
+```bash
+./dropbox_uploader.sh
+```
+During the uploader script you will be prompted to enter your access token that was generated in Step 3. This must be exact, which is why using SSH to copy paste can be useful.
+
+**Note:** If you make a mistake during this process you can simply run the script again.
+
+Now let's test everything is working by uploading a sample file:
+```bash
+echo 12345 > foo.txt
+./dropbox_uploader.sh upload foo.txt /
+```
+This will create text file with the text **”12345”** and then upload it to your Dropbox folder. Open up your web browser and login to Dropbox and see fi the file is there.
+
+Now when you run the point and shoot camera program and select Dropbox from the settings menu, all photos will automatically get uploaded to your Dropbox account.
