@@ -1,9 +1,27 @@
+pijuice-gui (1.4) unstable; urgency=low
+
+  * General
+    - Install only for python3.
+    - Added non priviliged user pijuice
+    - The pijuice service (pijuice_sys.py), pijuice_gui and pijuice_cli now 
+      execute with effective user pijuice.
+    - User scripts canot be executed as root.
+
+  * src/pijuice_gui.py
+    - Execute with effective user pijuice (non privileged) using the pijuice_gui command.
+    - During firmware update show progress bar on the new ‘Please Wait’ tab and wait
+      for firmware restart.
+    - Inform pijuice service when the button configuration is changed.
+
+    - Start pijuice_gui as user pijuice.
+
+ -- Ton van Overbeek <tvoverbeek@gmail.com>  Wed, 5 Sep 2018 18:25:40 +0200
+
 pijuice-gui (1.3.3) unstable; urgency=low
 
   updated firmware version
 
-  -- Ilya Starodubcev <ilyastrodubtsev@gmail.com>  Thu, 17 May 2018 18:22:51 +0600
-
+ -- Ilya Starodubcev <ilyastrodubtsev@gmail.com>  Thu, 17 May 2018 18:22:51 +0600
 
 pijuice-gui (1.3.2-1) unstable; urgency=low
 
@@ -14,16 +32,14 @@ pijuice-gui (1.3.2-1) unstable; urgency=low
   * src/pijuice_gui.py:
     - Allow only one instance to be launched
 
-  -- Denis Khrutsky <denis.xpy@gmail.com>  Mon, 19 Mar 2018 18:22:51 +0600
-
+ -- Denis Khrutsky <denis.xpy@gmail.com>  Mon, 19 Mar 2018 18:22:51 +0600
 
 pijuice-gui (1.3.1-1) unstable; urgency=low
 
   * src/pijuice_tray.py:
     - Fix displaying tray icon tooltip
 
-  -- Denis Khrutsky <denis.xpy@gmail.com>  Mon, 5 Mar 2018 16:39:12 +0600
-
+ -- Denis Khrutsky <denis.xpy@gmail.com>  Mon, 5 Mar 2018 16:39:12 +0600
 
 pijuice-gui (1.3-1) unstable; urgency=low
 
@@ -34,14 +50,14 @@ pijuice-gui (1.3-1) unstable; urgency=low
   * src/pijuice_tray.py:
     - Python 3 support
 
-  -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 2 Mar 2018 17:35:10 +0600
+ -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 2 Mar 2018 17:35:10 +0600
 
 pijuice-gui (1.2-1) unstable; urgency=low
 
   * src/pijuice_gui.py:
     - Fix layout for IO tab
 
-  -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 4 Feb 2018 18:12:32 +0600
+ -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 4 Feb 2018 18:12:32 +0600
 
 pijuice-gui (1.1-1) unstable; urgency=low
 
@@ -61,4 +77,4 @@ pijuice-gui (1.1-1) unstable; urgency=low
     - Add versions info to About menu in tray
     - Make tray menu entry Settings launch pijuice_gui in separate process
 
-  -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 12 Jan 2018 13:05:40 +0600
+ -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 12 Jan 2018 13:05:40 +0600

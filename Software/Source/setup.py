@@ -52,8 +52,8 @@ except:
 setup(
     name=name,
     version=version,
-    author="Denis Khrutsky",
-    author_email="dkhrutsky@protonmail.com",
+    author="Ton van Overbeek",
+    author_email="tvoverbeek@gmail.com",
     description=description,
     url="https://github.com/PiSupply/PiJuice/",
     license='GPL v2',

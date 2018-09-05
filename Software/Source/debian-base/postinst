@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# Create user pijuice if it does not exist
+if id -u pijuice > /dev/null 2>&1; then
+	echo "User pijuice already exists"
+else
+	echo "Creating user pijuice"
+	adduser --quiet --shell /bin/false --home /var/lib/pijuice --diabled-login --gecos "" pijuice
+	adduser --quiet pijuice i2c
+	# Add default user (usually pi) to the pijuice group
+	defuser=`id -un 1000`
+	adduser --quiet $defuser pijuice
+fi
+
 if [ -d "/var/lib" ]; then
 	if [ ! -d "/var/lib/pijuice" ]; then
 		mkdir -p /var/lib/pijuice
@@ -9,14 +21,22 @@ if [ -d "/var/lib" ]; then
 		echo "{\"system_task\":{\"enabled\": true}}" > /var/lib/pijuice/pijuice_config.JSON
 		echo settings file created
 	fi
-	chmod -R 777 /var/lib/pijuice
-	echo permission set
 else
-	echo "/var/lib not exists"
+	echo "/var/lib does not exist"
 	exit 1
 fi
 
-# enable i2c
+echo "Setting ownership and permissions"
+chown -R pijuice.pijuice /var/lib/pijuice
+chmod 700 /var/lib/pijuice
+chmod 600 /var/lib/pijuice/pijuice_config.JSON
+# Set owner and suid permission for our pijuic_cli wrapper
+chown pijuice.pijuice /usr/bin/pijuice_cli
+chmod 4755 /usr/bin/pijuice_cli
+chown pijuice.pijuice /usr/bin/pijuice_cli.py
+chmod -x /usr/bin/pijuice_cli.py
+
+# Enable i2c
 set_config_var() {
   lua - "$1" "$2" "$3" <<EOF > "$3.bak"
 local key=assert(arg[1])
@@ -63,7 +83,6 @@ if [ -f /sys/class/i2c-dev/i2c-1/dev ]; then
 	systemctl unmask pijuice.service
 	systemctl enable pijuice.service
 	systemctl restart pijuice.service
-	#systemctl status pijuice.service
 fi
 
 exit 0
