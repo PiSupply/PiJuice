@@ -52,20 +52,11 @@ class PiJuiceStatusTray(object):
         gobject.timeout_add(CHECK_SIGNAL_INTERVAL, self.check_signum)
 
     def show_menu(self, widget, event_button, event_time):
-        if py3 == False:
-            # Python 2
-            self.menu.popup(None, None,
-            gtk.status_icon_position_menu,
-            event_button,
-            event_time,
-            self.tray)
-        else:
-            # Python 3
-            self.menu.popup(None, None,
-            self.tray.position_menu,
-            self.tray,
-            event_button,
-            gtk.get_current_event_time())
+        self.menu.popup(None, None,
+        self.tray.position_menu,
+        self.tray,
+        event_button,
+        gtk.get_current_event_time())
 
     def show_about(self, widget):
         widget.set_sensitive(False)
@@ -77,24 +68,13 @@ class PiJuiceStatusTray(object):
             "Firmware version: %s" % fw_version,
             "OS version: %s" % os_version,
         ])
-        if py3 == False:
-            # Python 2
-            dialog = gtk.MessageDialog(
-                None,
-                gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-                gtk.MESSAGE_INFO,
-                gtk.BUTTONS_OK,
-                message
-            )
-        else:
-            # Python 3
-            dialog = gtk.MessageDialog(
-                None,
-                gtk.DialogFlags.MODAL,
-                gtk.MessageType.INFO,
-                gtk.ButtonsType.OK,
-                message
-            )
+        dialog = gtk.MessageDialog(
+            None,
+            gtk.DialogFlags.MODAL,
+            gtk.MessageType.INFO,
+            gtk.ButtonsType.OK,
+            message
+        )
         dialog.set_title("About")
         dialog.run()
         dialog.destroy()
@@ -146,9 +126,6 @@ class PiJuiceStatusTray(object):
                     b_file = ICON_DIR + '/bat-' + str((b_level//10)*10) + '.png'
             else:
                 b_file = ICON_DIR + '/connection-error.png'
-                if py3 == False:
-                    # Python 2
-                    self.tray.set_blinking(b_level < 5)
 
             self.tray.set_tooltip_text("%d%%" % (b_level))
             if os.path.exists(b_file):

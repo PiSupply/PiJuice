@@ -21,3 +21,5 @@ python3 setup.py --command-packages=stdeb.command bdist_deb
 
 cp -a ./debian-gui/. ./deb_dist/pijuice-gui-$PIJUICE_VERSION/debian/
 (cd ./deb_dist/pijuice-gui-$PIJUICE_VERSION && dpkg-buildpackage -b -rfakeroot -us -uc)
+
+mv deb_dist deb_dist_gui

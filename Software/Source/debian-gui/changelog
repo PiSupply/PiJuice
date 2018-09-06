@@ -13,6 +13,7 @@ pijuice-gui (1.4) unstable; urgency=low
       for firmware restart.
     - Inform pijuice service when the button configuration is changed.
 
+  * src/pijuice_tray.py
     - Start pijuice_gui as user pijuice.
 
  -- Ton van Overbeek <tvoverbeek@gmail.com>  Wed, 5 Sep 2018 18:25:40 +0200

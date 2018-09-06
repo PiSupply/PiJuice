@@ -28,6 +28,8 @@ if int(os.environ.get('PIJUICE_BUILD_BASE', 0)) > 0:
     data_files = [
         ('share/pijuice/data/firmware', glob.glob('data/firmware/*')),
         ('/etc/sudoers.d', ['data/020_pijuice-nopasswd']),
+        ('bin', ['bin/pijuiceboot']),
+        ('bin', ['bin/pijuice_cli']),
     ]
     scripts = ['src/pijuice_sys.py', 'src/pijuice_cli.py']
     description = "Software package for PiJuice"
@@ -40,6 +42,7 @@ else:
         ('/etc/xdg/autostart', ['data/pijuice-tray.desktop']),
         ('share/pijuice/data/images', glob.glob('data/images/*')), 
         ('/etc/X11/Xsession.d', ['data/36x11-pijuice_xhost']),
+        ('bin', ['bin/pijuice_gui']),
     ]
     scripts = ['src/pijuice_tray.py', 'src/pijuice_gui.py']
     description = "GUI package for PiJuice"
