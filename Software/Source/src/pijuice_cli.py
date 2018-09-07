@@ -1534,7 +1534,7 @@ class SystemTaskTab(object):
 class SystemEventsTab(object):
     EVENTS = ['low_charge', 'low_battery_voltage', 'no_power', 'watchdog_reset', 'button_power_off', 'forced_power_off',
               'forced_sys_power_off']
-    EVTTXT = ['Low charge', 'Low battery voltage', 'No power', 'Watchdog reste', 'Button power off', 'Forced power off',
+    EVTTXT = ['Low charge', 'Low battery voltage', 'No power', 'Watchdog reset', 'Button power off', 'Forced power off',
               'Forced sys power off']
     FUNCTIONS = ['NO_FUNC'] + pijuice_sys_functions + pijuice_user_functions
 
