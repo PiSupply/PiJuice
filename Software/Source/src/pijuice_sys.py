@@ -206,6 +206,12 @@ def reload_settings(signum=None, frame=None):
     global pijuice
     global configData
     global btConfig
+    global sysEvEn
+    global minChgEn
+    global minBatVolEn
+    global lowChgEn
+    global lowBatVolEn
+    global noPowEn
 
     with open(configPath, 'r') as outputConfig:
         config_dict = json.load(outputConfig)
@@ -219,15 +225,22 @@ def reload_settings(signum=None, frame=None):
     except:
         pass
 
+    sysEvEn = 'system_events' in configData
+    minChgEn = configData.get('system_task', {}).get('min_charge', {}).get('enabled', False)
+    minBatVolEn = configData.get('system_task', {}).get('min_bat_voltage', {}).get('enabled', False)
+    lowChgEn = sysEvEn and configData.get('system_events', {}).get('low_charge', {}).get('enabled', False)
+    lowBatVolEn = sysEvEn and configData.get('system_events', {}).get('low_battery_voltage', {}).get('enabled', False)
+    noPowEn = sysEvEn and configData.get('system_events', {}).get('no_power', {}).get('enabled', False)
+
 
 def main():
     global pijuice
     global btConfig
     global configData
     global status
-    global sysEvEn
     global chargeLevel
     global logger
+    global sysEvEn
     global minChgEn
     global minBatVolEn
     global lowChgEn
@@ -278,13 +291,6 @@ def main():
             ret = pijuice.power.SetWatchdog(p)
         except:
             p = None
-
-    sysEvEn = 'system_events' in configData
-    minChgEn = configData.get('system_task', {}).get('min_charge', {}).get('enabled', False)
-    minBatVolEn = configData.get('system_task', {}).get('min_bat_voltage', {}).get('enabled', False)
-    lowChgEn = sysEvEn and configData.get('system_events', {}).get('low_charge', {}).get('enabled', False)
-    lowBatVolEn = sysEvEn and configData.get('system_events', {}).get('low_battery_voltage', {}).get('enabled', False)
-    noPowEn = sysEvEn and configData.get('system_events', {}).get('no_power', {}).get('enabled', False)
 
     timeCnt = 5
 
