@@ -11,6 +11,9 @@ pijuice-base (1.4) unstable; urgency=low
     - User scrips have to be executable and the script owner must belong to
       the pijuice group. Scripts owned by root will not be executed.
     - Button configuration changes in the gui/cli are now also changed in the service.
+    - Changes in settings for system task (min_charge, min_bat_voltage) and
+      system events (low_charge, low_battery_voltage, no_power) are changed in
+      the service when the service is running. 
 
   * pijuice_cli.py
     - Added 'System Task', 'System Events' and 'User Script' tabs.
