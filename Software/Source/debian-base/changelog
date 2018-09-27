@@ -7,6 +7,9 @@ pijuice-base (1.4) unstable; urgency=low
       execute with effective user pijuice.
     - User scripts canot be executed as root.
 
+  * pijuice.py
+    - Setting PWM parameters for IO1 and IO2 now works.
+
   * pijuice_sys.py
     - User scrips have to be executable and the script owner must belong to
       the pijuice group. Scripts owned by root will not be executed.
@@ -23,7 +26,7 @@ pijuice-base (1.4) unstable; urgency=low
     - I2C addresses can be changed.
     - 'Wakeup Alarm' tab: The UTC time now updates every second.
 
- -- Ton van Overbeek <tvoverbeek@gmail.com>  Wed, 5 Sep 2018 18:25:40 +0200
+ -- Ton van Overbeek <tvoverbeek@gmail.com>  Wed, 26 Sep 2018 18:25:40 +0200
 
 pijuice-base (1.3.3) unstable; urgency=low
 
