@@ -12,6 +12,7 @@ import signal
 import subprocess
 import sys
 import time
+import re
 
 from pijuice import PiJuice
 
@@ -45,6 +46,7 @@ def _SystemHalt(event):
         except:
             tl = None
     pijuice.status.SetLedBlink('D2', 3, [150, 0, 0], 200, [0, 100, 0], 200)
+    pijuice.status.SetHaltFlag()
     subprocess.call(["sudo", "halt"])
 
 
@@ -223,6 +225,17 @@ def main():
                     ret = pijuice.power.SetWatchdog(0)
         except:
             pass
+        sysRunLevel = re.sub('.* ([0-9])\n$', "\\1", subprocess.check_output(["runlevel"]))
+        ret = pijuice.status.GetStatus()
+        if ( ret['error'] == 'NO_ERROR' 
+        	and not ret['data'].get('isHalting',False) 					# Flag set in _SystemHalt()
+        	and sysRunLevel == 0										# runlevel 0 = poweroff.target
+        	and configData.get('system_task',{}).get('ext_halt_power_off', {}).get('enabled',False)
+        	):
+        	# Set duration for when pijuice will cut power (Recommended 30+ sec, for halt to complete)
+        	pijuice.power.SetPowerOff(configData['system_task']['ext_halt_power_off'].get('period',30))
+        	print("PiJuice powering off in %s seconds" % configData['system_task']['ext_halt_power_off'].get('period',30))
+            
         sys.exit(0)
 
     if (('watchdog' in configData['system_task'])
