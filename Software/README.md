@@ -169,7 +169,7 @@ The watchdog timer has a configurable time-out. It defines the time after which 
 * **Minimum battery voltage** - Set a minimum battery voltage level to safely shutdown the Raspberry Pi when below the set level. Note: The type of system shutdown can be set under "System Events" under "Low battery voltage" menu.
 * **Software Halt Power Off** - You can set a delay here in seconds (maximum of 65535) as to when to cut power to the Raspberry Pi when a software shutdown has occurred external to a button press. Usually this would occur when a user has run sudo halt, sudo shutdown -h now, or sudo poweroff in the terminal.
 
-**Note: Software Halt Power Off will cut power at the end of the delay period. Provide an above normal amount of time for the OS to complete shutdown or the SD card may be CORRUPTED.  RECOMMEND 30 or more seconds.**
+**NOTE: Software Halt Power Off** will cut power at the end of the delay period. Provide an above normal amount of time for the OS to complete shutdown or the SD card may be CORRUPTED.  **RECOMMEND 30 or more seconds.**
 
 ### System Events Menu
 
@@ -682,7 +682,7 @@ Here is a list of accepted values for the various fields above.
 * **user_functions**:
     - absolute path to user defined script
 
-**Note: ext_halt_power_off will cut power at the end of the period. Provide above normal amount of time for OS to complete shutdown or the SD card may be CORRUPTED.  RECOMMEND 30 or more seconds.**
+**NOTE: ext_halt_power_off will cut power at the end of the period. Provide above normal amount of time for OS to complete shutdown or the SD card may be CORRUPTED.  RECOMMEND 30 or more seconds.**
 
 ### Adding USER_FUNC from 9 to 15
 
@@ -769,8 +769,8 @@ Where:
 * is_button is True if there are button events, False if not.
 * battery_status is string constant that describes current battery status, one of four: 'NORMAL', 'CHARGING_FROM_IN', 'CHARGING_FROM_5V_IO', 'NOT_PRESENT'.
 * power_input_status is string constant that describes current status of USB Micro power input, one of four: 'NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT'.
-* 5v_power_input_status: is string constant that describes current status of 5V GPIO power input, one of four: 'NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT'.
-* is_halting: is False during all normal operation or True when PiJuice has issued a halt to the OS which only perists until OS restarts
+* 5v_power_input_status is string constant that describes current status of 5V GPIO power input, one of four: 'NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT'.
+* is_halting is False during all normal operation or True when PiJuice has issued a halt to the OS which only perists until OS restarts.
 Example:
 ```python
 print pijuice.status.GetStatus()

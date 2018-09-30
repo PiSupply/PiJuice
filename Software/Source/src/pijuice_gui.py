@@ -1586,7 +1586,7 @@ class PiJuiceSysTaskTab(object):
     def __init__(self, master):
         self.frame = Frame(master, name='sys_task')
         self.frame.grid(row=0, column=0, sticky=W)
-        self.frame.rowconfigure(10, weight=1)
+        self.frame.rowconfigure(12, weight=1)
         self.frame.columnconfigure(0, weight=0, minsize=190)
         self.frame.columnconfigure(1, weight=10, uniform=1)
         self.frame.columnconfigure(2, weight=1, uniform=1)
@@ -1776,7 +1776,7 @@ class PiJuiceConfigGui(Frame):
         for i in range(0, 15):
             self.userScriptTab._UpdatePath(i)
         # Apply system task params
-        for param in (self.sysTaskConfig.watchdogParam, self.sysTaskConfig.wakeupChargeParam, self.sysTaskConfig.minChargeParam, self.sysTaskConfig.minVoltageParam):
+        for param in (self.sysTaskConfig.watchdogParam, self.sysTaskConfig.wakeupChargeParam, self.sysTaskConfig.minChargeParam, self.sysTaskConfig.minVoltageParam, self.sysTaskConfig.extHaltParam):
             param._WriteParam(None)
         save_config()
 
