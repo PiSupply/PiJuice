@@ -51,7 +51,6 @@ PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON'
 
 from urwid import Edit
 from decimal import Decimal
-#import re
 
 
 class NumEdit(Edit):
@@ -237,11 +236,9 @@ class StatusTab(object):
                         "Battery: {battery}\nGPIO power input: {gpio}\n"
                         "USB Micro power input: {usb}\nFault: {fault}\n"
                         "System switch: {sys_sw}\n".format(**status_args))
-        #refresh_btn = urwid.Padding(attrmap(urwid.Button('Refresh', on_press=self.main)), width=24)
         main_menu_btn = urwid.Padding(attrmap(urwid.Button('Back', on_press=self._goto_main_menu)), width=24)
         pwr_switch_btn = urwid.Padding(attrmap(urwid.Button('Change Power switch', on_press=self.change_power_switch)), width=24)
         main.original_widget = urwid.Filler(
-            #urwid.Pile([text, urwid.Divider(), refresh_btn, pwr_switch_btn, main_menu_btn]), valign='top')
             urwid.Pile([text, urwid.Divider(), pwr_switch_btn, main_menu_btn]), valign='top')
         self.alarm_handle = loop.set_alarm_in(1, self.update_status, text)
 
@@ -1139,16 +1136,6 @@ class BatteryProfileTab(object):
 
         return pijuice.config.SetCustomBatteryProfile(profile)
 
-    # def _show_current_config(self, *args):
-    #     current_config = {
-    #         'profile': self.profile_name,
-    #         'profile_status': self.profile_status,
-    #         'profile_data': self.profile_data,
-    #         'status_text': self.status_text,
-    #     }
-    #     main.original_widget = urwid.Filler(urwid.Pile(
-    #         [urwid.Text(str(current_config)), urwid.Button('Back', on_press=self.main)]))
-
 
 class WakeupAlarmTab(object):
     def __init__(self, *args):
@@ -1696,7 +1683,6 @@ def menu(title, choices):
         if c != "":
             button = urwid.Button(c)
             urwid.connect_signal(button, 'click', item_chosen, c)
-            #wrapped_button = urwid.Padding(urwid.AttrMap(button, None, focus_map='reversed'), width=20)
             wrapped_button = urwid.Padding(attrmap(button), width=20)
             body.append(wrapped_button)
         else:

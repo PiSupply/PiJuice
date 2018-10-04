@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 
 from distutils.core import setup
-#from distutils.command.install_data import install_data
-#from distutils.dep_util import newer
-#from distutils.log import info
 import glob
 import os
-#import sys
 
 def set_desktop_entry_versions(version):
     entries = ("data/pijuice-gui.desktop", "data/pijuice-tray.desktop")

@@ -2,12 +2,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-import calendar
-import datetime
-import getopt
 import grp
 import json
-import logging
 import os
 import pwd
 import signal
@@ -271,7 +267,6 @@ def main():
 
     try:
         pijuice = PiJuice(1, 0x14)
-        #pijuice = PiJuice(3, 0x14)
     except:
         sys.exit(0)
 

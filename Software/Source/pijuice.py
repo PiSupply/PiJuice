@@ -238,7 +238,6 @@ class PiJuiceStatus(object):
                 event['SW3'] = self.buttonEvents[d[1] & 0x0F]
             except:
                 event['SW3'] = 'UNKNOWN'
-                #event['SW4'] = self.buttonEvents[(d[1] >> 4) & 0x0F]
             return {'data': event, 'error': 'NO_ERROR'}
 
     buttons = ['SW' + str(i+1) for i in range(0, 3)]
@@ -755,7 +754,6 @@ class PiJuiceRtcAlarm(object):
             d[1] = d[1] | ((m % 10) & 0x0F)
         else:
             d[1] = d[1] | 0x80  # every minute
-            #d[1] = d[1] | (0x80 if alarm['mask']['minutes'] else 0x00)
 
         if 'minute_period' in alarm:
             d[1] = d[1] | 0x80
@@ -819,7 +817,6 @@ class PiJuiceRtcAlarm(object):
                                     hs = hs | (0x00000001 << (12))
                         else:
                             hs = hs | (0x00000001 << int(i))
-                    #d[2] = d[2] | (0x40 if hFormat == '12' else 0x00)
                     d[2] = 0x80
                     d[4] = hs & 0x000000FF
                     hs = hs >> 8
@@ -901,8 +898,6 @@ class PiJuiceRtcAlarm(object):
             if (d == ret['data']):
                 return {'error': 'NO_ERROR'}
             else:
-                #print 'wr', d
-                #print 'rd', ret['data']
                 return {'error': 'WRITE_FAILED'}
 
 

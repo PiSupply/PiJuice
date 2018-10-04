@@ -4,7 +4,6 @@ from __future__ import print_function, division
 
 import os
 import os.path
-import sys
 from signal import signal, SIGUSR1, SIGUSR2
 
 import gi
