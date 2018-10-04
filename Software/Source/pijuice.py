@@ -214,7 +214,7 @@ class PiJuiceStatus(object):
             try:
                 d = d & ~(0x01 << self.faultEvents.index(ev))
             except:
-                ev
+                pass  # TODO: decide what should be done in case of exception
         self.interface.WriteData(self.FAULT_EVENT_CMD, [d])  # clear fault events
 
     buttonEvents = ['NO_EVENT', 'PRESS', 'RELEASE',
