@@ -26,10 +26,12 @@ class PiJuiceInterface(object):
     I2C_PEC = 0x0708  # != 0 to use PEC with SMBus
 
     def __init__(self, bus=1, address=0x14):
-        """Create a new PiJuice instance.  Bus is an optional parameter that
-        specifies the I2C bus number to use, for example 1 would use device
-        /dev/i2c-1.  If bus is not specified then the open function should be
-        called to open the bus.
+        """Create a new PiJuice instance.
+
+        :param bus: I2C bus number to use, e.g. 1 would use device /dev/i2c-1
+        :type bus: int
+        :param address: PiJuice address on I2C bus
+        :type address: int
         """
         self.i2cbus = SMBus(bus)
         self.addr = address
@@ -47,8 +49,7 @@ class PiJuiceInterface(object):
         #     self._device = None
 
     def __enter__(self):
-        """Context manager enter function."""
-        # Just return this object so it can be used in a with statement
+        """Context manager enter function. Just return this object so it can be used in a with statement."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -60,15 +61,33 @@ class PiJuiceInterface(object):
         return False  # Don't suppress exceptions
 
     def GetAddress(self):
+        """Get PiJuice address on I2C bus.
+
+        :return: PiJuice address on I2C bus
+        :rtype: int
+        """
         return self.addr
 
     def _GetChecksum(self, data):
+        """Calculate checksum for given data.
+
+        :param data: incoming data
+        :type data: list(int)
+        :return: checksum
+        :rtype: int
+        """
         fcs = 0xFF
         for x in data[:]:
             fcs = fcs ^ x
         return fcs
 
     def _Read(self):
+        """Read data from I2C bus.
+
+        Address, command and data length are stored in the instance of this class.
+        The result will be stored in self.d attribute.
+        If there is an exception, self.comError and self.errTime will be populated with appropriate values.
+        """
         #if self.comError and (time.time()-self.errTime) < 4:
         #	self.d = None
         try:
@@ -84,6 +103,11 @@ class PiJuiceInterface(object):
             self.d = None
 
     def _Write(self):
+        """Write data to I2C bus.
+
+        Address, command and data are stored in the instance of this class.
+        If there is an exception, self.comError and self.errTime will be populated with appropriate values.
+        """
         try:
             self.i2cbus.write_i2c_block_data(self.addr, self.cmd, self.d)
             #self._device.write(cmdData)
@@ -95,6 +119,18 @@ class PiJuiceInterface(object):
             self.errTime = time.time()
 
     def _DoTransfer(self, oper):
+        """Transfer data to or from I2C bus.
+
+        Data transfer will be performed in a separate thread.
+        If there already is a running thread, or if there was an error no shorter than 4 seconds ago, it will fail.
+        If the operation hasn't completed, it will wait for 0.05 seconds and check the completion again.
+        In case it still doesn't finish, the situation will be considered as a failure.
+
+        :param oper: operation that will be performed
+        :type oper: function
+        :return: True if the transfer was successful, else False
+        :rtype: bool
+        """
         if (self.t != None and self.t.isAlive()) or (self.comError and (time.time()-self.errTime) < 4):
             #print self.t.isAlive()
             return False
@@ -114,6 +150,17 @@ class PiJuiceInterface(object):
         return True
 
     def ReadData(self, cmd, length):
+        """Read data from I2C bus, verify checksum and return the result.
+
+        This method is of higher level than _Read.
+
+        :param cmd: command to be sent, e.g. IO_CONFIGURATION_CMD
+        :type cmd: int
+        :param length: data length
+        :type length: int
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         d = []
         #cmdData = bytearray(1)
         #cmdData[0] = cmd & 0xFF
@@ -149,6 +196,18 @@ class PiJuiceInterface(object):
         return {'data': d, 'error': 'NO_ERROR'}
 
     def WriteData(self, cmd, data):
+        """Write data to I2C bus and return the result.
+
+        This method is of higher level than _Write.
+        Checksum is calculated and appended to data.
+
+        :param cmd: command to be sent, e.g. IO_CONFIGURATION_CMD
+        :type cmd: int
+        :param data: data to be sent
+        :type data: list(int)
+        :return: dictionary with 'error' key and error string as a value.
+        :rtype: dict
+        """
         fcs = self._GetChecksum(data)
         d = data[:]
         d.append(fcs)
@@ -175,6 +234,21 @@ class PiJuiceInterface(object):
         return {'error': 'NO_ERROR'}
 
     def WriteDataVerify(self, cmd, data, delay=None):
+        """Write data and verify that write was successful.
+
+        In case WriteData was successful, run ReadData and compare the results.
+        If there is a mismatch between read and written data, print both values and return an error.
+        If there was an error during write or read operations, return that error.
+
+        :param cmd: command to be sent, e.g. IO_CONFIGURATION_CMD
+        :type cmd: int
+        :param data: data to be sent
+        :type data: list(int)
+        :param delay: timeout between data write and read
+        :type delay: int, float or NoneType
+        :return: dictionary with 'error' key and error string as a value.
+        :rtype: dict
+        """
         wresult = self.WriteData(cmd, data)
         if wresult['error'] != 'NO_ERROR':
             return wresult
