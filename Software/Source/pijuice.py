@@ -297,6 +297,13 @@ class PiJuiceStatus(object):
         return False  # Don't suppress exceptions.
 
     def GetStatus(self):
+        """Gets basic PiJuice status information about power inputs, battery and events.
+
+        Available parameters: isFault, isButton, battery, powerInput, powerInput5vIo.
+
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         result = self.interface.ReadData(self.STATUS_CMD, 1)
         if result['error'] != 'NO_ERROR':
             return result
@@ -314,6 +321,11 @@ class PiJuiceStatus(object):
             return {'data': status, 'error': 'NO_ERROR'}
 
     def GetChargeLevel(self):
+        """Gets current charge level percentage.
+
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         result = self.interface.ReadData(self.CHARGE_LEVEL_CMD, 1)
         if result['error'] != 'NO_ERROR':
             return result
@@ -325,6 +337,13 @@ class PiJuiceStatus(object):
                    'forced_sys_power_off', 'watchdog_reset']
     faults = ['battery_profile_invalid', 'charging_temperature_fault']
     def GetFaultStatus(self):
+        """Gets information about error flags.
+
+        Available flags: button_power_off, forced_power_off, forced_sys_power_off, watchdog_reset.
+
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         result = self.interface.ReadData(self.FAULT_EVENT_CMD, 1)
         if result['error'] != 'NO_ERROR':
             return result
@@ -347,6 +366,11 @@ class PiJuiceStatus(object):
             return {'data': fault, 'error': 'NO_ERROR'}
 
     def ResetFaultFlags(self, flags):
+        """Resets fault event flags by sending a command to PiJuice interface.
+
+        :param flags: sequence of fault event strings (stored in self.faultEvents)
+        :type flags: iterable
+        """
         d = 0xFF
         for ev in flags:
             try:
@@ -358,6 +382,12 @@ class PiJuiceStatus(object):
     buttonEvents = ['NO_EVENT', 'PRESS', 'RELEASE',
                     'SINGLE_PRESS', 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
     def GetButtonEvents(self):
+        """Gets PiJuice button event statuses.
+
+        'data' key is a dict that has 'SW1', 'SW2', 'SW3' as keys and self.buttonEvents as possible values.
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         result = self.interface.ReadData(self.BUTTON_EVENT_CMD, 2)
         if result['error'] != 'NO_ERROR':
             return result
@@ -381,6 +411,13 @@ class PiJuiceStatus(object):
 
     buttons = ['SW' + str(i+1) for i in range(0, 3)]
     def AcceptButtonEvent(self, button):
+        """Clears generated button event.
+
+        :param button: button that will have its event cleared.
+        :type button: str
+        :return: {'error': 'BAD_ARGUMENT'} in case there is an error, None otherwise
+        :rtype: NoneType or dict
+        """
         b = None
         try:
             b = self.buttons.index(button)
@@ -390,6 +427,11 @@ class PiJuiceStatus(object):
         self.interface.WriteData(self.BUTTON_EVENT_CMD, d)  # clear button events
 
     def GetBatteryTemperature(self):
+        """Gets battery temperature.
+
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         result = self.interface.ReadData(self.BATTERY_TEMPERATURE_CMD, 2)
         if result['error'] != 'NO_ERROR':
             return result
@@ -401,6 +443,11 @@ class PiJuiceStatus(object):
             return {'data': temp, 'error': 'NO_ERROR'}
 
     def GetBatteryVoltage(self):
+        """Gets battery voltage.
+
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         result = self.interface.ReadData(self.BATTERY_VOLTAGE_CMD, 2)
         if result['error'] != 'NO_ERROR':
             return result
@@ -409,6 +456,11 @@ class PiJuiceStatus(object):
             return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
 
     def GetBatteryCurrent(self):
+        """Gets battery current.
+
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         result = self.interface.ReadData(self.BATTERY_CURRENT_CMD, 2)
         if result['error'] != 'NO_ERROR':
             return result
@@ -420,6 +472,11 @@ class PiJuiceStatus(object):
             return {'data': i, 'error': 'NO_ERROR'}
 
     def GetIoVoltage(self):
+        """Gets IO voltage.
+
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         result = self.interface.ReadData(self.IO_VOLTAGE_CMD, 2)
         if result['error'] != 'NO_ERROR':
             return result
@@ -428,6 +485,11 @@ class PiJuiceStatus(object):
             return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
 
     def GetIoCurrent(self):
+        """Gets IO current.
+
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         result = self.interface.ReadData(self.IO_CURRENT_CMD, 2)
         if result['error'] != 'NO_ERROR':
             return result
@@ -440,6 +502,15 @@ class PiJuiceStatus(object):
 
     leds = ['D1', 'D2']
     def SetLedState(self, led, rgb):
+        """Sets red, green and blue brightness levels for LED.
+
+        :param led: LED name (see self.leds)
+        :type led: str
+        :param rgb: list of brightness values (integers in [0-255] range) for Red, Green and Blue.
+        :type rgb: list
+        :return: dictionary with 'error' key and error string as a value.
+        :rtype: dict
+        """
         i = None
         try:
             i = self.leds.index(led)
@@ -448,6 +519,14 @@ class PiJuiceStatus(object):
         return self.interface.WriteData(self.LED_STATE_CMD + i, rgb)
 
     def GetLedState(self, led):
+        """Gets current brightness levels for LED.
+
+        'data' key in result will be a list of three values (for Red, Green and Blue).
+        :param led: LED name (see self.leds)
+        :type led: str
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         i = None
         try:
             i = self.leds.index(led)
@@ -456,6 +535,25 @@ class PiJuiceStatus(object):
         return self.interface.ReadData(self.LED_STATE_CMD + i, 3)
 
     def SetLedBlink(self, led, count, rgb1, period1, rgb2, period2):
+        """Plays blink pattern (switching between two states) on LED.
+
+        :param led: LED name (see self.leds)
+        :type led: str
+        :param count: number of blinks for count in range [1 - 254], blink indefinite number of times for count = 255.
+        :type count: int
+        :param rgb1: list of brightness values (integers in [0-255] range) for Red, Green and Blue during the first
+        period of the blink pattern.
+        :type rgb1: list
+        :param period1: duration of first blink period in range [10 – 2550] miliseconds.
+        :type period1: int
+        :param rgb2: list of brightness values (integers in [0-255] range) for Red, Green and Blue during the second
+        period of the blink pattern.
+        :type rgb2: list
+        :param period2: duration of second blink period in range [10 – 2550] miliseconds.
+        :type period2: int
+        :return: dictionary with 'error' key and error string as a value.
+        :rtype: dict
+        """
         i = None
         d = None
         try:
@@ -467,6 +565,15 @@ class PiJuiceStatus(object):
         return self.interface.WriteData(self.LED_BLINK_CMD + i, d)
 
     def GetLedBlink(self, led):
+        """Gets blink pattern properties for selected LED.
+
+        'data' key in result will be a dictionary with 'count', 'rgb1', 'period1', 'rgb2', 'period2' keys.
+        See self.SetLedBlink() description.
+        :param led: LED name (see self.leds)
+        :type led: str
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         i = None
         try:
             i = self.leds.index(led)
@@ -489,6 +596,14 @@ class PiJuiceStatus(object):
             }
     
     def GetIoDigitalInput(self, pin):
+        """Gets state of IO pin configured as digital input.
+
+        'data' key can be either 1 (high input state) or 0 (low input state).
+        :param pin: Pin that will be used. 1 for IO1, 2 for IO2.
+        :type pin: int
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         if not (pin == 1 or pin == 2):
             return {'error': 'BAD_ARGUMENT'}
         ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
@@ -500,6 +615,15 @@ class PiJuiceStatus(object):
             return {'data': b, 'error': 'NO_ERROR'}
 
     def SetIoDigitalOutput(self, pin, value):
+        """Sets state of IO pin configured as digital output.
+
+        :param pin: Pin that will be used. 1 for IO1, 2 for IO2.
+        :type pin: int
+        :param value: 1 for high output state, 0 for low output state.
+        :type value: int
+        :return: dictionary with 'error' key and error string as a value.
+        :rtype: dict
+        """
         if not (pin == 1 or pin == 2):
             return {'error': 'BAD_ARGUMENT'}
         d = [0x00, 0x00]
@@ -507,6 +631,14 @@ class PiJuiceStatus(object):
         return self.interface.WriteData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, d)
 
     def GetIoDigitalOutput(self, pin):
+        """Gets state of IO pin configured as digital output.
+
+        'data' key can be either 1 (high output state) or 0 (low output state).
+        :param pin: Pin that will be used. 1 for IO1, 2 for IO2.
+        :type pin: int
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         if not (pin == 1 or pin == 2):
             return {'error': 'BAD_ARGUMENT'}
         ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
@@ -518,6 +650,13 @@ class PiJuiceStatus(object):
             return {'data': b, 'error': 'NO_ERROR'}
 
     def GetIoAnalogInput(self, pin):
+        """Gets voltage in millivolts at IO pin configured as analog input.
+
+        :param pin: Pin that will be used. 1 for IO1, 2 for IO2.
+        :type pin: int
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         if not (pin == 1 or pin == 2):
             return {'error': 'BAD_ARGUMENT'}
         ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
@@ -528,6 +667,15 @@ class PiJuiceStatus(object):
             return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
 
     def SetIoPWM(self, pin, dutyCycle):
+        """Sets PWM duty circle at IO pin configured as PWM output.
+
+        :param pin: Pin that will be used. 1 for IO1, 2 for IO2.
+        :type pin: int
+        :param dutyCycle: pulse width as percentage of period, [0 - 100]%
+        :type dutyCycle: int
+        :return: dictionary with 'error' key and error string as a value.
+        :rtype: dict
+        """
         if not (pin == 1 or pin == 2):
             return {'error': 'BAD_ARGUMENT'}
         d = [0xFF, 0xFF]
@@ -544,6 +692,14 @@ class PiJuiceStatus(object):
         return self.interface.WriteData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, d)
 
     def GetIoPWM(self, pin):
+        """Gets PWM duty circle at IO pin configured as PWM output.
+
+        'data' key will contain the pulse width as percentage of period, see self.GetIoPWM as a reference.
+        :param pin: Pin that will be used. 1 for IO1, 2 for IO2.
+        :type pin: int
+        :return: dictionary with 'error' key and 'data' key (in case it was successful).
+        :rtype: dict
+        """
         if not (pin == 1 or pin == 2):
             return {'error': 'BAD_ARGUMENT'}
         ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
