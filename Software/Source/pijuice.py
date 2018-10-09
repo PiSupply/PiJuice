@@ -69,7 +69,7 @@ class PiJuiceInterface(object):
             self.errTime = time.time()
 
     def _DoTransfer(self, oper):
-        if (self.t != None and self.t.isAlive()) or (self.comError and (time.time()-self.errTime) < 4):
+        if (self.t and self.t.isAlive()) or (self.comError and (time.time()-self.errTime) < 4):
             return False
 
         self.t = threading.Thread(target=oper, args=())
@@ -109,12 +109,12 @@ class PiJuiceInterface(object):
 
         return {'error': 'NO_ERROR'}
 
-    def WriteDataVerify(self, cmd, data, delay=None):
+    def WriteDataVerify(self, cmd, data, delay=0):
         wresult = self.WriteData(cmd, data)
         if wresult['error'] != 'NO_ERROR':
             return wresult
         else:
-            if delay != None:
+            if delay:
                 try:
                     time.sleep(delay*1)
                 except:
@@ -458,12 +458,12 @@ class PiJuiceRtcAlarm(object):
             return ret
         d = ret['data']
         if (d[0] & 0x01) and (d[0] & 0x04):
-            if status == True:
+            if status:
                 return {'error': 'NO_ERROR'}
             else:
                 d[0] = d[0] & 0xFE
         else:
-            if status == False:
+            if not status:
                 return {'error': 'NO_ERROR'}
             else:
                 d[0] = d[0] | 0x01 | 0x04
@@ -512,7 +512,7 @@ class PiJuiceRtcAlarm(object):
 
     def SetTime(self, dateTime):
         d = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-        if dateTime == None or dateTime == {}:
+        if not dateTime:
             dt = {}
         else:
             dt = dateTime
@@ -626,7 +626,7 @@ class PiJuiceRtcAlarm(object):
             elif dt['daylightsaving'] == 'SUB1H':
                 d[8] |= 1
 
-        if 'storeoperation' in dt and dt['storeoperation'] == True:
+        if dt.get('storeoperation'):
             d[8] |= 0x04
 
         ret = self.interface.WriteData(self.RTC_TIME_CMD, d)
@@ -721,7 +721,7 @@ class PiJuiceRtcAlarm(object):
 
     def SetAlarm(self, alarm):
         d = [0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0xFF]
-        if alarm == None or alarm == {}:
+        if not alarm:
             #disable alarm
             return self.interface.WriteDataVerify(self.RTC_ALARM_CMD, d, 0.2)
 
@@ -996,18 +996,13 @@ class PiJuiceConfig(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         return False  # Don't suppress exceptions.
 
-    def SetChargingConfig(self, config, non_volatile = False):
-        try:
-            nv = 0x80 if non_volatile == True else 0x00
-            if config['charging_enabled'] == True:
-                chEn = 0x01
-            elif config['charging_enabled'] == False:
-                chEn = 0x00
-            else:
-                return {'error': 'BAD_ARGUMENT'}
-        except:
+    def SetChargingConfig(self, config, non_volatile=False):
+        nv = 0x80 if non_volatile else 0x00
+
+        if not isinstance(config['charging_enabled'], bool):
             return {'error': 'BAD_ARGUMENT'}
-        d = [nv | chEn]
+
+        d = [nv | int(config['charging_enabled'])]
         return self.interface.WriteDataVerify(self.CHARGING_CONFIG_CMD, d)
     
     def GetChargingConfig(self):  
@@ -1110,29 +1105,35 @@ class PiJuiceConfig(object):
                 return {'error': 'UNKNOWN_DATA'}
 
     def SetBatteryTempSenseConfig(self, config):
-        ind = self.batteryTempSenseOptions.index(config)
-        if ind == None:
+        try:
+            ind = self.batteryTempSenseOptions.index(config)
+        except ValueError:
             return {'error': 'BAD_ARGUMENT'}
-        data = [ind]
-        return self.interface.WriteDataVerify(self.BATTERY_TEMP_SENSE_CONFIG_CMD, data)
+
+        return self.interface.WriteDataVerify(self.BATTERY_TEMP_SENSE_CONFIG_CMD, [ind])
 
     powerInputs = ['USB_MICRO', '5V_GPIO']
     usbMicroCurrentLimits = ['1.5A', '2.5A']
     usbMicroDPMs = list("{0:.2f}".format(4.2+0.08*x)+'V' for x in range(0, 8))
     def SetPowerInputsConfig(self, config, non_volatile=False):
         try:
-            nv = 0x80 if non_volatile == True else 0x00
+            nv = 0x80 if non_volatile else 0x00
             prec = 0x01 if (config['precedence'] == '5V_GPIO') else 0x00
-            gpioInEn = 0x02 if (config['gpio_in_enabled'] == True) else 0x00
-            noBatOn = 0x04 if (config['no_battery_turn_on'] == True) else 0x00
-            ind = self.usbMicroCurrentLimits.index(config['usb_micro_current_limit'])
-            if ind == None:
+            gpioInEn = 0x02 if config['gpio_in_enabled'] else 0x00
+            noBatOn = 0x04 if config['no_battery_turn_on'] else 0x00
+
+            try:
+                ind = self.usbMicroCurrentLimits.index(config['usb_micro_current_limit'])
+            except ValueError:
                 return {'error': 'INVALID_USB_MICRO_CURRENT_LIMIT'}
+
             usbMicroLimit = int(ind) << 3
 
-            ind = self.usbMicroDPMs.index(config['usb_micro_dpm'])
-            if ind == None:
+            try:
+                ind = self.usbMicroDPMs.index(config['usb_micro_dpm'])
+            except:
                 return {'error': 'INVALID_USB_MICRO_DPM'}
+
             dpm = (int(ind) & 0x07) << 4
             d = [nv | prec | gpioInEn | noBatOn | usbMicroLimit | dpm]
         except:
@@ -1308,7 +1309,7 @@ class PiJuiceConfig(object):
         try:
             mode = self.ioModes.index(config['mode'])
             pull = self.ioPullOptions.index(config['pull'])
-            nv = 0x80 if non_volatile == True else 0x00
+            nv = 0x80 if non_volatile else 0x00
             d[0] = (mode & 0x0F) | ((pull & 0x03) << 4) | nv
 
             if config['mode'] == 'DIGITAL_OUT_PUSHPULL' or config['mode'] == 'DIGITAL_IO_OPEN_DRAIN':
@@ -1383,13 +1384,10 @@ class PiJuiceConfig(object):
             return {'data': status, 'error': 'NO_ERROR'}
 
     def SetIdEepromWriteProtect(self, status):
-        if status == True:
-            d = 1
-        elif status == False:
-            d = 0
-        else:
+        if not isinstance(status, bool):
             return {'error': 'BAD_ARGUMENT'}
-        return self.interface.WriteDataVerify(self.ID_EEPROM_WRITE_PROTECT_CTRL_CMD, [d])
+
+        return self.interface.WriteDataVerify(self.ID_EEPROM_WRITE_PROTECT_CTRL_CMD, [int(status)])
 
     idEepromAddresses = ['50', '52']
     def GetIdEepromAddress(self):
