@@ -5,6 +5,7 @@ import fileinput
 import glob
 import os
 
+
 def set_desktop_entry_versions(version):
     entries = ("data/pijuice-gui.desktop", "data/pijuice-tray.desktop")
 
@@ -27,11 +28,11 @@ if int(os.environ.get('PIJUICE_BUILD_BASE', 0)) > 0:
     ]
     scripts = ['src/pijuice_sys.py', 'src/pijuice_cli.py']
     description = "Software package for PiJuice"
-    py_modules=['pijuice']
+    py_modules = ['pijuice']
 else:
     name = "pijuice-gui"
     py_modules = None
-    data_files= [
+    data_files = [
         ('share/applications', ['data/pijuice-gui.desktop']),
         ('/etc/xdg/autostart', ['data/pijuice-tray.desktop']),
         ('share/pijuice/data/images', glob.glob('data/images/*')), 

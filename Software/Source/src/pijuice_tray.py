@@ -52,10 +52,10 @@ class PiJuiceStatusTray(object):
 
     def show_menu(self, widget, event_button, event_time):
         self.menu.popup(None, None,
-        self.tray.position_menu,
-        self.tray,
-        event_button,
-        gtk.get_current_event_time())
+                        self.tray.position_menu,
+                        self.tray,
+                        event_button,
+                        gtk.get_current_event_time())
 
     def show_about(self, widget):
         widget.set_sensitive(False)
@@ -137,12 +137,14 @@ class PiJuiceStatusTray(object):
             print('refresh error')
         return True
 
+
 def receive_signal(signum, stack):
     global sig
     if signum == SIGUSR1 or signum == SIGUSR2:
         sig = signum
     else:
         sig = -1
+
 
 if __name__ == '__main__':
     global sig

@@ -178,9 +178,9 @@ class PiJuiceStatus(object):
         else:
             return {'data': result['data'][0], 'error': 'NO_ERROR'}
 
-
     faultEvents = ['button_power_off', 'forced_power_off', 'forced_sys_power_off', 'watchdog_reset']
     faults = ['battery_profile_invalid', 'charging_temperature_fault']
+
     def GetFaultStatus(self):
         result = self.interface.ReadData(self.FAULT_EVENT_CMD, 1)
         if result['error'] != 'NO_ERROR':
@@ -213,6 +213,7 @@ class PiJuiceStatus(object):
         self.interface.WriteData(self.FAULT_EVENT_CMD, [d])  # clear fault events
 
     buttonEvents = ['NO_EVENT', 'PRESS', 'RELEASE', 'SINGLE_PRESS', 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
+
     def GetButtonEvents(self):
         result = self.interface.ReadData(self.BUTTON_EVENT_CMD, 2)
         if result['error'] != 'NO_ERROR':
@@ -235,6 +236,7 @@ class PiJuiceStatus(object):
             return {'data': event, 'error': 'NO_ERROR'}
 
     buttons = ['SW' + str(i+1) for i in range(0, 3)]
+
     def AcceptButtonEvent(self, button):
         try:
             b = self.buttons.index(button)
@@ -293,6 +295,7 @@ class PiJuiceStatus(object):
             return {'data': i, 'error': 'NO_ERROR'}
 
     leds = ['D1', 'D2']
+
     def SetLedState(self, led, rgb):
         try:
             i = self.leds.index(led)
@@ -555,7 +558,7 @@ class PiJuiceRtcAlarm(object):
                         d[2] = d[2] | ((h % 10) & 0x0F)
 
                 elif isinstance(h, int):
-                    #assume 24 hour format
+                    # assume 24 hour format
                     if h < 0 or h > 23:
                         return {'error': 'INVALID_HOUR'}
                     d[2] = (((int(h) // 10) & 0x03) << 4)
@@ -713,7 +716,7 @@ class PiJuiceRtcAlarm(object):
     def SetAlarm(self, alarm):
         d = [0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0xFF]
         if not alarm:
-            #disable alarm
+            # disable alarm
             return self.interface.WriteDataVerify(self.RTC_ALARM_CMD, d, 0.2)
 
         if 'second' in alarm:
@@ -774,7 +777,7 @@ class PiJuiceRtcAlarm(object):
                         d[2] = d[2] | ((int(h) % 10) & 0x0F)
 
                 elif isinstance(h, int):
-                    #assume 24 hour format
+                    # assume 24 hour format
                     d[2] = (((int(h) // 10) & 0x03) << 4)
                     d[2] = d[2] | ((int(h) % 10) & 0x0F)
 
@@ -1001,10 +1004,12 @@ class PiJuiceConfig(object):
         if ret['error'] != 'NO_ERROR':
             return ret
         else:
-            return {'data': {'charging_enabled' :bool(ret['data'][0] & 0x01)},
-                    'non_volatile':bool(ret['data'][0]&0x80), 'error':'NO_ERROR'}
+            return {'data': {'charging_enabled': bool(ret['data'][0] & 0x01)},
+                    'non_volatile': bool(ret['data'][0] & 0x80),
+                    'error': 'NO_ERROR'}
 
     batteryProfiles = ['BP6X', 'BP7X', 'SNN5843', 'LIPO8047109']
+
     def SetBatteryProfile(self, profile):
         if profile == 'DEFAULT':
             profile_id = 0xFF
@@ -1019,6 +1024,7 @@ class PiJuiceConfig(object):
 
     batteryProfileSources = ['HOST', 'DIP_SWITCH', 'RESISTOR']
     batteryProfileValidity = ['VALID', 'INVALID']
+
     def GetBatteryProfileStatus(self):
         ret = self.interface.ReadData(self.BATTERY_PROFILE_ID_CMD, 1)
         if ret['error'] != 'NO_ERROR':
@@ -1034,7 +1040,8 @@ class PiJuiceConfig(object):
                 profile = self.batteryProfiles[(profile_id & 0x0F)]
             except:
                 profile = 'UNKNOWN'
-            return {'data': {'validity': validity, 'source': source, 'origin': origin, 'profile': profile}, 'error': 'NO_ERROR'}
+            return {'data': {'validity': validity, 'source': source, 'origin': origin, 'profile': profile},
+                    'error': 'NO_ERROR'}
 
     def GetBatteryProfile(self):
         ret = self.interface.ReadData(self.BATTERY_PROFILE_CMD, 14)
@@ -1086,6 +1093,7 @@ class PiJuiceConfig(object):
         return self.interface.WriteDataVerify(self.BATTERY_PROFILE_CMD, d, 0.2)
 
     batteryTempSenseOptions = ['NOT_USED', 'NTC', 'ON_BOARD', 'AUTO_DETECT']
+
     def GetBatteryTempSenseConfig(self):
         result = self.interface.ReadData(self.BATTERY_TEMP_SENSE_CONFIG_CMD, 1)
         if result['error'] != 'NO_ERROR':
@@ -1108,6 +1116,7 @@ class PiJuiceConfig(object):
     powerInputs = ['USB_MICRO', '5V_GPIO']
     usbMicroCurrentLimits = ['1.5A', '2.5A']
     usbMicroDPMs = list("{0:.2f}".format(4.2+0.08*x)+'V' for x in range(0, 8))
+
     def SetPowerInputsConfig(self, config, non_volatile=False):
         try:
             nv = 0x80 if non_volatile else 0x00
@@ -1148,8 +1157,8 @@ class PiJuiceConfig(object):
         return {'data': config, 'non_volatile': bool(d & 0x80), 'error': 'NO_ERROR'}
 
     buttons = ['SW' + str(i+1) for i in range(0, 3)]
-    buttonEvents = ['PRESS', 'RELEASE', 'SINGLE_PRESS',
-                 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
+    buttonEvents = ['PRESS', 'RELEASE', 'SINGLE_PRESS', 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
+
     def GetButtonConfiguration(self, button):
         try:
             b = self.buttons.index(button)
@@ -1206,6 +1215,7 @@ class PiJuiceConfig(object):
     # XXX: Avoid setting ON_OFF_STATUS
     ledFunctionsOptions = ['NOT_USED', 'CHARGE_STATUS', 'USER_LED']
     ledFunctions = ['NOT_USED', 'CHARGE_STATUS', 'ON_OFF_STATUS', 'USER_LED']
+
     def GetLedConfiguration(self, led):
         try:
             i = self.leds.index(led)
@@ -1241,6 +1251,7 @@ class PiJuiceConfig(object):
         return self.interface.WriteDataVerify(self.LED_CONFIGURATION_CMD + i, d, 0.2)
 
     powerRegulatorModes = ['POWER_SOURCE_DETECTION', 'LDO', 'DCDC']
+
     def GetPowerRegulatorMode(self):
         result = self.interface.ReadData(self.POWER_REGULATOR_CONFIG_CMD, 1)
         if result['error'] != 'NO_ERROR':
@@ -1337,7 +1348,8 @@ class PiJuiceConfig(object):
             d = ret['data']
             nv = bool(d[0] & 0x80)
             mode = self.ioModes[d[0] & 0x0F] if ((d[0] & 0x0F) < len(self.ioModes)) else 'UNKNOWN'
-            pull = self.ioPullOptions[(d[0] >> 4) & 0x03] if (((d[0] >> 4) & 0x03) < len(self.ioPullOptions)) else 'UNKNOWN'
+            pull = self.ioPullOptions[(d[0] >> 4) & 0x03] \
+                if (((d[0] >> 4) & 0x03) < len(self.ioPullOptions)) else 'UNKNOWN'
             if mode == 'DIGITAL_OUT_PUSHPULL' or mode == 'DIGITAL_IO_OPEN_DRAIN':
                 return {'data': {'mode': mode, 'pull': pull, 'value': int(d[1])},
                         'non_volatile': nv, 'error': 'NO_ERROR'}
@@ -1384,6 +1396,7 @@ class PiJuiceConfig(object):
         return self.interface.WriteDataVerify(self.ID_EEPROM_WRITE_PROTECT_CTRL_CMD, [int(status)])
 
     idEepromAddresses = ['50', '52']
+
     def GetIdEepromAddress(self):
         ret = self.interface.ReadData(self.ID_EEPROM_ADDRESS_CMD, 1)
         if ret['error'] != 'NO_ERROR':
