@@ -86,8 +86,6 @@ class PiJuiceInterface(object):
         return True
 
     def ReadData(self, cmd, length):
-        d = []
-
         self.cmd = cmd
         self.length = length + 1
         if not self._DoTransfer(self._Read):
@@ -242,7 +240,6 @@ class PiJuiceStatus(object):
 
     buttons = ['SW' + str(i+1) for i in range(0, 3)]
     def AcceptButtonEvent(self, button):
-        b = None
         try:
             b = self.buttons.index(button)
         except ValueError:
@@ -301,7 +298,6 @@ class PiJuiceStatus(object):
 
     leds = ['D1', 'D2']
     def SetLedState(self, led, rgb):
-        i = None
         try:
             i = self.leds.index(led)
         except:
@@ -309,7 +305,6 @@ class PiJuiceStatus(object):
         return self.interface.WriteData(self.LED_STATE_CMD + i, rgb)
 
     def GetLedState(self, led):
-        i = None
         try:
             i = self.leds.index(led)
         except:
@@ -317,8 +312,6 @@ class PiJuiceStatus(object):
         return self.interface.ReadData(self.LED_STATE_CMD + i, 3)
 
     def SetLedBlink(self, led, count, rgb1, period1, rgb2, period2):
-        i = None
-        d = None
         try:
             i = self.leds.index(led)
             d = [count & 0xFF] + rgb1*1 + \
@@ -328,7 +321,6 @@ class PiJuiceStatus(object):
         return self.interface.WriteData(self.LED_BLINK_CMD + i, d)
 
     def GetLedBlink(self, led):
-        i = None
         try:
             i = self.leds.index(led)
         except:
@@ -1028,7 +1020,6 @@ class PiJuiceConfig(object):
 
     batteryProfiles = ['BP6X', 'BP7X', 'SNN5843', 'LIPO8047109']
     def SetBatteryProfile(self, profile):
-        id = None
         if profile == 'DEFAULT':
             id = 0xFF
         elif profile == 'CUSTOM':
@@ -1053,7 +1044,6 @@ class PiJuiceConfig(object):
             origin = 'CUSTOM' if (id & 0x0F) == 0x0F else 'PREDEFINED'
             source = self.batteryProfileSources[(id >> 4) & 0x03]
             validity = self.batteryProfileValidity[(id >> 6) & 0x01]
-            profile = None
             try:
                 profile = self.batteryProfiles[(id & 0x0F)]
             except:
@@ -1130,7 +1120,6 @@ class PiJuiceConfig(object):
     usbMicroCurrentLimits = ['1.5A', '2.5A']
     usbMicroDPMs = list("{0:.2f}".format(4.2+0.08*x)+'V' for x in range(0, 8))
     def SetPowerInputsConfig(self, config, non_volatile=False):
-        d = []
         try:
             nv = 0x80 if non_volatile == True else 0x00
             prec = 0x01 if (config['precedence'] == '5V_GPIO') else 0x00
@@ -1168,7 +1157,6 @@ class PiJuiceConfig(object):
     buttonEvents = ['PRESS', 'RELEASE', 'SINGLE_PRESS',
                  'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
     def GetButtonConfiguration(self, button):
-        b = None
         try:
             b = self.buttons.index(button)
         except ValueError:
@@ -1198,7 +1186,6 @@ class PiJuiceConfig(object):
             return {'data': config, 'error': 'NO_ERROR'}
 
     def SetButtonConfiguration(self, button, config):
-        b = None
         try:
             b = self.buttons.index(button)
         except ValueError:
@@ -1226,7 +1213,6 @@ class PiJuiceConfig(object):
     ledFunctionsOptions = ['NOT_USED', 'CHARGE_STATUS', 'USER_LED']
     ledFunctions = ['NOT_USED', 'CHARGE_STATUS', 'ON_OFF_STATUS', 'USER_LED']
     def GetLedConfiguration(self, led):
-        i = None
         try:
             i = self.leds.index(led)
         except ValueError:
@@ -1248,7 +1234,6 @@ class PiJuiceConfig(object):
             return {'data': config, 'error': 'NO_ERROR'}
 
     def SetLedConfiguration(self, led, config):
-        i = None
         d = [0x00, 0x00, 0x00, 0x00]
         try:
             i = self.leds.index(led)
@@ -1381,7 +1366,6 @@ class PiJuiceConfig(object):
             return {'data': format(result['data'][0], 'x'), 'error': 'NO_ERROR'}
 
     def SetAddress(self, slave, hexAddress):
-        adr = None
         try:
             adr = int(str(hexAddress), 16)
         except:
@@ -1399,7 +1383,6 @@ class PiJuiceConfig(object):
             return {'data': status, 'error': 'NO_ERROR'}
 
     def SetIdEepromWriteProtect(self, status):
-        d = None
         if status == True:
             d = 1
         elif status == False:
