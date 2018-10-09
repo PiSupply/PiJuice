@@ -123,7 +123,7 @@ class PiJuiceInterface(object):
             if result['error'] != 'NO_ERROR':
                 return result
             else:
-                if (data == result['data']):
+                if data == result['data']:
                     return {'error': 'NO_ERROR'}
                 else:
                     print('wr', data)
@@ -162,15 +162,15 @@ class PiJuiceStatus(object):
             return result
         else:
             d = result['data'][0]
-            status = {}
-            status['isFault'] = bool(d & 0x01)
-            status['isButton'] = bool(d & 0x02)
-            batStatusEnum = ['NORMAL', 'CHARGING_FROM_IN',
-                            'CHARGING_FROM_5V_IO', 'NOT_PRESENT']
-            status['battery'] = batStatusEnum[(d >> 2) & 0x03]
+            batStatusEnum = ['NORMAL', 'CHARGING_FROM_IN', 'CHARGING_FROM_5V_IO', 'NOT_PRESENT']
             powerInStatusEnum = ['NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT']
-            status['powerInput'] = powerInStatusEnum[(d >> 4) & 0x03]
-            status['powerInput5vIo'] = powerInStatusEnum[(d >> 6) & 0x03]
+            status = {
+                'isFault': bool(d & 0x01),
+                'isButton': bool(d & 0x02),
+                'battery': batStatusEnum[(d >> 2) & 0x03],
+                'powerInput': powerInStatusEnum[(d >> 4) & 0x03],
+                'powerInput5vIo': powerInStatusEnum[(d >> 6) & 0x03]
+            }
             return {'data': status, 'error': 'NO_ERROR'}
 
     def GetChargeLevel(self):
@@ -181,8 +181,7 @@ class PiJuiceStatus(object):
             return {'data': result['data'][0], 'error': 'NO_ERROR'}
 
 
-    faultEvents = ['button_power_off', 'forced_power_off',
-                   'forced_sys_power_off', 'watchdog_reset']
+    faultEvents = ['button_power_off', 'forced_power_off', 'forced_sys_power_off', 'watchdog_reset']
     faults = ['battery_profile_invalid', 'charging_temperature_fault']
     def GetFaultStatus(self):
         result = self.interface.ReadData(self.FAULT_EVENT_CMD, 1)
@@ -215,8 +214,7 @@ class PiJuiceStatus(object):
                 pass  # TODO: decide what should be done in case of exception
         self.interface.WriteData(self.FAULT_EVENT_CMD, [d])  # clear fault events
 
-    buttonEvents = ['NO_EVENT', 'PRESS', 'RELEASE',
-                    'SINGLE_PRESS', 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
+    buttonEvents = ['NO_EVENT', 'PRESS', 'RELEASE', 'SINGLE_PRESS', 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
     def GetButtonEvents(self):
         result = self.interface.ReadData(self.BUTTON_EVENT_CMD, 2)
         if result['error'] != 'NO_ERROR':
@@ -273,7 +271,7 @@ class PiJuiceStatus(object):
         else:
             d = result['data']
             i = (d[1] << 8) | d[0]
-            if (i & (1 << 15)):
+            if i & (1 << 15):
                 i = i - (1 << 16)
             return {'data': i, 'error': 'NO_ERROR'}
 
@@ -292,7 +290,7 @@ class PiJuiceStatus(object):
         else:
             d = result['data']
             i = (d[1] << 8) | d[0]
-            if (i & (1 << 15)):
+            if i & (1 << 15):
                 i = i - (1 << 16)
             return {'data': i, 'error': 'NO_ERROR'}
 
@@ -314,8 +312,7 @@ class PiJuiceStatus(object):
     def SetLedBlink(self, led, count, rgb1, period1, rgb2, period2):
         try:
             i = self.leds.index(led)
-            d = [count & 0xFF] + rgb1*1 + \
-                [(period1//10) & 0xFF] + rgb2*1 + [(period2//10) & 0xFF]
+            d = [count & 0xFF] + rgb1*1 + [(period1//10) & 0xFF] + rgb2*1 + [(period2//10) & 0xFF]
         except:
             return {'error': 'BAD_ARGUMENT'}
         return self.interface.WriteData(self.LED_BLINK_CMD + i, d)
@@ -392,8 +389,7 @@ class PiJuiceStatus(object):
             return {'error': 'INVALID_DUTY_CYCLE'}
         elif dc < 100:
             dci = int(round(dc * 65534 // 100))
-            d[0] = dci & 0xFF
-            d[1] = (dci >> 8) & 0xFF
+            d = [dci & 0xFF, (dci >> 8) & 0xFF]
         return self.interface.WriteData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, d)
 
     def GetIoPWM(self, pin):
@@ -474,12 +470,12 @@ class PiJuiceRtcAlarm(object):
         if ret['error'] != 'NO_ERROR':
             return ret
         d = ret['data']
-        dt = {}
-        dt['second'] = ((d[0] >> 4) & 0x07) * 10 + (d[0] & 0x0F)
+        dt = {
+            'second': ((d[0] >> 4) & 0x07) * 10 + (d[0] & 0x0F),
+            'minute': ((d[1] >> 4) & 0x07) * 10 + (d[1] & 0x0F)
+        }
 
-        dt['minute'] = ((d[1] >> 4) & 0x07) * 10 + (d[1] & 0x0F)
-
-        if (d[2] & 0x40):
+        if d[2] & 0x40:
             # hourFormat = '12'
             ampm = 'PM' if (d[2] & 0x20) else 'AM'
             dt['hour'] = str(((d[2] >> 4) & 0x01) * 10 + (d[2] & 0x0F)) + ' ' + ampm
@@ -489,11 +485,8 @@ class PiJuiceRtcAlarm(object):
 
         dt['weekday'] = d[3] & 0x07
         dt['day'] = ((d[4] >> 4) & 0x03) * 10 + (d[4] & 0x0F)
-
         dt['month'] = ((d[5] >> 4) & 0x01) * 10 + (d[5] & 0x0F)
-
         dt['year'] = ((d[6] >> 4) & 0x0F) * 10 + (d[6] & 0x0F) + 2000
-
         dt['subsecond'] = d[7] // 256
 
         if (d[8] & 0x03) == 2:
@@ -542,7 +535,7 @@ class PiJuiceRtcAlarm(object):
                 h = dt['hour']
                 if isinstance(h, str):
                     if (h.find('AM') > -1) or (h.find('PM') > -1):
-                        if (h.find('PM') > -1):
+                        if h.find('PM') > -1:
                             hi = int(h.split('PM')[0])
                             if hi < 1 or hi > 12:
                                 return {'error': 'INVALID_HOUR'}
@@ -637,13 +630,13 @@ class PiJuiceRtcAlarm(object):
         ret = self.interface.ReadData(self.RTC_TIME_CMD, 9)
         if ret['error'] != 'NO_ERROR':
             return ret
-        if (d == ret['data']):
+        if d == ret['data']:
             return {'error': 'NO_ERROR'}
         else:
             if abs(ret['data'][0] - d[0]) < 2:
                 ret['data'][0] = d[0]
                 ret['data'][7] = d[7]
-                if (d == ret['data']):
+                if d == ret['data']:
                     return {'error': 'NO_ERROR'}
                 else:
                     return {'error': 'WRITE_FAILED'}
@@ -665,7 +658,7 @@ class PiJuiceRtcAlarm(object):
             alarm['minute_period'] = d[7]
 
         if (d[2] & 0x80) == 0x00:
-            if (d[2] & 0x40):
+            if d[2] & 0x40:
                 # hourFormat = '12'
                 ampm = 'PM' if (d[2] & 0x20) else 'AM'
                 alarm['hour'] = str(((d[2] >> 4) & 0x01) * 10 + (d[2] & 0x0F)) + ' ' + ampm
@@ -681,7 +674,7 @@ class PiJuiceRtcAlarm(object):
                 for i in range(0, 3):
                     for j in range(0, 8):
                         if d[i+4] & ((0x01 << j) & 0xFF):
-                            if (d[2] & 0x40):
+                            if d[2] & 0x40:
                                 if (i*8+j) == 0:
                                     h12 = '12AM'
                                 elif (i*8+j) == 12:
@@ -696,7 +689,7 @@ class PiJuiceRtcAlarm(object):
                             n = n + 1
                 alarm['hour'] = h
 
-        if (d[3] & 0x40):
+        if d[3] & 0x40:
             if (d[3] & 0x80) == 0x00:
                 alarm['weekday'] = d[3] & 0x07
             else:
@@ -768,7 +761,7 @@ class PiJuiceRtcAlarm(object):
 
                 elif isinstance(h, str) and h.find(';') < 0:
                     if (h.find('AM') > -1) or (h.find('PM') > -1):
-                        if (h.find('PM') > -1):
+                        if h.find('PM') > -1:
                             hi = int(h.split('PM')[0])
                             d[2] = (((hi // 10) & 0x03) << 4)
                             d[2] = d[2] | ((hi % 10) & 0x0F)
@@ -787,7 +780,7 @@ class PiJuiceRtcAlarm(object):
                     d[2] = (((int(h) // 10) & 0x03) << 4)
                     d[2] = d[2] | ((int(h) % 10) & 0x0F)
 
-                elif (isinstance(h, str) and h.find(';') >= 0):
+                elif isinstance(h, str) and h.find(';') >= 0:
                     hs = 0x00000000
                     # hFormat = ''
                     hl = h.split(';')
@@ -798,7 +791,7 @@ class PiJuiceRtcAlarm(object):
                             if i.find('AM') > -1:
                                 ham = int(i.split('AM')[0])
                                 if ham < 12:
-                                    hs = hs | (0x00000001 << (ham))
+                                    hs = hs | (0x00000001 << ham)
                                 else:
                                     hs = hs | 0x00000001
                             else:
@@ -806,7 +799,7 @@ class PiJuiceRtcAlarm(object):
                                 if hpm < 12:
                                     hs = hs | (0x00000001 << (hpm+12))
                                 else:
-                                    hs = hs | (0x00000001 << (12))
+                                    hs = hs | (0x00000001 << 12)
                         else:
                             hs = hs | (0x00000001 << int(i))
                     d[2] = 0x80
@@ -835,7 +828,7 @@ class PiJuiceRtcAlarm(object):
                     dw = int(day)
                     d[3] = d[3] | (dw & 0x0F) | 0x40
 
-                elif (isinstance(day, str) and day.find(';') >= 0):
+                elif isinstance(day, str) and day.find(';') >= 0:
                     d[3] = 0x40 | 0x80
                     ds = 0x00
                     dl = day.split(';')
@@ -868,18 +861,18 @@ class PiJuiceRtcAlarm(object):
         ret = self.interface.ReadData(self.RTC_ALARM_CMD, 9)
         if ret['error'] != 'NO_ERROR':
             return ret
-        if (d == ret['data']):
+        if d == ret['data']:
             return {'error': 'NO_ERROR'}
         else:
             h1 = d[2]
             h2 = ret['data'][2]
-            if (h1 & 0x40):  # convert to 24 hour format
+            if h1 & 0x40:  # convert to 24 hour format
                 h1Bin = ((h1 >> 4) & 0x01) * 10 + (h1 & 0x0F)
                 h1Bin = h1Bin if h1Bin < 12 else 0
                 h1Bin = h1Bin + (12 if h1 & 0x20 else 0)
             else:
                 h1Bin = ((h1 >> 4) & 0x03) * 10 + (h1 & 0x0F)
-            if (h2 & 0x40):  # convert to 24 hour format
+            if h2 & 0x40:  # convert to 24 hour format
                 h2Bin = ((h2 >> 4) & 0x01) * 10 + (h2 & 0x0F)
                 h2Bin = h2Bin if h2Bin < 12 else 0
                 h2Bin = h2Bin + (12 if h2 & 0x20 else 0)
@@ -887,7 +880,7 @@ class PiJuiceRtcAlarm(object):
                 h2Bin = ((h2 >> 4) & 0x03) * 10 + (h2 & 0x0F)
             d[2] = h1Bin | (d[2] & 0x80)
             ret['data'][2] = h2Bin | (ret['data'][2] & 0x80)
-            if (d == ret['data']):
+            if d == ret['data']:
                 return {'error': 'NO_ERROR'}
             else:
                 return {'error': 'WRITE_FAILED'}
@@ -920,7 +913,7 @@ class PiJuicePower(object):
         try:
             if arg == 'DISABLED':
                 d = 0x7F
-            elif int(arg) >= 0 and int(arg) <= 100:
+            elif 0 <= int(arg) <= 100:
                 d = int(arg)
         except:
             return {'error': 'BAD_ARGUMENT'}
@@ -1053,40 +1046,42 @@ class PiJuiceConfig(object):
             d = ret['data']
             if all(v == 0 for v in d):
                 return {'data': 'INVALID', 'error': 'NO_ERROR'}
-            profile = {}
-            profile['capacity'] = (d[1] << 8) | d[0]
-            profile['chargeCurrent'] = d[2] * 75 + 550
-            profile['terminationCurrent'] = d[3] * 50 + 50
-            profile['regulationVoltage'] = d[4] * 20 + 3500
-            profile['cutoffVoltage'] = d[5] * 20
-            profile['tempCold'] = ctypes.c_byte(d[6]).value
-            profile['tempCool'] = ctypes.c_byte(d[7]).value
-            profile['tempWarm'] = ctypes.c_byte(d[8]).value
-            profile['tempHot'] = ctypes.c_byte(d[9]).value
-            profile['ntcB'] = (d[11] << 8) | d[10]
-            profile['ntcResistance'] = ((d[13] << 8) | d[12]) * 10
+            profile = {
+                'capacity': (d[1] << 8) | d[0],
+                'chargeCurrent': d[2] * 75 + 550,
+                'terminationCurrent': d[3] * 50 + 50,
+                'regulationVoltage': d[4] * 20 + 3500,
+                'cutoffVoltage': d[5] * 20,
+                'tempCold': ctypes.c_byte(d[6]).value,
+                'tempCool': ctypes.c_byte(d[7]).value,
+                'tempWarm': ctypes.c_byte(d[8]).value,
+                'tempHot': ctypes.c_byte(d[9]).value,
+                'ntcB': (d[11] << 8) | d[10],
+                'ntcResistance': ((d[13] << 8) | d[12]) * 10
+            }
             return {'data': profile, 'error': 'NO_ERROR'}
 
     def SetCustomBatteryProfile(self, profile):
-        d = [0x00] * 14
         try:
             c = profile['capacity']
-            d[0] = c & 0xFF
-            d[1] = (c >> 8) & 0xFF
-            d[2] = int(round((profile['chargeCurrent'] - 550) // 75))
-            d[3] = int(round((profile['terminationCurrent'] - 50) // 50))
-            d[4] = int(round((profile['regulationVoltage'] - 3500) // 20))
-            d[5] = int(round(profile['cutoffVoltage'] // 20))
-            d[6] = ctypes.c_ubyte(profile['tempCold']).value
-            d[7] = ctypes.c_ubyte(profile['tempCool']).value
-            d[8] = ctypes.c_ubyte(profile['tempWarm']).value
-            d[9] = ctypes.c_ubyte(profile['tempHot']).value
             B = profile['ntcB']
-            d[10] = B & 0xFF
-            d[11] = (B >> 8) & 0xFF
             R = profile['ntcResistance'] // 10
-            d[12] = R & 0xFF
-            d[13] = (R >> 8) & 0xFF
+            d = [
+                c & 0xFF,
+                (c >> 8) & 0xFF,
+                int(round((profile['chargeCurrent'] - 550) // 75)),
+                int(round((profile['terminationCurrent'] - 50) // 50)),
+                int(round((profile['regulationVoltage'] - 3500) // 20)),
+                int(round(profile['cutoffVoltage'] // 20)),
+                ctypes.c_ubyte(profile['tempCold']).value,
+                ctypes.c_ubyte(profile['tempCool']).value,
+                ctypes.c_ubyte(profile['tempWarm']).value,
+                ctypes.c_ubyte(profile['tempHot']).value,
+                B & 0xFF,
+                (B >> 8) & 0xFF,
+                R & 0xFF,
+                (R >> 8) & 0xFF
+            ]
         except:
             return {'error': 'BAD_ARGUMENT'}
         print(d)
@@ -1145,13 +1140,13 @@ class PiJuiceConfig(object):
         if ret['error'] != 'NO_ERROR':
             return ret
         d = ret['data'][0]
-        config = {}
-        config['precedence'] = self.powerInputs[d & 0x01]
-        config['gpio_in_enabled'] = bool(d & 0x02)
-        config['no_battery_turn_on'] = bool(d & 0x04)
-        config['usb_micro_current_limit'] = self.usbMicroCurrentLimits[(
-            d >> 3) & 0x01]
-        config['usb_micro_dpm'] = self.usbMicroDPMs[(d >> 4) & 0x07]
+        config = {
+            'precedence': self.powerInputs[d & 0x01],
+            'gpio_in_enabled': bool(d & 0x02),
+            'no_battery_turn_on': bool(d & 0x04),
+            'usb_micro_current_limit': self.usbMicroCurrentLimits[(d >> 3) & 0x01],
+            'usb_micro_dpm': self.usbMicroDPMs[(d >> 4) & 0x07]
+        }
         return {'data': config, 'non_volatile': bool(d & 0x80), 'error': 'NO_ERROR'}
 
     buttons = ['SW' + str(i+1) for i in range(0, 3)]
@@ -1235,13 +1230,14 @@ class PiJuiceConfig(object):
             return {'data': config, 'error': 'NO_ERROR'}
 
     def SetLedConfiguration(self, led, config):
-        d = [0x00, 0x00, 0x00, 0x00]
         try:
             i = self.leds.index(led)
-            d[0] = self.ledFunctions.index(config['function'])
-            d[1] = int(config['parameter']['r'])
-            d[2] = int(config['parameter']['g'])
-            d[3] = int(config['parameter']['b'])
+            d = [
+                self.ledFunctions.index(config['function']),
+                int(config['parameter']['r']),
+                int(config['parameter']['g']),
+                int(config['parameter']['b'])
+            ]
         except ValueError:
             return {'error': 'BAD_ARGUMENT'}
         return self.interface.WriteDataVerify(self.LED_CONFIGURATION_CMD + i, d, 0.2)
