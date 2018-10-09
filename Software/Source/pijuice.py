@@ -211,7 +211,6 @@ class PiJuiceStatus(object):
     LED_STATE_CMD = 0x66
     LED_BLINK_CMD = 0x68
     IO_PIN_ACCESS_CMD = 0x75
-    __IS_HALTING = False
 
     def __init__(self, interface):
         self.interface = interface
@@ -238,11 +237,7 @@ class PiJuiceStatus(object):
             powerInStatusEnum = ['NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT']
             status['powerInput'] = powerInStatusEnum[(d >> 4) & 0x03]
             status['powerInput5vIo'] = powerInStatusEnum[(d >> 6) & 0x03]
-            status['isHalting'] = self.__IS_HALTING
             return {'data': status, 'error': 'NO_ERROR'}
-
-    def SetHaltFlag(self):
-        self.__IS_HALTING = True
 
     def GetChargeLevel(self):
         result = self.interface.ReadData(self.CHARGE_LEVEL_CMD, 1)

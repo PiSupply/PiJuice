@@ -155,8 +155,7 @@ To test the script simply disable the wakeup alarm in the GUI then reboot your R
 
 ### System Task Menu
 
-![System Task Menu](https://user-images.githubusercontent.com/16068311/35161236-7d4e6f56-fd37-11e7-9209-7943e88a76d5.png "System Task Menu")
-**OUTDATED IMAGE**
+![System Task Menu](https://user-images.githubusercontent.com/17354856/46268663-4ea6e600-c501-11e8-9a17-eccfb32dedaa.png "System Task Menu")
 
 Here we have the system task menu tab. This enables you to set the external watchdog timer - useful for remote applications where you can't come and do a hard-reset yourself if the Pi crashes or hangs. The PiJuice essentially monitors for a "heart beat" from the software - if it does not sense it after a defined period of time it automatically resets the Raspberry Pi. You can also set here wakeup on charge levels, minimum battery levels and voltages.
 
@@ -761,22 +760,20 @@ Returns:
 'isButton':is_button,
 'battery':battery_status,
 'powerInput':power_input_status,
-'powerInput5vIo':5v_power_input_status,
-'isHalting':is_halting
+'powerInput5vIo':5v_power_input_status
 }
 Where:
 * is_fault is True if there faults or fault events waiting to be read or False if there is no faults and no fault events.
 * is_button is True if there are button events, False if not.
 * battery_status is string constant that describes current battery status, one of four: 'NORMAL', 'CHARGING_FROM_IN', 'CHARGING_FROM_5V_IO', 'NOT_PRESENT'.
 * power_input_status is string constant that describes current status of USB Micro power input, one of four: 'NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT'.
-* 5v_power_input_status is string constant that describes current status of 5V GPIO power input, one of four: 'NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT'.
-* is_halting is False during all normal operation or True when PiJuice has issued a halt to the OS which only perists until OS restarts.
+* 5v_power_input_status: is string constant that describes current status of 5V GPIO power input, one of four: 'NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT'.
 Example:
 ```python
 print pijuice.status.GetStatus()
 ```
 Returns:
-`{'data': {'battery': 'CHARGING_FROM_5V_IO', 'powerInput5vIo': 'PRESENT', 'isFault': False, 'isButton': False, 'isHalting': False, 'powerInput': 'NOT_PRESENT'}, 'error': 'NO_ERROR'}`
+`{'data': {'battery': 'CHARGING_FROM_5V_IO', 'powerInput5vIo': 'PRESENT', 'isFault': False, 'isButton': False, 'powerInput': 'NOT_PRESENT'}, 'error': 'NO_ERROR'}`
 
 **GetChargeLevel()**
 
