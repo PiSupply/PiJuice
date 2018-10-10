@@ -115,10 +115,8 @@ class PiJuiceInterface(object):
             return wresult
         else:
             if delay:
-                try:
-                    time.sleep(delay*1)
-                except:
-                    time.sleep(0.1)
+                time.sleep(delay)
+
             result = self.ReadData(cmd, len(data))
             if result['error'] != 'NO_ERROR':
                 return result
