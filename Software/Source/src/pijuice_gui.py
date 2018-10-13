@@ -1573,7 +1573,7 @@ class PiJuiceSysTaskTab(object):
     def __init__(self, master):
         self.frame = Frame(master, name='sys_task')
         self.frame.grid(row=0, column=0, sticky=W)
-        self.frame.rowconfigure(10, weight=1)
+        self.frame.rowconfigure(12, weight=1)
         self.frame.columnconfigure(0, weight=0, minsize=190)
         self.frame.columnconfigure(1, weight=10, uniform=1)
         self.frame.columnconfigure(2, weight=1, uniform=1)
@@ -1588,6 +1588,7 @@ class PiJuiceSysTaskTab(object):
         self.wakeupChargeParam = PiJuiceConfigParamEdit(self.frame, 4, pijuiceConfigData['system_task'], "Wakeup on charge", "Trigger level [%]:", 'wakeup_on_charge', 'trigger_level', 'int', 0, 100)
         self.minChargeParam = PiJuiceConfigParamEdit(self.frame, 6, pijuiceConfigData['system_task'], "Minimum charge", "Threshold [%]:", 'min_charge', 'threshold', 'int', 0, 100)
         self.minVoltageParam = PiJuiceConfigParamEdit(self.frame, 8, pijuiceConfigData['system_task'], "Minimum battery voltage", "Threshold [V]:", 'min_bat_voltage', 'threshold', 'float', 0, 10)
+        self.extHaltParam = PiJuiceConfigParamEdit(self.frame, 10, pijuiceConfigData['system_task'], "Software Halt Power Off", "Delay period [seconds]:", 'ext_halt_power_off', 'period', 'int', 1, 65535)
 
         if ('enabled' in pijuiceConfigData['system_task']) and (pijuiceConfigData['system_task']['enabled'] == True):
             self.sysTaskEnable.set(True)
@@ -1762,7 +1763,7 @@ class PiJuiceConfigGui(Frame):
         for i in range(0, 15):
             self.userScriptTab._UpdatePath(i)
         # Apply system task params
-        for param in (self.sysTaskConfig.watchdogParam, self.sysTaskConfig.wakeupChargeParam, self.sysTaskConfig.minChargeParam, self.sysTaskConfig.minVoltageParam):
+        for param in (self.sysTaskConfig.watchdogParam, self.sysTaskConfig.wakeupChargeParam, self.sysTaskConfig.minChargeParam, self.sysTaskConfig.minVoltageParam, self.sysTaskConfig.extHaltParam):
             param._WriteParam(None)
         save_config()
 
