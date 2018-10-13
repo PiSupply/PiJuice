@@ -12,6 +12,7 @@ import signal
 import subprocess
 import sys
 import time
+import re
 
 from pijuice import PiJuice
 
@@ -32,6 +33,7 @@ noPowCnt = 100
 logger = None
 dopoll = True
 PID_FILE = '/var/run/pijuice.pid'
+HALT_FILE = '/tmp/pijuice_halt.flag'
 
 
 def _SystemHalt(event):
@@ -45,6 +47,9 @@ def _SystemHalt(event):
         except:
             tl = None
     pijuice.status.SetLedBlink('D2', 3, [150, 0, 0], 200, [0, 100, 0], 200)
+    # Setting halt flag for 'pijuice_sys.py stop'
+    with open(HALT_FILE, 'w') as f:
+        pass
     subprocess.call(["sudo", "halt"])
 
 
@@ -224,6 +229,11 @@ def main():
     signal.signal(signal.SIGHUP, reload_settings)
 
     if len(sys.argv) > 1 and str(sys.argv[1]) == 'stop':
+        isHalting = False
+        if os.path.exists(HALT_FILE):				# Created in _SystemHalt() called in main pijuice_sys process
+            isHalting = True
+            os.remove(HALT_FILE)
+            
         try:
             if (('watchdog' in configData['system_task'])
                 and ('enabled' in configData['system_task']['watchdog'])
@@ -236,6 +246,23 @@ def main():
                     ret = pijuice.power.SetWatchdog(0)
         except:
             pass
+        sysJobTargets = str(subprocess.check_output(["systemctl", "list-jobs"]))
+        reboot = True if re.search('reboot.target.*start', sysJobTargets) is not None else False                      # reboot.target exists
+        swStop = True if re.search('(?:halt|shutdown).target.*start', sysJobTargets) is not None else False           # shutdown | halt exists
+        causePowerOff = True if (swStop and not reboot) else False
+        ret = pijuice.status.GetStatus()
+        if ( ret['error'] == 'NO_ERROR' 
+        	and not isHalting			 					# Flag set in _SystemHalt()
+        	and causePowerOff								# proper time to power down (!rebooting)
+        	and configData.get('system_task',{}).get('ext_halt_power_off', {}).get('enabled',False)
+        	):
+        	# Set duration for when pijuice will cut power (Recommended 30+ sec, for halt to complete)
+            try:
+                powerOffDelay = int(configData['system_task']['ext_halt_power_off'].get('period',30))
+                pijuice.power.SetPowerOff(powerOffDelay)
+                print("PiJuice powering off in %s seconds" % configData['system_task']['ext_halt_power_off'].get('period',30))
+            except ValueError:
+                pass
         sys.exit(0)
 
     if (('watchdog' in configData['system_task'])

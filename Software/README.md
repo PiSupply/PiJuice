@@ -155,7 +155,7 @@ To test the script simply disable the wakeup alarm in the GUI then reboot your R
 
 ### System Task Menu
 
-![System Task Menu](https://user-images.githubusercontent.com/16068311/35161236-7d4e6f56-fd37-11e7-9209-7943e88a76d5.png "System Task Menu")
+![System Task Menu](https://user-images.githubusercontent.com/17354856/46268663-4ea6e600-c501-11e8-9a17-eccfb32dedaa.png "System Task Menu")
 
 Here we have the system task menu tab. This enables you to set the external watchdog timer - useful for remote applications where you can't come and do a hard-reset yourself if the Pi crashes or hangs. The PiJuice essentially monitors for a "heart beat" from the software - if it does not sense it after a defined period of time it automatically resets the Raspberry Pi. You can also set here wakeup on charge levels, minimum battery levels and voltages.
 
@@ -166,6 +166,9 @@ The watchdog timer has a configurable time-out. It defines the time after which 
 * **Wakeup on charge** - Set a percentage battery value when to wakeup the Raspberry Pi whilst on charge. Usually this value would be high, between 90-100%. This is usually used in-conjunction with "Minimum charge".
 * **Minimum charge** - Set a minimum battery percentage level to safely shutdown the Raspberry Pi when the battery is below this value. Low values should be typically between 5-10%. NOTE: The type of system shutdown can be set under "System Events" under "Low charge" menu.
 * **Minimum battery voltage** - Set a minimum battery voltage level to safely shutdown the Raspberry Pi when below the set level. Note: The type of system shutdown can be set under "System Events" under "Low battery voltage" menu.
+* **Software Halt Power Off** - You can set a delay here in seconds (maximum of 65535) as to when to cut power to the Raspberry Pi when a software shutdown has occurred external to a button press. Usually this would occur when a user has run sudo halt, sudo shutdown -h now, or sudo poweroff in the terminal.
+
+**NOTE: Software Halt Power Off** will cut power at the end of the delay period. Provide an above normal amount of time for the OS to complete shutdown or the SD card may be CORRUPTED.  **RECOMMEND 30 or more seconds.**
 
 ### System Events Menu
 
@@ -630,6 +633,10 @@ here is an example of a configuration.
     "wakeup_on_charge": {
       "enabled": true,
       "trigger_level": "1"
+    },
+    "ext_halt_power_off": {
+      "enabled": true,
+      "period": "30"
     }
   }
 }
@@ -668,8 +675,13 @@ Here is a list of accepted values for the various fields above.
     - wakeup_on_charge
         - enabled: true, false
         - trigger_level (%): 0..100
+    - ext_halt_power_off
+        - enabled: true, false
+        - period (seconds): 10..65535
 * **user_functions**:
     - absolute path to user defined script
+
+**NOTE: ext_halt_power_off will cut power at the end of the period. Provide above normal amount of time for OS to complete shutdown or the SD card may be CORRUPTED.  RECOMMEND 30 or more seconds.**
 
 ### Adding USER_FUNC from 9 to 15
 
