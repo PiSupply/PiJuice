@@ -36,6 +36,7 @@ noPowCnt = 100
 logger = None
 dopoll = True
 PID_FILE = '/tmp/pijuice_sys.pid'
+HALT_FILE = '/tmp/pijuice_halt.flag'
 
 
 def _SystemHalt(event):
