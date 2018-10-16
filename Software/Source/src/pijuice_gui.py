@@ -42,41 +42,41 @@ USER_FUNCS_MINI = 8
 pijuiceConfigData = {}
 PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON'
 
-def _ValidateIntEntry(var, min, max):
+def _ValidateIntEntry(var, minimum, maximum):
     new_value = var.get()
     try:
         if new_value != '':
             chg = int(new_value)
-            if chg > max :
-                new_value = str(max)
-            elif chg < min :
-                new_value = str(min)
+            if chg > maximum :
+                new_value = str(maximum)
+            elif chg < minimum :
+                new_value = str(minimum)
         else:
-            new_value = str(min)
+            new_value = str(minimum)
     except:
-        new_value = str(min)
+        new_value = str(minimum)
     var.set(new_value)
 
-def _ValidateFloatEntry(var, min, max):
+def _ValidateFloatEntry(var, minimum, maximum):
     new_value = var.get()
     try:
         if new_value != '':
             chg = float(new_value)
-            if chg > max :
-                new_value = str(max)
-            elif chg < min :
-                new_value = str(min)
+            if chg > maximum :
+                new_value = str(maximum)
+            elif chg < minimum :
+                new_value = str(minimum)
         else:
-            new_value = str(min)
+            new_value = str(minimum)
     except:
-        new_value = str(min)
+        new_value = str(minimum)
     var.set(new_value)
 
-def _Iter_except(function, exception):
+def _Iter_except(func, exception):
     """Works like builtin 2-argument `iter()`, but stops on `exception`."""
     try:
         while True:
-            yield function()
+            yield func()
     except exception:
         return
 
@@ -319,10 +319,10 @@ class PiJuiceHATConfig(object):
         Label(self.frame, text="I2C Address2 (RTC):").grid(row=2, column=0, padx=(2, 2), pady=(10, 0), sticky = W)
         for i in range(0, 2):
             self.slaveAddr[i] = StringVar()
-            self.slaveAddr[i].trace("w", lambda name, index, mode, var=self.slaveAddr[i], id = i: self._ValidateSlaveAdr(var, id))
+            self.slaveAddr[i].trace("w", lambda name, index, mode, var=self.slaveAddr[i], id_=i: self._ValidateSlaveAdr(var, id_))
             self.slaveAddrEntry[i] = Entry(self.frame,textvariable=self.slaveAddr[i])
             self.slaveAddrEntry[i].grid(row=1+i, column=1, padx=(2, 2), pady=(10, 0), columnspan=3, sticky=W+E)
-            self.slaveAddrEntry[i].bind("<Return>", lambda x, id=i: self._WriteSlaveAddress(id))
+            self.slaveAddrEntry[i].bind("<Return>", lambda x, id_=i: self._WriteSlaveAddress(id_))
             self.slaveAddrconfig[i] = pijuice.config.GetAddress(i+1)
             if self.slaveAddrconfig[i]['error'] != 'NO_ERROR':
                 self.slaveAddr[i].set(self.slaveAddrconfig[i]['error'])
@@ -424,10 +424,10 @@ class PiJuiceHATConfig(object):
             if status['error'] != 'NO_ERROR':
                 MessageBox.showerror('Reset to default configuration', status['error'], parent=self.frame)
 
-    def _WriteSlaveAddress(self, id):
+    def _WriteSlaveAddress(self, id_):
         q = MessageBox.askquestion('Address update','Are you sure you want to change address?', parent=self.frame)
         if q == 'yes':
-            status = pijuice.config.SetAddress(id+1, self.slaveAddr[id].get())
+            status = pijuice.config.SetAddress(id_ + 1, self.slaveAddr[id_].get())
             if status['error'] != 'NO_ERROR':
                 MessageBox.showerror('Address update', status['error'], parent=self.frame)
             else:
@@ -474,20 +474,20 @@ class PiJuiceHATConfig(object):
         if status['error'] != 'NO_ERROR':
             MessageBox.showerror('Charging configuration', status['error'], parent=self.frame)
 
-    def _ValidateSlaveAdr(self, var, id):
+    def _ValidateSlaveAdr(self, var, id_):
         new_value = var.get()
         try:
             if new_value != '':
                 adr = int(str(new_value), 16)
                 if adr > 0x7F:
-                    var.set(self.oldAdr[id])
+                    var.set(self.oldAdr[id_])
                 else:
-                    self.oldAdr[id] = new_value
+                    self.oldAdr[id_] = new_value
             else:
-                self.oldAdr[id] = new_value
+                self.oldAdr[id_] = new_value
         except:
-            var.set(self.oldAdr[id])
-        self.oldAdr[id] = new_value
+            var.set(self.oldAdr[id_])
+        self.oldAdr[id_] = new_value
 
 
 class PiJuiceButtonsConfig(object):
@@ -1089,19 +1089,19 @@ class PiJuiceIoConfig(object):
 
     def _ParamEdited1(self, i):
         if self.paramConfig1[i]:
-            min = 0 if self.paramConfig1[i]['min'] > 0 else self.paramConfig1[i]['min']
+            minimum = 0 if self.paramConfig1[i]['min'] > 0 else self.paramConfig1[i]['min']
             if self.paramConfig1[i]['type'] == 'int':
-                _ValidateIntEntry(self.param1[i], min, self.paramConfig1[i]['max'])
+                _ValidateIntEntry(self.param1[i], minimum, self.paramConfig1[i]['max'])
             elif self.paramConfig1[i]['type'] == 'float':
-                _ValidateFloatEntry(self.param1[i], min, self.paramConfig1[i]['max'])
+                _ValidateFloatEntry(self.param1[i], minimum, self.paramConfig1[i]['max'])
 
     def _ParamEdited2(self, i):
         if self.paramConfig2[i]:
-            min = 0 if self.paramConfig2[i]['min'] > 0 else self.paramConfig2[i]['min']
+            minimum = 0 if self.paramConfig2[i]['min'] > 0 else self.paramConfig2[i]['min']
             if self.paramConfig2[i]['type'] == 'int':
-                _ValidateIntEntry(self.param2[i], min, self.paramConfig2[i]['max'])
+                _ValidateIntEntry(self.param2[i], minimum, self.paramConfig2[i]['max'])
             elif self.paramConfig2[i]['type'] == 'float':
-                _ValidateFloatEntry(self.param2[i], min, self.paramConfig2[i]['max'])
+                _ValidateFloatEntry(self.param2[i], minimum, self.paramConfig2[i]['max'])
 
     def _ApplyNewConfig(self, v):
         for i in range(0, 2):
@@ -1188,11 +1188,11 @@ class PiJuiceUserScriptConfig(object):
             self.pathLabels.append(Label(self.frame, text='USER FUNC'+str(i+1)+':'))
             self.paths.append(StringVar())
             self.pathEdits.append(Entry(self.frame,textvariable=self.paths[i]))
-            self.pathEdits[i].bind("<Return>", lambda x, id=i: self._UpdatePath(id))
+            self.pathEdits[i].bind("<Return>", lambda x, id_=i: self._UpdatePath(id_))
             if ('user_functions' in pijuiceConfigData) and (('USER_FUNC'+str(i+1)) in pijuiceConfigData['user_functions']):
                 self.paths[i].set(pijuiceConfigData['user_functions']['USER_FUNC'+str(i+1)])
-            self.paths[i].trace("w", lambda name, index, mode, id = i: self._UpdatePath(id))
-            self.browseButtons.append(tkButton(self.frame, text="…", bd=0, command=lambda id=i: self._BrowseScript(id)))
+            self.paths[i].trace("w", lambda name, index, mode, id_ = i: self._UpdatePath(id_))
+            self.browseButtons.append(tkButton(self.frame, text="…", bd=0, command=lambda id_=i: self._BrowseScript(id_)))
         
         for i in range(USER_FUNCS_MINI):
             self.pathLabels[i].grid(row=i, column=0, padx=(2, 20), pady=(4, 0), sticky = W)
@@ -1219,15 +1219,15 @@ class PiJuiceUserScriptConfig(object):
                 self.pathEdits[i].grid_forget()
                 self.browseButtons[i].grid_forget()
     
-    def _BrowseScript(self, id):
-        new_file = askopenfilename(parent=self.frame, title='Select script file for USER_FUNC ' + str(id+1))
+    def _BrowseScript(self, id_):
+        new_file = askopenfilename(parent=self.frame, title='Select script file for USER_FUNC ' + str(id_ + 1))
         if new_file:
-            self.paths[id].set(new_file)
+            self.paths[id_].set(new_file)
 
-    def _UpdatePath(self, id):
+    def _UpdatePath(self, id_):
         if not 'user_functions' in pijuiceConfigData:
             pijuiceConfigData['user_functions'] = {}
-        pijuiceConfigData['user_functions']['USER_FUNC'+str(id+1)] = self.paths[id].get()
+        pijuiceConfigData['user_functions']['USER_FUNC' + str(id_ + 1)] = self.paths[id_].get()
 
 
 class PiJuiceWakeupConfig(object):
@@ -1449,7 +1449,7 @@ class PiJuiceSysEventConfig(object):
             else:
                 self.sysEventEnable[i].set(False)
                 self.funcConfigsSel[i].configure(state="disabled")
-            self.sysEventEnable[i].trace("w", lambda name, index, mode, var=self.sysEventEnable[i], id = i: self._SysEventEnableChecked(id))
+            self.sysEventEnable[i].trace("w", lambda name, index, mode, var=self.sysEventEnable[i], id_ = i: self._SysEventEnableChecked(id_))
             self.funcConfigsSel[i].bind("<<ComboboxSelected>>", lambda event, idx=i: self._NewConfigSelected(event, idx))
 
     def _SysEventEnableChecked(self, i):
@@ -1472,14 +1472,14 @@ class PiJuiceSysEventConfig(object):
 
 
 class PiJuiceConfigParamEdit(object):
-    def __init__(self, master, r, config, name, paramDes, id, paramId, type, min, max):
+    def __init__(self, master, r, config, name, paramDes, id_, paramId, type_, min_, max_):
         self.frame = master
         self.config = config
-        self.id = id
+        self.id = id_
         self.paramId = paramId
-        self.min = min
-        self.max = max
-        self.type = type
+        self.min = min_
+        self.max = max_
+        self.type = type_
         Label(self.frame, text=paramDes).grid(row=r, column=1, padx=(2, 2), pady=(8, 0), sticky = W)
         self.paramEnable = IntVar()
         self.paramEnableCheck = Checkbutton(self.frame, text = name, variable = self.paramEnable).grid(row=r+1, column=0, sticky = W, padx=(2, 2), pady=(2, 0))
@@ -1488,12 +1488,12 @@ class PiJuiceConfigParamEdit(object):
         self.paramEntry.bind("<Return>", self._WriteParam)
         self.paramEntry.grid(row=r+1, column=1, sticky = W+E, padx=(2, 2), pady=(2, 0))
 
-        if id in config:
-            if paramId in config[id]:
-                self.param.set(config[id][paramId])
+        if id_ in config:
+            if paramId in config[id_]:
+                self.param.set(config[id_][paramId])
             else:
                 self.param.set('')
-            if ('enabled' in config[id]) and (config[id]['enabled'] == True):
+            if ('enabled' in config[id_]) and (config[id_]['enabled'] == True):
                 self.paramEnable.set(True)
             else:
                 self.paramEntry.configure(state="disabled")

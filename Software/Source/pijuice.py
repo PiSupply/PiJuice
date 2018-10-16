@@ -1007,15 +1007,15 @@ class PiJuiceConfig(object):
     batteryProfiles = ['BP6X', 'BP7X', 'SNN5843', 'LIPO8047109']
     def SetBatteryProfile(self, profile):
         if profile == 'DEFAULT':
-            id = 0xFF
+            profile_id = 0xFF
         elif profile == 'CUSTOM':
-            id = 0x0F
+            profile_id = 0x0F
         else:
             try:
-                id = self.batteryProfiles.index(profile)
+                profile_id = self.batteryProfiles.index(profile)
             except:
                 return {'error': 'BAD_ARGUMENT'}
-        return self.interface.WriteData(self.BATTERY_PROFILE_ID_CMD, [id])
+        return self.interface.WriteData(self.BATTERY_PROFILE_ID_CMD, [profile_id])
 
     batteryProfileSources = ['HOST', 'DIP_SWITCH', 'RESISTOR']
     batteryProfileValidity = ['VALID', 'INVALID']
@@ -1024,14 +1024,14 @@ class PiJuiceConfig(object):
         if ret['error'] != 'NO_ERROR':
             return ret
         else:
-            id = ret['data'][0]
-            if id == 0xF0:
+            profile_id = ret['data'][0]
+            if profile_id == 0xF0:
                 return {'data': {'validity': 'DATA_WRITE_NOT_COMPLETED'}, 'error': 'NO_ERROR'}
-            origin = 'CUSTOM' if (id & 0x0F) == 0x0F else 'PREDEFINED'
-            source = self.batteryProfileSources[(id >> 4) & 0x03]
-            validity = self.batteryProfileValidity[(id >> 6) & 0x01]
+            origin = 'CUSTOM' if (profile_id & 0x0F) == 0x0F else 'PREDEFINED'
+            source = self.batteryProfileSources[(profile_id >> 4) & 0x03]
+            validity = self.batteryProfileValidity[(profile_id >> 6) & 0x01]
             try:
-                profile = self.batteryProfiles[(id & 0x0F)]
+                profile = self.batteryProfiles[(profile_id & 0x0F)]
             except:
                 profile = 'UNKNOWN'
             return {'data': {'validity': validity, 'source': source, 'origin': origin, 'profile': profile}, 'error': 'NO_ERROR'}

@@ -447,16 +447,16 @@ def loadSettings():
 # software's convention (IMG_XXXX.JPG), returning a tuple with the
 # lowest and highest indices (or None if no matching files).
 def imgRange(path):
-    min = 9999
-    max = 0
+    minimum = 9999
+    maximum = 0
     try:
         for file in os.listdir(path):
             if fnmatch.fnmatch(file, 'IMG_[0-9][0-9][0-9][0-9].JPG'):
                 i = int(file[4:8])
-                if (i < min): min = i
-                if (i > max): max = i
+                if (i < minimum): minimum = i
+                if (i > maximum): maximum = i
     finally:
-        return None if min > max else (min, max)
+        return None if minimum > maximum else (minimum, maximum)
 
 
 # Busy indicator.  To use, run in separate thread, set global 'busy'

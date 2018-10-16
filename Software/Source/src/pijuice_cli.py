@@ -137,37 +137,37 @@ def version_to_str(number):
     return "{}.{}".format(number >> 4, number & 15)
 
 
-def validate_value(text, type, min, max, old):
-    if type == 'int':
+def validate_value(text, value_type, minimum, maximum, old):
+    if value_type == 'int':
         var_type = int
-    elif type == 'float':
+    elif value_type == 'float':
         var_type = float
     else:
         return text
 
     try:
         value = var_type(text)
-        if min is not None:
-            value = value if value >= min else min
-        if max is not None:
-            value = value if value <= max else max
+        if minimum is not None:
+            value = value if value >= minimum else minimum
+        if maximum is not None:
+            value = value if value <= maximum else maximum
     except ValueError:
         value = old
 
     return str(value)
 
 
-def confirmation_dialog(text, next, nextno='', single_option=True):
+def confirmation_dialog(text, next_method, nextno='', single_option=True):
     elements = [urwid.Padding(urwid.Text(text), align='center', width='pack'),
                 urwid.Divider()]
     if single_option:
-        elements.append(urwid.Padding(attrmap(urwid.Button("OK", on_press=next)), align='center', width=6))
+        elements.append(urwid.Padding(attrmap(urwid.Button("OK", on_press=next_method)), align='center', width=6))
     else:
         yes_btn = urwid.Button("Yes")
         no_btn  = urwid.Button("No")
         pad_yes_btn = urwid.Padding(attrmap(yes_btn), width=7)
         pad_no_btn  = urwid.Padding(attrmap(no_btn), width=7)
-        urwid.connect_signal(yes_btn, 'click', next, True)
+        urwid.connect_signal(yes_btn, 'click', next_method, True)
         urwid.connect_signal(no_btn, 'click', nextno, False)
         elements.extend([pad_yes_btn, pad_no_btn])
 
@@ -334,8 +334,8 @@ class FirmwareTab(object):
                 device_status['data']['powerInput5vIo'] != 'PRESENT' and \
                 pijuice.status.GetChargeLevel().get('data', 0) < 20:
                 # Charge level is too low
-                return confirmation_dialog("Charge level is too low", next=main_menu, single_option=True)
-        confirmation_dialog("Are you sure you want to update the firmware?", next=self.update_firmware,
+                return confirmation_dialog("Charge level is too low", next_method=main_menu, single_option=True)
+        confirmation_dialog("Are you sure you want to update the firmware?", next_method=self.update_firmware,
                             nextno=main_menu, single_option=False)
 
     def update_firmware(self, *args):
@@ -372,7 +372,7 @@ class FirmwareTab(object):
                 time.sleep(0.2)
             message = "Firmware update successful"
 
-        confirmation_dialog(message, single_option=True, next=self.show_firmware)
+        confirmation_dialog(message, single_option=True, next_method=self.show_firmware)
     
     def show_firmware(self, *args):
         current_version, latest_version, firmware_status, firmware_path = self.get_fw_status()
@@ -400,7 +400,7 @@ class GeneralTab(object):
             self.current_config = self._get_device_config()
             self.main()
         except:
-            confirmation_dialog("Unable to connect to device", single_option=True, next=main_menu)
+            confirmation_dialog("Unable to connect to device", single_option=True, next_method=main_menu)
 
     def _get_device_config(self):
         config = {}
@@ -465,7 +465,7 @@ class GeneralTab(object):
                          urwid.Padding(attrmap(urwid.Button("Apply settings", on_press=self._apply_settings)), width=20),
                          urwid.Padding(attrmap(urwid.Button('Reset to default', on_press=lambda x: confirmation_dialog(
                              "This action will reset all settings on your device to their default values.\n"
-                             "Do you want to proceed?", single_option=False, next=self._reset_settings, nextno=main_menu))), width=20),
+                             "Do you want to proceed?", single_option=False, next_method=self._reset_settings, nextno=main_menu))), width=20),
                          urwid.Padding(attrmap(urwid.Button('Back', on_press=main_menu)), width=20)
                          ])
         main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(elements)), width=48)
@@ -526,15 +526,15 @@ class GeneralTab(object):
             pijuice.config.SetChargingConfig({'charging_enabled': self.current_config['charging_enabled']}, True)
         
         self.current_config = self._get_device_config()
-        confirmation_dialog("Settings successfully updated", single_option=True, next=self.main)
+        confirmation_dialog("Settings successfully updated", single_option=True, next_method=self.main)
 
     def _reset_settings(self, button, is_confirmed):
         if is_confirmed:
             error = pijuice.config.SetDefaultConfiguration().get('error', 'NO_ERROR')
             if error == "NO_ERROR":
-                confirmation_dialog("Settings have been reset to their default values", single_option=True, next=main_menu)
+                confirmation_dialog("Settings have been reset to their default values", single_option=True, next_method=main_menu)
             else:
-                confirmation_dialog("Failed to reset settings: " + error, single_option=True, next=main_menu)
+                confirmation_dialog("Failed to reset settings: " + error, single_option=True, next_method=main_menu)
         else:
             self.main()
 
@@ -605,7 +605,7 @@ class LEDTab(object):
             pijuice.config.SetLedConfiguration(self.LED_NAMES[i], config)
         
         self.current_config = self._get_led_config()
-        confirmation_dialog("Settings successfully updated", single_option=True, next=self.main)
+        confirmation_dialog("Settings successfully updated", single_option=True, next_method=self.main)
     
     def _list_functions(self, button, led_index):
         body = [urwid.Text("Choose function for " + self.LED_NAMES[led_index]), urwid.Divider()]
@@ -696,15 +696,15 @@ class ButtonsTab(object):
     def _refresh_settings(self, *args):
         self.device_config = self._get_device_config()
         self.current_config = self._get_device_config()
-        confirmation_dialog("Settings have been refreshed", next=self.main, single_option=True)
+        confirmation_dialog("Settings have been refreshed", next_method=self.main, single_option=True)
     
     def _set_function(self, button, data):
         sw_id = data['sw_id']
         action = data['action']
         body = [urwid.Text("Choose function for {} on {}".format(action, sw_id)), urwid.Divider()]
         self.bgroup = []
-        for function in self.FUNCTIONS:
-            button = attrmap(urwid.RadioButton(self.bgroup, function))
+        for func in self.FUNCTIONS:
+            button = attrmap(urwid.RadioButton(self.bgroup, func))
             body.append(button)
         self.bgroup[self.FUNCTIONS.index(self.current_config[sw_id][action]['function'])].toggle_state()
         body.extend([urwid.Divider(),
@@ -736,7 +736,7 @@ class ButtonsTab(object):
                 got_error = True
 
         if got_error:
-            confirmation_dialog("Failed to connect to PiJuice", next=main_menu, single_option=True)
+            confirmation_dialog("Failed to connect to PiJuice", next_method=main_menu, single_option=True)
         else:
             return config
     
@@ -751,10 +751,10 @@ class ButtonsTab(object):
         self.device_config = self._get_device_config()
         self.current_config = self._get_device_config()
         if got_error:
-            confirmation_dialog("Failed to apply settings: " + str(errors), next=self.main, single_option=True)
+            confirmation_dialog("Failed to apply settings: " + str(errors), next_method=self.main, single_option=True)
         else:
             notify_service()
-            confirmation_dialog("Settings have been applied", next=self.main, single_option=True)
+            confirmation_dialog("Settings have been applied", next_method=self.main, single_option=True)
     
 
 class IOTab(object):
@@ -887,7 +887,7 @@ class IOTab(object):
         for i in range(self.IO_PINS_COUNT):
             result = pijuice.config.GetIoConfiguration(i + 1)
             if result['error'] != 'NO_ERROR':
-                confirmation_dialog("Unable to connect to device: {}".format(result['error']), next=main_menu, single_option=True)
+                confirmation_dialog("Unable to connect to device: {}".format(result['error']), next_method=main_menu, single_option=True)
             else:
                 config.append(result['data'])
         return config
@@ -901,15 +901,15 @@ class IOTab(object):
                 if error_msg != 'NO_ERROR':
                     errors.append(error_msg)
             if errors:
-                confirmation_dialog("Failed to apply some settings. Error: {}".format(errors), next=self.main, single_option=True)
+                confirmation_dialog("Failed to apply some settings. Error: {}".format(errors), next_method=self.main, single_option=True)
             else:
-                confirmation_dialog("Updated settings for all pins", next=self.main, single_option=True)
+                confirmation_dialog("Updated settings for all pins", next_method=self.main, single_option=True)
         else:
             error_msg = self._apply_for_pin(pin_id)
             if error_msg != 'NO_ERROR':
-                confirmation_dialog("Failed to apply settings for IO{}. Error: {}".format(pin_id + 1, error_msg), next=self.main, single_option=True)
+                confirmation_dialog("Failed to apply settings for IO{}. Error: {}".format(pin_id + 1, error_msg), next_method=self.main, single_option=True)
             else:
-                confirmation_dialog("Updated settings for IO{}".format(pin_id + 1), next=self.main, single_option=True)
+                confirmation_dialog("Updated settings for IO{}".format(pin_id + 1), next_method=self.main, single_option=True)
 
     def _apply_for_pin(self, pin_id):
         result = pijuice.config.SetIoConfiguration(pin_id + 1, self.current_config[pin_id], True)
@@ -1000,7 +1000,7 @@ class BatteryProfileTab(object):
         if config['error'] == 'NO_ERROR':
             self.profile_data = config['data']
         else:
-            confirmation_dialog("Unable to read battery data. Error: {}".format(config['error']), next=main_menu, single_option=True)
+            confirmation_dialog("Unable to read battery data. Error: {}".format(config['error']), next_method=main_menu, single_option=True)
     
     def _read_profile_status(self, *args):
         self.profile_name = 'CUSTOM'
@@ -1022,7 +1022,7 @@ class BatteryProfileTab(object):
                 self.status_text += self.profile_status['source']
         else:
             confirmation_dialog("Unable to read battery data. Error: {}".format(
-                status['error']), next=main_menu, single_option=True)
+                status['error']), next_method=main_menu, single_option=True)
     
     def _read_temp_sense(self, *args):
         temp_sense_config = pijuice.config.GetBatteryTempSenseConfig()
@@ -1030,7 +1030,7 @@ class BatteryProfileTab(object):
             self.temp_sense_profile_idx = self.TEMP_SENSE_OPTIONS.index(temp_sense_config['data'])
         else:
             confirmation_dialog("Unable to read battery data. Error: {}".format(
-                temp_sense_config['error']), next=main_menu, single_option=True)
+                temp_sense_config['error']), next_method=main_menu, single_option=True)
 
     def _clear_text_edits(self, *args):
         for edit in self.param_edits:
@@ -1078,7 +1078,7 @@ class BatteryProfileTab(object):
         status = pijuice.config.SetBatteryTempSenseConfig(self.TEMP_SENSE_OPTIONS[self.temp_sense_profile_idx])
         if status['error'] != 'NO_ERROR':
             confirmation_dialog('Failed to apply temperature sense options. Error: {}'.format(
-                status['error']), next=main_menu, single_option=True)
+                status['error']), next_method=main_menu, single_option=True)
 
         if self.custom_values:
             status = self.write_custom_values()
@@ -1087,9 +1087,9 @@ class BatteryProfileTab(object):
 
         if status['error'] != 'NO_ERROR':
             confirmation_dialog('Failed to apply profile options. Error: {}'.format(
-                status['error']), next=main_menu, single_option=True)
+                status['error']), next_method=main_menu, single_option=True)
         else:
-            confirmation_dialog("Settings successfully updated", single_option=True, next=self.refresh)
+            confirmation_dialog("Settings successfully updated", single_option=True, next_method=self.refresh)
     
     def write_custom_values(self, *args):
         # Keys for config are given in order of Edit widgets (self.param_edits)
@@ -1143,7 +1143,7 @@ class WakeupAlarmTab(object):
             self.current_config = self._get_alarm()
         except Exception as e:
             confirmation_dialog("Unable to connect to device: {}".format(
-                str(e)), next=main_menu, single_option=True)
+                str(e)), next_method=main_menu, single_option=True)
         else:
             self.status = 'OK'
             self.device_time = self._get_device_time()
@@ -1250,9 +1250,9 @@ class WakeupAlarmTab(object):
 
         if status['error'] != 'NO_ERROR':
             confirmation_dialog('Failed to apply wakeup alarm options. Error: {}'.format(
-                status['error']), next=main_menu, single_option=True)
+                status['error']), next_method=main_menu, single_option=True)
         else:
-            confirmation_dialog('Wakeup alarm has been set successfully.', next=self.main, single_option=True)
+            confirmation_dialog('Wakeup alarm has been set successfully.', next_method=self.main, single_option=True)
 
     def _toggle_wakeup(self, checkbox, state, *args):
         self.current_config['enabled'] = state
@@ -1260,7 +1260,7 @@ class WakeupAlarmTab(object):
         if ret['error'] != 'NO_ERROR':
             self.current_config['enabled'] = not state
             checkbox.set_state(False, do_callback=False)
-            confirmation_dialog('Failed to toggle alarm. Error: {}'.format(ret['error']), next=main_menu, single_option=True)
+            confirmation_dialog('Failed to toggle alarm. Error: {}'.format(ret['error']), next_method=main_menu, single_option=True)
 
     def _set_time(self, *args):
         loop.remove_alarm(self.alarm_handle)
@@ -1618,8 +1618,8 @@ class SystemEventsTab(object):
         elements = [urwid.Text("Select function for '"+self.EVTTXT[index]+"'"),
                     urwid.Divider()]
         self.bgroup = []
-        for function in  self.FUNCTIONS:
-            button = attrmap(urwid.RadioButton(self.bgroup, function))
+        for f in  self.FUNCTIONS:
+            button = attrmap(urwid.RadioButton(self.bgroup, f))
             elements.append(button)
         self.bgroup[self.FUNCTIONS.index(func)].toggle_state()
         elements.extend([urwid.Divider(),
@@ -1728,10 +1728,10 @@ def savePiJuiceConfig(*args):
         if ret != 0:
             text += ("\n\nFailed to communicate with PiJuice service.\n"
                     "See system logs and 'systemctl status pijuice.service' for details.")
-        confirmation_dialog(text, next=main_menu)
+        confirmation_dialog(text, next_method=main_menu)
     except:
         confirmation_dialog("Failed to save settings to " + PiJuiceConfigDataPath + "\n"
-                            "Check permissions of " + PiJuiceConfigDataPath, next=main_menu)
+                            "Check permissions of " + PiJuiceConfigDataPath, next_method=main_menu)
 
 def notify_service(*args):
     ret = -1
