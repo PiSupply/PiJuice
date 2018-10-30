@@ -617,7 +617,7 @@ class PiJuiceRtcAlarm(object):
         if 'daylightsaving' in dt:
             if dt['daylightsaving'] == 'SUB1H':
                 d[8] |= 2
-            elif dt['daylightsaving'] == 'SUB1H':
+            elif dt['daylightsaving'] == 'ADD1H':
                 d[8] |= 1
 
         if dt.get('storeoperation'):
