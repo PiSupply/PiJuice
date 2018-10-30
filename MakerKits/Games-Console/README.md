@@ -2,6 +2,15 @@
 
 The gaming software for this project is based on the latest version of RetroPie, which an operating system for the Raspberry Pi that runs a number of retro-gaming projects such as emulationstation, RetroArch and many others. It allows you to play all your favourite retro arcade games, home-console and some classic PC games.
 
+## What you will need
+
+- Raspberry Pi board
+- Media Center HAT
+- PiJuice HAT
+- Wired/Bluetooth controller
+- Keyboard & mouse (initial setup)
+-
+
 ## Download RetroPie
 
 Go to https://retropie.org.uk and download the latest image for the Raspberry Pi. Flash the RetroPie image to an 16GB or 32GB micro SD card using Etcher software. You can download Etcher from https://etcher.io.

@@ -566,6 +566,50 @@ From time to time we are constantly improving the software and firmware on the P
 
 ![pijuice cli firmware](https://drive.google.com/uc?id=1CDgqbRn0zeU6Rh_7MsNIuP71x7Nc0L-1)
 
+## PiJuice RTC
+
+The PiJuice MCU has a built-in RTC, which is then kept alive by the PiJuice battery. This RTC is primarily used to wakeup the Raspberry Pi at a specific time/date set by you in the PiJuice configuration settings. By default when the PiJuice has an ID EEPROM address of 0x50 the RTC driver is loaded when the Raspberry Pi boots and this can be confirmed by running 'i2cdetect -y 1' from the command line where you will see 'UU' at address 68.
+
+```
+pi@rpi-stretch-full:~ $ i2cdetect -y 1
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00:          -- -- -- -- -- -- -- -- -- -- -- -- --
+10: -- -- -- -- 14 -- -- -- -- -- -- -- -- -- -- --
+20: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+40: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+60: -- -- -- -- -- -- -- -- UU -- -- -- -- -- -- --
+70: -- -- -- -- -- -- -- --                         
+pi@rpi-stretch-full:~ $
+```
+
+If your ID EEPROM address is set to 0x52 (Which you will need to change if stacking another HAT) then you will need to manually load the driver in the `/boot/config.txt` by adding the following line:
+
+```dtoverlay=i2c-rtc,ds1339```
+
+### Setting the System Clock & RTC
+
+There are two ways in which you can set your system time and date providing that you have set the timezone in Raspbian; automatically using timesync or manually in the command line. If you have an internet connection then the time will automatically be synched after boot and this will also sync with the RTC time.
+
+Manually you can set the time with the `date` command from the command line:
+
+```sudo date -s '2018-10-29 12:30:46' ```
+
+After setting the date and time you must then copy the system time to the RTC with the command:
+
+```sudo hwclock -w```
+
+You can check this with:
+
+```sudo hwclock -r```
+
+### Sync RTC time at boot
+
+When the Raspberry Pi shutsdown and then reboots you must copy the RTC time back to the system clock at boot and you can do this in `/etc/rc.local` with `sudo hwclock -s`.
+
+**Note:** This assumes that your PiJuice has sufficient power from the battery to keep the simulated RTC running in the PiJuce microcontroller while the Pi is shut down.
+
 
 ## JSON configuration file
 Changes made on tabs "System Task", "System Events" and "User Scripts" on the main windows will be saved on a JSON file.
