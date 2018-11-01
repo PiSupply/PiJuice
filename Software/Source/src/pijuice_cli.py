@@ -343,7 +343,7 @@ class FirmwareTab(object):
                             nextno=main_menu, single_option=False)
 
     def update_firmware(self, *args):
-        current_addr = pijuice.config.interface.GetAddress()
+        current_addr = pijuice.config.interface.address
         error_status = None
         if current_addr:
             main.original_widget = urwid.Filler(urwid.LineBox(urwid.Pile([

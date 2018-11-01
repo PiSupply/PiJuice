@@ -215,7 +215,7 @@ class PiJuiceFirmware(object):
             parent=self.frame
         )
         if q:
-            curAdr = pijuice.config.interface.GetAddress()
+            curAdr = pijuice.config.interface.address
             if curAdr:
 
                 # Display only the 'Please Wait' Tab during update
