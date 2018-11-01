@@ -1,17 +1,45 @@
+pijuice-base (1.4) unstable; urgency=low
+
+  * General
+    - Install only for python3.
+    - Added non priviliged user pijuice
+    - The pijuice service (pijuice_sys.py), pijuice_gui and pijuice_cli now
+      execute with effective user pijuice.
+    - User scripts canot be executed as root.
+
+  * pijuice.py
+    - Setting PWM parameters for IO1 and IO2 now works.
+
+  * pijuice_sys.py
+    - User scrips have to be executable and the script owner must belong to
+      the pijuice group. Scripts owned by root will not be executed.
+    - Button configuration changes in the gui/cli are now also changed in the service.
+    - Changes in settings for system task (min_charge, min_bat_voltage) and
+      system events (low_charge, low_battery_voltage, no_power) are changed in
+      the service when the service is running. 
+
+  * pijuice_cli.py
+    - Added 'System Task', 'System Events' and 'User Script' tabs.
+      Now pijuice_cli matches pijuice_gui.
+    - Execute with effective user pijuice (non privileged) using the pijuice_cli command.
+    - 'Status' tab updates every second (as in the gui).
+    - I2C addresses can be changed.
+    - 'Wakeup Alarm' tab: The UTC time now updates every second.
+
+ -- Ton van Overbeek <tvoverbeek@gmail.com>  Wed, 26 Sep 2018 18:25:40 +0200
+
 pijuice-base (1.3.3) unstable; urgency=low
 
   updated firmware version
 
-  -- Ilya Starodubcev <ilyastrodubtsev@gmail.com>  Thu, 17 May 2018 18:22:51 +0600
-
+ -- Ilya Starodubcev <ilyastrodubtsev@gmail.com>  Thu, 17 May 2018 18:22:51 +0600
 
 pijuice-base (1.3.2-1) unstable; urgency=low
 
   * src/pijuice_cli.py:
     - Fix displaying USB power input
 
-  -- Denis Khrutsky <denis.xpy@gmail.com>  Mon, 19 Mar 2018 18:21:33 +0600
-
+ -- Denis Khrutsky <denis.xpy@gmail.com>  Mon, 19 Mar 2018 18:21:33 +0600
 
 pijuice-base (1.3.1-1) unstable; urgency=low
 
@@ -21,28 +49,26 @@ pijuice-base (1.3.1-1) unstable; urgency=low
   * src/pijuice_sys.py:
     - Python version independent file handling
 
-  -- Denis Khrutsky <denis.xpy@gmail.com>  Mon, 5 Mar 2018 16:38:23 +0600
-
+ -- Denis Khrutsky <denis.xpy@gmail.com>  Mon, 5 Mar 2018 16:38:23 +0600
 
 pijuice-base (1.3-1) unstable; urgency=low
 
   * Python 3 support
   * Console interface application for HAT configuration
 
-  -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 2 Mar 2018 17:36:11 +0600
-
+ -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 2 Mar 2018 17:36:11 +0600
 
 pijuice-base (1.2.1-1) unstable; urgency=low
 
   * Fixed permissions setting for configuration file
 
-  -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 23 Feb 2018 17:10:00 +0600
+ -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 23 Feb 2018 17:10:00 +0600
 
 pijuice-base (1.2-1) unstable; urgency=low
 
   * Bump version
 
-  -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 4 Feb 2018 18:12:32 +0600
+ -- Denis Khrutsky <denis.xpy@gmail.com>  Fri, 4 Feb 2018 18:12:32 +0600
 
 pijuice-base (1.1-1) unstable; urgency=low
 
@@ -61,4 +87,4 @@ pijuice-base (1.1-1) unstable; urgency=low
     - Now it can be set whether or not user wants to turn on 5V rail as soon as power input is connected and there is no battery.
     - Added configuration for 2 IO ports. They can be set to analog input, digital input, digital output and pwm output.
 
-  -- Milan Neskovic <milan@pi-supply.com>  Mon, 15 Jan 2018 00:00:00 +0000
+ -- Milan Neskovic <milan@pi-supply.com>  Mon, 15 Jan 2018 00:00:00 +0000

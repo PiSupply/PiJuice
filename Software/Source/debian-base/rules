@@ -4,7 +4,7 @@
 # Sun, 28 May 2017 10:33:21 +0200
 export PYBUILD_NAME=pijuice-base
 %:
-	dh $@ --with python2 --with systemd --buildsystem=pybuild
+	dh $@ --with python3 --with systemd --buildsystem=pybuild
 
 override_dh_installinit:
 	dh_systemd_enable -p pijuice-base --name=pijuice pijuice.service

@@ -109,3 +109,4 @@ ENV/
 # Packaging related
 Software/Source/pijuice-*.tar.gz
 MANIFEST
+*.swp

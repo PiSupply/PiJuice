@@ -1,16 +1,11 @@
 #!/usr/bin/env python
 from __future__ import division, print_function
-__version__ = "1.3.3"
+__version__ = "1.4"
 
-import calendar
 import ctypes
-import datetime
-import getopt
-import struct
 import sys
 import threading
 import time
-from fcntl import ioctl
 
 from smbus import SMBus
 
@@ -20,11 +15,6 @@ pijuice_user_functions = ['USER_EVENT'] + ['USER_FUNC' + str(i+1) for i in range
 
 
 class PiJuiceInterface(object):
-    I2C_SLAVE = 0x0703  # Use this slave address
-    I2C_SLAVE_FORCE = 0x0706  # Use this slave address, even if
-                                # is already in use by a driver!
-    I2C_PEC = 0x0708  # != 0 to use PEC with SMBus
-
     def __init__(self, bus=1, address=0x14):
         """Create a new PiJuice instance.  Bus is an optional parameter that
         specifies the I2C bus number to use, for example 1 would use device
@@ -33,8 +23,6 @@ class PiJuiceInterface(object):
         """
         self.i2cbus = SMBus(bus)
         self.addr = address
-        # self._device = open('/dev/i2c-{0}'.format(bus), 'r+b', buffering=0)
-        # ioctl(self._device.fileno(), I2C_SLAVE_FORCE, self.addr & 0x7F)
         self.t = None
         self.comError = False
         self.errTime = 0
@@ -42,9 +30,6 @@ class PiJuiceInterface(object):
     def __del__(self):
         """Clean up any resources used by the PiJuice instance."""
         self.i2cbus = None
-        # if self._device is not None:
-        #     self._device.close()
-        #     self._device = None
 
     def __enter__(self):
         """Context manager enter function."""
@@ -53,9 +38,6 @@ class PiJuiceInterface(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit function, ensures resources are cleaned up."""
-        # if self._device is not None:
-        #     self._device.close()
-        #     self._device = None
         self.i2cbus = None
         return False  # Don't suppress exceptions
 
@@ -69,13 +51,8 @@ class PiJuiceInterface(object):
         return fcs
 
     def _Read(self):
-        #if self.comError and (time.time()-self.errTime) < 4:
-        #	self.d = None
         try:
             d = self.i2cbus.read_i2c_block_data(self.addr, self.cmd, self.length)
-            #self._device.write(cmdData)
-            #d = [byte for byte in bytearray(self._device.read(length + 1))]
-            #return d
             self.d = d
             self.comError = False
         except:  # IOError:
@@ -86,9 +63,6 @@ class PiJuiceInterface(object):
     def _Write(self):
         try:
             self.i2cbus.write_i2c_block_data(self.addr, self.cmd, self.d)
-            #self._device.write(cmdData)
-            #d = [byte for byte in bytearray(self._device.read(length + 1))]
-            #return d
             self.comError = False
         except:  # IOError:
             self.comError = True
@@ -96,7 +70,6 @@ class PiJuiceInterface(object):
 
     def _DoTransfer(self, oper):
         if (self.t != None and self.t.isAlive()) or (self.comError and (time.time()-self.errTime) < 4):
-            #print self.t.isAlive()
             return False
 
         self.t = threading.Thread(target=oper, args=())
@@ -107,7 +80,6 @@ class PiJuiceInterface(object):
         while self.t.isAlive() and n < 2:
             time.sleep(0.05)
             n = n + 1
-        #print self.t.isAlive(), n
         if self.comError or self.t.isAlive():
             return False
 
@@ -115,8 +87,6 @@ class PiJuiceInterface(object):
 
     def ReadData(self, cmd, length):
         d = []
-        #cmdData = bytearray(1)
-        #cmdData[0] = cmd & 0xFF
 
         self.cmd = cmd
         self.length = length + 1
@@ -124,26 +94,7 @@ class PiJuiceInterface(object):
             return {'error': 'COMMUNICATION_ERROR'}
 
         d = self.d
-        #d = self._Read(cmd, length + 1)
-        #if not d:
-        #d = self._Read(cmd, length + 1)
-        #if not d:
-        #return {'error':'COMMUNICATION_ERROR'}
-        #try:
-        #d = self.i2cbus.read_i2c_block_data(self.addr, cmd, length + 1)
-        #self._device.write(cmdData)
-        #d = [byte for byte in bytearray(self._device.read(length + 1))]
-        #except IOError:
-        # try once more
-        #try:
-        #d = self.i2cbus.read_i2c_block_data(self.addr, cmd, length + 1)
-        #self._device.write(cmdData)
-        #d = [byte for byte in bytearray(self._device.read(length + 1))]
-        #except IOError:
-        #return {'error':'COMMUNICATION_ERROR'}
-
         if self._GetChecksum(d[0:-1]) != d[-1]:
-            print(self._GetChecksum(d), d, length)
             return {'error': 'DATA_CORRUPTED'}
         del d[-1]
         return {'data': d, 'error': 'NO_ERROR'}
@@ -152,26 +103,12 @@ class PiJuiceInterface(object):
         fcs = self._GetChecksum(data)
         d = data[:]
         d.append(fcs)
-        #d = bytearray(len(data)+2)
-        #d[0] = cmd & 0xFF
-        #d[1:-1] = data[0:]
-        #d[-1] = fcs
 
         self.cmd = cmd
         self.d = d
         if not self._DoTransfer(self._Write):
             return {'error': 'COMMUNICATION_ERROR'}
 
-        #try:
-            #self.i2cbus.write_i2c_block_data(self.addr, cmd, d)
-            #self._device.write(d)
-        #except IOError:
-            # try once more
-            #try:
-            #self.i2cbus.write_i2c_block_data(self.addr, cmd, d)
-            #self._device.write(d)
-            #except IOError:
-            #return {'error':'COMMUNICATION_ERROR'}
         return {'error': 'NO_ERROR'}
 
     def WriteDataVerify(self, cmd, data, delay=None):
@@ -193,7 +130,6 @@ class PiJuiceInterface(object):
                 else:
                     print('wr', data)
                     print('rd', result['data'])
-                    # result['data']
                     return {'error': 'WRITE_FAILED'}
 
 
@@ -1225,7 +1161,6 @@ class PiJuiceConfig(object):
             return ret
         d = ret['data'][0]
         config = {}
-        # print hex(d)
         config['precedence'] = self.powerInputs[d & 0x01]
         config['gpio_in_enabled'] = bool(d & 0x02)
         config['no_battery_turn_on'] = bool(d & 0x04)
@@ -1237,9 +1172,7 @@ class PiJuiceConfig(object):
     buttons = ['SW' + str(i+1) for i in range(0, 3)]
     buttonEvents = ['PRESS', 'RELEASE', 'SINGLE_PRESS',
                  'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
-    # functionTypes = ['HARDWARE', 'SYSTEM', 'USER']
     def GetButtonConfiguration(self, button):
-        # returnObj = {}
         b = None
         try:
             b = self.buttons.index(button)
@@ -1261,7 +1194,6 @@ class PiJuiceConfig(object):
                     elif d[i*2] & 0xF0 == 0x10:
                         config[self.buttonEvents[i]]['function'] = pijuice_sys_functions[(d[i*2] & 0x0F)-1]
                     elif d[i*2] & 0xF0 == 0x20:
-                        # 'USER_FUNC' + str(d[i*2] & 0x0F)
                         config[self.buttonEvents[i]]['function'] = pijuice_user_functions[d[i*2] & 0x0F]
                     else:
                         config[self.buttonEvents[i]]['function'] = 'UNKNOWN'
@@ -1390,6 +1322,7 @@ class PiJuiceConfig(object):
         'PWM_OUT_OPEN_DRAIN': [{'name': 'period', 'unit': 'us', 'type': 'int', 'min': 2, 'max': 65536 * 2},
                                {'name': 'duty_cycle', 'unit': '%', 'type': 'float', 'min': 0, 'max': 100}]
     }
+
     def SetIoConfiguration(self, io_pin, config, non_volatile=False):
         d = [0x00, 0x00, 0x00, 0x00, 0x00]
         try:
@@ -1401,8 +1334,9 @@ class PiJuiceConfig(object):
             if config['mode'] == 'DIGITAL_OUT_PUSHPULL' or config['mode'] == 'DIGITAL_IO_OPEN_DRAIN':
                 d[1] = int(config['value']) & 0x01  # output value
             elif config['mode'] == 'PWM_OUT_PUSHPULL' or config['mode'] == 'PWM_OUT_OPEN_DRAIN':
-                if config['period'] >= 2:
-                    p = int(config['period']) // 2 - 1
+                p = int(config['period'])
+                if p >= 2:
+                    p = p // 2 - 1
                 else:
                     return {'error': 'INVALID_PERIOD'}
                 d[1] = p & 0xFF
@@ -1418,7 +1352,7 @@ class PiJuiceConfig(object):
                     d[4] = (dci >> 8) & 0xFF
         except:
             return {'error': 'INVALID_CONFIG'}
-        return self.interface.WriteDataVerify(self.IO_CONFIGURATION_CMD + (io_pin-1)*5, d)
+        return self.interface.WriteDataVerify(self.IO_CONFIGURATION_CMD + (io_pin-1)*5, d, 0.2)
 
     def GetIoConfiguration(self, io_pin):
         ret = self.interface.ReadData(self.IO_CONFIGURATION_CMD + (io_pin-1)*5, 5)

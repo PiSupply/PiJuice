@@ -4,6 +4,7 @@ After=network.target
 
 [Service]
 Type=idle
+User=pijuice
 WorkingDirectory=/var/lib/pijuice/
 ExecStart=/usr/bin/pijuice_sys.py
 ExecStopPost=/usr/bin/pijuice_sys.py stop

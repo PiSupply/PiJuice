@@ -1,30 +1,18 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division
 
 import os
 import os.path
 import sys
-from time import sleep
-from glob import glob
-from multiprocessing import Process
 from signal import signal, SIGUSR1, SIGUSR2
 
-py3 = sys.version_info > (3, 0)
-
-if py3 == False:
-    # Python 2
-    import gtk
-    import gobject
-else:
-    # Python 3
-    import gi
-    gi.require_version('Gtk', '3.0')
-    from gi.repository import Gtk as gtk
-    from gi.repository import GObject as gobject
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk as gtk
+from gi.repository import GObject as gobject
 
 from pijuice import PiJuice, get_versions
-from pijuice_gui import start_app
 
 REFRESH_INTERVAL = 5000
 CHECK_SIGNAL_INTERVAL = 200
@@ -64,20 +52,11 @@ class PiJuiceStatusTray(object):
         gobject.timeout_add(CHECK_SIGNAL_INTERVAL, self.check_signum)
 
     def show_menu(self, widget, event_button, event_time):
-        if py3 == False:
-            # Python 2
-            self.menu.popup(None, None,
-            gtk.status_icon_position_menu,
-            event_button,
-            event_time,
-            self.tray)
-        else:
-            # Python 3
-            self.menu.popup(None, None,
-            self.tray.position_menu,
-            self.tray,
-            event_button,
-            gtk.get_current_event_time())
+        self.menu.popup(None, None,
+        self.tray.position_menu,
+        self.tray,
+        event_button,
+        gtk.get_current_event_time())
 
     def show_about(self, widget):
         widget.set_sensitive(False)
@@ -89,32 +68,20 @@ class PiJuiceStatusTray(object):
             "Firmware version: %s" % fw_version,
             "OS version: %s" % os_version,
         ])
-        if py3 == False:
-            # Python 2
-            dialog = gtk.MessageDialog(
-                None,
-                gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-                gtk.MESSAGE_INFO,
-                gtk.BUTTONS_OK,
-                message
-            )
-        else:
-            # Python 3
-            dialog = gtk.MessageDialog(
-                None,
-                gtk.DialogFlags.MODAL,
-                gtk.MessageType.INFO,
-                gtk.ButtonsType.OK,
-                message
-            )
+        dialog = gtk.MessageDialog(
+            None,
+            gtk.DialogFlags.MODAL,
+            gtk.MessageType.INFO,
+            gtk.ButtonsType.OK,
+            message
+        )
         dialog.set_title("About")
         dialog.run()
         dialog.destroy()
         widget.set_sensitive(True)
 
     def ConfigurePiJuice(self, widget):
-        p = Process(target=start_app)
-        p.start()
+        os.system("/usr/bin/pijuice_gui &")
 
     def check_signum(self):
         global sig
@@ -159,9 +126,6 @@ class PiJuiceStatusTray(object):
                     b_file = ICON_DIR + '/bat-' + str((b_level//10)*10) + '.png'
             else:
                 b_file = ICON_DIR + '/connection-error.png'
-                if py3 == False:
-                    # Python 2
-                    self.tray.set_blinking(b_level < 5)
 
             self.tray.set_tooltip_text("%d%%" % (b_level))
             if os.path.exists(b_file):
