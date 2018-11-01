@@ -44,36 +44,35 @@ USER_FUNCS_MINI = 8
 pijuiceConfigData = {}
 PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON'
 
-def _ValidateIntEntry(var, oldVar, min, max):
+def _ValidateIntEntry(var, min, max):
     new_value = var.get()
     try:
         if new_value != '':
             chg = int(new_value)
-            if chg > max or chg < min:
-                var.set(oldVar.get())
-            else:
-                oldVar.set(new_value)
+            if chg > max :
+                new_value = str(max)
+            elif chg < min :
+                new_value = str(min)
         else:
-            oldVar.set(new_value)
+            new_value = str(min)
     except:
-        var.set(oldVar.get())
-    oldVar.set(new_value)
+        new_value = str(min)
+    var.set(new_value)
 
-
-def _ValidateFloatEntry(var, oldVar, min, max):
+def _ValidateFloatEntry(var, min, max):
     new_value = var.get()
     try:
         if new_value != '':
             chg = float(new_value)
-            if chg > max or chg < min:
-                var.set(oldVar.get())
-            else:
-                oldVar.set(new_value)
+            if chg > max :
+                new_value = str(max)
+            elif chg < min :
+                new_value = str(min)
         else:
-            oldVar.set(new_value)
+            new_value = str(min)
     except:
-        var.set(oldVar.get())
-    oldVar.set(new_value)
+        new_value = str(min)
+    var.set(new_value)
 
 def _Iter_except(function, exception):
     """Works like builtin 2-argument `iter()`, but stops on `exception`."""
@@ -1015,12 +1014,10 @@ class PiJuiceIoConfig(object):
         self.modeSel = [{}, {}]
         self.pull = [{}, {}]
         self.param1 = [{}, {}]
-        self.oldParam1 = [{}, {}]
         self.paramName1 = [{}, {}]
         self.paramEntry1 = [{}, {}]
         self.paramName2 = [{}, {}]
         self.param2 = [{}, {}]
-        self.oldParam2 = [{}, {}]
         self.paramEntry2 = [{}, {}]
         self.paramConfig1 =[None, None]
         self.paramConfig2 =[None, None]
@@ -1042,14 +1039,12 @@ class PiJuiceIoConfig(object):
             self.paramName1[i] = StringVar()
             self.paramNameLabel1 = Label(self.frame, textvariable=self.paramName1[i], text="param1:").grid(row=2+i*4, column=1, padx=(2, 2), pady=(5, 0), sticky = W)
             self.param1[i] = StringVar()
-            self.oldParam1[i] = StringVar()
             self.paramEntry1[i] = Entry(self.frame,textvariable=self.param1[i])
             self.paramEntry1[i].grid(row=3+i*4, column=1, padx=5, pady=5, sticky=W+E)
 
             self.paramName2[i] = StringVar()
             self.paramNameLabel2 = Label(self.frame, textvariable=self.paramName2[i], text="param2:").grid(row=2+i*4, column=2, padx=(2, 2), pady=(5, 0), sticky = W)
             self.param2[i] = StringVar()
-            self.oldParam2[i] = StringVar()
             self.paramEntry2[i] = Entry(self.frame,textvariable=self.param2[i])
             self.paramEntry2[i].grid(row=3+i*4, column=2, padx=5, pady=5, sticky=W+E)
 
@@ -1105,17 +1100,17 @@ class PiJuiceIoConfig(object):
         if self.paramConfig1[i]:
             min = 0 if self.paramConfig1[i]['min'] > 0 else self.paramConfig1[i]['min']
             if self.paramConfig1[i]['type'] == 'int':
-                _ValidateIntEntry(self.param1[i], self.oldParam1[i], min, self.paramConfig1[i]['max'])
+                _ValidateIntEntry(self.param1[i], min, self.paramConfig1[i]['max'])
             elif self.paramConfig1[i]['type'] == 'float':
-                _ValidateFloatEntry(self.param1[i], self.oldParam1[i], min, self.paramConfig1[i]['max'])
+                _ValidateFloatEntry(self.param1[i], min, self.paramConfig1[i]['max'])
 
     def _ParamEdited2(self, i):
         if self.paramConfig2[i]:
             min = 0 if self.paramConfig2[i]['min'] > 0 else self.paramConfig2[i]['min']
             if self.paramConfig2[i]['type'] == 'int':
-                _ValidateIntEntry(self.param2[i], self.oldParam2[i], min, self.paramConfig2[i]['max'])
+                _ValidateIntEntry(self.param2[i], min, self.paramConfig2[i]['max'])
             elif self.paramConfig2[i]['type'] == 'float':
-                _ValidateFloatEntry(self.param2[i], self.oldParam2[i], min, self.paramConfig2[i]['max'])
+                _ValidateFloatEntry(self.param2[i], min, self.paramConfig2[i]['max'])
 
     def _ApplyNewConfig(self, v):
         for i in range(0, 2):
@@ -1128,7 +1123,6 @@ class PiJuiceIoConfig(object):
             if self.paramConfig2[i]:
                 newCfg[self.paramConfig2[i]['name']] = self.param2[i].get()
 
-            print(newCfg)
             ret = pijuice.config.SetIoConfiguration(i+1, newCfg, True)
             if ret['error'] != 'NO_ERROR':
                 MessageBox.showerror('IO' + str(i+1) + ' Configuration', 'Reason: ' + ret['error'], parent=self.frame)
@@ -1312,9 +1306,6 @@ class PiJuiceWakeupConfig(object):
         self.status = StringVar()
         self.statusLbl = Label(self.frame, textvariable=self.status).grid(row=10, column=2, padx=(4, 2), pady=(6, 0), sticky = 'W')
 
-        #print pijuice.rtcAlarm.SetAlarm({'second':10, 'minute':45, 'hour':'11PM', 'day':'2'})
-        #print pijuice.rtcAlarm.SetAlarm({}) #disable alarm
-
         ctr = pijuice.rtcAlarm.GetControlStatus()
         if ctr['error'] == 'NO_ERROR':
             self.wakeupEnabled.set(ctr['data']['alarm_wakeup_enabled'])
@@ -1371,7 +1362,6 @@ class PiJuiceWakeupConfig(object):
 
     def _SetTime(self, v):
         t = datetime.datetime.utcnow()
-        print(pijuice.rtcAlarm.SetTime({'second':t.second, 'minute':t.minute, 'hour':t.hour, 'weekday':(t.weekday()+1) % 7 + 1, 'day':t.day,  'month':t.month, 'year':t.year, 'subsecond':t.microsecond//1000000}))
 
     def _WakeupEnableChecked(self, *args):
         ret = pijuice.rtcAlarm.SetWakeupEnabled(self.wakeupEnabled.get())
@@ -1388,7 +1378,6 @@ class PiJuiceWakeupConfig(object):
 
         if self.aMinuteOrPeriod.get() == 2:
             a['minute_period'] = self.aMinute.get()
-            print(a['minute_period'])
         elif self.aMinuteOrPeriod.get() == 1:
             a['minute'] = self.aMinute.get()
 
@@ -1415,7 +1404,6 @@ class PiJuiceWakeupConfig(object):
         else:
             self.status.set('')
 
-        print(pijuice.rtcAlarm.GetAlarm())
 
 
 class PiJuiceSysEventConfig(object):
@@ -1444,7 +1432,6 @@ class PiJuiceSysEventConfig(object):
         self.funcConfigs = []
         self.paramsEntry = []
         self.params = []
-        self.oldParams = []
         combobox_length = len(max(self.eventFunctions, key=len)) + 1
         for i in range(0, len(self.sysEvents)):
             self.sysEventEnable.append(BooleanVar())
@@ -1488,17 +1475,6 @@ class PiJuiceSysEventConfig(object):
         else:
             self.funcConfigsSel[i].configure(state="disabled")
 
-    def _ParamEdited(self, i):
-        if 'param' in self.sysEvents[i] and 'validate' in self.sysEvents[i]['param']:
-            self.sysEvents[i]['param']['validate'](self.params[i], self.oldParams[i], self.sysEvents[i]['param']['min'], self.sysEvents[i]['param']['max'])
-
-    def _WriteParam(self, i):
-        if not ('system_events' in pijuiceConfigData):
-            pijuiceConfigData['system_events'] = {}
-        if not (self.sysEvents[i]['id'] in pijuiceConfigData['system_events']):
-            pijuiceConfigData['system_events'][self.sysEvents[i]['id']] = {}
-        pijuiceConfigData['system_events'][self.sysEvents[i]['id']]['param'] = self.params[i].get()
-
     def _NewConfigSelected(self, event, i):
         if not ('system_events' in pijuiceConfigData):
             pijuiceConfigData['system_events'] = {}
@@ -1516,12 +1492,10 @@ class PiJuiceConfigParamEdit(object):
         self.min = min
         self.max = max
         self.type = type
-        #Label(self.frame, text="Watchdog").grid(row=1, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
         Label(self.frame, text=paramDes).grid(row=r, column=1, padx=(2, 2), pady=(8, 0), sticky = W)
         self.paramEnable = IntVar()
         self.paramEnableCheck = Checkbutton(self.frame, text = name, variable = self.paramEnable).grid(row=r+1, column=0, sticky = W, padx=(2, 2), pady=(2, 0))
         self.param = StringVar()
-        self.oldParamVal = StringVar()
         self.paramEntry = Entry(self.frame,textvariable=self.param)
         self.paramEntry.bind("<Return>", self._WriteParam)
         self.paramEntry.grid(row=r+1, column=1, sticky = W+E, padx=(2, 2), pady=(2, 0))
@@ -1529,10 +1503,8 @@ class PiJuiceConfigParamEdit(object):
         if id in config:
             if paramId in config[id]:
                 self.param.set(config[id][paramId])
-                self.oldParamVal.set(config[id][paramId])
             else:
                 self.param.set('')
-                self.oldParamVal.set('')
             if ('enabled' in config[id]) and (config[id]['enabled'] == True):
                 self.paramEnable.set(True)
             else:
@@ -1540,7 +1512,6 @@ class PiJuiceConfigParamEdit(object):
                 self.paramEnable.set(False)
         else:
             self.param.set('')
-            self.oldParamVal.set('')
             self.paramEntry.configure(state="disabled")
             self.paramEnable.set(False)
 
@@ -1558,10 +1529,10 @@ class PiJuiceConfigParamEdit(object):
             self.paramEntry.configure(state="disabled")
 
     def _ParamEdited(self, *args):
-        if type == 'int':
-            _ValidateIntEntry(self.param, self.oldParamVal, self.min, self.max)
-        elif type == 'float':
-            _ValidateFloatEntry(self.param, self.oldParamVal, self.min, self.max)
+        if self.type == 'int':
+            _ValidateIntEntry(self.param, self.min, self.max)
+        elif self.type == 'float':
+            _ValidateFloatEntry(self.param, self.min, self.max)
 
     def _WriteParam(self, v):
         if not (self.id in self.config):
@@ -1588,7 +1559,7 @@ class PiJuiceSysTaskTab(object):
         self.wakeupChargeParam = PiJuiceConfigParamEdit(self.frame, 4, pijuiceConfigData['system_task'], "Wakeup on charge", "Trigger level [%]:", 'wakeup_on_charge', 'trigger_level', 'int', 0, 100)
         self.minChargeParam = PiJuiceConfigParamEdit(self.frame, 6, pijuiceConfigData['system_task'], "Minimum charge", "Threshold [%]:", 'min_charge', 'threshold', 'int', 0, 100)
         self.minVoltageParam = PiJuiceConfigParamEdit(self.frame, 8, pijuiceConfigData['system_task'], "Minimum battery voltage", "Threshold [V]:", 'min_bat_voltage', 'threshold', 'float', 0, 10)
-        self.extHaltParam = PiJuiceConfigParamEdit(self.frame, 10, pijuiceConfigData['system_task'], "Software Halt Power Off", "Delay period [seconds]:", 'ext_halt_power_off', 'period', 'int', 1, 65535)
+        self.extHaltParam = PiJuiceConfigParamEdit(self.frame, 10, pijuiceConfigData['system_task'], "Software Halt Power Off", "Delay period [seconds]:", 'ext_halt_power_off', 'period', 'int', 20, 65535)
 
         if ('enabled' in pijuiceConfigData['system_task']) and (pijuiceConfigData['system_task']['enabled'] == True):
             self.sysTaskEnable.set(True)
@@ -1728,7 +1699,6 @@ class PiJuiceConfigGui(Frame):
                 pijuiceConfigData = json.load(outputConfig)
         except:
             pijuiceConfigData = {}
-            print('Failed to load ' + PiJuiceConfigDataPath)
 
         # Create the notebook
         nb = Notebook(self, name='notebook')

@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
@@ -33,11 +33,9 @@ lowBatVolEn = False
 chargeLevel = 50
 noPowEn = False
 noPowCnt = 100
-logger = None
 dopoll = True
 PID_FILE = '/tmp/pijuice_sys.pid'
 HALT_FILE = '/tmp/pijuice_halt.flag'
-
 
 def _SystemHalt(event):
     if (event in ('low_charge', 'low_battery_voltage', 'no_power')
@@ -57,7 +55,6 @@ def _SystemHalt(event):
 
 def ExecuteFunc(func, event, param):
     if func == 'SYS_FUNC_HALT':
-        #logger.info(func+' '+str(event)+' '+str(param))
         _SystemHalt(event)
     elif func == 'SYS_FUNC_HALT_POW_OFF':
         pijuice.power.SetSystemPowerSwitch(0)
@@ -70,10 +67,8 @@ def ExecuteFunc(func, event, param):
         subprocess.call(["sudo", "reboot"])
     elif ('USER_FUNC' in func) and ('user_functions' in configData) and (func in configData['user_functions']):
         function=configData['user_functions'][func]
-        print("function=",function)
         # Check function is defined
         if function == "":
-            print(func + " not defined")
             return
         # Remove possible argumemts
         cmd = function.split()[0]
@@ -86,7 +81,6 @@ def ExecuteFunc(func, event, param):
             statinfo = os.stat(cmd)
         except:
             # File not found
-            print(cmd + " not found")
             return
         # Get owner and ownergroup names
         owner = pwd.getpwuid(statinfo.st_uid).pw_name
@@ -196,7 +190,6 @@ def _EvalFaultFlags():
         faults = faults['data']
         for f in (pijuice.status.faultEvents + pijuice.status.faults):
             if f in faults:
-                #logger.info('fault:' + f)
                 if sysEvEn and (f in configData['system_events']) and ('enabled' in configData['system_events'][f]) and configData['system_events'][f]['enabled']:
                     if configData['system_events'][f]['function'] != 'USER_EVENT':
                         pijuice.status.ResetFaultFlags([f])
@@ -244,7 +237,6 @@ def main():
     global configData
     global status
     global chargeLevel
-    global logger
     global sysEvEn
     global minChgEn
     global minBatVolEn
@@ -273,7 +265,7 @@ def main():
 
     if len(sys.argv) > 1 and str(sys.argv[1]) == 'stop':
         isHalting = False
-        if os.path.exists(HALT_FILE):				# Created in _SystemHalt() called in main pijuice_sys process
+        if os.path.exists(HALT_FILE):   # Created in _SystemHalt() called in main pijuice_sys process
             isHalting = True
             os.remove(HALT_FILE)
 
@@ -289,21 +281,20 @@ def main():
                     ret = pijuice.power.SetWatchdog(0)
         except:
             pass
-        sysJobTargets = str(subprocess.check_output(["systemctl", "list-jobs"]))
+        sysJobTargets = str(subprocess.check_output(["sudo", "systemctl", "list-jobs"]))
         reboot = True if re.search('reboot.target.*start', sysJobTargets) is not None else False                      # reboot.target exists
         swStop = True if re.search('(?:halt|shutdown).target.*start', sysJobTargets) is not None else False           # shutdown | halt exists
         causePowerOff = True if (swStop and not reboot) else False
         ret = pijuice.status.GetStatus()
-        if ( ret['error'] == 'NO_ERROR'
-        	and not isHalting			 					# Flag set in _SystemHalt()
-        	and causePowerOff								# proper time to power down (!rebooting)
-        	and configData.get('system_task',{}).get('ext_halt_power_off', {}).get('enabled',False)
-        	):
-        	# Set duration for when pijuice will cut power (Recommended 30+ sec, for halt to complete)
+        if ( ret['error'] == 'NO_ERROR' 
+            and not isHalting
+            and causePowerOff                                # proper time to power down (!rebooting)
+            and configData.get('system_task',{}).get('ext_halt_power_off', {}).get('enabled',False)
+            ):
+            # Set duration for when pijuice will cut power (Recommended 30+ sec, for halt to complete)
             try:
                 powerOffDelay = int(configData['system_task']['ext_halt_power_off'].get('period',30))
                 pijuice.power.SetPowerOff(powerOffDelay)
-                print("PiJuice powering off in %s seconds" % configData['system_task']['ext_halt_power_off'].get('period',30))
             except ValueError:
                 pass
         sys.exit(0)

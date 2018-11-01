@@ -1442,7 +1442,7 @@ class SystemTaskTab(object):
         elements.extend([thresholdRow,
                          urwid.Divider()])
 
-        # Min Battery voltage
+        ## Min Battery voltage ##
         if not('min_bat_voltage' in pijuiceConfigData['system_task']):
             pijuiceConfigData['system_task']['min_bat_voltage'] = {}
         if not('enabled' in pijuiceConfigData['system_task']['min_bat_voltage']):
@@ -1459,7 +1459,26 @@ class SystemTaskTab(object):
         vthresholdItem = vthresholdEditItem if self.minbatvenabled else vthresholdTextItem
         vthresholdRow = urwid.Columns([urwid.Padding(minbatvCheckBox, width = 24), urwid.Padding(vthresholdItem, width=37)])
         elements.extend([vthresholdRow,
-                          urwid.Divider()])
+                         urwid.Divider()])
+
+        ## Software Halt Power Off ##
+        if not('ext_halt_power_off' in pijuiceConfigData['system_task']):
+            pijuiceConfigData['system_task']['ext_halt_power_off'] = {}
+        if not('enabled' in pijuiceConfigData['system_task']['ext_halt_power_off']):
+            pijuiceConfigData['system_task']['ext_halt_power_off']['enabled'] = False
+        self.exthaltenabled = pijuiceConfigData['system_task']['ext_halt_power_off']['enabled']
+        if not('period' in pijuiceConfigData['system_task']['ext_halt_power_off']):
+            pijuiceConfigData['system_task']['ext_halt_power_off']['period'] = 10
+        exthaltCheckBox = attrmap(urwid.CheckBox('Software Halt Power Off', state=self.exthaltenabled,
+                          on_state_change=self._toggle_exthaltenabled))
+        periodEdit = urwid.IntEdit("Delay period [seconds]: ", default = pijuiceConfigData['system_task']['ext_halt_power_off']['period'])
+        urwid.connect_signal(periodEdit, 'change', self.validate_exthaltdelay)
+        periodEditItem = attrmap(periodEdit)
+        periodTextItem = attrmap(urwid.Text("Delay period [seconds]: " + str(pijuiceConfigData['system_task']['ext_halt_power_off']['period'])))
+        periodItem = periodEditItem if self.exthaltenabled else periodTextItem
+        periodRow = urwid.Columns([urwid.Padding(exthaltCheckBox, width = 24), urwid.Padding(periodItem, width=37)])
+        elements.extend([periodRow,
+                         urwid.Divider()])
 
         ## Footer ##
         elements.extend([urwid.Padding(attrmap(urwid.Button("Refresh", on_press=self.refresh)), width=18),
@@ -1497,6 +1516,12 @@ class SystemTaskTab(object):
         pijuiceConfigData['system_task']['min_bat_voltage']['enabled'] = self.minbatvenabled
         self.main()
 
+    def _toggle_exthaltenabled(self, *args):
+        global pijuiceConfigData
+        self.exthaltenabled ^= True
+        pijuiceConfigData['system_task']['ext_halt_power_off']['enabled'] = self.exthaltenabled
+        self.main()
+
     def validate_wdperiod(self, widget, newtext):
         if newtext == '':
             newtext = '0'
@@ -1532,6 +1557,16 @@ class SystemTaskTab(object):
         pijuiceConfigData['system_task']['min_bat_voltage']['threshold'] = text
         if float(text) != float(newtext):
             self.main()
+
+    def validate_exthaltdelay(self, widget, newtext):
+        if newtext == "":
+            newtext = "0"
+        text = validate_value(newtext, 'int', 20, 65535,
+                              pijuiceConfigData['system_task']['ext_halt_power_off']['period'])
+        pijuiceConfigData['system_task']['ext_halt_power_off']['period'] = text
+        if text != newtext:
+            self.main()
+
 
 class SystemEventsTab(object):
     EVENTS = ['low_charge', 'low_battery_voltage', 'no_power', 'watchdog_reset', 'button_power_off', 'forced_power_off',
