@@ -220,7 +220,7 @@ class PiJuiceInterface:
         if checksum_calculated != checksum_received:
             raise DataCorruptionError
 
-        return {'data': d[:-1], 'error': 'NO_ERROR'}
+        return d[:-1]
 
     def write_data(self, command, data, verify=False, verify_delay=0):
         checksum = self._get_checksum(data)
@@ -238,8 +238,8 @@ class PiJuiceInterface:
 
             result = self.read_data(command, len(data))
 
-            if data != result['data']:
-                print('wr {}\n rd {}'.format(data, result['data']))
+            if data != result:
+                print('wr {}\n rd {}'.format(data, result))
                 raise WriteMismatchError
 
 
@@ -270,7 +270,7 @@ class PiJuiceStatus(object):
     @pijuice_error_return
     def GetStatus(self):
         result = self.interface.read_data(self.STATUS_CMD, 1)
-        d = result['data'][0]
+        d = result[0]
         batStatusEnum = ['NORMAL', 'CHARGING_FROM_IN', 'CHARGING_FROM_5V_IO', 'NOT_PRESENT']
         powerInStatusEnum = ['NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT']
         status = {
@@ -285,7 +285,7 @@ class PiJuiceStatus(object):
     @pijuice_error_return
     def GetChargeLevel(self):
         result = self.interface.read_data(self.CHARGE_LEVEL_CMD, 1)
-        return {'data': result['data'][0], 'error': 'NO_ERROR'}
+        return {'data': result[0], 'error': 'NO_ERROR'}
 
     faultEvents = ['button_power_off', 'forced_power_off', 'forced_sys_power_off', 'watchdog_reset']
     faults = ['battery_profile_invalid', 'charging_temperature_fault']
@@ -293,7 +293,7 @@ class PiJuiceStatus(object):
     @pijuice_error_return
     def GetFaultStatus(self):
         result = self.interface.read_data(self.FAULT_EVENT_CMD, 1)
-        d = result['data'][0]
+        d = result[0]
         fault = {}
 
         if d & 0x01:
@@ -325,8 +325,7 @@ class PiJuiceStatus(object):
 
     @pijuice_error_return
     def GetButtonEvents(self):
-        result = self.interface.read_data(self.BUTTON_EVENT_CMD, 2)
-        d = result['data']
+        d = self.interface.read_data(self.BUTTON_EVENT_CMD, 2)
         event = {}
 
         try:
@@ -357,8 +356,7 @@ class PiJuiceStatus(object):
 
     @pijuice_error_return
     def GetBatteryTemperature(self):
-        result = self.interface.read_data(self.BATTERY_TEMPERATURE_CMD, 2)
-        d = result['data']
+        d = self.interface.read_data(self.BATTERY_TEMPERATURE_CMD, 2)
         temp = d[1]
         temp = temp << 8
         temp = temp | d[0]
@@ -366,14 +364,12 @@ class PiJuiceStatus(object):
 
     @pijuice_error_return
     def GetBatteryVoltage(self):
-        result = self.interface.read_data(self.BATTERY_VOLTAGE_CMD, 2)
-        d = result['data']
+        d = self.interface.read_data(self.BATTERY_VOLTAGE_CMD, 2)
         return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetBatteryCurrent(self):
-        result = self.interface.read_data(self.BATTERY_CURRENT_CMD, 2)
-        d = result['data']
+        d = self.interface.read_data(self.BATTERY_CURRENT_CMD, 2)
         i = (d[1] << 8) | d[0]
         if i & (1 << 15):
             i = i - (1 << 16)
@@ -381,14 +377,12 @@ class PiJuiceStatus(object):
 
     @pijuice_error_return
     def GetIoVoltage(self):
-        result = self.interface.read_data(self.IO_VOLTAGE_CMD, 2)
-        d = result['data']
+        d = self.interface.read_data(self.IO_VOLTAGE_CMD, 2)
         return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetIoCurrent(self):
-        result = self.interface.read_data(self.IO_CURRENT_CMD, 2)
-        d = result['data']
+        d = self.interface.read_data(self.IO_CURRENT_CMD, 2)
         i = (d[1] << 8) | d[0]
         if i & (1 << 15):
             i = i - (1 << 16)
@@ -433,8 +427,7 @@ class PiJuiceStatus(object):
         except ValueError:
             raise BadArgumentError
 
-        ret = self.interface.read_data(self.LED_BLINK_CMD + i, 9)
-        d = ret['data']
+        d = self.interface.read_data(self.LED_BLINK_CMD + i, 9)
         return {
             'data': {
                 'count': d[0],
@@ -451,8 +444,7 @@ class PiJuiceStatus(object):
         if pin not in (1, 2):
             raise BadArgumentError
 
-        ret = self.interface.read_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, 2)
-        d = ret['data']
+        d = self.interface.read_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, 2)
         b = 1 if d[0] == 0x01 else 0
         return {'data': b, 'error': 'NO_ERROR'}
 
@@ -471,8 +463,7 @@ class PiJuiceStatus(object):
         if pin not in (1, 2):
             raise BadArgumentError
 
-        ret = self.interface.read_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, 2)
-        d = ret['data']
+        d = self.interface.read_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, 2)
         b = 1 if d[1] == 0x01 else 0
         return {'data': b, 'error': 'NO_ERROR'}
 
@@ -481,8 +472,7 @@ class PiJuiceStatus(object):
         if pin not in (1, 2):
             raise BadArgumentError
 
-        ret = self.interface.read_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, 2)
-        d = ret['data']
+        d = self.interface.read_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, 2)
         return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
 
     @pijuice_error_return
@@ -508,8 +498,7 @@ class PiJuiceStatus(object):
         if pin not in (1, 2):
             raise BadArgumentError
 
-        ret = self.interface.read_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, 2)
-        d = ret['data']
+        d = self.interface.read_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, 2)
         dci = d[0] | (d[1] << 8)
         dc = float(dci) * 100 // 65534 if dci < 65535 else 100
         return {'data': dc, 'error': 'NO_ERROR'}
@@ -533,8 +522,7 @@ class PiJuiceRtcAlarm(object):
 
     @pijuice_error_return
     def GetControlStatus(self):
-        ret = self.interface.read_data(self.RTC_CTRL_STATUS_CMD, 2)
-        d = ret['data']
+        d = self.interface.read_data(self.RTC_CTRL_STATUS_CMD, 2)
         r = {}
         if (d[0] & 0x01) and (d[0] & 0x04):
             r['alarm_wakeup_enabled'] = True
@@ -548,8 +536,7 @@ class PiJuiceRtcAlarm(object):
 
     @pijuice_error_return
     def ClearAlarmFlag(self):
-        ret = self.interface.read_data(self.RTC_CTRL_STATUS_CMD, 2)
-        d = ret['data']
+        d = self.interface.read_data(self.RTC_CTRL_STATUS_CMD, 2)
 
         if d[1] & 0x01:
             d[1] = d[1] & 0xFE
@@ -559,8 +546,7 @@ class PiJuiceRtcAlarm(object):
 
     @pijuice_error_return
     def SetWakeupEnabled(self, status):
-        ret = self.interface.read_data(self.RTC_CTRL_STATUS_CMD, 2)
-        d = ret['data']
+        d = self.interface.read_data(self.RTC_CTRL_STATUS_CMD, 2)
         is_enabled = (d[0] & 0x01) and (d[0] & 0x04)
 
         if (is_enabled and status) or (not is_enabled and not status):
@@ -575,9 +561,7 @@ class PiJuiceRtcAlarm(object):
 
     @pijuice_error_return
     def GetTime(self):
-        ret = self.interface.read_data(self.RTC_TIME_CMD, 9)
-
-        d = ret['data']
+        d = self.interface.read_data(self.RTC_TIME_CMD, 9)
         dt = {
             'second': ((d[0] >> 4) & 0x07) * 10 + (d[0] & 0x0F),
             'minute': ((d[1] >> 4) & 0x07) * 10 + (d[1] & 0x0F)
@@ -737,13 +721,13 @@ class PiJuiceRtcAlarm(object):
         time.sleep(0.2)
         ret = self.interface.read_data(self.RTC_TIME_CMD, 9)
 
-        if d == ret['data']:
+        if d == ret:
             return {'error': 'NO_ERROR'}
         else:
-            if abs(ret['data'][0] - d[0]) < 2:
-                ret['data'][0] = d[0]
-                ret['data'][7] = d[7]
-                if d == ret['data']:
+            if abs(ret[0] - d[0]) < 2:
+                ret[0] = d[0]
+                ret[7] = d[7]
+                if d == ret:
                     return {'error': 'NO_ERROR'}
                 else:
                     raise WriteMismatchError
@@ -752,8 +736,7 @@ class PiJuiceRtcAlarm(object):
 
     @pijuice_error_return
     def GetAlarm(self):
-        ret = self.interface.read_data(self.RTC_ALARM_CMD, 9)
-        d = ret['data']
+        d = self.interface.read_data(self.RTC_ALARM_CMD, 9)
         alarm = {}
         if (d[0] & 0x80) == 0x00:
             alarm['second'] = ((d[0] >> 4) & 0x07) * 10 + (d[0] & 0x0F)
@@ -965,11 +948,11 @@ class PiJuiceRtcAlarm(object):
         # verify
         time.sleep(0.2)
         ret = self.interface.read_data(self.RTC_ALARM_CMD, 9)
-        if d == ret['data']:
+        if d == ret:
             return {'error': 'NO_ERROR'}
         else:
             h1 = d[2]
-            h2 = ret['data'][2]
+            h2 = ret[2]
             if h1 & 0x40:  # convert to 24 hour format
                 h1Bin = ((h1 >> 4) & 0x01) * 10 + (h1 & 0x0F)
                 h1Bin = h1Bin if h1Bin < 12 else 0
@@ -983,8 +966,8 @@ class PiJuiceRtcAlarm(object):
             else:
                 h2Bin = ((h2 >> 4) & 0x03) * 10 + (h2 & 0x0F)
             d[2] = h1Bin | (d[2] & 0x80)
-            ret['data'][2] = h2Bin | (ret['data'][2] & 0x80)
-            if d == ret['data']:
+            ret[2] = h2Bin | (ret[2] & 0x80)
+            if d == ret:
                 return {'error': 'NO_ERROR'}
             else:
                 raise WriteMismatchError
@@ -1034,7 +1017,7 @@ class PiJuicePower(object):
     @pijuice_error_return
     def GetWakeUpOnCharge(self):
         ret = self.interface.read_data(self.WAKEUP_ON_CHARGE_CMD, 1)
-        d = ret['data'][0]
+        d = ret[0]
 
         if d == 0xFF:
             return {'data': 'DISABLED', 'error': 'NO_ERROR'}
@@ -1054,8 +1037,7 @@ class PiJuicePower(object):
 
     @pijuice_error_return
     def GetWatchdog(self):
-        ret = self.interface.read_data(self.WATCHDOG_ACTIVATION_CMD, 2)
-        d = ret['data']
+        d = self.interface.read_data(self.WATCHDOG_ACTIVATION_CMD, 2)
         return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
 
     @pijuice_error_return
@@ -1070,7 +1052,7 @@ class PiJuicePower(object):
     @pijuice_error_return
     def GetSystemPowerSwitch(self):
         ret = self.interface.read_data(self.SYSTEM_POWER_SWITCH_CTRL_CMD, 1)
-        return {'data': ret['data'][0] * 100, 'error': 'NO_ERROR'}
+        return {'data': ret[0] * 100, 'error': 'NO_ERROR'}
 
 
 class PiJuiceConfig(object):
@@ -1114,7 +1096,7 @@ class PiJuiceConfig(object):
     @pijuice_error_return
     def GetChargingConfig(self):
         ret = self.interface.read_data(self.CHARGING_CONFIG_CMD, 1)
-        return {'data': {'charging_enabled': bool(ret['data'][0] & 0x01)},
+        return {'data': {'charging_enabled': bool(ret[0] & 0x01)},
                 'non_volatile': bool(ret['data'][0] & 0x80),
                 'error': 'NO_ERROR'}
 
@@ -1139,7 +1121,7 @@ class PiJuiceConfig(object):
     @pijuice_error_return
     def GetBatteryProfileStatus(self):
         ret = self.interface.read_data(self.BATTERY_PROFILE_ID_CMD, 1)
-        profile_id = ret['data'][0]
+        profile_id = ret[0]
         if profile_id == 0xF0:
             return {'data': {'validity': 'DATA_WRITE_NOT_COMPLETED'}, 'error': 'NO_ERROR'}
         origin = 'CUSTOM' if (profile_id & 0x0F) == 0x0F else 'PREDEFINED'
@@ -1154,8 +1136,7 @@ class PiJuiceConfig(object):
 
     @pijuice_error_return
     def GetBatteryProfile(self):
-        ret = self.interface.read_data(self.BATTERY_PROFILE_CMD, 14)
-        d = ret['data']
+        d = self.interface.read_data(self.BATTERY_PROFILE_CMD, 14)
         if all(v == 0 for v in d):
             return {'data': 'INVALID', 'error': 'NO_ERROR'}
         profile = {
@@ -1205,8 +1186,7 @@ class PiJuiceConfig(object):
 
     @pijuice_error_return
     def GetBatteryTempSenseConfig(self):
-        result = self.interface.read_data(self.BATTERY_TEMP_SENSE_CONFIG_CMD, 1)
-        d = result['data']
+        d = self.interface.read_data(self.BATTERY_TEMP_SENSE_CONFIG_CMD, 1)
         if d[0] < len(self.batteryTempSenseOptions):
             return {'data': self.batteryTempSenseOptions[d[0]], 'error': 'NO_ERROR'}
         else:
@@ -1254,8 +1234,7 @@ class PiJuiceConfig(object):
 
     @pijuice_error_return
     def GetPowerInputsConfig(self):
-        ret = self.interface.read_data(self.POWER_INPUTS_CONFIG_CMD, 1)
-        d = ret['data'][0]
+        d = self.interface.read_data(self.POWER_INPUTS_CONFIG_CMD, 1)
         config = {
             'precedence': self.powerInputs[d & 0x01],
             'gpio_in_enabled': bool(d & 0x02),
@@ -1275,8 +1254,7 @@ class PiJuiceConfig(object):
         except ValueError:
             raise BadArgumentError
 
-        result = self.interface.read_data(self.BUTTON_CONFIGURATION_CMD + b, 12)
-        d = result['data']
+        d = self.interface.read_data(self.BUTTON_CONFIGURATION_CMD + b, 12)
         config = {}
         for i in range(0, len(self.buttonEvents)):
             config[self.buttonEvents[i]] = {}
@@ -1339,14 +1317,14 @@ class PiJuiceConfig(object):
         config = {}
 
         try:
-            config['function'] = self.ledFunctions[ret['data'][0]]
+            config['function'] = self.ledFunctions[ret[0]]
         except (IndexError, KeyError):
             raise UnknownConfigError
 
         config['parameter'] = {
-            'r': ret['data'][1],
-            'g': ret['data'][2],
-            'b': ret['data'][3]
+            'r': ret[1],
+            'g': ret[2],
+            'b': ret[3]
         }
         return {'data': config, 'error': 'NO_ERROR'}
 
@@ -1370,8 +1348,7 @@ class PiJuiceConfig(object):
 
     @pijuice_error_return
     def GetPowerRegulatorMode(self):
-        result = self.interface.read_data(self.POWER_REGULATOR_CONFIG_CMD, 1)
-        d = result['data']
+        d = self.interface.read_data(self.POWER_REGULATOR_CONFIG_CMD, 1)
 
         if d[0] < len(self.powerRegulatorModes):
             return {'data': self.powerRegulatorModes[d[0]], 'error': 'NO_ERROR'}
@@ -1392,8 +1369,7 @@ class PiJuiceConfig(object):
 
     @pijuice_error_return
     def GetRunPinConfig(self):
-        result = self.interface.read_data(self.RUN_PIN_CONFIG_CMD, 1)
-        d = result['data']
+        d = self.interface.read_data(self.RUN_PIN_CONFIG_CMD, 1)
 
         if d[0] < len(self.runPinConfigs):
             return {'data': self.runPinConfigs[d[0]], 'error': 'NO_ERROR'}
@@ -1463,8 +1439,7 @@ class PiJuiceConfig(object):
 
     @pijuice_error_return
     def GetIoConfiguration(self, io_pin):
-        ret = self.interface.read_data(self.IO_CONFIGURATION_CMD + (io_pin - 1) * 5, 5)
-        d = ret['data']
+        d = self.interface.read_data(self.IO_CONFIGURATION_CMD + (io_pin - 1) * 5, 5)
         nv = bool(d[0] & 0x80)
         mode = self.ioModes[d[0] & 0x0F] if ((d[0] & 0x0F) < len(self.ioModes)) else 'UNKNOWN'
         pull = self.ioPullOptions[(d[0] >> 4) & 0x03] if (((d[0] >> 4) & 0x03) < len(self.ioPullOptions)) else 'UNKNOWN'
@@ -1487,7 +1462,7 @@ class PiJuiceConfig(object):
             raise BadArgumentError
 
         result = self.interface.read_data(self.I2C_ADDRESS_CMD + slave - 1, 1)
-        return {'data': format(result['data'][0], 'x'), 'error': 'NO_ERROR'}
+        return {'data': format(result[0], 'x'), 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def SetAddress(self, slave, hexAddress):
@@ -1505,7 +1480,7 @@ class PiJuiceConfig(object):
     @pijuice_error_return
     def GetIdEepromWriteProtect(self):
         ret = self.interface.read_data(self.ID_EEPROM_WRITE_PROTECT_CTRL_CMD, 1)
-        status = True if ret['data'][0] == 1 else False
+        status = True if ret[0] == 1 else False
         return {'data': status, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
@@ -1521,7 +1496,7 @@ class PiJuiceConfig(object):
     @pijuice_error_return
     def GetIdEepromAddress(self):
         ret = self.interface.read_data(self.ID_EEPROM_ADDRESS_CMD, 1)
-        return {'data': format(ret['data'][0], 'x'), 'error': 'NO_ERROR'}
+        return {'data': format(ret[0], 'x'), 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def SetIdEepromAddress(self, hexAddress):
@@ -1540,10 +1515,10 @@ class PiJuiceConfig(object):
     @pijuice_error_return
     def GetFirmwareVersion(self):
         ret = self.interface.read_data(self.FIRMWARE_VERSION_CMD, 2)
-        major_version = ret['data'][0] >> 4
-        minor_version = (ret['data'][0] << 4 & 0xf0) >> 4
+        major_version = ret[0] >> 4
+        minor_version = (ret[0] << 4 & 0xf0) >> 4
         version_str = '%i.%i' % (major_version, minor_version)
-        return {'data': {'version': version_str, 'variant': format(ret['data'][1], 'x')},
+        return {'data': {'version': version_str, 'variant': format(ret[1], 'x')},
                 'error': 'NO_ERROR'}
 
     @pijuice_error_return
