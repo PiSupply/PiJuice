@@ -130,6 +130,10 @@ def pijuice_error_return(func):
 
 
 class PiJuiceInterface:
+    ERROR_TIMEOUT = 4
+    TRANSFER_ATTEMPTS = 2
+    TRANSFER_TIMEOUT = 0.05
+
     def __init__(self, bus=1, address=0x14):
         """Create a new PiJuice instance.  Bus is an optional parameter that
         specifies the I2C bus number to use, for example 1 would use device
@@ -185,7 +189,8 @@ class PiJuiceInterface:
             self._last_error_time = time.time()
 
     def _do_transfer(self, operation):
-        if (self._thread and self._thread.is_alive()) or (self._error and (time.time() - self._last_error_time) < 4):
+        if (self._thread and self._thread.is_alive()) or \
+                (self._error and (time.time() - self._last_error_time) < self.ERROR_TIMEOUT):
             return False
 
         self._thread = threading.Thread(target=operation, args=())
@@ -193,10 +198,10 @@ class PiJuiceInterface:
 
         # wait for transfer to finish or timeout
         n = 0
-        while self._thread.isAlive() and n < 2:
-            time.sleep(0.05)
+        while self._thread.is_alive() and n < self.TRANSFER_ATTEMPTS:
+            time.sleep(self.TRANSFER_TIMEOUT)
             n = n + 1
-        if self._error or self._thread.isAlive():
+        if self._error or self._thread.is_alive():
             return False
 
         return True
@@ -217,7 +222,7 @@ class PiJuiceInterface:
 
         return {'data': d[:-1], 'error': 'NO_ERROR'}
 
-    def write_data(self, command, data):
+    def write_data(self, command, data, verify=False, verify_delay=0):
         checksum = self._get_checksum(data)
         d = data[:]
         d.append(checksum)
@@ -227,21 +232,18 @@ class PiJuiceInterface:
         if not self._do_transfer(self._write):
             raise CommunicationError
 
-    def write_data_verify(self, command, data, delay=0):
-        self.write_data(command, data)
+        if verify:
+            if verify_delay:
+                time.sleep(verify_delay)
 
-        if delay:
-            time.sleep(delay)
+            result = self.read_data(command, len(data))
 
-        result = self.read_data(command, len(data))
-
-        if data != result['data']:
-            print('wr {}\n rd {}'.format(data, result['data']))
-            raise WriteMismatchError
+            if data != result['data']:
+                print('wr {}\n rd {}'.format(data, result['data']))
+                raise WriteMismatchError
 
 
 class PiJuiceStatus(object):
-
     STATUS_CMD = 0x40
     FAULT_EVENT_CMD = 0x44
     CHARGE_LEVEL_CMD = 0x41
@@ -551,7 +553,7 @@ class PiJuiceRtcAlarm(object):
 
         if d[1] & 0x01:
             d[1] = d[1] & 0xFE
-            self.interface.write_data_verify(self.RTC_CTRL_STATUS_CMD, d)
+            self.interface.write_data(self.RTC_CTRL_STATUS_CMD, d, True)
 
         return {'error': 'NO_ERROR'}
 
@@ -568,7 +570,7 @@ class PiJuiceRtcAlarm(object):
         elif not is_enabled and status:
             d[0] = d[0] | 0x01 | 0x04  # enable
 
-        self.interface.write_data_verify(self.RTC_CTRL_STATUS_CMD, d)
+        self.interface.write_data(self.RTC_CTRL_STATUS_CMD, d, True)
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
@@ -821,7 +823,7 @@ class PiJuiceRtcAlarm(object):
         d = [0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0xFF]
         if not alarm:
             # disable alarm
-            self.interface.write_data_verify(self.RTC_ALARM_CMD, d, 0.2)
+            self.interface.write_data(self.RTC_ALARM_CMD, d, True, 0.2)
             return {'error': 'NO_ERROR'}
 
         if 'second' in alarm:
@@ -1026,7 +1028,7 @@ class PiJuicePower(object):
         except (TypeError, ValueError):
             raise BadArgumentError
 
-        self.interface.write_data_verify(self.WAKEUP_ON_CHARGE_CMD, [d])
+        self.interface.write_data(self.WAKEUP_ON_CHARGE_CMD, [d], True)
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
@@ -1106,7 +1108,7 @@ class PiJuiceConfig(object):
 
         nv = 0x80 if non_volatile else 0x00
         d = [nv | int(config['charging_enabled'])]
-        self.interface.write_data_verify(self.CHARGING_CONFIG_CMD, d)
+        self.interface.write_data(self.CHARGING_CONFIG_CMD, d, True)
         return {'error': 'NO_ERROR'}
     
     @pijuice_error_return
@@ -1196,7 +1198,7 @@ class PiJuiceConfig(object):
         except:
             raise BadArgumentError
         print(d)
-        self.interface.write_data_verify(self.BATTERY_PROFILE_CMD, d, 0.2)
+        self.interface.write_data(self.BATTERY_PROFILE_CMD, d, True, 0.2)
         return {'error': 'NO_ERROR'}
 
     batteryTempSenseOptions = ['NOT_USED', 'NTC', 'ON_BOARD', 'AUTO_DETECT']
@@ -1217,7 +1219,7 @@ class PiJuiceConfig(object):
         except ValueError:
             raise BadArgumentError
 
-        self.interface.write_data_verify(self.BATTERY_TEMP_SENSE_CONFIG_CMD, [ind])
+        self.interface.write_data(self.BATTERY_TEMP_SENSE_CONFIG_CMD, [ind], True)
         return {'error': 'NO_ERROR'}
 
     powerInputs = ['USB_MICRO', '5V_GPIO']
@@ -1247,7 +1249,7 @@ class PiJuiceConfig(object):
             raise InvalidUSBMicroDPMError
 
         d = [nv | prec | gpioInEn | noBatOn | usbMicroLimit | dpm]
-        self.interface.write_data_verify(self.POWER_INPUTS_CONFIG_CMD, d)
+        self.interface.write_data(self.POWER_INPUTS_CONFIG_CMD, d, True)
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
@@ -1318,7 +1320,7 @@ class PiJuiceConfig(object):
                         data[i*2] = 0
             data[i*2+1] = (int(config[self.buttonEvents[i]]['parameter']) // 100) & 0xff
 
-        self.interface.write_data_verify(self.BUTTON_CONFIGURATION_CMD + b, data, 0.4)
+        self.interface.write_data(self.BUTTON_CONFIGURATION_CMD + b, data, True, 0.4)
         return {'error': 'NO_ERROR'}
 
     leds = ['D1', 'D2']
@@ -1361,7 +1363,7 @@ class PiJuiceConfig(object):
         except ValueError:
             raise BadArgumentError
 
-        self.interface.write_data_verify(self.LED_CONFIGURATION_CMD + i, d, 0.2)
+        self.interface.write_data(self.LED_CONFIGURATION_CMD + i, d, True, 0.2)
         return {'error': 'NO_ERROR'}
 
     powerRegulatorModes = ['POWER_SOURCE_DETECTION', 'LDO', 'DCDC']
@@ -1383,7 +1385,7 @@ class PiJuiceConfig(object):
         except:
             raise BadArgumentError
 
-        self.interface.write_data_verify(self.POWER_REGULATOR_CONFIG_CMD, [ind])
+        self.interface.write_data(self.POWER_REGULATOR_CONFIG_CMD, [ind], True)
         return {'error': 'NO_ERROR'}
 
     runPinConfigs = ['NOT_INSTALLED', 'INSTALLED']
@@ -1404,7 +1406,7 @@ class PiJuiceConfig(object):
             ind = self.runPinConfigs.index(config)
         except:
             raise BadArgumentError
-        self.interface.write_data_verify(self.RUN_PIN_CONFIG_CMD, [ind])
+        self.interface.write_data(self.RUN_PIN_CONFIG_CMD, [ind], True)
         return {'error': 'NO_ERROR'}
 
     ioModes = ['NOT_USED', 'ANALOG_IN', 'DIGITAL_IN', 'DIGITAL_OUT_PUSHPULL',
@@ -1456,7 +1458,7 @@ class PiJuiceConfig(object):
                     d[4] = (dci >> 8) & 0xFF
         except:
             raise InvalidConfigError
-        self.interface.write_data_verify(self.IO_CONFIGURATION_CMD + (io_pin - 1) * 5, d, 0.2)
+        self.interface.write_data(self.IO_CONFIGURATION_CMD + (io_pin - 1) * 5, d, True, 0.2)
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
@@ -1511,7 +1513,7 @@ class PiJuiceConfig(object):
         if not isinstance(status, bool):
             raise BadArgumentError
 
-        self.interface.write_data_verify(self.ID_EEPROM_WRITE_PROTECT_CTRL_CMD, [int(status)])
+        self.interface.write_data(self.ID_EEPROM_WRITE_PROTECT_CTRL_CMD, [int(status)], True)
         return {'error': 'NO_ERROR'}
 
     idEepromAddresses = ['50', '52']
@@ -1527,7 +1529,7 @@ class PiJuiceConfig(object):
             raise BadArgumentError
 
         adr = int(str(hexAddress), 16)
-        self.interface.write_data_verify(self.ID_EEPROM_ADDRESS_CMD, [adr])
+        self.interface.write_data(self.ID_EEPROM_ADDRESS_CMD, [adr], True)
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
