@@ -2,7 +2,9 @@
 from __future__ import division, print_function
 __version__ = "1.4"
 
+from collections import namedtuple
 import ctypes
+from enum import Enum
 import sys
 import threading
 import time
@@ -243,9 +245,290 @@ class PiJuiceInterface:
                 raise WriteMismatchError
 
 
-class PiJuiceStatus(object):
-    STATUS_CMD = 0x40
+class FaultEvent(Enum):
+    button_power_off = 0
+    forced_power_off = 1
+    forced_sys_power_off = 2
+    watchdog_reset = 3
+
+
+class BatteryChargingTemperature(Enum):
+    NORMAL = 0
+    SUSPEND = 1
+    COOL = 2
+    WARM = 3
+
+
+class ButtonEvent(Enum):
+    UNKNOWN = -1
+    NO_EVENT = 0
+    PRESS = 1
+    RELEASE = 2
+    SINGLE_PRESS = 3
+    DOUBLE_PRESS = 4
+    LONG_PRESS1 = 5
+    LONG_PRESS2 = 6
+
+
+class BatteryStatus(Enum):
+    NORMAL = 0
+    CHARGING_FROM_IN = 1
+    CHARGING_FROM_5V_IO = 2
+    NOT_PRESENT = 4
+
+
+class PowerInputStatus(Enum):
+    NOT_PRESENT = 0
+    BAD = 1
+    WEAK = 2
+    PRESENT = 3
+
+
+class Faults:
     FAULT_EVENT_CMD = 0x44
+
+    def __init__(self, interface):
+        self._interface = interface
+
+        self._button_power_off = False
+        self._forced_power_off = False
+        self._forced_sys_power_off = False
+        self._watchdog_reset = False
+        self.battery_profile_invalid = False
+        self.charging_temperature_fault = BatteryChargingTemperature.NORMAL
+
+    def update_fault_flags(self):
+        data = self._interface.read_data(self.FAULT_EVENT_CMD, 1)[0]
+
+        if data & 0x01:
+            self._button_power_off = True
+        if data & 0x02:
+            self._forced_power_off = True
+        if data & 0x04:
+            self._forced_sys_power_off = True
+        if data & 0x08:
+            self._watchdog_reset = True
+        if data & 0x20:
+            self.battery_profile_invalid = True
+        self.charging_temperature_fault = BatteryChargingTemperature((data >> 6) & 0x03)
+
+    def reset_fault_flags(self, flags):
+        """
+
+        :param flags: iterable of integers
+        :return:
+        """
+        data = 0xff
+        for flag in flags:
+            try:
+                FaultEvent(flag)
+            except ValueError:
+                raise BadArgumentError
+
+            data = data & ~(0x01 << flag)
+        self._interface.write_data(self.FAULT_EVENT_CMD, [data])
+
+    @property
+    def button_power_off(self):
+        return self._button_power_off
+
+    @button_power_off.setter
+    def button_power_off(self, value):
+        self.reset_fault_flags((FaultEvent.button_power_off.value,))
+        self._button_power_off = False
+
+    @property
+    def forced_power_off(self):
+        return self._forced_power_off
+
+    @forced_power_off.setter
+    def forced_power_off(self, value):
+        self.reset_fault_flags((FaultEvent.forced_power_off.value,))
+        self._forced_power_off = False
+
+    @property
+    def forced_sys_power_off(self):
+        return self._forced_sys_power_off
+
+    @forced_sys_power_off.setter
+    def forced_sys_power_off(self, value):
+        self.reset_fault_flags((FaultEvent.forced_sys_power_off.value,))
+        self._forced_sys_power_off = False
+
+    @property
+    def watchdog_reset(self):
+        return self._watchdog_reset
+
+    @watchdog_reset.setter
+    def watchdog_reset(self, value):
+        self.reset_fault_flags((FaultEvent.watchdog_reset.value,))
+        self._watchdog_reset = False
+
+
+class Buttons:
+    BUTTON_EVENT_CMD = 0x45
+
+    def __init__(self, interface):
+        self._interface = interface
+        self._sw1_event = ButtonEvent.UNKNOWN
+        self._sw2_event = ButtonEvent.UNKNOWN
+        self._sw3_event = ButtonEvent.UNKNOWN
+
+    def update_button_events(self):
+        data = self._interface.read_data(self.BUTTON_EVENT_CMD, 2)
+
+        sw1_event_index = data[0] & 0x0F
+        if sw1_event_index < len(ButtonEvent) + 1:
+            sw1_event_index = -1
+
+        sw2_event_index = (data[0] >> 4) & 0x0F
+        if sw2_event_index < len(ButtonEvent) + 1:
+            sw2_event_index = -1
+
+        sw3_event_index = data[1] & 0x0F
+        if sw3_event_index < len(ButtonEvent) + 1:
+            sw3_event_index = -1
+
+        self._sw1_event = ButtonEvent(sw1_event_index)
+        self._sw2_event = ButtonEvent(sw2_event_index)
+        self._sw3_event = ButtonEvent(sw3_event_index)
+
+    @property
+    def sw1(self):
+        return self._sw1_event
+
+    @sw1.setter
+    def sw1(self, value):
+        self._interface.write_data(self.BUTTON_EVENT_CMD, [0xf0, 0xff])
+        self._sw1_event = ButtonEvent.NO_EVENT
+
+    @property
+    def sw2(self):
+        return self._sw2_event
+
+    @sw2.setter
+    def sw2(self, value):
+        self._interface.write_data(self.BUTTON_EVENT_CMD, [0x0f, 0xff])
+        self._sw2_event = ButtonEvent.NO_EVENT
+
+    @property
+    def sw3(self):
+        return self._sw3_event
+
+    @sw3.setter
+    def sw3(self, value):
+        self._interface.write_data(self.BUTTON_EVENT_CMD, [0xff, 0xf0])
+        self._sw3_event = ButtonEvent.NO_EVENT
+
+
+class Led:
+    LED_STATE_CMD = 0x66
+    LED_BLINK_CMD = 0x68
+    # First value is named blink_count because there is a built-in method named 'count'.
+    LedBlink = namedtuple('LedBlink', ('blink_count', 'rgb1', 'period1', 'rgb2', 'period2'))
+
+    def __init__(self, interface, led_index):
+        """
+
+        :param interface:
+        :param led_index: 0 for D1, 1 for D2
+        """
+        self._interface = interface
+        self.index = led_index
+        self.name = 'D{}'.format(self.index + 1)
+        self._state = None
+        self._blink = None
+
+    @property
+    def state(self):
+        self._state = self._interface.read_data(self.LED_STATE_CMD + self.index, 3)
+        return self._state
+
+    @state.setter
+    def state(self, rgb):
+        try:
+            if len(rgb) != 3:
+                raise ValueError
+            for color in rgb:
+                if not isinstance(color, int):
+                    raise TypeError
+                if color < 0 or color > 255:
+                    raise ValueError
+        except (TypeError, ValueError):
+            raise BadArgumentError
+
+        self._interface.write_data(self.LED_STATE_CMD + self.index, rgb)
+
+    @property
+    def blink(self):
+        data = self._interface.read_data(self.LED_BLINK_CMD + self.index, 9)
+        blink_data = self.LedBlink(data[0], data[1:4], data[4] * 10, data[5:8], data[8] * 10)
+        return blink_data
+
+    @blink.setter
+    def blink(self, led_blink):
+        if not isinstance(led_blink, self.LedBlink):
+            raise BadArgumentError
+
+        data = [led_blink.count & 0xFF] + led_blink.rgb1*1 + [(led_blink.period1//10) & 0xFF] +\
+               led_blink.rgb2*1 + [(led_blink.period2//10) & 0xFF]
+        self._interface.write_data(self.LED_BLINK_CMD + self.index, data)
+
+
+class Pin:
+    IO_PIN_ACCESS_CMD = 0x75
+
+    def __init__(self, interface, pin_index):
+        """
+
+        :param interface:
+        :param pin_index: 0 for pin #1, 1 for pin #2
+        """
+        self._interface = interface
+        self.index = pin_index
+
+    @property
+    def io_digital_input(self):
+        data = self._interface.read_data(self.IO_PIN_ACCESS_CMD + self.index * 5, 2)
+        return 1 if data[0] == 1 else 0
+
+    @property
+    def io_digital_output(self):
+        data = self._interface.read_data(self.IO_PIN_ACCESS_CMD + self.index * 5, 2)
+        return 1 if data[1] == 1 else 0
+
+    @io_digital_output.setter
+    def io_digital_output(self, value):
+        data = [0, 0 if value == 0 else 1]
+        self._interface.write_data(self.IO_PIN_ACCESS_CMD + self.index * 5, data)
+
+    @property
+    def io_analog_input(self):
+        data = self._interface.read_data(self.IO_PIN_ACCESS_CMD + self.index * 5, 2)
+        return (data[1] << 8) | data[0]
+
+    @property
+    def io_pwm(self):
+        data = self._interface.read_data(self.IO_PIN_ACCESS_CMD + self.index * 5, 2)
+        duty_cycle_int = data[0] | (data[1] << 8)
+        duty_cycle = float(duty_cycle_int) * 100 // 65534 if duty_cycle_int < 65535 else 100
+        return duty_cycle
+
+    @io_pwm.setter
+    def io_pwm(self, duty_cycle):
+        try:
+            if duty_cycle < 0 or duty_cycle > 100:
+                raise BadArgumentError
+        except TypeError:
+            raise BadArgumentError
+
+        duty_cycle_int = int(round(duty_cycle * 65534 // 100))
+        data = [duty_cycle_int & 0xFF, (duty_cycle_int >> 8) & 0xFF]
+        self._interface.write_data(self.IO_PIN_ACCESS_CMD + self.index * 5, data)
+
+
+class PiJuiceStatus:
+    STATUS_CMD = 0x40
     CHARGE_LEVEL_CMD = 0x41
     BUTTON_EVENT_CMD = 0x45
     BATTERY_TEMPERATURE_CMD = 0x47
@@ -253,12 +536,23 @@ class PiJuiceStatus(object):
     BATTERY_CURRENT_CMD = 0x4b
     IO_VOLTAGE_CMD = 0x4d
     IO_CURRENT_CMD = 0x4f
-    LED_STATE_CMD = 0x66
-    LED_BLINK_CMD = 0x68
-    IO_PIN_ACCESS_CMD = 0x75
 
     def __init__(self, interface):
-        self.interface = interface
+        self._interface = interface
+
+        self._charge_level = 0
+        self._is_fault = False
+        self._is_button = False
+        self._battery_status = BatteryStatus.NORMAL
+        self._power_input = PowerInputStatus.NOT_PRESENT
+        self._power_input_5v_io = PowerInputStatus.NOT_PRESENT
+
+        self.faults = Faults(self._interface)
+        self.buttons = Buttons(self._interface)
+        self.d1 = Led(self._interface, 0)
+        self.d2 = Led(self._interface, 1)
+        self.pin1 = Pin(self._interface, 0)
+        self.pin2 = Pin(self._interface, 1)
 
     def __enter__(self):
         # Just return this object so it can be used in a with statement
@@ -269,239 +563,275 @@ class PiJuiceStatus(object):
 
     @pijuice_error_return
     def GetStatus(self):
-        result = self.interface.read_data(self.STATUS_CMD, 1)
-        d = result[0]
-        batStatusEnum = ['NORMAL', 'CHARGING_FROM_IN', 'CHARGING_FROM_5V_IO', 'NOT_PRESENT']
-        powerInStatusEnum = ['NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT']
+        self.update_status()
         status = {
-            'isFault': bool(d & 0x01),
-            'isButton': bool(d & 0x02),
-            'battery': batStatusEnum[(d >> 2) & 0x03],
-            'powerInput': powerInStatusEnum[(d >> 4) & 0x03],
-            'powerInput5vIo': powerInStatusEnum[(d >> 6) & 0x03]
+            'isFault': self.is_fault,
+            'isButton': self.is_button,
+            'battery': self.battery_status.name,
+            'powerInput': self.power_input.name,
+            'powerInput5vIo': self.power_input_5v_io.name
         }
         return {'data': status, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetChargeLevel(self):
-        result = self.interface.read_data(self.CHARGE_LEVEL_CMD, 1)
-        return {'data': result[0], 'error': 'NO_ERROR'}
-
-    faultEvents = ['button_power_off', 'forced_power_off', 'forced_sys_power_off', 'watchdog_reset']
-    faults = ['battery_profile_invalid', 'charging_temperature_fault']
+        return {'data': self.charge_level, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetFaultStatus(self):
-        result = self.interface.read_data(self.FAULT_EVENT_CMD, 1)
-        d = result[0]
+        self.faults.update_fault_flags()
         fault = {}
 
-        if d & 0x01:
+        if self.faults.button_power_off:
             fault['button_power_off'] = True
-        if d & 0x02:
-            fault['forced_power_off'] = True  # bool(d & 0x02)
-        if d & 0x04:
+        if self.faults.forced_power_off:
+            fault['forced_power_off'] = True
+        if self.faults.forced_sys_power_off:
             fault['forced_sys_power_off'] = True
-        if d & 0x08:
+        if self.faults.watchdog_reset:
             fault['watchdog_reset'] = True
-        if d & 0x20:
+        if self.faults.battery_profile_invalid:
             fault['battery_profile_invalid'] = True
-        batChargingTempEnum = ['NORMAL', 'SUSPEND', 'COOL', 'WARM']
-        if (d >> 6) & 0x03:
-            fault['charging_temperature_fault'] = batChargingTempEnum[(d >> 6) & 0x03]
+        if self.faults.charging_temperature_fault.value:
+            fault['charging_temperature_fault'] = BatteryChargingTemperature(self.faults.charging_temperature_fault)
         return {'data': fault, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def ResetFaultFlags(self, flags):
-        d = 0xFF
-        for ev in flags:
-            try:
-                d = d & ~(0x01 << self.faultEvents.index(ev))
-            except:
-                pass  # TODO: decide what should be done in case of exception
-        self.interface.write_data(self.FAULT_EVENT_CMD, [d])  # clear fault events
+        flags_int = []
 
-    buttonEvents = ['NO_EVENT', 'PRESS', 'RELEASE', 'SINGLE_PRESS', 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
+        try:
+            for flag in flags:
+                flags_int.append(FaultEvent[flag])
+        except ValueError:
+            raise BadArgumentError
+
+        self.faults.reset_fault_flags(flags_int)
 
     @pijuice_error_return
     def GetButtonEvents(self):
-        d = self.interface.read_data(self.BUTTON_EVENT_CMD, 2)
-        event = {}
-
-        try:
-            event['SW1'] = self.buttonEvents[d[0] & 0x0F]
-        except:
-            event['SW1'] = 'UNKNOWN'
-        try:
-            event['SW2'] = self.buttonEvents[(d[0] >> 4) & 0x0F]
-        except:
-            event['SW2'] = 'UNKNOWN'
-        try:
-            event['SW3'] = self.buttonEvents[d[1] & 0x0F]
-        except:
-            event['SW3'] = 'UNKNOWN'
+        self.buttons.update_button_events()
+        event = {
+            'SW1': self.buttons.sw1.name,
+            'SW2': self.buttons.sw2.name,
+            'SW3': self.buttons.sw3.name
+        }
         return {'data': event, 'error': 'NO_ERROR'}
-
-    buttons = ['SW' + str(i+1) for i in range(0, 3)]
 
     @pijuice_error_return
     def AcceptButtonEvent(self, button):
-        try:
-            b = self.buttons.index(button)
-        except ValueError:
+        if button == 'SW1':
+            self.buttons.sw1 = None
+        elif button == 'SW2':
+            self.buttons.sw2 = None
+        elif button == 'SW3':
+            self.buttons.sw3 = None
+        else:
             raise BadArgumentError
-
-        d = [0xF0, 0xFF] if b == 0 else [0x0F, 0xFF] if b == 1 else [0xFF, 0xF0]
-        self.interface.write_data(self.BUTTON_EVENT_CMD, d)  # clear button events
 
     @pijuice_error_return
     def GetBatteryTemperature(self):
-        d = self.interface.read_data(self.BATTERY_TEMPERATURE_CMD, 2)
-        temp = d[1]
-        temp = temp << 8
-        temp = temp | d[0]
-        return {'data': temp, 'error': 'NO_ERROR'}
+        return {'data': self.battery_temperature, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetBatteryVoltage(self):
-        d = self.interface.read_data(self.BATTERY_VOLTAGE_CMD, 2)
-        return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
+        return {'data': self.battery_voltage, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetBatteryCurrent(self):
-        d = self.interface.read_data(self.BATTERY_CURRENT_CMD, 2)
-        i = (d[1] << 8) | d[0]
-        if i & (1 << 15):
-            i = i - (1 << 16)
-        return {'data': i, 'error': 'NO_ERROR'}
+        return {'data': self.battery_current, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetIoVoltage(self):
-        d = self.interface.read_data(self.IO_VOLTAGE_CMD, 2)
-        return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
+        return {'data': self.io_voltage, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetIoCurrent(self):
-        d = self.interface.read_data(self.IO_CURRENT_CMD, 2)
-        i = (d[1] << 8) | d[0]
-        if i & (1 << 15):
-            i = i - (1 << 16)
-        return {'data': i, 'error': 'NO_ERROR'}
-
-    leds = ['D1', 'D2']
+        return {'data': self.io_current, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def SetLedState(self, led, rgb):
-        try:
-            i = self.leds.index(led)
-        except ValueError:
+        if led == 'D1':
+            self.d1.state = rgb
+        elif led == 'D2':
+            self.d2.state = rgb
+        else:
             raise BadArgumentError
 
-        self.interface.write_data(self.LED_STATE_CMD + i, rgb)
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetLedState(self, led):
-        try:
-            i = self.leds.index(led)
-        except ValueError:
+        if led == 'D1':
+            return self.d1.state
+        elif led == 'D2':
+            return self.d2.state
+        else:
             raise BadArgumentError
-
-        return self.interface.read_data(self.LED_STATE_CMD + i, 3)
 
     @pijuice_error_return
     def SetLedBlink(self, led, count, rgb1, period1, rgb2, period2):
-        try:
-            i = self.leds.index(led)
-            d = [count & 0xFF] + rgb1*1 + [(period1//10) & 0xFF] + rgb2*1 + [(period2//10) & 0xFF]
-        except (ValueError, TypeError):
+        data = Led.LedBlink(count, rgb1, period1, rgb2, period2)
+
+        if led == 'D1':
+            self.d1.blink = data
+        elif led == 'D2':
+            self.d2.blink = data
+        else:
             raise BadArgumentError
 
-        self.interface.write_data(self.LED_BLINK_CMD + i, d)
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetLedBlink(self, led):
-        try:
-            i = self.leds.index(led)
-        except ValueError:
+        if led == 'D1':
+            data = self.d1.blink
+        elif led == 'D2':
+            data = self.d2.blink
+        else:
             raise BadArgumentError
 
-        d = self.interface.read_data(self.LED_BLINK_CMD + i, 9)
         return {
             'data': {
-                'count': d[0],
-                'rgb1': d[1:4],
-                'period1': d[4] * 10,
-                'rgb2': d[5:8],
-                'period2': d[8] * 10
+                'count': data.blink_count,
+                'rgb1': data.rgb1,
+                'period1': data.period1,
+                'rgb2': data.rgb2,
+                'period2': data.period2
                 },
             'error': 'NO_ERROR'
         }
 
     @pijuice_error_return
     def GetIoDigitalInput(self, pin):
-        if pin not in (1, 2):
+        if pin == 1:
+            data = self.pin1.io_digital_input
+        elif pin == 2:
+            data = self.pin2.io_digital_input
+        else:
             raise BadArgumentError
 
-        d = self.interface.read_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, 2)
-        b = 1 if d[0] == 0x01 else 0
-        return {'data': b, 'error': 'NO_ERROR'}
+        return {'data': data, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def SetIoDigitalOutput(self, pin, value):
-        if pin not in (1, 2):
+        if pin == 1:
+            self.pin1.io_digital_output = value
+        elif pin == 2:
+            self.pin2.io_digital_output = value
+        else:
             raise BadArgumentError
 
-        d = [0x00, 0x00]
-        d[1] = 0x00 if value == 0 else 0x01
-        self.interface.write_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, d)
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetIoDigitalOutput(self, pin):
-        if pin not in (1, 2):
+        if pin == 1:
+            data = self.pin1.io_digital_output
+        elif pin == 2:
+            data = self.pin2.io_digital_output
+        else:
             raise BadArgumentError
 
-        d = self.interface.read_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, 2)
-        b = 1 if d[1] == 0x01 else 0
-        return {'data': b, 'error': 'NO_ERROR'}
+        return {'data': data, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetIoAnalogInput(self, pin):
-        if pin not in (1, 2):
+        if pin == 1:
+            data = self.pin1.io_analog_input
+        elif pin == 2:
+            data = self.pin2.io_analog_input
+        else:
             raise BadArgumentError
 
-        d = self.interface.read_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, 2)
-        return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
+        return {'data': data, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def SetIoPWM(self, pin, dutyCycle):
-        if pin not in (1, 2):
+        if pin == 1:
+            self.pin1.io_pwm = dutyCycle
+        elif pin == 2:
+            self.pin2.io_pwm = dutyCycle
+        else:
             raise BadArgumentError
 
-        try:
-            dc = float(dutyCycle)
-
-            if dc < 0 or dc > 100:
-                raise InvalidDutyCycleError  # Why not BadArgumentError?
-        except (ValueError, TypeError):
-            raise BadArgumentError
-
-        dci = int(round(dc * 65534 // 100))
-        d = [dci & 0xFF, (dci >> 8) & 0xFF]
-        self.interface.write_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, d)
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetIoPWM(self, pin):
-        if pin not in (1, 2):
+        if pin == 1:
+            data = self.pin1.io_pwm
+        elif pin == 2:
+            data = self.pin2.io_pwm
+        else:
             raise BadArgumentError
 
-        d = self.interface.read_data(self.IO_PIN_ACCESS_CMD + (pin - 1) * 5, 2)
-        dci = d[0] | (d[1] << 8)
-        dc = float(dci) * 100 // 65534 if dci < 65535 else 100
-        return {'data': dc, 'error': 'NO_ERROR'}
+        return {'data': data, 'error': 'NO_ERROR'}
+
+    def update_status(self):
+        result = self._interface.read_data(self.STATUS_CMD, 1)[0]
+
+        self._is_fault = bool(result & 0x01)
+        self._is_button = bool(result & 0x02)
+        self._battery_status = BatteryStatus((result >> 2) & 0x03)
+        self._power_input = PowerInputStatus((result >> 4) & 0x03)
+        self._power_input_5v_io = PowerInputStatus((result >> 6) & 0x03)
+
+    @property
+    def charge_level(self):
+        self._charge_level = self._interface.read_data(self.CHARGE_LEVEL_CMD, 1)[0]
+        return self._charge_level
+
+    @property
+    def battery_status(self):
+        return self._battery_status
+
+    @property
+    def is_fault(self):
+        return self._is_fault
+
+    @property
+    def is_button(self):
+        return self._is_button
+
+    @property
+    def power_input(self):
+        return self._power_input
+
+    @property
+    def power_input_5v_io(self):
+        return self._power_input_5v_io
+
+    @property
+    def battery_temperature(self):
+        temperature_data = self._interface.read_data(self.BATTERY_TEMPERATURE_CMD, 2)
+        return (temperature_data[1] << 8) | temperature_data[0]
+
+    @property
+    def battery_voltage(self):
+        voltage_data = self._interface.read_data(self.BATTERY_VOLTAGE_CMD, 2)
+        return (voltage_data[1] << 8) | voltage_data[0]
+
+    @property
+    def battery_current(self):
+        current_data = self._interface.read_data(self.BATTERY_CURRENT_CMD, 2)
+        i = (current_data[1] << 8) | current_data[0]
+        if i & (1 << 15):
+            i = i - (1 << 16)  # Getting negative values from integer
+        return i
+
+    @property
+    def io_voltage(self):
+        voltage_data = self._interface.read_data(self.IO_VOLTAGE_CMD, 2)
+        return (voltage_data[1] << 8) | voltage_data[0]
+
+    @property
+    def io_current(self):
+        current_data = self._interface.read_data(self.IO_CURRENT_CMD, 2)
+        i = (current_data[1] << 8) | current_data[0]
+        if i & (1 << 15):
+            i = i - (1 << 16)
+        return i
 
 
 class PiJuiceRtcAlarm(object):
