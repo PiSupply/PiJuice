@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 from __future__ import division, print_function
+
+import re
+
 __version__ = "1.4"
 
 from collections import namedtuple
 import ctypes
+import datetime
 from enum import Enum
 import sys
 import threading
@@ -834,14 +838,501 @@ class PiJuiceStatus:
         return i
 
 
-class PiJuiceRtcAlarm(object):
+class DaylightSavingMode(Enum):
+    NONE = 0
+    ADD1H = 1
+    SUB1H = 2
 
+
+def double_digit_to_hex(value, low_digit_limit=0x0f, high_digit_limit=0x0f):
+    # 21 will turn to 0x21
+    low_digit = (value % 10) & low_digit_limit
+    high_digit = (value // 10) & high_digit_limit
+    return (high_digit << 4) | low_digit
+
+
+def hex_to_double_digit(value, low_digit_limit=0x0f, high_digit_limit=0x0f):
+    low_digit = value & low_digit_limit
+    high_digit = (value >> 4) & high_digit_limit
+    return high_digit * 10 + low_digit
+
+
+class Alarm:
     RTC_ALARM_CMD = 0xB9
-    RTC_TIME_CMD = 0xB0
     RTC_CTRL_STATUS_CMD = 0xC2
 
     def __init__(self, interface):
-        self.interface = interface
+        self._interface = interface
+
+        self._alarm_wake_up_enabled = False
+        self._alarm_flag = False
+
+        self._second = 0
+        self._minute = 0
+        self._minute_period = 0
+        self._use_minute_period = False
+        self._hour = 0
+        self._hours = ()
+        self._use_multiple_hours = False
+        self._every_hour = False
+        self._hour_format = 24
+        self._day = 1
+        self._weekday = 1
+        self._weekdays = ()
+        self._use_weekday = False
+        self._use_multiple_weekdays = False
+        self._every_day = False
+
+    @property
+    def second(self):
+        return self._second
+
+    @second.setter
+    def second(self, value):
+        if not isinstance(value, int):
+            raise BadArgumentError
+        elif value < 0 or value > 60:
+            raise BadArgumentError
+        self._second = value
+
+    @property
+    def minute(self):
+        return self._minute
+
+    @minute.setter
+    def minute(self, value):
+        if not isinstance(value, int):
+            raise BadArgumentError
+        elif value < 0 or value > 60:
+            raise BadArgumentError
+        self._minute = value
+        self._use_minute_period = False
+        self._minute_period = 0
+
+    @property
+    def minute_period(self):
+        return self._minute_period
+
+    @minute_period.setter
+    def minute_period(self, value):
+        if not isinstance(value, int):
+            raise BadArgumentError
+        elif value < 1 or value > 60:
+            raise BadArgumentError
+        self._minute_period = value
+        self._use_minute_period = True
+        self._minute = 0
+
+    @property
+    def hour(self):
+        return self._hour
+
+    @hour.setter
+    def hour(self, value):
+        if not isinstance(value, int):
+            raise BadArgumentError
+        elif value < 0 or value > 24:
+            raise BadArgumentError
+        self._hour = value
+        self._use_multiple_hours = False
+        self._hours = ()
+        self._every_hour = False
+
+    @property
+    def hours(self):
+        return self._hours
+
+    @hours.setter
+    def hours(self, value):
+        if not isinstance(value, (tuple, list, set)):
+            raise BadArgumentError
+        for elem in value:
+            if not isinstance(elem, int):
+                raise BadArgumentError
+            elif elem < 0 or elem > 24:
+                raise BadArgumentError
+        self._hours = tuple(value)
+        self._use_multiple_hours = True
+        self._hour = 0
+        self._every_hour = False
+
+    @property
+    def every_hour(self):
+        return self._every_hour
+
+    @every_hour.setter
+    def every_hour(self, value):
+        if value:
+            self._every_hour = True
+            self._hour = 0
+            self._hours = ()
+            self._use_multiple_hours = True
+        else:
+            self._every_hour = False
+            self._hour = 0
+            self._hours = ()
+            self._use_multiple_hours = False
+
+    @property
+    def hour_format(self):
+        return self._hour_format
+
+    @hour_format.setter
+    def hour_format(self, value):
+        if value not in (12, 24):
+            raise BadArgumentError
+        self._hour_format = value
+
+    @property
+    def day(self):
+        return self._day
+
+    @day.setter
+    def day(self, value):
+        if not isinstance(value, int):
+            raise BadArgumentError
+        elif value < 1 or value > 31:  # What will happen if there is no 31st day?
+            raise BadArgumentError
+        self._day = value
+        self._weekday = 1
+        self._use_weekday = False
+        self._use_multiple_weekdays = False
+        self._weekdays = ()
+
+    @property
+    def weekday(self):
+        return self._weekday
+
+    @weekday.setter
+    def weekday(self, value):
+        if not isinstance(value, int):
+            raise BadArgumentError
+        elif value < 1 or value > 7:
+            raise BadArgumentError
+        self._weekday = value
+        self._day = 1
+        self._use_weekday = True
+        self._use_multiple_weekdays = False
+        self._weekdays = ()
+
+    @property
+    def weekdays(self):
+        return self._weekdays
+
+    @weekdays.setter
+    def weekdays(self, value):
+        if not isinstance(value, (tuple, list, set)):
+            raise BadArgumentError
+        for elem in value:
+            if not isinstance(elem, int):
+                raise BadArgumentError
+            elif elem < 1 or elem > 7:
+                raise BadArgumentError
+        self._weekday = 1
+        self._day = 1
+        self._use_weekday = True
+        self._use_multiple_weekdays = True
+        self._weekdays = tuple(value)
+
+    @property
+    def every_day(self):
+        return self._every_day
+
+    @every_day.setter
+    def every_day(self, value):
+        self._every_day = bool(value)
+
+    def update_control_status(self):
+        data = self._interface.read_data(self.RTC_CTRL_STATUS_CMD, 2)
+
+        self._alarm_wake_up_enabled = (data[0] & 0x01) and (data[0] & 0x04)
+        self._alarm_flag = True if data[1] & 0x01 else False
+
+    @property
+    def alarm_wake_up_enabled(self):
+        return self._alarm_wake_up_enabled
+
+    @alarm_wake_up_enabled.setter
+    def alarm_wake_up_enabled(self, value):
+        data = self._interface.read_data(self.RTC_CTRL_STATUS_CMD, 2)
+        is_enabled = (data[0] & 0x01) and (data[0] & 0x04)
+
+        if (is_enabled and value) or (not is_enabled and not value):
+            return  # do nothing
+        elif is_enabled and not value:
+            data[0] = data[0] & 0xFE  # disable
+        elif not is_enabled and value:
+            data[0] = data[0] | 0x01 | 0x04  # enable
+
+        self._interface.write_data(self.RTC_CTRL_STATUS_CMD, data, True)
+        self._alarm_wake_up_enabled = bool(value)
+
+    @property
+    def alarm_flag(self):
+        return self._alarm_flag
+
+    @alarm_flag.setter
+    def alarm_flag(self, value):
+        data = self._interface.read_data(self.RTC_CTRL_STATUS_CMD, 2)
+        self._alarm_flag = True if data[1] & 0x01 else False
+
+        if not value and self._alarm_flag:
+            data[1] &= 0xFE
+            self._interface.write_data(self.RTC_CTRL_STATUS_CMD, data, True)
+            self._alarm_flag = False
+
+    def get_alarm(self):
+        data = self._interface.read_data(self.RTC_ALARM_CMD, 9)
+
+        if data[0] & 0x80:
+            self._second = 0
+        else:
+            self._second = hex_to_double_digit(data[0], high_digit_limit=0x07)
+
+        if data[1] & 0x80:
+            self._use_minute_period = True
+            self._minute = 0
+            self._minute_period = data[7]
+        else:
+            self._use_minute_period = False
+            self._minute = hex_to_double_digit(data[1], high_digit_limit=0x07)
+            self._minute_period = 0
+
+        if data[2] & 0x40:
+            self._hour_format = 12
+        else:
+            self._hour_format = 24
+
+        if data[2] & 0x80:
+            self._use_multiple_hours = True
+
+            if data[4] == 0xFF and data[5] == 0xFF and data[6] == 0xFF:
+                self._every_hour = True
+            else:
+                self._every_hour = False
+                hours = []
+                for i in range(0, 3):
+                    for j in range(0, 8):
+                        if data[i+4] & ((0x01 << j) & 0xFF):
+                            hours.append(i*8+j)
+
+                self._hours = tuple(hours)
+        else:
+            self._use_multiple_hours = False
+            self._every_hour = False
+
+            if self._hour_format == 12:
+                pm_shift = 12 if data[2] & 0x20 else 0
+                hour_12 = hex_to_double_digit(data[2], high_digit_limit=1)
+                self._hour = (0 if hour_12 == 12 else hour_12) + pm_shift
+            else:
+                self._hour = hex_to_double_digit(data[2], high_digit_limit=0x03)
+
+        if data[3] & 0x40:
+            self._use_weekday = True
+
+            if data[3] & 0x80:
+                self._use_multiple_weekdays = True
+                if data[8] == 0xff:
+                    self._every_day = True
+                else:
+                    self._every_day = False
+                    weekdays = []
+
+                    for j in range(1, 8):
+                        if data[8] & ((0x01 << j) & 0xFF):
+                            weekdays.append(j)
+
+                    self._weekdays = tuple(weekdays)
+            else:
+                self._every_day = False
+                self._use_multiple_weekdays = False
+                self._weekday = data[3] & 0x07
+        else:
+            self._use_weekday = False
+
+            if data[3] & 0x80:
+                self._every_day = True
+            else:
+                self._every_day = False
+                self._day = hex_to_double_digit(data[3], high_digit_limit=0x03)
+
+    def set_alarm(self, disable=False):
+        data = [0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0xFF]
+        if disable:
+            self._interface.write_data(self.RTC_ALARM_CMD, data, True, 0.2)
+
+        data[0] = double_digit_to_hex(self._second)
+
+        if self._use_minute_period:
+            data[1] = 0x80
+            data[7] = self._minute_period
+        else:
+            data[1] = double_digit_to_hex(self._minute)
+
+        if self._every_hour:
+            data[2] = 0x80
+        elif not self._use_multiple_hours:
+            if self._hour_format == 24:
+                data[2] = double_digit_to_hex(self._hour, high_digit_limit=0x03)
+            else:
+                if self._hour >= 12:  # PM
+                    hour_ampm = self._hour - 12 if self._hour != 12 else 12
+                    data[2] = double_digit_to_hex(hour_ampm) | 0x20 | 0x40
+                else:  # AM
+                    hour_ampm = self._hour if self._hour != 0 else 12
+                    data[2] = double_digit_to_hex(hour_ampm) | 0x40
+        else:
+            data[2] = 0x80
+            hs = 0x00000000
+
+            for hour in self._hours:
+                hs = hs | (0x00000001 << hour)
+
+            data[4] = hs & 0x000000FF
+            hs = hs >> 8
+            data[5] = hs & 0x000000FF
+            hs = hs >> 8
+            data[6] = hs & 0x000000FF
+
+        if self._use_weekday:
+            data[3] = 0x40
+
+            if self._every_day or self._use_multiple_weekdays:
+                data[3] |= 0x80
+            else:
+                data[3] |= self._weekday
+
+            if self._use_multiple_weekdays:
+                ds = 0x00
+                for day in self._weekdays:
+                    ds |= (0x01 << day)
+                data[8] = ds
+        else:
+            if self._every_day:
+                data[3] |= 0x80
+            else:
+                data[3] = double_digit_to_hex(self._day, high_digit_limit=0x03)
+
+        self._interface.write_data(self.RTC_ALARM_CMD, data)
+        time.sleep(0.2)
+        ret = self._interface.read_data(self.RTC_ALARM_CMD, 9)
+
+        if data != ret:
+            if ret[2] & 0x40:
+                pm_shift = 12 if ret[2] & 0x20 else 0
+                hour_12 = hex_to_double_digit(ret[2], high_digit_limit=1)
+                ret_hour = (0 if hour_12 == 12 else hour_12) + pm_shift
+            else:
+                ret_hour = hex_to_double_digit(ret[2], high_digit_limit=0x03)
+
+            if self._hour != ret_hour:
+                raise WriteMismatchError
+
+
+class Time:
+    RTC_TIME_CMD = 0xB0
+
+    def __init__(self, interface):
+        self._interface = interface
+
+        self._date_time = datetime.datetime.now()
+        self._hour_format = 24
+        self.subsecond = 0
+        self._dst_mode = DaylightSavingMode.NONE
+        self._store_operation = False
+
+    def get_date_time(self):
+        data = self._interface.read_data(self.RTC_TIME_CMD, 9)
+        second = hex_to_double_digit(data[0], high_digit_limit=7)
+        minute = hex_to_double_digit(data[1], high_digit_limit=7)
+
+        if data[2] & 0x40:
+            self._hour_format = 12
+            hour_12 = hex_to_double_digit(data[2], high_digit_limit=1)
+            pm_shift = 12 if (data[2] & 0x20) else 0
+            hour = (0 if hour_12 == 12 else hour_12) + pm_shift
+        else:
+            self._hour_format = 24
+            hour = hex_to_double_digit(data[2], high_digit_limit=2)
+
+        day = hex_to_double_digit(data[4], high_digit_limit=3)
+        month = hex_to_double_digit(data[5], high_digit_limit=1)
+        year = hex_to_double_digit(data[6]) + 2000
+
+        try:
+            self._date_time = datetime.datetime(year, month, day, hour, minute, second)
+        except ValueError:
+            raise DateTimeValidationError
+
+        self._dst_mode = DaylightSavingMode(data[8] & 0x03)
+        self._store_operation = bool(data[8] & 0x04)
+
+    def set_date_time(self, date_time, hour_format, dst_mode, store_operation):
+        if not isinstance(date_time, datetime.datetime):
+            raise BadArgumentError
+        if date_time.year < 2000 or date_time.year > 2099:
+            raise BadArgumentError
+        if hour_format not in (12, 24):
+            raise BadArgumentError
+        if not isinstance(dst_mode, DaylightSavingMode):
+            raise BadArgumentError
+
+        if hour_format == 12:
+            if date_time.hour >= 12:  # PM
+                hour_ampm = date_time.hour - 12 if date_time.hour != 12 else 12
+                hour = double_digit_to_hex(hour_ampm) | 0x20 | 0x40
+            else:  # AM
+                hour_ampm = date_time.hour if date_time.hour != 0 else 12
+                hour = double_digit_to_hex(hour_ampm) | 0x40
+        else:
+            hour = double_digit_to_hex(date_time.hour)
+
+        data = [
+            double_digit_to_hex(date_time.second),
+            double_digit_to_hex(date_time.minute), hour,
+            date_time.isoweekday(),
+            double_digit_to_hex(date_time.day),
+            double_digit_to_hex(date_time.month),
+            double_digit_to_hex(date_time.year - 2000),
+            self.subsecond,
+            dst_mode.value | 0x04 if store_operation else dst_mode.value
+        ]
+
+        self._interface.write_data(self.RTC_TIME_CMD, data)
+        time.sleep(0.2)
+        ret = self._interface.read_data(self.RTC_TIME_CMD, 9)
+
+        if data != ret and abs(ret[0] - data[0]) > 2:
+            raise WriteMismatchError
+
+        self._date_time = date_time
+        self._hour_format = hour_format
+        self._dst_mode = dst_mode
+        self._store_operation = store_operation
+
+    @property
+    def date_time(self):
+        return self._date_time
+
+    @property
+    def hour_format(self):
+        return self._hour_format
+
+    @property
+    def dst_mode(self):
+        return self._dst_mode
+
+    @property
+    def store_operation(self):
+        return self._store_operation
+
+
+class PiJuiceRtcAlarm:
+    def __init__(self, interface):
+        self._interface = interface
+        self.alarm = Alarm(self._interface)
+        self.time = Time(self._interface)
 
     def __enter__(self):
         # Just return this object so it can be used in a with statement
@@ -852,455 +1343,277 @@ class PiJuiceRtcAlarm(object):
 
     @pijuice_error_return
     def GetControlStatus(self):
-        d = self.interface.read_data(self.RTC_CTRL_STATUS_CMD, 2)
-        r = {}
-        if (d[0] & 0x01) and (d[0] & 0x04):
-            r['alarm_wakeup_enabled'] = True
-        else:
-            r['alarm_wakeup_enabled'] = False
-        if d[1] & 0x01:
-            r['alarm_flag'] = True
-        else:
-            r['alarm_flag'] = False
-        return {'data': r, 'error': 'NO_ERROR'}
+        self.alarm.update_control_status()
+        return {
+            'data': {
+                'alarm_wakeup_enabled': self.alarm.alarm_wake_up_enabled,
+                'alarm_flag': self.alarm.alarm_flag
+            },
+            'error': 'NO_ERROR'
+        }
 
     @pijuice_error_return
     def ClearAlarmFlag(self):
-        d = self.interface.read_data(self.RTC_CTRL_STATUS_CMD, 2)
-
-        if d[1] & 0x01:
-            d[1] = d[1] & 0xFE
-            self.interface.write_data(self.RTC_CTRL_STATUS_CMD, d, True)
-
+        self.alarm.alarm_flag = False
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def SetWakeupEnabled(self, status):
-        d = self.interface.read_data(self.RTC_CTRL_STATUS_CMD, 2)
-        is_enabled = (d[0] & 0x01) and (d[0] & 0x04)
-
-        if (is_enabled and status) or (not is_enabled and not status):
-            return {'error': 'NO_ERROR'}  # do nothing
-        elif is_enabled and not status:
-            d[0] = d[0] & 0xFE  # disable
-        elif not is_enabled and status:
-            d[0] = d[0] | 0x01 | 0x04  # enable
-
-        self.interface.write_data(self.RTC_CTRL_STATUS_CMD, d, True)
+        self.alarm.alarm_wake_up_enabled = status
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetTime(self):
-        d = self.interface.read_data(self.RTC_TIME_CMD, 9)
-        dt = {
-            'second': ((d[0] >> 4) & 0x07) * 10 + (d[0] & 0x0F),
-            'minute': ((d[1] >> 4) & 0x07) * 10 + (d[1] & 0x0F)
+        self.time.get_date_time()
+
+        if self.time.hour_format == 12:
+            pm_shift = 12 if self.time.date_time.hour >= 12 else 0
+            hour = (self.time.date_time.hour - pm_shift) if (self.time.date_time.hour - pm_shift) else 12
+            hour = '{}{}'.format(hour, 'PM' if pm_shift == 12 else 'AM')
+        else:
+            hour = self.time.date_time.hour
+
+        result = {
+            'second': self.time.date_time.second,
+            'minute': self.time.date_time.minute,
+            'hour': hour,
+            'weekday': self.time.date_time.isoweekday(),
+            'day': self.time.date_time.day,
+            'month': self.time.date_time.month,
+            'year': self.time.date_time.year,
+            'subsecond': self.time.subsecond,
+            'daylightsaving': self.time.dst_mode.name,
+            'storeoperation': self.time.store_operation
         }
 
-        if d[2] & 0x40:
-            # hourFormat = '12'
-            ampm = 'PM' if (d[2] & 0x20) else 'AM'
-            dt['hour'] = str(((d[2] >> 4) & 0x01) * 10 + (d[2] & 0x0F)) + ' ' + ampm
-        else:
-            # hourFormat = '24'
-            dt['hour'] = ((d[2] >> 4) & 0x03) * 10 + (d[2] & 0x0F)
-
-        dt['weekday'] = d[3] & 0x07
-        dt['day'] = ((d[4] >> 4) & 0x03) * 10 + (d[4] & 0x0F)
-        dt['month'] = ((d[5] >> 4) & 0x01) * 10 + (d[5] & 0x0F)
-        dt['year'] = ((d[6] >> 4) & 0x0F) * 10 + (d[6] & 0x0F) + 2000
-        dt['subsecond'] = d[7] // 256
-
-        if (d[8] & 0x03) == 2:
-            dt['daylightsaving'] = 'SUB1H'
-        elif (d[8] & 0x03) == 1:
-            dt['daylightsaving'] = 'ADD1H'
-        else:
-            dt['daylightsaving'] = 'NONE'
-
-        if d[8] & 0x04:
-            dt['storeoperation'] = True
-        else:
-            dt['storeoperation'] = False
-
-        return {'data': dt, 'error': 'NO_ERROR'}
+        return {'data': result, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def SetTime(self, dateTime):
-        d = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-        if not dateTime:
-            dt = {}
-        else:
-            dt = dateTime
+        try:
+            second = int(dateTime['second'])
+        except (KeyError, TypeError, ValueError):
+            raise InvalidSecondError
 
-        if 'second' in dt:
-            try:
-                s = int(dt['second'])
-            except:
-                raise InvalidSecondError
-            if s < 0 or s > 60:
-                raise InvalidSecondError
-            d[0] = ((s // 10) & 0x0F) << 4
-            d[0] = d[0] | ((s % 10) & 0x0F)
+        try:
+            minute = int(dateTime['minute'])
+        except (KeyError, TypeError, ValueError):
+            raise InvalidMinuteError
 
-        if 'minute' in dt:
-            try:
-                m = int(dt['minute'])
-            except:
-                raise InvalidMinuteError
-            if m < 0 or m > 60:
-                raise InvalidMinuteError
-            d[1] = ((m // 10) & 0x0F) << 4
-            d[1] = d[1] | ((m % 10) & 0x0F)
-
-        if 'hour' in dt:
-            try:
-                h = dt['hour']
-                if isinstance(h, str):
-                    if (h.find('AM') > -1) or (h.find('PM') > -1):
-                        if h.find('PM') > -1:
-                            hi = int(h.split('PM')[0])
-                            if hi < 1 or hi > 12:
-                                raise InvalidHourError
-                            d[2] = (((hi // 10) & 0x03) << 4)
-                            d[2] = d[2] | ((hi % 10) & 0x0F)
-                            d[2] = d[2] | 0x20 | 0x40
-                        else:
-                            hi = int(h.split('AM')[0])
-                            if hi < 1 or hi > 12:
-                                raise InvalidHourError
-                            d[2] = (((hi // 10) & 0x03) << 4)
-                            d[2] = d[2] | ((hi % 10) & 0x0F)
-                            d[2] = d[2] | 0x40
-                    else:
-                        h = int(h)
-                        if h < 0 or h > 23:
-                            raise InvalidHourError
-                        d[2] = (((h // 10) & 0x03) << 4)
-                        d[2] = d[2] | ((h % 10) & 0x0F)
-
-                elif isinstance(h, int):
-                    # assume 24 hour format
-                    if h < 0 or h > 23:
-                        raise InvalidHourError
-                    d[2] = (((int(h) // 10) & 0x03) << 4)
-                    d[2] = d[2] | ((int(h) % 10) & 0x0F)
-            except:
-                raise InvalidHourError
-
-        if 'weekday' in dt:
-            try:
-                day = int(dt['weekday'])
-            except:
-                raise InvalidWeekdayError
-            if day < 1 or day > 7:
-                raise InvalidWeekdayError
-            d[3] = day & 0x07
-
-        if 'day' in dt:
-            try:
-                da = int(dt['day'])
-            except:
-                raise InvalidDayError
-            if da < 1 or da > 31:
-                raise InvalidDayError
-            d[4] = ((da // 10) & 0x03) << 4
-            d[4] = d[4] | ((da % 10) & 0x0F)
-
-        if 'month' in dt:
-            try:
-                m = int(dt['month'])
-            except:
-                raise InvalidMonthError
-            if m < 1 or m > 12:
-                raise InvalidMonthError
-            d[5] = ((m // 10) & 0x01) << 4
-            d[5] = d[5] | ((m % 10) & 0x0F)
-
-        if 'year' in dt:
-            try:
-                y = int(dt['year']) - 2000
-            except:
-                raise InvalidYearError
-            if y < 0 or y > 99:
-                raise InvalidYearError
-            d[6] = ((y // 10) & 0x0F) << 4
-            d[6] = d[6] | ((y % 10) & 0x0F)
-
-        if 'subsecond' in dt:
-            try:
-                s = int(dt['subsecond']) * 256
-            except:
-                raise InvalidSubsecondError
-            if s < 0 or s > 255:
-                raise InvalidSubsecondError
-            d[7] = s
-
-        if 'daylightsaving' in dt:
-            if dt['daylightsaving'] == 'SUB1H':
-                d[8] |= 2
-            elif dt['daylightsaving'] == 'ADD1H':
-                d[8] |= 1
-
-        if dt.get('storeoperation'):
-            d[8] |= 0x04
-
-        self.interface.write_data(self.RTC_TIME_CMD, d)
-
-        # verify
-        time.sleep(0.2)
-        ret = self.interface.read_data(self.RTC_TIME_CMD, 9)
-
-        if d == ret:
-            return {'error': 'NO_ERROR'}
-        else:
-            if abs(ret[0] - d[0]) < 2:
-                ret[0] = d[0]
-                ret[7] = d[7]
-                if d == ret:
-                    return {'error': 'NO_ERROR'}
+        try:
+            hour_src = dateTime['hour']
+            if isinstance(hour_src, str):
+                # 12-hour format, PM
+                if re.match('^(0[1-9]|1[0-2]|[1-9])[pP][mM]$', hour_src):
+                    hour = int(re.match('^(0[1-9]|1[0-2]|[1-9])', hour_src)[0])
+                    hour_format = 12
+                    hour = 12 + hour if hour != 12 else 12
+                # 12-hour format, AM
+                elif re.match('^(0[1-9]|1[0-2]|[1-9])[aA][mM]$', hour_src):
+                    hour = int(re.match('^(0[1-9]|1[0-2]|[1-9])', hour_src)[0])
+                    hour_format = 12
+                    hour = hour if hour != 12 else 0
+                # 24-hour format is the same for both strings and integers
+                elif re.match('^(0[0-9]|1[0-9]|2[0-3]|[0-9])$', hour_src):
+                    hour = int(hour_src)
                 else:
-                    raise WriteMismatchError
+                    raise ValueError
+
+            if isinstance(hour_src, int):
+                hour_format = 24
+                hour = hour_src
             else:
-                raise WriteMismatchError
+                raise ValueError
+        except (KeyError, TypeError, ValueError):
+            raise InvalidHourError
+
+        try:
+            day = int(dateTime['day'])
+        except (KeyError, TypeError, ValueError):
+            raise InvalidDayError
+
+        try:
+            month = int(dateTime['month'])
+        except (KeyError, TypeError, ValueError):
+            raise InvalidMonthError
+
+        try:
+            year = int(dateTime['year'])
+        except (KeyError, TypeError, ValueError):
+            raise InvalidYearError
+
+        try:
+            date_time = datetime.datetime(year, month, day, hour, minute, second)
+        except ValueError:
+            raise DateTimeValidationError
+
+        if 'daylightsaving' in dateTime:
+            try:
+                dst_mode = DaylightSavingMode[dateTime['daylightsaving']]
+            except KeyError:
+                raise DateTimeValidationError
+        else:
+            dst_mode = DaylightSavingMode.NONE
+
+        store_operation = ('storeoperation' in dateTime)
+        self.time.set_date_time(date_time, hour_format, dst_mode, store_operation)
 
     @pijuice_error_return
     def GetAlarm(self):
-        d = self.interface.read_data(self.RTC_ALARM_CMD, 9)
-        alarm = {}
-        if (d[0] & 0x80) == 0x00:
-            alarm['second'] = ((d[0] >> 4) & 0x07) * 10 + (d[0] & 0x0F)
+        self.alarm.get_alarm()
+        alarm = {'second': self.alarm._second}
 
-        if (d[1] & 0x80) == 0x00:
-            alarm['minute'] = ((d[1] >> 4) & 0x07) * 10 + (d[1] & 0x0F)
+        if self.alarm._use_minute_period:
+            alarm['minute_period'] = self.alarm._minute_period
         else:
-            alarm['minute_period'] = d[7]
+            alarm['minute'] = self.alarm._minute
 
-        if (d[2] & 0x80) == 0x00:
-            if d[2] & 0x40:
-                # hourFormat = '12'
-                ampm = 'PM' if (d[2] & 0x20) else 'AM'
-                alarm['hour'] = str(((d[2] >> 4) & 0x01) * 10 + (d[2] & 0x0F)) + ' ' + ampm
+        if self.alarm._every_hour:
+            alarm['hour'] = 'EVERY_HOUR'
+        elif not self.alarm._use_multiple_hours:
+            if self.alarm._hour_format == 24:
+                alarm['hour'] = self.alarm._hour
             else:
-                # hourFormat = '24'
-                alarm['hour'] = ((d[2] >> 4) & 0x03) * 10 + (d[2] & 0x0F)
+                pm_shift = 12 if self.alarm._hour >= 12 else 0
+                hour = (self.alarm._hour - pm_shift) if (self.alarm._hour - pm_shift) else 12
+                alarm['hour'] = '{}{}'.format(hour, 'PM' if pm_shift == 12 else 'AM')
         else:
-            if d[4] == 0xFF and d[5] == 0xFF and d[6] == 0xFF:
-                alarm['hour'] = 'EVERY_HOUR'
+            if self.alarm._hour_format == 24:
+                alarm['hour'] = ';'.join((str(hour) for hour in self.alarm._hours))
             else:
-                h = ''
-                n = 0
-                for i in range(0, 3):
-                    for j in range(0, 8):
-                        if d[i+4] & ((0x01 << j) & 0xFF):
-                            if d[2] & 0x40:
-                                if (i*8+j) == 0:
-                                    h12 = '12AM'
-                                elif (i*8+j) == 12:
-                                    h12 = '12PM'
-                                else:
-                                    h12 = (str(i*8+j+1)+'AM') if ((i*8+j) < 12) else (str(i*8+j-11)+'PM')
-                                h = (h + ';') if n > 0 else h
-                                h = h + h12
-                            else:
-                                h = (h + ';') if n > 0 else h
-                                h = h + str(i*8+j)
-                            n = n + 1
-                alarm['hour'] = h
+                hours_12 = []
+                for hour in self.alarm._hours:
+                    pm_shift = 12 if hour >= 12 else 0
+                    hour_12 = (hour - pm_shift) if (hour - pm_shift) else 12
+                    hours_12.append('{}{}'.format(hour_12, 'PM' if pm_shift == 12 else 'AM'))
 
-        if d[3] & 0x40:
-            if (d[3] & 0x80) == 0x00:
-                alarm['weekday'] = d[3] & 0x07
+                alarm['hour'] = ';'.join(hours_12)
+
+        if self.alarm._use_weekday:
+            if self.alarm._every_day:
+                alarm['weekday'] = 'EVERY_DAY'
+            elif not self.alarm._use_multiple_weekdays:
+                alarm['weekday'] = self.alarm._weekday
             else:
-                if d[8] == 0xFF:
-                    alarm['weekday'] = 'EVERY_DAY'
-                else:
-                    day = ''
-                    n = 0
-                    for j in range(1, 8):
-                        if d[8] & ((0x01 << j) & 0xFF):
-                            day = (day + ';') if n > 0 else day
-                            day = day + str(j)
-                            n = n + 1
-                    alarm['weekday'] = day
+                alarm['weekday'] = ';'.join((str(weekday) for weekday in self.alarm._weekdays))
         else:
-            if (d[3] & 0x80) == 0x00:
-                alarm['day'] = ((d[3] >> 4) & 0x03) * 10 + (d[3] & 0x0F)
-            else:
+            if self.alarm._every_day:
                 alarm['day'] = 'EVERY_DAY'
+            else:
+                alarm['day'] = self.alarm._day
 
         return {'data': alarm, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def SetAlarm(self, alarm):
-        d = [0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0xFF]
         if not alarm:
-            # disable alarm
-            self.interface.write_data(self.RTC_ALARM_CMD, d, True, 0.2)
-            return {'error': 'NO_ERROR'}
+            self.alarm.set_alarm(False)
 
         if 'second' in alarm:
             try:
-                s = int(alarm['second'])
-            except:
+                self.alarm.second = int(alarm['second'])
+            except (TypeError, ValueError, BadArgumentError):
                 raise InvalidSecondError
-            if s < 0 or s > 60:
-                raise InvalidSecondError
-            d[0] = ((s // 10) & 0x0F) << 4
-            d[0] = d[0] | ((s % 10) & 0x0F)
+        else:
+            self.alarm.second = 0
 
         if 'minute' in alarm:
             try:
-                m = int(alarm['minute'])
-            except:
+                self.alarm.minute = int(alarm['minute'])
+            except (TypeError, ValueError, BadArgumentError):
                 raise InvalidMinuteError
-            if m < 0 or m > 60:
-                raise InvalidMinuteError
-            d[1] = ((m // 10) & 0x0F) << 4
-            d[1] = d[1] | ((m % 10) & 0x0F)
-        else:
-            d[1] = d[1] | 0x80  # every minute
-
-        if 'minute_period' in alarm:
-            d[1] = d[1] | 0x80
+        elif 'minute_period' in alarm:
             try:
-                s = int(alarm['minute_period'])
-            except:
+                self.alarm.minute_period = int(alarm['minute_period'])
+            except (TypeError, ValueError, BadArgumentError):
                 raise InvalidMinutePeriodError
-            if s < 1 or s > 60:
-                raise InvalidMinutePeriodError
-            d[7] = s
+        else:
+            self.alarm.minute_period = 1  # every minute
 
-        d[4] = 0xFF
-        d[5] = 0xFF
-        d[6] = 0xFF
         if 'hour' in alarm:
-            try:
-                h = alarm['hour']
-                if h == 'EVERY_HOUR':
-                    d[2] = 0x80
+            hour = alarm['hour']
+            if hour == 'EVERY_HOUR':
+                self.alarm.every_hour = True
+            elif isinstance(hour, int):
+                try:
+                    self.alarm.hour = hour
+                except BadArgumentError:
+                    raise InvalidHourError
 
-                elif isinstance(h, str) and h.find(';') < 0:
-                    if (h.find('AM') > -1) or (h.find('PM') > -1):
-                        if h.find('PM') > -1:
-                            hi = int(h.split('PM')[0])
-                            d[2] = (((hi // 10) & 0x03) << 4)
-                            d[2] = d[2] | ((hi % 10) & 0x0F)
-                            d[2] = d[2] | 0x20 | 0x40
-                        else:
-                            hi = int(h.split('AM')[0])
-                            d[2] = (((hi // 10) & 0x03) << 4)
-                            d[2] = d[2] | ((hi % 10) & 0x0F)
-                            d[2] = d[2] | 0x40
-                    else:
-                        d[2] = (((int(h) // 10) & 0x03) << 4)
-                        d[2] = d[2] | ((int(h) % 10) & 0x0F)
-
-                elif isinstance(h, int):
-                    # assume 24 hour format
-                    d[2] = (((int(h) // 10) & 0x03) << 4)
-                    d[2] = d[2] | ((int(h) % 10) & 0x0F)
-
-                elif isinstance(h, str) and h.find(';') >= 0:
-                    hs = 0x00000000
-                    # hFormat = ''
-                    hl = h.split(';')
-                    # remove ending empty string if there is ; at the end of list
-                    hl = hl[0:-1] if (not bool(hl[-1].strip())) else hl
-                    for i in hl:
-                        if (i.find('AM') > -1) or (i.find('PM') > -1):
-                            if i.find('AM') > -1:
-                                ham = int(i.split('AM')[0])
-                                if ham < 12:
-                                    hs = hs | (0x00000001 << ham)
-                                else:
-                                    hs = hs | 0x00000001
+                self.alarm.hour_format = 24
+            elif isinstance(hour, str):
+                # 12-hour format, PM
+                if re.match('^(0[1-9]|1[0-2]|[1-9])[pP][mM]$', hour):
+                    hour = int(re.match('^(0[1-9]|1[0-2]|[1-9])', hour)[0])
+                    self.alarm.hour_format = 12
+                    self.alarm.hour = 12 + hour if hour != 12 else 12
+                # 12-hour format, AM
+                elif re.match('^(0[1-9]|1[0-2]|[1-9])[aA][mM]$', hour):
+                    hour = int(re.match('^(0[1-9]|1[0-2]|[1-9])', hour)[0])
+                    self.alarm.hour_format = 12
+                    self.alarm.hour = hour if hour != 12 else 0
+                # 24-hour format is the same for both strings and integers
+                elif re.match('^(0[0-9]|1[0-9]|2[0-3]|[0-9])$', hour):
+                    self.alarm.hour_format = 24
+                    self.alarm.hour = int(hour)
+                elif ';' in hour:
+                    hours = hour.rstrip(';').split(';')
+                    if hours:
+                        self.alarm.hour_format = 24
+                        out_hours = []
+                        for elem in hours:
+                            if re.match('^(0[1-9]|1[0-2]|[1-9])[pP][mM]$', elem):
+                                h = int(re.match('^(0[1-9]|1[0-2]|[1-9])', elem)[0])
+                                out_hours.append(12 + h if h != 12 else 12)
+                            # 12-hour format, AM
+                            elif re.match('^(0[1-9]|1[0-2]|[1-9])[aA][mM]$', elem):
+                                h = int(re.match('^(0[1-9]|1[0-2]|[1-9])', elem)[0])
+                                out_hours.append(h if h != 12 else 12)
+                            # 24-hour format is the same for both strings and integers
+                            elif re.match('^(0[0-9]|1[0-9]|2[0-3]|[0-9])$', hour):
+                                out_hours.append(int(hour))
                             else:
-                                hpm = int(i.split('PM')[0])
-                                if hpm < 12:
-                                    hs = hs | (0x00000001 << (hpm+12))
-                                else:
-                                    hs = hs | (0x00000001 << 12)
-                        else:
-                            hs = hs | (0x00000001 << int(i))
-                    d[2] = 0x80
-                    d[4] = hs & 0x000000FF
-                    hs = hs >> 8
-                    d[5] = hs & 0x000000FF
-                    hs = hs >> 8
-                    d[6] = hs & 0x000000FF
-            except:
-                raise InvalidHourError
-        else:
-            d[2] = 0x80  # every hour
-
-        d[8] = 0xFF
-        if 'weekday' in alarm:
-            try:
-                day = alarm['weekday']
-                if day == 'EVERY_DAY':
-                    d[3] = 0x80 | 0x40
-
-                elif isinstance(day, str) and day.find(';') < 0:
-                    dw = int(day)
-                    d[3] = d[3] | (dw & 0x0F) | 0x40
-
-                elif isinstance(day, int):
-                    dw = int(day)
-                    d[3] = d[3] | (dw & 0x0F) | 0x40
-
-                elif isinstance(day, str) and day.find(';') >= 0:
-                    d[3] = 0x40 | 0x80
-                    ds = 0x00
-                    dl = day.split(';')
-                    dl = dl[0:-1] if (not bool(dl[-1].strip())) else dl
-                    for i in dl:
-                        ds = ds | (0x01 << int(i))
-                    d[8] = ds
-            except:
-                raise InvalidWeekdayError
-        elif 'day' in alarm:
-            try:
-                day = alarm['day']
-                if day == 'EVERY_DAY':
-                    d[3] = 0x80
-
+                                raise InvalidHourError
+                        self.alarm.hours = out_hours
+                    else:
+                        raise InvalidHourError
                 else:
-                    dm = int(day)
-                    d[3] = (((dm // 10) & 0x03) << 4)
-                    d[3] = d[3] | ((dm % 10) & 0x0F)
-            except:
-                raise InvalidDayOfMonthError
+                    raise InvalidHourError
         else:
-            d[3] = 0x80  # every day
+            self.alarm.every_hour = True
 
-        self.interface.write_data(self.RTC_ALARM_CMD, d)
-        # verify
-        time.sleep(0.2)
-        ret = self.interface.read_data(self.RTC_ALARM_CMD, 9)
-        if d == ret:
-            return {'error': 'NO_ERROR'}
+        if 'weekday' in alarm:
+            if alarm['weekday'] == 'EVERY_DAY':
+                self.alarm.every_day = True
+            elif ';' not in alarm['weekday']:
+                try:
+                    self.alarm.weekday = int(alarm['weekday'])
+                except (TypeError, ValueError, BadArgumentError):
+                    raise InvalidWeekdayError
+            else:
+                weekdays = alarm['weekday'].rstrip(';').split(';')
+                if weekdays:
+                    weekdays_out = []
+                    try:
+                        for wd in weekdays:
+                            weekdays_out.append(int(wd))
+                        self.alarm.weekdays = weekdays_out
+                    except (TypeError, ValueError, BadArgumentError):
+                        raise InvalidDayError
+                else:
+                    raise InvalidWeekdayError
+        elif 'day' in alarm:
+            if alarm['day'] == 'EVERY_DAY':
+                self.alarm.every_day = True
+            else:
+                try:
+                    self.alarm.day = int(alarm['day'])
+                except (TypeError, ValueError, BadArgumentError):
+                    raise InvalidDayError
         else:
-            h1 = d[2]
-            h2 = ret[2]
-            if h1 & 0x40:  # convert to 24 hour format
-                h1Bin = ((h1 >> 4) & 0x01) * 10 + (h1 & 0x0F)
-                h1Bin = h1Bin if h1Bin < 12 else 0
-                h1Bin = h1Bin + (12 if h1 & 0x20 else 0)
-            else:
-                h1Bin = ((h1 >> 4) & 0x03) * 10 + (h1 & 0x0F)
-            if h2 & 0x40:  # convert to 24 hour format
-                h2Bin = ((h2 >> 4) & 0x01) * 10 + (h2 & 0x0F)
-                h2Bin = h2Bin if h2Bin < 12 else 0
-                h2Bin = h2Bin + (12 if h2 & 0x20 else 0)
-            else:
-                h2Bin = ((h2 >> 4) & 0x03) * 10 + (h2 & 0x0F)
-            d[2] = h1Bin | (d[2] & 0x80)
-            ret[2] = h2Bin | (ret[2] & 0x80)
-            if d == ret:
-                return {'error': 'NO_ERROR'}
-            else:
-                raise WriteMismatchError
+            self.alarm.every_day = True
+
+        self.alarm.set_alarm()
 
 
 class PiJuicePower(object):
