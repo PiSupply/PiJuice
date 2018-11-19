@@ -1616,15 +1616,20 @@ class PiJuiceRtcAlarm:
         self.alarm.set_alarm()
 
 
-class PiJuicePower(object):
-
+class PiJuicePower:
     WATCHDOG_ACTIVATION_CMD = 0x61
     POWER_OFF_CMD = 0x62
     WAKEUP_ON_CHARGE_CMD = 0x63
     SYSTEM_POWER_SWITCH_CTRL_CMD = 0x64
 
     def __init__(self, interface):
-        self.interface = interface
+        self._interface = interface
+
+        self._power_off = 0
+        self._wake_up_on_charge = 0
+        self._is_wake_up_on_charge_enabled = False
+        self._watchdog = 0
+        self._system_power_switch = 0
 
     def __enter__(self):
         # Just return this object so it can be used in a with statement
@@ -1633,69 +1638,130 @@ class PiJuicePower(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         return False  # Don't suppress exceptions.
 
+    @property
+    def power_off(self):
+        self._power_off = self._interface.read_data(self.POWER_OFF_CMD, 1)[0]
+        return self._power_off
+
+    @power_off.setter
+    def power_off(self, value):
+        self._interface.write_data(self.POWER_OFF_CMD, [value])
+        self._power_off = value
+
+    @property
+    def wake_up_on_charge(self):
+        data = self._interface.read_data(self.WAKEUP_ON_CHARGE_CMD, 1)[0]
+        self._is_wake_up_on_charge_enabled = (data != 0xff)
+        self._wake_up_on_charge = data
+        return data
+
+    @wake_up_on_charge.setter
+    def wake_up_on_charge(self, value):
+        if not isinstance(value, int) or value > 100 or value < 0:
+            raise BadArgumentError
+
+        self._interface.write_data(self.WAKEUP_ON_CHARGE_CMD, [value], True)
+        self._wake_up_on_charge = value
+
+    @property
+    def wake_up_on_charge_enabled(self):
+        data = self._interface.read_data(self.WAKEUP_ON_CHARGE_CMD, 1)[0]
+        self._is_wake_up_on_charge_enabled = (data != 0xff)
+        return self._is_wake_up_on_charge_enabled
+
+    def disable_wake_up_on_charge(self):
+        self._interface.write_data(self.WAKEUP_ON_CHARGE_CMD, [0x7f], True)
+        self._is_wake_up_on_charge_enabled = False
+
+    @property
+    def watchdog(self):
+        data = self._interface.read_data(self.WATCHDOG_ACTIVATION_CMD, 2)
+        self._watchdog = (data[1] << 8) | data[0]
+        return self._watchdog
+
+    @watchdog.setter
+    def watchdog(self, value):
+        if not isinstance(value, int) or value > 65535 or value < 0:
+            raise BadArgumentError
+
+        self._interface.write_data(self.WATCHDOG_ACTIVATION_CMD, [value & 0xFF, (value >> 8) & 0xFF])
+        self._watchdog = value
+
+    @property
+    def system_power_switch(self):
+        data = self._interface.read_data(self.SYSTEM_POWER_SWITCH_CTRL_CMD, 1)
+        self._system_power_switch = data[0] * 100
+        return self._system_power_switch
+
+    @system_power_switch.setter
+    def system_power_switch(self, value):
+        if not isinstance(value, int):
+            raise BadArgumentError
+
+        data = value // 100  # milliampere -> deciampere
+        self._interface.write_data(self.SYSTEM_POWER_SWITCH_CTRL_CMD, [data])
+        self._system_power_switch = value
+
     @pijuice_error_return
     def SetPowerOff(self, delay):
-        self.interface.write_data(self.POWER_OFF_CMD, [delay])
+        self.power_off = delay
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetPowerOff(self):
-        return self.interface.read_data(self.POWER_OFF_CMD, 1)
+        return {'data': self.power_off, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def SetWakeUpOnCharge(self, arg):
         try:
             if arg == 'DISABLED':
-                d = 0x7F
+                self.disable_wake_up_on_charge()
             elif 0 <= int(arg) <= 100:
-                d = int(arg)
+                self.wake_up_on_charge = int(arg)
             else:
                 raise ValueError
         except (TypeError, ValueError):
             raise BadArgumentError
 
-        self.interface.write_data(self.WAKEUP_ON_CHARGE_CMD, [d], True)
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetWakeUpOnCharge(self):
-        ret = self.interface.read_data(self.WAKEUP_ON_CHARGE_CMD, 1)
-        d = ret[0]
+        data = self.wake_up_on_charge
 
-        if d == 0xFF:
+        if not self._is_wake_up_on_charge_enabled:
             return {'data': 'DISABLED', 'error': 'NO_ERROR'}
         else:
-            return {'data': d, 'error': 'NO_ERROR'}
+            return {'data': data, 'error': 'NO_ERROR'}
 
     # input argument 1 - 65535 minutes activates watchdog, 0 disables watchdog
     @pijuice_error_return
     def SetWatchdog(self, minutes):
         try:
             d = int(minutes) & 0xFFFF
-        except:
+        except (TypeError, ValueError):
             raise BadArgumentError
 
-        self.interface.write_data(self.WATCHDOG_ACTIVATION_CMD, [d & 0xFF, (d >> 8) & 0xFF])
+        self.watchdog = d
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetWatchdog(self):
-        d = self.interface.read_data(self.WATCHDOG_ACTIVATION_CMD, 2)
-        return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
+        return {'data': self.watchdog, 'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def SetSystemPowerSwitch(self, state):
         try:
-            d = int(state) // 100
-        except:
+            d = int(state)
+        except (TypeError, ValueError):
             raise BadArgumentError
-        self.interface.write_data(self.SYSTEM_POWER_SWITCH_CTRL_CMD, [d])
+
+        self.system_power_switch = d
         return {'error': 'NO_ERROR'}
 
     @pijuice_error_return
     def GetSystemPowerSwitch(self):
-        ret = self.interface.read_data(self.SYSTEM_POWER_SWITCH_CTRL_CMD, 1)
-        return {'data': ret[0] * 100, 'error': 'NO_ERROR'}
+        return {'data': self.system_power_switch, 'error': 'NO_ERROR'}
 
 
 class PiJuiceConfig(object):
