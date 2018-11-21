@@ -230,6 +230,23 @@ def reload_settings(signum=None, frame=None):
     lowBatVolEn = sysEvEn and configData.get('system_events', {}).get('low_battery_voltage', {}).get('enabled', False)
     noPowEn = sysEvEn and configData.get('system_events', {}).get('no_power', {}).get('enabled', False)
 
+    # Update watchdog setting
+    if (('watchdog' in configData['system_task'])
+            and ('enabled' in configData['system_task']['watchdog'])
+            and configData['system_task']['watchdog']['enabled']
+            and ('period' in configData['system_task']['watchdog'])
+        ):
+        try:
+            p = int(configData['system_task']['watchdog']['period'])
+            ret = pijuice.power.SetWatchdog(p)
+        except:
+            p = None
+    else:
+        # Disable watchdog
+        ret = pijuice.power.SetWatchdog(0)
+        if ret['error'] != 'NO_ERROR':
+            time.sleep(0.05)
+            pijuice.power.SetWatchdog(0)
 
 def main():
     global pijuice
@@ -299,16 +316,7 @@ def main():
                 pass
         sys.exit(0)
 
-    if (('watchdog' in configData['system_task'])
-            and ('enabled' in configData['system_task']['watchdog'])
-            and configData['system_task']['watchdog']['enabled']
-            and ('period' in configData['system_task']['watchdog'])
-        ):
-        try:
-            p = int(configData['system_task']['watchdog']['period'])
-            ret = pijuice.power.SetWatchdog(p)
-        except:
-            p = None
+    # Watchdog already updated in reload_settings()
 
     timeCnt = 5
 
