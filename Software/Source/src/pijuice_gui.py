@@ -1362,6 +1362,8 @@ class PiJuiceWakeupConfig(object):
 
     def _SetTime(self, v):
         t = datetime.datetime.utcnow()
+        pijuice.rtcAlarm.SetTime({'second':t.second, 'minute':t.minute, 'hour':t.hour, 'weekday':(t.weekday()+1) % 7 + 1,
+                                  'day':t.day, 'month':t.month, 'year':t.year, 'subsecond':t.microsecond//1000000})
 
     def _WakeupEnableChecked(self, *args):
         ret = pijuice.rtcAlarm.SetWakeupEnabled(self.wakeupEnabled.get())
