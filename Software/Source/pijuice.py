@@ -399,7 +399,7 @@ class Faults:
         self._watchdog_reset = False
 
 
-class PiJuiceHardFunction(Enum):
+class PiJuiceHardFunction(Enum):  # Maybe unite all the functions?
     HARD_FUNC_POWER_ON = 0
     HARD_FUNC_POWER_OFF = 1
     HARD_FUNC_RESET = 1
@@ -458,11 +458,7 @@ class Button:
         self.index = index
         self.name = 'SW{}'.format(self.index + 1)
         self._event_state = ButtonEvent.UNKNOWN
-
         self._events = [ButtonEventFunction(ButtonEvent(x)) for x in range(len(ButtonEvent))]
-
-        self._event_functions = [None for x in range(len(ButtonEvent))]
-        self._event_params = [None for x in range(len(ButtonEvent))]
 
     @property
     def event_state(self):
