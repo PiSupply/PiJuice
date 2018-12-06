@@ -15,7 +15,7 @@ import re
 
 from pijuice import PiJuice
 
-pijuice = None
+pj = None
 btConfig = {}
 
 configPath = '/var/lib/pijuice/pijuice_config.JSON'  # os.getcwd() + '/pijuice_config.JSON'
@@ -41,10 +41,10 @@ def _SystemHalt(event):
 
         try:
             tl = float(configData['system_task']['wakeup_on_charge']['trigger_level'])
-            pijuice.power.SetWakeUpOnCharge(tl)
+            pj.power.SetWakeUpOnCharge(tl)
         except:
             tl = None
-    pijuice.status.SetLedBlink('D2', 3, [150, 0, 0], 200, [0, 100, 0], 200)
+    pj.status.SetLedBlink('D2', 3, [150, 0, 0], 200, [0, 100, 0], 200)
     # Setting halt flag for 'pijuice_sys.py stop'
     with open(HALT_FILE, 'w') as f:
         pass
@@ -55,11 +55,11 @@ def ExecuteFunc(func, event, param):
     if func == 'SYS_FUNC_HALT':
         _SystemHalt(event)
     elif func == 'SYS_FUNC_HALT_POW_OFF':
-        pijuice.power.SetSystemPowerSwitch(0)
-        pijuice.power.SetPowerOff(60)
+        pj.power.SetSystemPowerSwitch(0)
+        pj.power.SetPowerOff(60)
         _SystemHalt(event)
     elif func == 'SYS_FUNC_SYS_OFF_HALT':
-        pijuice.power.SetSystemPowerSwitch(0)
+        pj.power.SetSystemPowerSwitch(0)
         _SystemHalt(event)
     elif func == 'SYS_FUNC_REBOOT':
         subprocess.call(["sudo", "reboot"])
@@ -116,13 +116,13 @@ def ExecuteFunc(func, event, param):
 
 
 def _EvalButtonEvents():
-    btEvents = pijuice.status.GetButtonEvents()
+    btEvents = pj.status.GetButtonEvents()
     if btEvents['error'] == 'NO_ERROR':
-        for b in pijuice.config.buttons:
+        for b in pj.config.buttons:
             ev = btEvents['data'][b]
             if ev != 'NO_EVENT':
                 if btConfig[b][ev]['function'] != 'USER_EVENT':
-                    pijuice.status.AcceptButtonEvent(b)
+                    pj.status.AcceptButtonEvent(b)
                     if btConfig[b][ev]['function'] != 'NO_FUNC':
                         ExecuteFunc(btConfig[b][ev]['function'], ev, b)
         return True
@@ -132,7 +132,7 @@ def _EvalButtonEvents():
 
 def _EvalCharge():
     global lowChgEn
-    charge = pijuice.status.GetChargeLevel()
+    charge = pj.status.GetChargeLevel()
     if charge['error'] == 'NO_ERROR':
         level = float(charge['data'])
         global chargeLevel
@@ -152,7 +152,7 @@ def _EvalCharge():
 
 def _EvalBatVoltage():
     global lowBatVolEn
-    bv = pijuice.status.GetBatteryVoltage()
+    bv = pj.status.GetBatteryVoltage()
     if bv['error'] == 'NO_ERROR':
         v = float(bv['data']) / 1000
         try:
@@ -183,16 +183,16 @@ def _EvalPowerInputs(status):
 
 
 def _EvalFaultFlags():
-    faults = pijuice.status.GetFaultStatus()
+    faults = pj.status.GetFaultStatus()
     if faults['error'] == 'NO_ERROR':
         faults = faults['data']
-        for f in (pijuice.status.faultEvents + pijuice.status.faults):
+        for f in (pj.status.faultEvents + pj.status.faults):
             if f in faults:
                 if sysEvEn \
                         and (f in configData['system_events']) \
                         and ('enabled' in configData['system_events'][f]) and configData['system_events'][f]['enabled']:
                     if configData['system_events'][f]['function'] != 'USER_EVENT':
-                        pijuice.status.ResetFaultFlags([f])
+                        pj.status.ResetFaultFlags([f])
                         ExecuteFunc(configData['system_events'][f]['function'],
                                     f, faults[f])
         return True
@@ -201,7 +201,7 @@ def _EvalFaultFlags():
 
 
 def reload_settings(signum=None, frame=None):
-    global pijuice
+    global pj
     global configData
     global btConfig
     global sysEvEn
@@ -216,8 +216,8 @@ def reload_settings(signum=None, frame=None):
         configData.update(config_dict)
 
     try:
-        for b in pijuice.config.buttons:
-            conf = pijuice.config.GetButtonConfiguration(b)
+        for b in pj.config.buttons:
+            conf = pj.config.GetButtonConfiguration(b)
             if conf['error'] == 'NO_ERROR':
                 btConfig[b] = conf['data']
     except:
@@ -237,19 +237,19 @@ def reload_settings(signum=None, frame=None):
             and ('period' in configData['system_task']['watchdog']):
         try:
             p = int(configData['system_task']['watchdog']['period'])
-            ret = pijuice.power.SetWatchdog(p)
+            ret = pj.power.SetWatchdog(p)
         except:
             p = None
     else:
         # Disable watchdog
-        ret = pijuice.power.SetWatchdog(0)
+        ret = pj.power.SetWatchdog(0)
         if ret['error'] != 'NO_ERROR':
             time.sleep(0.05)
-            pijuice.power.SetWatchdog(0)
+            pj.power.SetWatchdog(0)
 
 
 def main():
-    global pijuice
+    global pj
     global btConfig
     global configData
     global status
@@ -270,7 +270,7 @@ def main():
             conf_f.write(json.dumps(configData))
 
     try:
-        pijuice = PiJuice(1, 0x14)
+        pj = PiJuice(1, 0x14)
     except:
         sys.exit(0)
 
@@ -290,10 +290,10 @@ def main():
                     and ('enabled' in configData['system_task']['watchdog'])
                     and configData['system_task']['watchdog']['enabled']):
                 # Disabling watchdog
-                ret = pijuice.power.SetWatchdog(0)
+                ret = pj.power.SetWatchdog(0)
                 if ret['error'] != 'NO_ERROR':
                     time.sleep(0.05)
-                    ret = pijuice.power.SetWatchdog(0)
+                    ret = pj.power.SetWatchdog(0)
         except:
             pass
         sysJobTargets = subprocess.check_output(["sudo", "systemctl", "list-jobs"]).decode('utf-8')
@@ -302,7 +302,7 @@ def main():
         # swStop = True if halt|shutdown exists
         swStop = True if re.search('(?:halt|shutdown).target.*start', sysJobTargets) is not None else False
         causePowerOff = True if (swStop and not reboot) else False
-        ret = pijuice.status.GetStatus()
+        ret = pj.status.GetStatus()
         if ( ret['error'] == 'NO_ERROR' 
             and not isHalting
             and causePowerOff                                # proper time to power down (!rebooting)
@@ -311,7 +311,7 @@ def main():
             # Set duration for when pijuice will cut power (Recommended 30+ sec, for halt to complete)
             try:
                 powerOffDelay = int(configData['system_task']['ext_halt_power_off'].get('period', 30))
-                pijuice.power.SetPowerOff(powerOffDelay)
+                pj.power.SetPowerOff(powerOffDelay)
             except ValueError:
                 pass
         sys.exit(0)
@@ -322,7 +322,7 @@ def main():
 
     while dopoll:
         if configData.get('system_task', {}).get('enabled'):
-            ret = pijuice.status.GetStatus()
+            ret = pj.status.GetStatus()
             if ret['error'] == 'NO_ERROR':
                 status = ret['data']
                 if status['isButton']:
