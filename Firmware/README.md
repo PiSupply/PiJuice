@@ -49,6 +49,9 @@ To recover from this issue follow these steps:
 4. Release SW3 button after few seconds to enter bootloader mode\
 **NOTE: LEDs on the PiJuice will remain off**
 5. Stop the pijuice service with `sudo systemctl stop pijuice.service`
-6. Run `pijuiceboot 14 <firmware version>`
-7. Shutdown the Raspberry Pi and remove power
-8. Connect the battery to the PiJuice and boot up as normal
+6. Download the Github repository `sudo git clone https://github.com/PiSupply/PiJuice.git`
+7. Enter the Firmware directory `cd PiJuice/Firmware/`
+8. Run `pijuiceboot 14 PiJuice-V1.2_2018_05_02.elf.binary`
+9. Wait until the Firmware has successfully flashed
+10. Shutdown the Raspberry Pi and remove power
+11. Connect the battery to the PiJuice and boot up as normal
