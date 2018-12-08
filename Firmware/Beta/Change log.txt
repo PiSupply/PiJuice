@@ -1,0 +1,3 @@
+- Improved Battery charge level measurement. Eliminated sudden jumps and improved accuracy. 
+- Added possibility for configuring and calibrating charge level measurement for different  
+  Li-ion chemistries, particularly Lifepo4.
