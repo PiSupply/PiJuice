@@ -1,27 +1,21 @@
 #!/usr/bin/env python
-from __future__ import division, print_function
-
-import re
-
-__version__ = "1.4"
-
 from collections import namedtuple
 import ctypes
 import datetime
 from enum import Enum
 import sys
+import re
 import threading
 import time
 
 from smbus import SMBus
 
-pijuice_hard_functions = ['HARD_FUNC_POWER_ON', 'HARD_FUNC_POWER_OFF', 'HARD_FUNC_RESET']
-pijuice_sys_functions = ['SYS_FUNC_HALT', 'SYS_FUNC_HALT_POW_OFF', 'SYS_FUNC_SYS_OFF_HALT', 'SYS_FUNC_REBOOT']
-pijuice_user_functions = ['USER_EVENT'] + ['USER_FUNC' + str(i + 1) for i in range(0, 15)]
+__version__ = "1.4"
 
 IO_PINS_COUNT = 2
 LEDS_COUNT = 2
 SLAVE_COUNT = 2
+USER_FUNCTIONS_COUNT = 15
 
 
 class PiJuiceError(Exception):
@@ -412,7 +406,8 @@ class PiJuiceSysFunction(Enum):
     SYS_FUNC_REBOOT = 3
 
 
-PiJuiceUserFunction = Enum('PiJuiceUserFunction', ['USER_EVENT'] + ['USER_FUNC{}'.format(x) for x in range(1, 16)])
+PiJuiceUserFunction = Enum('PiJuiceUserFunction', ['USER_EVENT'] + ['USER_FUNC{}'.format(x)
+                                                                    for x in range(1, USER_FUNCTIONS_COUNT+1)])
 PiJuiceNoFunction = Enum('PiJuiceNoFunction', ('NO_FUNC', 'UNKNOWN'))
 
 

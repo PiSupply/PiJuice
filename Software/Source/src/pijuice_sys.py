@@ -11,7 +11,158 @@ import sys
 import time
 import re
 
-from pijuice import PiJuice
+from pijuice import PiJuice, FaultEvent, USER_FUNCTIONS_COUNT
+
+
+class PiJuiceJSONConfig:
+    SYS_EVENTS = ['low_charge', 'low_battery_voltage', 'no_power'] + [e.name for e in FaultEvent] + \
+                 ['battery_profile_invalid', 'charging_temperature_fault']
+    USER_FUNC_NAMES = ('USER_FUNC{}'.format(x) for x in range(1, USER_FUNCTIONS_COUNT + 1))
+
+    def __init__(self, config_path):
+        self.config_path = config_path
+
+        # It should work with a self.reset() call, but defining attributes explicitly in the __init__ method is good.
+        self.system_task_enabled = False
+        self.wakeup_on_charge_enabled = False
+        self.wakeup_on_charge_trigger_level = 0.0
+        self.min_charge_enabled = False
+        self.min_charge_threshold = 0.0
+        self.min_bat_voltage_enabled = False
+        self.min_bat_voltage_threshold = 0.0
+        self.watchdog_enabled = False
+        self.watchdog_period = 0
+        self.ext_halt_power_off_enabled = False
+        self.ext_halt_power_off_period = 30
+
+        self.system_events_enabled = False
+        self.system_events = {e: {'enabled': False, 'function': None} for e in self.SYS_EVENTS}
+        self.user_functions = ['' for x in range(USER_FUNCTIONS_COUNT + 1)]
+
+    def reset(self):
+        self.system_task_enabled = False
+        self.wakeup_on_charge_enabled = False
+        self.wakeup_on_charge_trigger_level = 0.0
+        self.min_charge_enabled = False
+        self.min_charge_threshold = 0.0
+        self.min_bat_voltage_enabled = False
+        self.min_bat_voltage_threshold = 0.0
+        self.watchdog_enabled = False
+        self.watchdog_period = 0
+        self.ext_halt_power_off_enabled = False
+        self.ext_halt_power_off_period = 30
+
+        self.system_events_enabled = False
+        self.system_events = {e: {'enabled': False, 'function': None} for e in self.SYS_EVENTS}
+        self.user_functions = ['' for x in range(USER_FUNCTIONS_COUNT + 1)]
+
+    def as_dict(self):
+        data = {
+            'system_task': {
+                'enabled': self.system_task_enabled,
+                'wakeup_on_charge': {
+                    'enabled': self.wakeup_on_charge_enabled,
+                    'trigger_level': self.wakeup_on_charge_trigger_level
+                },
+                'min_charge': {
+                    'enabled': self.min_charge_enabled,
+                    'threshold': self.min_charge_threshold
+                },
+                'min_bat_voltage': {
+                    'enabled': self.min_bat_voltage_enabled,
+                    'threshold': self.min_bat_voltage_threshold
+                },
+                'watchdog': {
+                    'enabled': self.watchdog_enabled,
+                    'period': self.watchdog_period
+                },
+                'ext_halt_power_off': {
+                    'enabled': self.ext_halt_power_off_enabled,
+                    'period': self.ext_halt_power_off_period
+                }
+            },
+            'user_functions': {'USER_FUNC{}'.format(x+1): self.user_functions[x] for x in range(USER_FUNCTIONS_COUNT)}
+        }
+
+        if self.system_events_enabled:
+            data['system_events'] = self.system_events
+
+        return data
+
+    def from_dict(self, src_dict):
+        """
+        May cause errors on type conversion.
+        :param src_dict:
+        :return:
+        """
+        if not isinstance(src_dict, dict):
+            raise TypeError
+
+        self.reset()
+
+        if 'system_task' in src_dict:
+            if 'enabled' in src_dict['system_task']:
+                self.system_task_enabled = bool(src_dict['system_task']['enabled'])
+            if 'wakeup_on_charge' in src_dict['system_task']:
+                if 'enabled' in src_dict['system_task']['wakeup_on_charge']:
+                    self.wakeup_on_charge_enabled = bool(src_dict['system_task']['wakeup_on_charge'])
+                if 'trigger_level' in src_dict['system_task']['wakeup_on_charge']:
+                    self.wakeup_on_charge_trigger_level = \
+                        float(src_dict['system_task']['wakeup_on_charge']['trigger_level'])
+            if 'min_charge' in src_dict['system_task']:
+                if 'enabled' in src_dict['system_task']['min_charge']:
+                    self.min_charge_enabled = bool(src_dict['system_task']['min_charge'])
+                if 'threshold' in src_dict['system_task']['min_charge']:
+                    self.min_charge_threshold = float(src_dict['system_task']['min_charge']['threshold'])
+            if 'min_bat_voltage' in src_dict['system_task']:
+                if 'enabled' in src_dict['system_task']['min_bat_voltage']:
+                    self.min_bat_voltage_enabled = bool(src_dict['system_task']['min_bat_voltage'])
+                if 'threshold' in src_dict['system_task']['min_bat_voltage']:
+                    self.min_bat_voltage_threshold = float(src_dict['system_task']['min_bat_voltage']['threshold'])
+            if 'watchdog' in src_dict['system_task']:
+                if 'enabled' in src_dict['system_task']['watchdog']:
+                    self.watchdog_enabled = bool(src_dict['system_task']['watchdog'])
+                if 'period' in src_dict['system_task']['watchdog']:
+                    self.watchdog_period = int(src_dict['system_task']['watchdog']['period'])
+            if 'ext_halt_power_off' in src_dict['system_task']:
+                if 'enabled' in src_dict['system_task']['ext_halt_power_off']:
+                    self.ext_halt_power_off_enabled = bool(src_dict['system_task']['ext_halt_power_off'])
+                if 'period' in src_dict['system_task']['ext_halt_power_off']:
+                    self.ext_halt_power_off_period = int(src_dict['system_task']['ext_halt_power_off']['period'])
+        if 'system_events' in src_dict:
+            if not isinstance(src_dict['system_events'], dict):
+                raise TypeError
+
+            self.system_events_enabled = True
+
+            for event_key in src_dict['system_events'].keys():
+                if event_key in self.SYS_EVENTS:
+                    if not isinstance(src_dict['system_events'][event_key], dict):
+                        raise TypeError
+
+                    if 'enabled' in src_dict['system_events'][event_key]:
+                        self.system_events[event_key]['enabled'] = bool(src_dict['system_events'][event_key]['enabled'])
+                    if 'function' in src_dict['system_events'][event_key]:
+                        self.system_events[event_key]['function'] = \
+                            str(src_dict['system_events'][event_key]['function'])
+        if 'user_functions' in src_dict:
+            if not isinstance(src_dict['user_functions'], dict):
+                raise TypeError
+
+            for user_func in src_dict['user_functions'].keys():
+                if user_func in self.USER_FUNC_NAMES:
+                    user_func_index = int(''.join(i for i in user_func if i.isdigit())) - 1
+                    self.user_functions[user_func_index] = str(src_dict['user_functions'][user_func])
+
+    def write_to_file(self):
+        if not os.path.exists(self.config_path):
+            with open(self.config_path, 'w+') as conf_f:
+                conf_f.write(json.dumps(self.as_dict()))
+
+    def load_from_file(self):
+        with open(self.config_path, 'r') as output_config:
+            config_dict = json.load(output_config)
+            self.from_dict(config_dict)
 
 
 class PiJuiceService:
@@ -23,26 +174,19 @@ class PiJuiceService:
     def __init__(self):
         self.pj = None
         self.button_config = {}
-        self.config_data = {'system_task': {'enabled': False}}
+        self.config = PiJuiceJSONConfig(self.CONFIG_PATH)
         self.status = {}
-        self.system_events_enabled = False
-        self.min_charge_enabled = False
-        self.min_battery_voltage_enabled = False
-        self.low_charge_enabled = False
-        self.low_battery_voltage_enabled = False
         self.charge_level = 50
-        self.no_power_enabled = False
         self.no_power_count = 100
         self.do_poll = True
         self.poll_count = 5
 
     def _system_halt(self, event):
-        if (event in ('low_charge', 'low_battery_voltage', 'no_power')
-            and self.config_data.get('system_task', {}).get('wakeup_on_charge', {}).get('enabled', False)
-                and 'trigger_level' in self.config_data['system_task']['wakeup_on_charge']):
+        if event in ('low_charge', 'low_battery_voltage', 'no_power') \
+                and self.config.wakeup_on_charge_enabled and self.config.wakeup_on_charge_trigger_level:
 
             try:
-                trigger_level = float(self.config_data['system_task']['wakeup_on_charge']['trigger_level'])
+                trigger_level = self.config.wakeup_on_charge_trigger_level
                 self.pj.power.SetWakeUpOnCharge(trigger_level)
             except:
                 pass
@@ -64,11 +208,11 @@ class PiJuiceService:
             self._system_halt(event)
         elif func == 'SYS_FUNC_REBOOT':
             subprocess.call(["sudo", "reboot"])
-        elif ('USER_FUNC' in func) and ('user_functions' in self.config_data) and \
-                (func in self.config_data['user_functions']):
-            function_ = self.config_data['user_functions'][func]
+        elif func in self.config.USER_FUNC_NAMES:
+            function_index = list(self.config.USER_FUNC_NAMES).index(func)
+            function_ = self.config.user_functions[function_index]
             # Check function is defined
-            if function_ == "":
+            if not function_:
                 return
             # Remove possible argumemts
             cmd = function_.split()[0]
@@ -132,13 +276,13 @@ class PiJuiceService:
         charge = self.pj.status.GetChargeLevel()
         if charge['error'] == 'NO_ERROR':
             level = float(charge['data'])
-            if 'threshold' in self.config_data['system_task']['min_charge']:
-                threshold = float(self.config_data['system_task']['min_charge']['threshold'])
+            if self.config.min_charge_enabled:
+                threshold = float(self.config.min_charge_threshold)
                 if level == 0 or ((level < threshold) and (0 <= (self.charge_level - level) < 3)):
-                    if self.low_charge_enabled:
+                    event = 'low_charge'
+                    if self.config.system_events[event]['enabled']:
                         # energy is low, take action
-                        self.execute_function(self.config_data['system_events']['low_charge']['function'],
-                                    'low_charge', level)
+                        self.execute_function(self.config.system_events[event]['function'], event, level)
 
             self.charge_level = level
             return True
@@ -150,14 +294,14 @@ class PiJuiceService:
         if battery_voltage['error'] == 'NO_ERROR':
             voltage = float(battery_voltage['data']) / 1000
             try:
-                threshold = float(self.config_data['system_task'].get('min_bat_voltage', {}).get('threshold'))
+                threshold = float(self.config.min_bat_voltage_threshold)
             except ValueError:
                 threshold = None
             if threshold is not None and voltage < threshold:
-                if self.low_battery_voltage_enabled:
+                event = 'low_battery_voltage'
+                if self.config.system_events[event]['enabled']:
                     # Battery voltage below threshold, take action
-                    self.execute_function(self.config_data['system_events']['low_battery_voltage']['function'],
-                                          'low_battery_voltage', voltage)
+                    self.execute_function(self.config.system_events[event]['function'], event, voltage)
             return True
         else:
             return False
@@ -171,7 +315,7 @@ class PiJuiceService:
 
         if self.no_power_count == 2:
             # unplugged
-            self.execute_function(self.config_data['system_events']['no_power']['function'], 'no_power', '')
+            self.execute_function(self.config.system_events['no_power']['function'], 'no_power', '')
 
     def _eval_fault_flags(self):
         faults = self.pj.status.GetFaultStatus()
@@ -179,22 +323,20 @@ class PiJuiceService:
             faults = faults['data']
             for fault in (self.pj.status.faultEvents + self.pj.status.faults):
                 if fault in faults:
-                    if self.system_events_enabled and \
-                            (fault in self.config_data['system_events']) and \
-                            ('enabled' in self.config_data['system_events'][fault]) and \
-                            self.config_data['system_events'][fault]['enabled']:
-                        if self.config_data['system_events'][fault]['function'] != 'USER_EVENT':
+                    if self.config.system_events_enabled and \
+                            (fault in self.config.system_events) and \
+                            ('enabled' in self.config.system_events[fault]) and \
+                            self.config.system_events[fault]['enabled']:
+                        if self.config.system_events[fault]['function'] != 'USER_EVENT':
                             self.pj.status.ResetFaultFlags([fault])
-                            self.execute_function(self.config_data['system_events'][fault]['function'],
+                            self.execute_function(self.config.system_events[fault]['function'],
                                                   fault, faults[fault])
             return True
         else:
             return False
 
     def reload_settings(self, signum=None, frame=None):
-        with open(self.CONFIG_PATH, 'r') as output_config:
-            config_dict = json.load(output_config)
-            self.config_data.update(config_dict)
+        self.config.load_from_file()
 
         try:
             for button in self.pj.config.buttons:
@@ -204,30 +346,15 @@ class PiJuiceService:
         except:
             pass
 
-        self.system_events_enabled = 'system_events' in self.config_data
-        self.min_charge_enabled = self.config_data.get('system_task', {}).get('min_charge', {}).get('enabled', False)
-        self.min_battery_voltage_enabled = self.config_data.get('system_task', {}).get('min_bat_voltage', {}).\
-            get('enabled', False)
-        self.low_charge_enabled = self.system_events_enabled and \
-                                  self.config_data.get('system_events', {}).get('low_charge', {}).get('enabled', False)
-        self.low_battery_voltage_enabled = self.system_events_enabled and \
-                                           self.config_data.get('system_events', {}).get('low_battery_voltage', {}).\
-                                               get('enabled', False)
-        self.no_power_enabled = self.system_events_enabled and \
-                                self.config_data.get('system_events', {}).get('no_power', {}).get('enabled', False)
-
-        if ('watchdog' in self.config_data['system_task']) \
-                and ('enabled' in self.config_data['system_task']['watchdog']) \
-                and self.config_data['system_task']['watchdog']['enabled'] \
-                and ('period' in self.config_data['system_task']['watchdog']):
+        if self.config.watchdog_enabled:
             try:
-                p = int(self.config_data['system_task']['watchdog']['period'])
+                p = self.config.watchdog_period
                 self.pj.power.SetWatchdog(p)
             except:
                 pass
 
     def poll(self):
-        if self.config_data.get('system_task', {}).get('enabled'):
+        if self.config.system_task_enabled:
             ret = self.pj.status.GetStatus()
             if ret['error'] == 'NO_ERROR':
                 status = ret['data']
@@ -239,11 +366,11 @@ class PiJuiceService:
                     self.poll_count = 5
                     if ('isFault' in status) and status['isFault']:
                         self._eval_fault_flags()
-                    if self.min_charge_enabled:
+                    if self.config.system_events['low_charge']['enabled']:
                         self._eval_charge()
-                    if self.min_battery_voltage_enabled:
+                    if self.config.system_events['low_battery_voltage']['enabled']:
                         self._eval_battery_voltage()
-                    if self.no_power_enabled:
+                    if self.config.system_events['no_power']['enabled']:
                         self._eval_power_inputs()
 
         time.sleep(1)
@@ -253,9 +380,7 @@ class PiJuiceService:
         with open(self.PID_FILE, 'w') as pid_f:
             pid_f.write(pid)
 
-        if not os.path.exists(self.CONFIG_PATH):
-            with open(self.CONFIG_PATH, 'w+') as conf_f:
-                conf_f.write(json.dumps(self.config_data))
+        self.config.write_to_file()
 
         try:
             self.pj = PiJuice(1, 0x14)
@@ -282,9 +407,7 @@ class PiJuiceService:
             os.remove(self.HALT_FILE)
 
         try:
-            if (('watchdog' in self.config_data['system_task'])
-                    and ('enabled' in self.config_data['system_task']['watchdog'])
-                    and self.config_data['system_task']['watchdog']['enabled']):
+            if self.config.watchdog_enabled:
                 # Disabling watchdog
                 ret = self.pj.power.SetWatchdog(0)
                 if ret['error'] != 'NO_ERROR':
@@ -302,11 +425,10 @@ class PiJuiceService:
         if (ret['error'] == 'NO_ERROR'
             and not is_halting
             and cause_power_off                                # proper time to power down (!rebooting)
-            and self.config_data.get('system_task', {}).get('ext_halt_power_off', {}).get('enabled', False)
-            ):
+            and self.config.ext_halt_power_off_enabled):
             # Set duration for when pijuice will cut power (Recommended 30+ sec, for halt to complete)
             try:
-                power_off_delay = int(self.config_data['system_task']['ext_halt_power_off'].get('period', 30))
+                power_off_delay = self.config.ext_halt_power_off_period
                 self.pj.power.SetPowerOff(power_off_delay)
             except ValueError:
                 pass
