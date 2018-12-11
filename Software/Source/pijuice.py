@@ -252,6 +252,8 @@ class FaultEvent(Enum):
     forced_power_off = 1
     forced_sys_power_off = 2
     watchdog_reset = 3
+    battery_profile_invalid = 4
+    charging_temperature_fault = 5
 
 
 class BatteryChargingTemperature(Enum):
@@ -314,6 +316,7 @@ class LedFunction(Enum):
 
 class Faults:
     FAULT_EVENT_CMD = 0x44
+    READ_ONLY_FAULTS = (FaultEvent.battery_profile_invalid, FaultEvent.charging_temperature_fault)
 
     def __init__(self, interface):
         self._interface = interface
@@ -353,8 +356,19 @@ class Faults:
             except ValueError:
                 raise BadArgumentError
 
-            data = data & ~(0x01 << flag)
+            if FaultEvent(flag) not in self.READ_ONLY_FAULTS:
+                data = data & ~(0x01 << flag)
         self._interface.write_data(self.FAULT_EVENT_CMD, [data])
+
+    def as_dict(self):
+        return {
+            FaultEvent.button_power_off.name: self._button_power_off,
+            FaultEvent.forced_power_off.name: self._forced_power_off,
+            FaultEvent.forced_sys_power_off.name: self._forced_sys_power_off,
+            FaultEvent.watchdog_reset.name: self._watchdog_reset,
+            FaultEvent.battery_profile_invalid: self.battery_profile_invalid,
+            FaultEvent.charging_temperature_fault: self.charging_temperature_fault
+        }
 
     @property
     def button_power_off(self):
@@ -453,7 +467,7 @@ class Button:
         self.index = index
         self.name = 'SW{}'.format(self.index + 1)
         self._event_state = ButtonEvent.UNKNOWN
-        self._events = [ButtonEventFunction(ButtonEvent(x)) for x in range(len(ButtonEvent))]
+        self.events = [ButtonEventFunction(ButtonEvent(x)) for x in range(len(ButtonEvent))]
 
     @property
     def event_state(self):
@@ -466,61 +480,61 @@ class Button:
 
     @property
     def press_event(self):
-        return self._events[ButtonEvent.PRESS.value]
+        return self.events[ButtonEvent.PRESS.value]
 
     @property
     def release_event(self):
-        return self._events[ButtonEvent.RELEASE.value]
+        return self.events[ButtonEvent.RELEASE.value]
 
     @property
     def single_press_event(self):
-        return self._events[ButtonEvent.SINGLE_PRESS.value]
+        return self.events[ButtonEvent.SINGLE_PRESS.value]
 
     @property
     def double_press_event(self):
-        return self._events[ButtonEvent.DOUBLE_PRESS.value]
+        return self.events[ButtonEvent.DOUBLE_PRESS.value]
 
     @property
     def long_press_1_event(self):
-        return self._events[ButtonEvent.LONG_PRESS1.value]
+        return self.events[ButtonEvent.LONG_PRESS1.value]
 
     @property
     def long_press_2_event(self):
-        return self._events[ButtonEvent.LONG_PRESS2.value]
+        return self.events[ButtonEvent.LONG_PRESS2.value]
 
     def get_config(self):
         data = self._interface.read_data(self.BUTTON_CONFIGURATION_CMD + self.index, 12)
 
         for event_index in range(len(ButtonEvent)):
-            self._events[event_index].param = data[event_index * 2 + 1] * 100
+            self.events[event_index].param = data[event_index * 2 + 1] * 100
             data_func = data[event_index * 2]
 
             try:
                 if data_func == 0:
-                    self._events[event_index].function = PiJuiceNoFunction.NO_FUNC
+                    self.events[event_index].function = PiJuiceNoFunction.NO_FUNC
                 elif data_func & 0xf0 == 0:
-                    self._events[event_index].function = PiJuiceHardFunction((data_func & 0x0f) - 1)
+                    self.events[event_index].function = PiJuiceHardFunction((data_func & 0x0f) - 1)
                 elif data_func & 0xf0 == 0x10:
-                    self._events[event_index].function = PiJuiceSysFunction((data_func & 0x0f) - 1)
+                    self.events[event_index].function = PiJuiceSysFunction((data_func & 0x0f) - 1)
                 elif data_func & 0xf0 == 0x20:
-                    self._events[event_index].function = PiJuiceUserFunction((data_func & 0x0f) - 1)
+                    self.events[event_index].function = PiJuiceUserFunction((data_func & 0x0f) - 1)
                 else:
-                    self._events[event_index].function = PiJuiceNoFunction.UNKNOWN
+                    self.events[event_index].function = PiJuiceNoFunction.UNKNOWN
             except ValueError:
-                self._events[event_index].function = PiJuiceNoFunction.UNKNOWN
+                self.events[event_index].function = PiJuiceNoFunction.UNKNOWN
 
     def set_config(self):
         data = [0] * (len(ButtonEvent) * 2)
 
         for event_index in range(len(ButtonEvent)):
-            data[event_index * 2 + 1] = (self._events[event_index].param // 100) & 0xff
+            data[event_index * 2 + 1] = (self.events[event_index].param // 100) & 0xff
 
-            if isinstance(self._events[event_index].function, PiJuiceHardFunction):
-                data[event_index * 2] = self._events[event_index].function.value + 0x01
-            elif isinstance(self._events[event_index].function, PiJuiceSysFunction):
-                data[event_index * 2] = self._events[event_index].function.value + 0x11
-            elif isinstance(self._events[event_index].function, PiJuiceUserFunction):
-                data[event_index * 2] = self._events[event_index].function.value + 0x20
+            if isinstance(self.events[event_index].function, PiJuiceHardFunction):
+                data[event_index * 2] = self.events[event_index].function.value + 0x01
+            elif isinstance(self.events[event_index].function, PiJuiceSysFunction):
+                data[event_index * 2] = self.events[event_index].function.value + 0x11
+            elif isinstance(self.events[event_index].function, PiJuiceUserFunction):
+                data[event_index * 2] = self.events[event_index].function.value + 0x20
             else:
                 data[event_index * 2] = 0
 
@@ -2746,7 +2760,7 @@ class PiJuiceConfig:
         b.get_config()
 
         for index in range(len(ButtonEvent)):
-            event = b._events[index]
+            event = b.events[index]
             config[ButtonEvent[index]] = {'function': event.function.name, 'parameter': event.param}
 
         return {'data': config, 'error': 'NO_ERROR'}
@@ -2763,7 +2777,7 @@ class PiJuiceConfig:
             raise BadArgumentError
 
         for index in range(len(ButtonEvent)):
-            b._events[index].param = int(config[ButtonEvent(index).name]['parameter'])
+            b.events[index].param = int(config[ButtonEvent(index).name]['parameter'])
             func_from_cfg = config[ButtonEvent(index).name]['function']
             func = PiJuiceNoFunction.NO_FUNC
 
@@ -2778,7 +2792,7 @@ class PiJuiceConfig:
                     except ValueError:
                         pass
 
-            b._events[index].function = func
+            b.events[index].function = func
 
         b.set_config()
         return {'error': 'NO_ERROR'}

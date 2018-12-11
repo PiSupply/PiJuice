@@ -11,12 +11,12 @@ import sys
 import time
 import re
 
-from pijuice import PiJuice, FaultEvent, USER_FUNCTIONS_COUNT
+from pijuice import PiJuice, ButtonEvent, FaultEvent, Faults, Led, PiJuiceError, \
+    PiJuiceNoFunction, PiJuiceUserFunction, USER_FUNCTIONS_COUNT
 
 
 class PiJuiceJSONConfig:
-    SYS_EVENTS = ['low_charge', 'low_battery_voltage', 'no_power'] + [e.name for e in FaultEvent] + \
-                 ['battery_profile_invalid', 'charging_temperature_fault']
+    SYS_EVENTS = ['low_charge', 'low_battery_voltage', 'no_power'] + [e.name for e in FaultEvent]
     USER_FUNC_NAMES = ('USER_FUNC{}'.format(x) for x in range(1, USER_FUNCTIONS_COUNT + 1))
 
     def __init__(self, config_path):
@@ -123,7 +123,7 @@ class PiJuiceJSONConfig:
                 if 'enabled' in src_dict['system_task']['watchdog']:
                     self.watchdog_enabled = bool(src_dict['system_task']['watchdog'])
                 if 'period' in src_dict['system_task']['watchdog']:
-                    self.watchdog_period = int(src_dict['system_task']['watchdog']['period'])
+                    self.watchdog_period = int(src_dict['system_task']['watchdog']['period']) & 0xFFFF
             if 'ext_halt_power_off' in src_dict['system_task']:
                 if 'enabled' in src_dict['system_task']['ext_halt_power_off']:
                     self.ext_halt_power_off_enabled = bool(src_dict['system_task']['ext_halt_power_off'])
@@ -173,7 +173,6 @@ class PiJuiceService:
 
     def __init__(self):
         self.pj = None
-        self.button_config = {}
         self.config = PiJuiceJSONConfig(self.CONFIG_PATH)
         self.status = {}
         self.charge_level = 50
@@ -184,13 +183,11 @@ class PiJuiceService:
     def _system_halt(self, event):
         if event in ('low_charge', 'low_battery_voltage', 'no_power') \
                 and self.config.wakeup_on_charge_enabled and self.config.wakeup_on_charge_trigger_level:
-
             try:
-                trigger_level = self.config.wakeup_on_charge_trigger_level
-                self.pj.power.SetWakeUpOnCharge(trigger_level)
+                self.pj.power.wakeup_on_charge = self.config.wakeup_on_charge_trigger_level
             except:
                 pass
-        self.pj.status.SetLedBlink('D2', 3, [150, 0, 0], 200, [0, 100, 0], 200)
+        self.pj.status.d2.blink = Led.LedBlink(3, [150, 0, 0], 200, [0, 100, 0], 200)
         # Setting halt flag for 'pijuice_sys.py stop'
         with open(self.HALT_FILE, 'w') as f:
             pass
@@ -200,11 +197,11 @@ class PiJuiceService:
         if func == 'SYS_FUNC_HALT':
             self._system_halt(event)
         elif func == 'SYS_FUNC_HALT_POW_OFF':
-            self.pj.power.SetSystemPowerSwitch(0)
-            self.pj.power.SetPowerOff(60)
+            self.pj.power.system_power_switch = 0
+            self.pj.power.power_off = 60
             self._system_halt(event)
         elif func == 'SYS_FUNC_SYS_OFF_HALT':
-            self.pj.power.SetSystemPowerSwitch(0)
+            self.pj.power.system_power_switch = 0
             self._system_halt(event)
         elif func == 'SYS_FUNC_REBOOT':
             subprocess.call(["sudo", "reboot"])
@@ -259,23 +256,26 @@ class PiJuiceService:
                 print('Failed to execute user func')
 
     def _eval_button_events(self):
-        button_events = self.pj.status.GetButtonEvents()
-        if button_events['error'] == 'NO_ERROR':
-            for button in self.pj.config.buttons:
-                event = button_events['data'][button]
-                if event != 'NO_EVENT':
-                    if self.button_config[button][event]['function'] != 'USER_EVENT':
-                        self.pj.status.AcceptButtonEvent(button)
-                        if self.button_config[button][event]['function'] != 'NO_FUNC':
-                            self.execute_function(self.button_config[button][event]['function'], event, button)
+        try:
+            buttons = self.pj.status.buttons
+            buttons.update_button_events()
+
+            for button in (buttons.sw1, buttons.sw2, buttons.sw3):
+                event = button.event_state
+                func = button.events[event.value].function
+
+                if event != ButtonEvent.NO_EVENT:
+                    if func != PiJuiceUserFunction.USER_EVENT:
+                        button.event_state = None
+                        if func != PiJuiceNoFunction.NO_FUNC:
+                            self.execute_function(func.name, event.name, button.name)
             return True
-        else:
+        except PiJuiceError:
             return False
 
     def _eval_charge(self):
-        charge = self.pj.status.GetChargeLevel()
-        if charge['error'] == 'NO_ERROR':
-            level = float(charge['data'])
+        try:
+            level = self.pj.status.charge_level
             if self.config.min_charge_enabled:
                 threshold = float(self.config.min_charge_threshold)
                 if level == 0 or ((level < threshold) and (0 <= (self.charge_level - level) < 3)):
@@ -286,24 +286,20 @@ class PiJuiceService:
 
             self.charge_level = level
             return True
-        else:
+        except PiJuiceError:
             return False
 
     def _eval_battery_voltage(self):
-        battery_voltage = self.pj.status.GetBatteryVoltage()
-        if battery_voltage['error'] == 'NO_ERROR':
-            voltage = float(battery_voltage['data']) / 1000
-            try:
-                threshold = float(self.config.min_bat_voltage_threshold)
-            except ValueError:
-                threshold = None
-            if threshold is not None and voltage < threshold:
+        try:
+            voltage = self.pj.status.battery_voltage / 1000
+            threshold = self.config.min_bat_voltage_threshold
+            if voltage < threshold:
                 event = 'low_battery_voltage'
                 if self.config.system_events[event]['enabled']:
                     # Battery voltage below threshold, take action
                     self.execute_function(self.config.system_events[event]['function'], event, voltage)
             return True
-        else:
+        except PiJuiceError:
             return False
 
     def _eval_power_inputs(self):
@@ -318,53 +314,53 @@ class PiJuiceService:
             self.execute_function(self.config.system_events['no_power']['function'], 'no_power', '')
 
     def _eval_fault_flags(self):
-        faults = self.pj.status.GetFaultStatus()
-        if faults['error'] == 'NO_ERROR':
-            faults = faults['data']
-            for fault in (self.pj.status.faultEvents + self.pj.status.faults):
-                if fault in faults:
-                    if self.config.system_events_enabled and \
-                            (fault in self.config.system_events) and \
-                            ('enabled' in self.config.system_events[fault]) and \
-                            self.config.system_events[fault]['enabled']:
-                        if self.config.system_events[fault]['function'] != 'USER_EVENT':
-                            self.pj.status.ResetFaultFlags([fault])
-                            self.execute_function(self.config.system_events[fault]['function'],
-                                                  fault, faults[fault])
+        try:
+            faults = self.pj.status.faults
+            faults.update_fault_flags()
+
+            for fault_event_name in [e.name for e in FaultEvent] + faults.READ_ONLY_FAULTS:
+                is_enabled = self.config.system_events[fault_event_name]['enabled']
+                func = self.config.system_events[fault_event_name]['function']
+                event = FaultEvent[fault_event_name]
+
+                if faults.as_dict()[fault_event_name] and self.config.system_events_enabled and \
+                        is_enabled and func != 'USER_EVENT':
+                    if event not in faults.READ_ONLY_FAULTS:
+                        faults.reset_fault_flags([event.value])
+
+                    self.execute_function(func, fault_event_name, True)
+
             return True
-        else:
+        except PiJuiceError:
             return False
 
     def reload_settings(self, signum=None, frame=None):
         self.config.load_from_file()
 
-        try:
-            for button in self.pj.config.buttons:
-                conf = self.pj.config.GetButtonConfiguration(button)
-                if conf['error'] == 'NO_ERROR':
-                    self.button_config[button] = conf['data']
-        except:
-            pass
+        self.pj.config.buttons.sw1.get_config()
+        self.pj.config.buttons.sw2.get_config()
+        self.pj.config.buttons.sw3.get_config()
 
         if self.config.watchdog_enabled:
             try:
                 p = self.config.watchdog_period
-                self.pj.power.SetWatchdog(p)
+                self.pj.power.watchdog = p
             except:
                 pass
 
     def poll(self):
         if self.config.system_task_enabled:
-            ret = self.pj.status.GetStatus()
-            if ret['error'] == 'NO_ERROR':
-                status = ret['data']
-                if status['isButton']:
+            status = self.pj.status
+            try:
+                status.update_status()
+
+                if status.is_button:
                     self._eval_button_events()
 
                 self.poll_count -= 1
                 if self.poll_count == 0:
                     self.poll_count = 5
-                    if ('isFault' in status) and status['isFault']:
+                    if status.is_fault:
                         self._eval_fault_flags()
                     if self.config.system_events['low_charge']['enabled']:
                         self._eval_charge()
@@ -372,6 +368,8 @@ class PiJuiceService:
                         self._eval_battery_voltage()
                     if self.config.system_events['no_power']['enabled']:
                         self._eval_power_inputs()
+            except PiJuiceError:
+                pass
 
         time.sleep(1)
 
@@ -409,29 +407,32 @@ class PiJuiceService:
         try:
             if self.config.watchdog_enabled:
                 # Disabling watchdog
-                ret = self.pj.power.SetWatchdog(0)
-                if ret['error'] != 'NO_ERROR':
+                try:
+                    self.pj.power.watchdog = 0
+                except PiJuiceError:
+                    pass
+                else:
                     time.sleep(0.05)
-                    self.pj.power.SetWatchdog(0)
+                    self.pj.power.watchdog = 0
         except:
             pass
+
         sys_job_targets = subprocess.check_output(["sudo", "systemctl", "list-jobs"]).decode('utf-8')
         # reboot = True if reboot.target exists
         reboot = True if re.search('reboot.target.*start', sys_job_targets) is not None else False
         # sw_stop = True if halt|shutdown exists
         sw_stop = True if re.search('(?:halt|shutdown).target.*start', sys_job_targets) is not None else False
+        # proper time to power down (not rebooting)
         cause_power_off = True if (sw_stop and not reboot) else False
-        ret = self.pj.status.GetStatus()
-        if (ret['error'] == 'NO_ERROR'
-            and not is_halting
-            and cause_power_off                                # proper time to power down (!rebooting)
-            and self.config.ext_halt_power_off_enabled):
-            # Set duration for when pijuice will cut power (Recommended 30+ sec, for halt to complete)
-            try:
-                power_off_delay = self.config.ext_halt_power_off_period
-                self.pj.power.SetPowerOff(power_off_delay)
-            except ValueError:
-                pass
+
+        try:
+            self.pj.status.update_status()
+            if not is_halting and cause_power_off and self.config.ext_halt_power_off_enabled:
+                # Set duration for when pijuice will cut power (Recommended 30+ sec, for halt to complete)
+                self.pj.power.power_off = self.config.ext_halt_power_off_period
+        except PiJuiceError:
+            pass
+
         sys.exit(0)
 
 
