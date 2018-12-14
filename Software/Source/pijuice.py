@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import division, print_function
-__version__ = "1.3.1"
+__version__ = "1.3.2"
 
 import calendar
 import ctypes
@@ -199,287 +199,285 @@ class PiJuiceInterface(object):
 
 class PiJuiceStatus(object):
 
-    STATUS_CMD = 0x40
-    FAULT_EVENT_CMD = 0x44
-    CHARGE_LEVEL_CMD = 0x41
-    BUTTON_EVENT_CMD = 0x45
-    BATTERY_TEMPERATURE_CMD = 0x47
-    BATTERY_VOLTAGE_CMD = 0x49
-    BATTERY_CURRENT_CMD = 0x4b
-    IO_VOLTAGE_CMD = 0x4d
-    IO_CURRENT_CMD = 0x4f
-    LED_STATE_CMD = 0x66
-    LED_BLINK_CMD = 0x68
-    IO_PIN_ACCESS_CMD = 0x75
+	STATUS_CMD = 0x40
+	FAULT_EVENT_CMD = 0x44
+	CHARGE_LEVEL_CMD = 0x41
+	BUTTON_EVENT_CMD = 0x45
+	BATTERY_TEMPERATURE_CMD = 0x47
+	BATTERY_VOLTAGE_CMD = 0x49
+	BATTERY_CURRENT_CMD = 0x4b
+	IO_VOLTAGE_CMD = 0x4d
+	IO_CURRENT_CMD = 0x4f
+	LED_STATE_CMD = 0x66
+	LED_BLINK_CMD = 0x68
+	IO_PIN_ACCESS_CMD = 0x75
 
-    def __init__(self, interface):
-        self.interface = interface
+	def __init__(self, interface):
+		self.interface = interface
 
-    def __enter__(self):
-        # Just return this object so it can be used in a with statement
-        return self
+	def __enter__(self):
+		# Just return this object so it can be used in a with statement
+		return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        return False  # Don't suppress exceptions.
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		return False  # Don't suppress exceptions.
 
-    def GetStatus(self):
-        result = self.interface.ReadData(self.STATUS_CMD, 1)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            d = result['data'][0]
-            status = {}
-            status['isFault'] = bool(d & 0x01)
-            status['isButton'] = bool(d & 0x02)
-            batStatusEnum = ['NORMAL', 'CHARGING_FROM_IN',
-                            'CHARGING_FROM_5V_IO', 'NOT_PRESENT']
-            status['battery'] = batStatusEnum[(d >> 2) & 0x03]
-            powerInStatusEnum = ['NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT']
-            status['powerInput'] = powerInStatusEnum[(d >> 4) & 0x03]
-            status['powerInput5vIo'] = powerInStatusEnum[(d >> 6) & 0x03]
-            return {'data': status, 'error': 'NO_ERROR'}
+	def GetStatus(self):
+		result = self.interface.ReadData(self.STATUS_CMD, 1)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			d = result['data'][0]
+			status = {}
+			status['isFault'] = bool(d & 0x01)
+			status['isButton'] = bool(d & 0x02)
+			batStatusEnum = ['NORMAL', 'CHARGING_FROM_IN',
+							'CHARGING_FROM_5V_IO', 'NOT_PRESENT']
+			status['battery'] = batStatusEnum[(d >> 2) & 0x03]
+			powerInStatusEnum = ['NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT']
+			status['powerInput'] = powerInStatusEnum[(d >> 4) & 0x03]
+			status['powerInput5vIo'] = powerInStatusEnum[(d >> 6) & 0x03]
+			return {'data': status, 'error': 'NO_ERROR'}
 
-    def GetChargeLevel(self):
-        result = self.interface.ReadData(self.CHARGE_LEVEL_CMD, 1)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            return {'data': result['data'][0], 'error': 'NO_ERROR'}
+	def GetChargeLevel(self):
+		result = self.interface.ReadData(self.CHARGE_LEVEL_CMD, 1)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			return {'data': result['data'][0], 'error': 'NO_ERROR'}
 
 
-    faultEvents = ['button_power_off', 'forced_power_off',
-                   'forced_sys_power_off', 'watchdog_reset']
-    faults = ['battery_profile_invalid', 'charging_temperature_fault']
-    def GetFaultStatus(self):
-        result = self.interface.ReadData(self.FAULT_EVENT_CMD, 1)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            d = result['data'][0]
-            fault = {}
-            if d & 0x01:
-                fault['button_power_off'] = True
-            if d & 0x02:
-                fault['forced_power_off'] = True  # bool(d & 0x02)
-            if d & 0x04:
-                fault['forced_sys_power_off'] = True
-            if d & 0x08:
-                fault['watchdog_reset'] = True
-            if d & 0x20:
-                fault['battery_profile_invalid'] = True
-            batChargingTempEnum = ['NORMAL', 'SUSPEND', 'COOL', 'WARM']
-            if (d >> 6) & 0x03:
-                fault['charging_temperature_fault'] = batChargingTempEnum[(d >> 6) & 0x03]
-            return {'data': fault, 'error': 'NO_ERROR'}
+	faultEvents = ['button_power_off', 'forced_power_off',
+				   'forced_sys_power_off', 'watchdog_reset']
+	faults = ['battery_profile_invalid', 'charging_temperature_fault']
+	def GetFaultStatus(self):
+		result = self.interface.ReadData(self.FAULT_EVENT_CMD, 1)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			d = result['data'][0]
+			fault = {}
+			if d & 0x01:
+				fault['button_power_off'] = True
+			if d & 0x02:
+				fault['forced_power_off'] = True  # bool(d & 0x02)
+			if d & 0x04:
+				fault['forced_sys_power_off'] = True
+			if d & 0x08:
+				fault['watchdog_reset'] = True
+			if d & 0x20:
+				fault['battery_profile_invalid'] = True
+			batChargingTempEnum = ['NORMAL', 'SUSPEND', 'COOL', 'WARM']
+			if (d >> 6) & 0x03:
+				fault['charging_temperature_fault'] = batChargingTempEnum[(d >> 6) & 0x03]
+			return {'data': fault, 'error': 'NO_ERROR'}
 
-    def ResetFaultFlags(self, flags):
-        d = 0xFF
-        for ev in flags:
-            try:
-                d = d & ~(0x01 << self.faultEvents.index(ev))
-            except:
-                ev
-        self.interface.WriteData(self.FAULT_EVENT_CMD, [d])  # clear fault events
+	def ResetFaultFlags(self, flags):
+		d = 0xFF
+		for ev in flags:
+			try:
+				d = d & ~(0x01 << self.faultEvents.index(ev))
+			except:
+				ev
+		self.interface.WriteData(self.FAULT_EVENT_CMD, [d])  # clear fault events
 
-    buttonEvents = ['NO_EVENT', 'PRESS', 'RELEASE',
-                    'SINGLE_PRESS', 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
-    def GetButtonEvents(self):
-        result = self.interface.ReadData(self.BUTTON_EVENT_CMD, 2)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            d = result['data']
-            event = {}
-            try:
-                event['SW1'] = self.buttonEvents[d[0] & 0x0F]
-            except:
-                event['SW1'] = 'UNKNOWN'
-            try:
-                event['SW2'] = self.buttonEvents[(d[0] >> 4) & 0x0F]
-            except:
-                event['SW2'] = 'UNKNOWN'
-            try:
-                event['SW3'] = self.buttonEvents[d[1] & 0x0F]
-            except:
-                event['SW3'] = 'UNKNOWN'
-                #event['SW4'] = self.buttonEvents[(d[1] >> 4) & 0x0F]
-            return {'data': event, 'error': 'NO_ERROR'}
+	buttonEvents = ['NO_EVENT', 'PRESS', 'RELEASE',
+					'SINGLE_PRESS', 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
+	def GetButtonEvents(self):
+		result = self.interface.ReadData(self.BUTTON_EVENT_CMD, 2)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			d = result['data']
+			event = {}
+			try:
+				event['SW1'] = self.buttonEvents[d[0] & 0x0F]
+			except:
+				event['SW1'] = 'UNKNOWN'
+			try:
+				event['SW2'] = self.buttonEvents[(d[0] >> 4) & 0x0F]
+			except:
+				event['SW2'] = 'UNKNOWN'
+			try:
+				event['SW3'] = self.buttonEvents[d[1] & 0x0F]
+			except:
+				event['SW3'] = 'UNKNOWN'
+				#event['SW4'] = self.buttonEvents[(d[1] >> 4) & 0x0F]
+			return {'data': event, 'error': 'NO_ERROR'}
 
-    buttons = ['SW' + str(i+1) for i in range(0, 3)]
-    def AcceptButtonEvent(self, button):
-        b = None
-        try:
-            b = self.buttons.index(button)
-        except ValueError:
-            return {'error': 'BAD_ARGUMENT'}
-        d = [0xF0, 0xFF] if b == 0 else [0x0F, 0xFF] if b == 1 else [0xFF, 0xF0]
-        self.interface.WriteData(self.BUTTON_EVENT_CMD, d)  # clear button events
+	buttons = ['SW' + str(i+1) for i in range(0, 3)]
+	def AcceptButtonEvent(self, button):
+		b = None
+		try:
+			b = self.buttons.index(button)
+		except ValueError:
+			return {'error': 'BAD_ARGUMENT'}
+		d = [0xF0, 0xFF] if b == 0 else [0x0F, 0xFF] if b == 1 else [0xFF, 0xF0]
+		self.interface.WriteData(self.BUTTON_EVENT_CMD, d)  # clear button events
 
-    def GetBatteryTemperature(self):
-        result = self.interface.ReadData(self.BATTERY_TEMPERATURE_CMD, 2)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            d = result['data']
-            temp = d[1]
-            temp = temp << 8
-            temp = temp | d[0]
-            return {'data': temp, 'error': 'NO_ERROR'}
+	def GetBatteryTemperature(self):
+		result = self.interface.ReadData(self.BATTERY_TEMPERATURE_CMD, 2)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			d = result['data']
+			temp = d[0] if d[0] <= 128 else d[0]-256
+			return {'data': temp, 'error': 'NO_ERROR'}
 
-    def GetBatteryVoltage(self):
-        result = self.interface.ReadData(self.BATTERY_VOLTAGE_CMD, 2)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            d = result['data']
-            return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
+	def GetBatteryVoltage(self):
+		result = self.interface.ReadData(self.BATTERY_VOLTAGE_CMD, 2)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			d = result['data']
+			return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
 
-    def GetBatteryCurrent(self):
-        result = self.interface.ReadData(self.BATTERY_CURRENT_CMD, 2)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            d = result['data']
-            i = (d[1] << 8) | d[0]
-            if (i & (1 << 15)):
-                i = i - (1 << 16)
-            return {'data': i, 'error': 'NO_ERROR'}
+	def GetBatteryCurrent(self):
+		result = self.interface.ReadData(self.BATTERY_CURRENT_CMD, 2)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			d = result['data']
+			i = (d[1] << 8) | d[0]
+			if (i & (1 << 15)):
+				i = i - (1 << 16)
+			return {'data': i, 'error': 'NO_ERROR'}
 
-    def GetIoVoltage(self):
-        result = self.interface.ReadData(self.IO_VOLTAGE_CMD, 2)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            d = result['data']
-            return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
+	def GetIoVoltage(self):
+		result = self.interface.ReadData(self.IO_VOLTAGE_CMD, 2)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			d = result['data']
+			return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
 
-    def GetIoCurrent(self):
-        result = self.interface.ReadData(self.IO_CURRENT_CMD, 2)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            d = result['data']
-            i = (d[1] << 8) | d[0]
-            if (i & (1 << 15)):
-                i = i - (1 << 16)
-            return {'data': i, 'error': 'NO_ERROR'}
+	def GetIoCurrent(self):
+		result = self.interface.ReadData(self.IO_CURRENT_CMD, 2)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			d = result['data']
+			i = (d[1] << 8) | d[0]
+			if (i & (1 << 15)):
+				i = i - (1 << 16)
+			return {'data': i, 'error': 'NO_ERROR'}
 
-    leds = ['D1', 'D2']
-    def SetLedState(self, led, rgb):
-        i = None
-        try:
-            i = self.leds.index(led)
-        except:
-            return {'error': 'BAD_ARGUMENT'}
-        return self.interface.WriteData(self.LED_STATE_CMD + i, rgb)
+	leds = ['D1', 'D2']
+	def SetLedState(self, led, rgb):
+		i = None
+		try:
+			i = self.leds.index(led)
+		except:
+			return {'error': 'BAD_ARGUMENT'}
+		return self.interface.WriteData(self.LED_STATE_CMD + i, rgb)
 
-    def GetLedState(self, led):
-        i = None
-        try:
-            i = self.leds.index(led)
-        except:
-            return {'error': 'BAD_ARGUMENT'}
-        return self.interface.ReadData(self.LED_STATE_CMD + i, 3)
+	def GetLedState(self, led):
+		i = None
+		try:
+			i = self.leds.index(led)
+		except:
+			return {'error': 'BAD_ARGUMENT'}
+		return self.interface.ReadData(self.LED_STATE_CMD + i, 3)
 
-    def SetLedBlink(self, led, count, rgb1, period1, rgb2, period2):
-        i = None
-        d = None
-        try:
-            i = self.leds.index(led)
-            d = [count & 0xFF] + rgb1*1 + \
-                [(period1//10) & 0xFF] + rgb2*1 + [(period2//10) & 0xFF]
-        except:
-            return {'error': 'BAD_ARGUMENT'}
-        return self.interface.WriteData(self.LED_BLINK_CMD + i, d)
+	def SetLedBlink(self, led, count, rgb1, period1, rgb2, period2):
+		i = None
+		d = None
+		try:
+			i = self.leds.index(led)
+			d = [count & 0xFF] + rgb1*1 + \
+				[(period1//10) & 0xFF] + rgb2*1 + [(period2//10) & 0xFF]
+		except:
+			return {'error': 'BAD_ARGUMENT'}
+		return self.interface.WriteData(self.LED_BLINK_CMD + i, d)
 
-    def GetLedBlink(self, led):
-        i = None
-        try:
-            i = self.leds.index(led)
-        except:
-            return {'error': 'BAD_ARGUMENT'}
-        ret = self.interface.ReadData(self.LED_BLINK_CMD + i, 9)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        else:
-            d = ret['data']
-            return {
-                'data': {
-                    'count': d[0],
-                    'rgb1': d[1:4],
-                    'period1': d[4] * 10,
-                    'rgb2': d[5:8],
-                    'period2': d[8] * 10
-                    },
-                'error': 'NO_ERROR'
-            }
-    
-    def GetIoDigitalInput(self, pin):
-        if not (pin == 1 or pin == 2):
-            return {'error': 'BAD_ARGUMENT'}
-        ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        else:
-            d = ret['data']
-            b = 1 if d[0] == 0x01 else 0
-            return {'data': b, 'error': 'NO_ERROR'}
+	def GetLedBlink(self, led):
+		i = None
+		try:
+			i = self.leds.index(led)
+		except:
+			return {'error': 'BAD_ARGUMENT'}
+		ret = self.interface.ReadData(self.LED_BLINK_CMD + i, 9)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			d = ret['data']
+			return {
+				'data': {
+					'count': d[0],
+					'rgb1': d[1:4],
+					'period1': d[4] * 10,
+					'rgb2': d[5:8],
+					'period2': d[8] * 10
+					},
+				'error': 'NO_ERROR'
+			}
 
-    def SetIoDigitalOutput(self, pin, value):
-        if not (pin == 1 or pin == 2):
-            return {'error': 'BAD_ARGUMENT'}
-        d = [0x00, 0x00]
-        d[1] = 0x00 if value == 0 else 0x01
-        return self.interface.WriteData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, d)
+	def GetIoDigitalInput(self, pin):
+		if not (pin == 1 or pin == 2):
+			return {'error': 'BAD_ARGUMENT'}
+		ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			d = ret['data']
+			b = 1 if d[0] == 0x01 else 0
+			return {'data': b, 'error': 'NO_ERROR'}
 
-    def GetIoDigitalOutput(self, pin):
-        if not (pin == 1 or pin == 2):
-            return {'error': 'BAD_ARGUMENT'}
-        ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        else:
-            d = ret['data']
-            b = 1 if d[1] == 0x01 else 0
-            return {'data': b, 'error': 'NO_ERROR'}
+	def SetIoDigitalOutput(self, pin, value):
+		if not (pin == 1 or pin == 2):
+			return {'error': 'BAD_ARGUMENT'}
+		d = [0x00, 0x00]
+		d[1] = 0x00 if value == 0 else 0x01
+		return self.interface.WriteData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, d)
 
-    def GetIoAnalogInput(self, pin):
-        if not (pin == 1 or pin == 2):
-            return {'error': 'BAD_ARGUMENT'}
-        ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        else:
-            d = ret['data']
-            return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
+	def GetIoDigitalOutput(self, pin):
+		if not (pin == 1 or pin == 2):
+			return {'error': 'BAD_ARGUMENT'}
+		ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			d = ret['data']
+			b = 1 if d[1] == 0x01 else 0
+			return {'data': b, 'error': 'NO_ERROR'}
 
-    def SetIoPWM(self, pin, dutyCircle):
-        if not (pin == 1 or pin == 2):
-            return {'error': 'BAD_ARGUMENT'}
-        d = [0xFF, 0xFF]
-        try:
-            dc = float(dutyCircle)
-        except:
-            return {'error': 'BAD_ARGUMENT'}
-        if dc < 0 or dc > 100:
-            return {'error': 'INVALID_DUTY_CIRCLE'}
-        elif dc < 100:
-            dci = int(round(dc * 65534 // 100))
-            d[0] = dci & 0xFF
-            d[1] = (dci >> 8) & 0xFF
-        return self.interface.WriteData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, d)
+	def GetIoAnalogInput(self, pin):
+		if not (pin == 1 or pin == 2):
+			return {'error': 'BAD_ARGUMENT'}
+		ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			d = ret['data']
+			return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
 
-    def GetIoPWM(self, pin):
-        if not (pin == 1 or pin == 2):
-            return {'error': 'BAD_ARGUMENT'}
-        ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        else:
-            d = ret['data']
-            dci = d[0] | (d[1] << 8)
-            dc = float(dci) * 100 // 65534 if dci < 65535 else 100
-            return {'data': dc, 'error': 'NO_ERROR'}
+	def SetIoPWM(self, pin, dutyCircle):
+		if not (pin == 1 or pin == 2):
+			return {'error': 'BAD_ARGUMENT'}
+		d = [0xFF, 0xFF]
+		try:
+			dc = float(dutyCircle)
+		except:
+			return {'error': 'BAD_ARGUMENT'}
+		if dc < 0 or dc > 100:
+			return {'error': 'INVALID_DUTY_CIRCLE'}
+		elif dc < 100:
+			dci = int(round(dc * 65534 // 100))
+			d[0] = dci & 0xFF
+			d[1] = (dci >> 8) & 0xFF
+		return self.interface.WriteData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, d)
+
+	def GetIoPWM(self, pin):
+		if not (pin == 1 or pin == 2):
+			return {'error': 'BAD_ARGUMENT'}
+		ret = self.interface.ReadData(self.IO_PIN_ACCESS_CMD + (pin-1)*5, 2)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			d = ret['data']
+			dci = d[0] | (d[1] << 8)
+			dc = float(dci) * 100 // 65534 if dci < 65535 else 100
+			return {'data': dc, 'error': 'NO_ERROR'}
 
 
 class PiJuiceRtcAlarm(object):
@@ -1047,471 +1045,555 @@ class PiJuicePower(object):
 
 class PiJuiceConfig(object):
 
-    CHARGING_CONFIG_CMD = 0x51
-    BATTERY_PROFILE_ID_CMD = 0x52
-    BATTERY_PROFILE_CMD = 0x53
-    BATTERY_TEMP_SENSE_CONFIG_CMD = 0x5D
-    POWER_INPUTS_CONFIG_CMD = 0x5E
-    RUN_PIN_CONFIG_CMD = 0x5F
-    POWER_REGULATOR_CONFIG_CMD = 0x60
-    LED_CONFIGURATION_CMD = 0x6A
-    BUTTON_CONFIGURATION_CMD = 0x6E
-    IO_CONFIGURATION_CMD = 0x72
-    I2C_ADDRESS_CMD = 0x7C
-    ID_EEPROM_WRITE_PROTECT_CTRL_CMD = 0x7E
-    ID_EEPROM_ADDRESS_CMD = 0x7F
-    RESET_TO_DEFAULT_CMD = 0xF0
-    FIRMWARE_VERSION_CMD = 0xFD
+	CHARGING_CONFIG_CMD = 0x51
+	BATTERY_PROFILE_ID_CMD = 0x52
+	BATTERY_PROFILE_CMD = 0x53
+	BATTERY_EXT_PROFILE_CMD = 0x54
+	BATTERY_TEMP_SENSE_CONFIG_CMD = 0x5D
+	POWER_INPUTS_CONFIG_CMD = 0x5E
+	RUN_PIN_CONFIG_CMD = 0x5F
+	POWER_REGULATOR_CONFIG_CMD = 0x60
+	LED_CONFIGURATION_CMD = 0x6A
+	BUTTON_CONFIGURATION_CMD = 0x6E
+	IO_CONFIGURATION_CMD = 0x72
+	I2C_ADDRESS_CMD = 0x7C
+	ID_EEPROM_WRITE_PROTECT_CTRL_CMD = 0x7E
+	ID_EEPROM_ADDRESS_CMD = 0x7F
+	RESET_TO_DEFAULT_CMD = 0xF0
+	FIRMWARE_VERSION_CMD = 0xFD
 
-    def __init__(self, interface):
-        self.interface = interface
+	def __init__(self, interface):
+		self.interface = interface
 
-    def __enter__(self):
-        # Just return this object so it can be used in a with statement
-        return self
+	def __enter__(self):
+		# Just return this object so it can be used in a with statement
+		return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        return False  # Don't suppress exceptions.
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		return False  # Don't suppress exceptions.
 
-    def SetChargingConfig(self, config, non_volatile = False):
-        try:
-            nv = 0x80 if non_volatile == True else 0x00
-            if config['charging_enabled'] == True:
-                chEn = 0x01
-            elif config['charging_enabled'] == False:
-                chEn = 0x00
-            else:
-                return {'error': 'BAD_ARGUMENT'}
-        except:
-            return {'error': 'BAD_ARGUMENT'}
-        d = [nv | chEn]
-        return self.interface.WriteDataVerify(self.CHARGING_CONFIG_CMD, d)
-    
-    def GetChargingConfig(self):  
-        ret = self.interface.ReadData(self.CHARGING_CONFIG_CMD, 1)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        else:
-            return {'data': {'charging_enabled' :bool(ret['data'][0] & 0x01)},
-                    'non_volatile':bool(ret['data'][0]&0x80), 'error':'NO_ERROR'}
+	def SetChargingConfig(self, config, non_volatile = False):
+		try:
+			nv = 0x80 if non_volatile == True else 0x00
+			if config['charging_enabled'] == True:
+				chEn = 0x01
+			elif config['charging_enabled'] == False:
+				chEn = 0x00
+			else:
+				return {'error': 'BAD_ARGUMENT'}
+		except:
+			return {'error': 'BAD_ARGUMENT'}
+		d = [nv | chEn]
+		return self.interface.WriteDataVerify(self.CHARGING_CONFIG_CMD, d)
 
-    batteryProfiles = ['BP6X', 'BP7X', 'SNN5843', 'LIPO8047109']
-    def SetBatteryProfile(self, profile):
-        id = None
-        if profile == 'DEFAULT':
-            id = 0xFF
-        elif profile == 'CUSTOM':
-            id = 0x0F
-        else:
-            try:
-                id = self.batteryProfiles.index(profile)
-            except:
-                return {'error': 'BAD_ARGUMENT'}
-        return self.interface.WriteData(self.BATTERY_PROFILE_ID_CMD, [id])
+	def GetChargingConfig(self):  
+		ret = self.interface.ReadData(self.CHARGING_CONFIG_CMD, 1)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			return {'data': {'charging_enabled' :bool(ret['data'][0] & 0x01)},
+					'non_volatile':bool(ret['data'][0]&0x80), 'error':'NO_ERROR'}
 
-    batteryProfileSources = ['HOST', 'DIP_SWITCH', 'RESISTOR']
-    batteryProfileValidity = ['VALID', 'INVALID']
-    def GetBatteryProfileStatus(self):
-        ret = self.interface.ReadData(self.BATTERY_PROFILE_ID_CMD, 1)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        else:
-            id = ret['data'][0]
-            if id == 0xF0:
-                return {'data': {'validity': 'DATA_WRITE_NOT_COMPLETED'}, 'error': 'NO_ERROR'}
-            origin = 'CUSTOM' if (id & 0x0F) == 0x0F else 'PREDEFINED'
-            source = self.batteryProfileSources[(id >> 4) & 0x03]
-            validity = self.batteryProfileValidity[(id >> 6) & 0x01]
-            profile = None
-            try:
-                profile = self.batteryProfiles[(id & 0x0F)]
-            except:
-                profile = 'UNKNOWN'
-            return {'data': {'validity': validity, 'source': source, 'origin': origin, 'profile': profile}, 'error': 'NO_ERROR'}
+	batteryProfiles = ['BP6X', 'BP7X', 'SNN5843', 'LIPO12000']
+	def SetBatteryProfile(self, profile):
+		id = None
+		if profile == 'DEFAULT':
+			id = 0xFF
+		elif profile == 'CUSTOM':
+			id = 0x0F
+		else:
+			try:
+				id = self.batteryProfiles.index(profile)
+			except:
+				return {'error': 'BAD_ARGUMENT'}
+		return self.interface.WriteData(self.BATTERY_PROFILE_ID_CMD, [id])
 
-    def GetBatteryProfile(self):
-        ret = self.interface.ReadData(self.BATTERY_PROFILE_CMD, 14)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        else:
-            d = ret['data']
-            if all(v == 0 for v in d):
-                return {'data': 'INVALID', 'error': 'NO_ERROR'}
-            profile = {}
-            profile['capacity'] = (d[1] << 8) | d[0]
-            profile['chargeCurrent'] = d[2] * 75 + 550
-            profile['terminationCurrent'] = d[3] * 50 + 50
-            profile['regulationVoltage'] = d[4] * 20 + 3500
-            profile['cutoffVoltage'] = d[5] * 20
-            profile['tempCold'] = ctypes.c_byte(d[6]).value
-            profile['tempCool'] = ctypes.c_byte(d[7]).value
-            profile['tempWarm'] = ctypes.c_byte(d[8]).value
-            profile['tempHot'] = ctypes.c_byte(d[9]).value
-            profile['ntcB'] = (d[11] << 8) | d[10]
-            profile['ntcResistance'] = ((d[13] << 8) | d[12]) * 10
-            return {'data': profile, 'error': 'NO_ERROR'}
+	batteryProfileSources = ['HOST', 'DIP_SWITCH', 'RESISTOR']
+	batteryProfileValidity = ['VALID', 'INVALID']
+	def GetBatteryProfileStatus(self):
+		ret = self.interface.ReadData(self.BATTERY_PROFILE_ID_CMD, 1)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			id = ret['data'][0]
+			if id == 0xF0:
+				return {'data': {'validity': 'DATA_WRITE_NOT_COMPLETED'}, 'error': 'NO_ERROR'}
+			origin = 'CUSTOM' if (id & 0x0F) == 0x0F else 'PREDEFINED'
+			source = self.batteryProfileSources[(id >> 4) & 0x03]
+			validity = self.batteryProfileValidity[(id >> 6) & 0x01]
+			profile = None
+			try:
+				profile = self.batteryProfiles[(id & 0x0F)]
+			except:
+				profile = 'UNKNOWN'
+			return {'data': {'validity': validity, 'source': source, 'origin': origin, 'profile': profile}, 'error': 'NO_ERROR'}
 
-    def SetCustomBatteryProfile(self, profile):
-        d = [0x00] * 14
-        try:
-            c = profile['capacity']
-            d[0] = c & 0xFF
-            d[1] = (c >> 8) & 0xFF
-            d[2] = int(round((profile['chargeCurrent'] - 550) // 75))
-            d[3] = int(round((profile['terminationCurrent'] - 50) // 50))
-            d[4] = int(round((profile['regulationVoltage'] - 3500) // 20))
-            d[5] = int(round(profile['cutoffVoltage'] // 20))
-            d[6] = ctypes.c_ubyte(profile['tempCold']).value
-            d[7] = ctypes.c_ubyte(profile['tempCool']).value
-            d[8] = ctypes.c_ubyte(profile['tempWarm']).value
-            d[9] = ctypes.c_ubyte(profile['tempHot']).value
-            B = profile['ntcB']
-            d[10] = B & 0xFF
-            d[11] = (B >> 8) & 0xFF
-            R = profile['ntcResistance'] // 10
-            d[12] = R & 0xFF
-            d[13] = (R >> 8) & 0xFF
-        except:
-            return {'error': 'BAD_ARGUMENT'}
-        print(d)
-        return self.interface.WriteDataVerify(self.BATTERY_PROFILE_CMD, d, 0.2)
+	def GetBatteryProfile(self):
+		ret = self.interface.ReadData(self.BATTERY_PROFILE_CMD, 14)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			d = ret['data']
+			if all(v == 0 for v in d):
+				return {'data': 'INVALID', 'error': 'NO_ERROR'}
+			profile = {}
+			profile['capacity'] = (d[1] << 8) | d[0]
+			profile['chargeCurrent'] = d[2] * 75 + 550
+			profile['terminationCurrent'] = d[3] * 50 + 50
+			profile['regulationVoltage'] = d[4] * 20 + 3500
+			profile['cutoffVoltage'] = d[5] * 20
+			profile['tempCold'] = ctypes.c_byte(d[6]).value
+			profile['tempCool'] = ctypes.c_byte(d[7]).value
+			profile['tempWarm'] = ctypes.c_byte(d[8]).value
+			profile['tempHot'] = ctypes.c_byte(d[9]).value
+			profile['ntcB'] = (d[11] << 8) | d[10]
+			profile['ntcResistance'] = ((d[13] << 8) | d[12]) * 10
+			return {'data': profile, 'error': 'NO_ERROR'}
 
-    batteryTempSenseOptions = ['NOT_USED', 'NTC', 'ON_BOARD', 'AUTO_DETECT']
-    def GetBatteryTempSenseConfig(self):
-        result = self.interface.ReadData(self.BATTERY_TEMP_SENSE_CONFIG_CMD, 1)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            d = result['data']
-            if d[0] < len(self.batteryTempSenseOptions):
-                return {'data': self.batteryTempSenseOptions[d[0]], 'error': 'NO_ERROR'}
-            else:
-                return {'error': 'UNKNOWN_DATA'}
+	def SetCustomBatteryProfile(self, profile):
+		d = [0x00] * 14
+		try:
+			c = profile['capacity']
+			d[0] = c & 0xFF
+			d[1] = (c >> 8) & 0xFF
+			d[2] = int(round((profile['chargeCurrent'] - 550) // 75))
+			d[3] = int(round((profile['terminationCurrent'] - 50) // 50))
+			d[4] = int(round((profile['regulationVoltage'] - 3500) // 20))
+			d[5] = int(round(profile['cutoffVoltage'] // 20))
+			d[6] = ctypes.c_ubyte(profile['tempCold']).value
+			d[7] = ctypes.c_ubyte(profile['tempCool']).value
+			d[8] = ctypes.c_ubyte(profile['tempWarm']).value
+			d[9] = ctypes.c_ubyte(profile['tempHot']).value
+			B = profile['ntcB']
+			d[10] = B & 0xFF
+			d[11] = (B >> 8) & 0xFF
+			R = profile['ntcResistance'] // 10
+			d[12] = R & 0xFF
+			d[13] = (R >> 8) & 0xFF
+		except:
+			return {'error': 'BAD_ARGUMENT'}
+		print(d)
+		return self.interface.WriteDataVerify(self.BATTERY_PROFILE_CMD, d, 0.2)
 
-    def SetBatteryTempSenseConfig(self, config):
-        ind = self.batteryTempSenseOptions.index(config)
-        if ind == None:
-            return {'error': 'BAD_ARGUMENT'}
-        data = [ind]
-        return self.interface.WriteDataVerify(self.BATTERY_TEMP_SENSE_CONFIG_CMD, data)
+	batteryChemisties = ['LIPO', 'LIFEPO4']
+	def GetBatteryExtProfile(self):
+		ret = self.interface.ReadData(self.BATTERY_EXT_PROFILE_CMD, 17)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			d = ret['data']
+			if all(v == 0 for v in d):
+				return {'data':'INVALID', 'error':'NO_ERROR'} 
+			profile = {}
+			if d[0] < len(self.batteryChemisties):
+				profile['chemistry'] = self.batteryChemisties[d[0]]
+			else:
+				profile['chemistry'] = 'UNKNOWN'
+			profile['ocv10'] = (d[2] << 8) | d[1]
+			profile['ocv50'] = (d[4] << 8) | d[3]
+			profile['ocv90'] = (d[6] << 8) | d[5]
+			profile['r10'] = ((d[8] << 8) | d[7])/100.0
+			profile['r50'] = ((d[10] << 8) | d[9])/100.0
+			profile['r90'] = ((d[12] << 8) | d[11])/100.0
+			return {'data':profile, 'error':'NO_ERROR'}
 
-    powerInputs = ['USB_MICRO', '5V_GPIO']
-    usbMicroCurrentLimits = ['1.5A', '2.5A']
-    usbMicroDPMs = list("{0:.2f}".format(4.2+0.08*x)+'V' for x in range(0, 8))
-    def SetPowerInputsConfig(self, config, non_volatile=False):
-        d = []
-        try:
-            nv = 0x80 if non_volatile == True else 0x00
-            prec = 0x01 if (config['precedence'] == '5V_GPIO') else 0x00
-            gpioInEn = 0x02 if (config['gpio_in_enabled'] == True) else 0x00
-            noBatOn = 0x04 if (config['no_battery_turn_on'] == True) else 0x00
-            ind = self.usbMicroCurrentLimits.index(config['usb_micro_current_limit'])
-            if ind == None:
-                return {'error': 'INVALID_USB_MICRO_CURRENT_LIMIT'}
-            usbMicroLimit = int(ind) << 3
+	def SetCustomBatteryExtProfile(self, profile):
+		d = [0x00] * 17
+		try:
+			chid = self.batteryChemisties.index(profile['chemistry'])
+			d[0] = chid&0xFF
+			v=int(profile['ocv10'])
+			d[1] = v&0xFF
+			d[2] = (v >> 8)&0xFF
+			v=int(profile['ocv50'])
+			d[3] = v&0xFF
+			d[4] = (v >> 8)&0xFF
+			v=int(profile['ocv90'])
+			d[5] = v&0xFF
+			d[6] = (v >> 8)&0xFF
+			v=int(profile['r10']*100)
+			d[7] = v&0xFF
+			d[8] = (v >> 8)&0xFF
+			v=int(profile['r50']*100)
+			d[9] = v&0xFF
+			d[10] = (v >> 8)&0xFF
+			v=int(profile['r90']*100)
+			d[11] = v&0xFF
+			d[12] = (v >> 8)&0xFF
+			d[13] = 0xFF
+			d[14] = 0xFF
+			d[15] = 0xFF
+			d[16] = 0xFF
+		except:
+			return {'error':'BAD_ARGUMENT'}
+		return self.interface.WriteDataVerify(self.BATTERY_EXT_PROFILE_CMD, d, 0.2)
+		
+	batteryTempSenseOptions = ['NOT_USED', 'NTC', 'ON_BOARD', 'AUTO_DETECT']
+	def GetBatteryTempSenseConfig(self):
+		result = self.interface.ReadData(self.BATTERY_TEMP_SENSE_CONFIG_CMD, 1)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			d = result['data']
+			if (d[0]&0x07) < len(self.batteryTempSenseOptions):
+				return {'data':self.batteryTempSenseOptions[d[0]&0x07], 'error':'NO_ERROR'} 
+			else:
+				return {'error':'UNKNOWN_DATA'}
+			
+	def SetBatteryTempSenseConfig(self, config):
+		ret = self.interface.ReadData(self.BATTERY_TEMP_SENSE_CONFIG_CMD, 1)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		ind = self.batteryTempSenseOptions.index(config)
+		if ind == None:
+			return {'error':'BAD_ARGUMENT'}
+		data = [(int(ret['data'][0])&(~0x07)) | ind]
+		return self.interface.WriteDataVerify(self.BATTERY_TEMP_SENSE_CONFIG_CMD, data)
+		
+	rsocEstimationOptions = ['AUTO_DETECT', 'DIRECT_BY_MCU']
+	def GetRsocEstimationConfig(self):
+		result = self.interface.ReadData(self.BATTERY_TEMP_SENSE_CONFIG_CMD, 1)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			d = result['data']
+			if ((d[0]&0x30)>>4) < len(self.rsocEstimationOptions):
+				return {'data':self.rsocEstimationOptions[(d[0]&0x30)>>4], 'error':'NO_ERROR'} 
+			else:
+				return {'error':'UNKNOWN_DATA'}
+			
+	def SetRsocEstimationConfig(self, config):
+		ret = self.interface.ReadData(self.BATTERY_TEMP_SENSE_CONFIG_CMD, 1)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		ind = self.rsocEstimationOptions.index(config)
+		if ind == None:
+			return {'error':'BAD_ARGUMENT'}
+		data = [(int(ret['data'][0])&(~0x30)) | (ind<<4)]
+		return self.interface.WriteDataVerify(self.BATTERY_TEMP_SENSE_CONFIG_CMD, data)
 
-            ind = self.usbMicroDPMs.index(config['usb_micro_dpm'])
-            if ind == None:
-                return {'error': 'INVALID_USB_MICRO_DPM'}
-            dpm = (int(ind) & 0x07) << 4
-            d = [nv | prec | gpioInEn | noBatOn | usbMicroLimit | dpm]
-        except:
-            return {'error': 'BAD_ARGUMENT'}
-        return self.interface.WriteDataVerify(self.POWER_INPUTS_CONFIG_CMD, d)
+	powerInputs = ['USB_MICRO', '5V_GPIO']
+	usbMicroCurrentLimits = ['1.5A', '2.5A']
+	usbMicroDPMs = list("{0:.2f}".format(4.2+0.08*x)+'V' for x in range(0, 8))
+	def SetPowerInputsConfig(self, config, non_volatile=False):
+		d = []
+		try:
+			nv = 0x80 if non_volatile == True else 0x00
+			prec = 0x01 if (config['precedence'] == '5V_GPIO') else 0x00
+			gpioInEn = 0x02 if (config['gpio_in_enabled'] == True) else 0x00
+			noBatOn = 0x04 if (config['no_battery_turn_on'] == True) else 0x00
+			ind = self.usbMicroCurrentLimits.index(config['usb_micro_current_limit'])
+			if ind == None:
+				return {'error': 'INVALID_USB_MICRO_CURRENT_LIMIT'}
+			usbMicroLimit = int(ind) << 3
 
-    def GetPowerInputsConfig(self):
-        ret = self.interface.ReadData(self.POWER_INPUTS_CONFIG_CMD, 1)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        d = ret['data'][0]
-        config = {}
-        # print hex(d)
-        config['precedence'] = self.powerInputs[d & 0x01]
-        config['gpio_in_enabled'] = bool(d & 0x02)
-        config['no_battery_turn_on'] = bool(d & 0x04)
-        config['usb_micro_current_limit'] = self.usbMicroCurrentLimits[(
-            d >> 3) & 0x01]
-        config['usb_micro_dpm'] = self.usbMicroDPMs[(d >> 4) & 0x07]
-        return {'data': config, 'non_volatile': bool(d & 0x80), 'error': 'NO_ERROR'}
+			ind = self.usbMicroDPMs.index(config['usb_micro_dpm'])
+			if ind == None:
+				return {'error': 'INVALID_USB_MICRO_DPM'}
+			dpm = (int(ind) & 0x07) << 4
+			d = [nv | prec | gpioInEn | noBatOn | usbMicroLimit | dpm]
+		except:
+			return {'error': 'BAD_ARGUMENT'}
+		return self.interface.WriteDataVerify(self.POWER_INPUTS_CONFIG_CMD, d)
 
-    buttons = ['SW' + str(i+1) for i in range(0, 3)]
-    buttonEvents = ['PRESS', 'RELEASE', 'SINGLE_PRESS',
-                 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
-    # functionTypes = ['HARDWARE', 'SYSTEM', 'USER']
-    def GetButtonConfiguration(self, button):
-        # returnObj = {}
-        b = None
-        try:
-            b = self.buttons.index(button)
-        except ValueError:
-            return {'error': 'BAD_ARGUMENT'}
-        result = self.interface.ReadData(self.BUTTON_CONFIGURATION_CMD + b, 12)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            d = result['data']
-            config = {}
-            for i in range(0, len(self.buttonEvents)):
-                config[self.buttonEvents[i]] = {}
-                try:
-                    if d[i*2] == 0:
-                        config[self.buttonEvents[i]]['function'] = 'NO_FUNC'
-                    elif d[i*2] & 0xF0 == 0:
-                        config[self.buttonEvents[i]]['function'] = pijuice_hard_functions[(d[i*2] & 0x0F)-1]
-                    elif d[i*2] & 0xF0 == 0x10:
-                        config[self.buttonEvents[i]]['function'] = pijuice_sys_functions[(d[i*2] & 0x0F)-1]
-                    elif d[i*2] & 0xF0 == 0x20:
-                        # 'USER_FUNC' + str(d[i*2] & 0x0F)
-                        config[self.buttonEvents[i]]['function'] = pijuice_user_functions[d[i*2] & 0x0F]
-                    else:
-                        config[self.buttonEvents[i]]['function'] = 'UNKNOWN'
-                except IndexError:
-                    config[self.buttonEvents[i]]['function'] = 'UNKNOWN'
-                config[self.buttonEvents[i]]['parameter'] = d[i*2+1] * 100
-            return {'data': config, 'error': 'NO_ERROR'}
+	def GetPowerInputsConfig(self):
+		ret = self.interface.ReadData(self.POWER_INPUTS_CONFIG_CMD, 1)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		d = ret['data'][0]
+		config = {}
+		# print hex(d)
+		config['precedence'] = self.powerInputs[d & 0x01]
+		config['gpio_in_enabled'] = bool(d & 0x02)
+		config['no_battery_turn_on'] = bool(d & 0x04)
+		config['usb_micro_current_limit'] = self.usbMicroCurrentLimits[(
+			d >> 3) & 0x01]
+		config['usb_micro_dpm'] = self.usbMicroDPMs[(d >> 4) & 0x07]
+		return {'data': config, 'non_volatile': bool(d & 0x80), 'error': 'NO_ERROR'}
 
-    def SetButtonConfiguration(self, button, config):
-        b = None
-        try:
-            b = self.buttons.index(button)
-        except ValueError:
-            return {'error': 'BAD_ARGUMENT'}
-        data = [0x00] * (len(self.buttonEvents) * 2)
-        for i in range(0, len(self.buttonEvents)):
-            try:
-                data[i*2] = pijuice_hard_functions.index(
-                    config[self.buttonEvents[i]]['function']) + 0x01
-            except ValueError:
-                try:
-                    data[i*2] = pijuice_sys_functions.index(
-                        config[self.buttonEvents[i]]['function']) + 0x11
-                except:
-                    try:
-                        data[i*2] = pijuice_user_functions.index(
-                            config[self.buttonEvents[i]]['function']) + 0x20
-                    except:
-                        data[i*2] = 0
-            data[i*2+1] = (config[self.buttonEvents[i]]['parameter'] // 100) & 0xff
-        return self.interface.WriteDataVerify(self.BUTTON_CONFIGURATION_CMD + b, data, 0.4)
+	buttons = ['SW' + str(i+1) for i in range(0, 3)]
+	buttonEvents = ['PRESS', 'RELEASE', 'SINGLE_PRESS',
+				 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
+	# functionTypes = ['HARDWARE', 'SYSTEM', 'USER']
+	def GetButtonConfiguration(self, button):
+		# returnObj = {}
+		b = None
+		try:
+			b = self.buttons.index(button)
+		except ValueError:
+			return {'error': 'BAD_ARGUMENT'}
+		result = self.interface.ReadData(self.BUTTON_CONFIGURATION_CMD + b, 12)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			d = result['data']
+			config = {}
+			for i in range(0, len(self.buttonEvents)):
+				config[self.buttonEvents[i]] = {}
+				try:
+					if d[i*2] == 0:
+						config[self.buttonEvents[i]]['function'] = 'NO_FUNC'
+					elif d[i*2] & 0xF0 == 0:
+						config[self.buttonEvents[i]]['function'] = pijuice_hard_functions[(d[i*2] & 0x0F)-1]
+					elif d[i*2] & 0xF0 == 0x10:
+						config[self.buttonEvents[i]]['function'] = pijuice_sys_functions[(d[i*2] & 0x0F)-1]
+					elif d[i*2] & 0xF0 == 0x20:
+						# 'USER_FUNC' + str(d[i*2] & 0x0F)
+						config[self.buttonEvents[i]]['function'] = pijuice_user_functions[d[i*2] & 0x0F]
+					else:
+						config[self.buttonEvents[i]]['function'] = 'UNKNOWN'
+				except IndexError:
+					config[self.buttonEvents[i]]['function'] = 'UNKNOWN'
+				config[self.buttonEvents[i]]['parameter'] = d[i*2+1] * 100
+			return {'data': config, 'error': 'NO_ERROR'}
 
-    leds = ['D1', 'D2']
-    # XXX: Avoid setting ON_OFF_STATUS
-    ledFunctionsOptions = ['NOT_USED', 'CHARGE_STATUS', 'USER_LED']
-    ledFunctions = ['NOT_USED', 'CHARGE_STATUS', 'ON_OFF_STATUS', 'USER_LED']
-    def GetLedConfiguration(self, led):
-        i = None
-        try:
-            i = self.leds.index(led)
-        except ValueError:
-            return {'error': 'BAD_ARGUMENT'}
-        ret = self.interface.ReadData(self.LED_CONFIGURATION_CMD + i, 4)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        else:
-            config = {}
-            try:
-                config['function'] = self.ledFunctions[ret['data'][0]]
-            except:
-                return {'error': 'UNKNOWN_CONFIG'}
-            config['parameter'] = {
-                'r': ret['data'][1],
-                'g': ret['data'][2],
-                'b': ret['data'][3]
-            }
-            return {'data': config, 'error': 'NO_ERROR'}
+	def SetButtonConfiguration(self, button, config):
+		b = None
+		try:
+			b = self.buttons.index(button)
+		except ValueError:
+			return {'error': 'BAD_ARGUMENT'}
+		data = [0x00] * (len(self.buttonEvents) * 2)
+		for i in range(0, len(self.buttonEvents)):
+			try:
+				data[i*2] = pijuice_hard_functions.index(
+					config[self.buttonEvents[i]]['function']) + 0x01
+			except ValueError:
+				try:
+					data[i*2] = pijuice_sys_functions.index(
+						config[self.buttonEvents[i]]['function']) + 0x11
+				except:
+					try:
+						data[i*2] = pijuice_user_functions.index(
+							config[self.buttonEvents[i]]['function']) + 0x20
+					except:
+						data[i*2] = 0
+			data[i*2+1] = (config[self.buttonEvents[i]]['parameter'] // 100) & 0xff
+		return self.interface.WriteDataVerify(self.BUTTON_CONFIGURATION_CMD + b, data, 0.4)
 
-    def SetLedConfiguration(self, led, config):
-        i = None
-        d = [0x00, 0x00, 0x00, 0x00]
-        try:
-            i = self.leds.index(led)
-            d[0] = self.ledFunctions.index(config['function'])
-            d[1] = int(config['parameter']['r'])
-            d[2] = int(config['parameter']['g'])
-            d[3] = int(config['parameter']['b'])
-        except ValueError:
-            return {'error': 'BAD_ARGUMENT'}
-        return self.interface.WriteDataVerify(self.LED_CONFIGURATION_CMD + i, d, 0.2)
+	leds = ['D1', 'D2']
+	# XXX: Avoid setting ON_OFF_STATUS
+	ledFunctionsOptions = ['NOT_USED', 'CHARGE_STATUS', 'USER_LED']
+	ledFunctions = ['NOT_USED', 'CHARGE_STATUS', 'ON_OFF_STATUS', 'USER_LED']
+	def GetLedConfiguration(self, led):
+		i = None
+		try:
+			i = self.leds.index(led)
+		except ValueError:
+			return {'error': 'BAD_ARGUMENT'}
+		ret = self.interface.ReadData(self.LED_CONFIGURATION_CMD + i, 4)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			config = {}
+			try:
+				config['function'] = self.ledFunctions[ret['data'][0]]
+			except:
+				return {'error': 'UNKNOWN_CONFIG'}
+			config['parameter'] = {
+				'r': ret['data'][1],
+				'g': ret['data'][2],
+				'b': ret['data'][3]
+			}
+			return {'data': config, 'error': 'NO_ERROR'}
 
-    powerRegulatorModes = ['POWER_SOURCE_DETECTION', 'LDO', 'DCDC']
-    def GetPowerRegulatorMode(self):
-        result = self.interface.ReadData(self.POWER_REGULATOR_CONFIG_CMD, 1)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            d = result['data']
-            if d[0] < len(self.powerRegulatorModes):
-                return {'data': self.powerRegulatorModes[d[0]], 'error': 'NO_ERROR'}
-            else:
-                return {'error': 'UNKNOWN_DATA'}
+	def SetLedConfiguration(self, led, config):
+		i = None
+		d = [0x00, 0x00, 0x00, 0x00]
+		try:
+			i = self.leds.index(led)
+			d[0] = self.ledFunctions.index(config['function'])
+			d[1] = int(config['parameter']['r'])
+			d[2] = int(config['parameter']['g'])
+			d[3] = int(config['parameter']['b'])
+		except ValueError:
+			return {'error': 'BAD_ARGUMENT'}
+		return self.interface.WriteDataVerify(self.LED_CONFIGURATION_CMD + i, d, 0.2)
 
-    def SetPowerRegulatorMode(self, mode):
-        try:
-            ind = self.powerRegulatorModes.index(mode)
-        except:
-            return {'error': 'BAD_ARGUMENT'}
-        return self.interface.WriteDataVerify(self.POWER_REGULATOR_CONFIG_CMD, [ind])
+	powerRegulatorModes = ['POWER_SOURCE_DETECTION', 'LDO', 'DCDC']
+	def GetPowerRegulatorMode(self):
+		result = self.interface.ReadData(self.POWER_REGULATOR_CONFIG_CMD, 1)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			d = result['data']
+			if d[0] < len(self.powerRegulatorModes):
+				return {'data': self.powerRegulatorModes[d[0]], 'error': 'NO_ERROR'}
+			else:
+				return {'error': 'UNKNOWN_DATA'}
 
-    runPinConfigs = ['NOT_INSTALLED', 'INSTALLED']
+	def SetPowerRegulatorMode(self, mode):
+		try:
+			ind = self.powerRegulatorModes.index(mode)
+		except:
+			return {'error': 'BAD_ARGUMENT'}
+		return self.interface.WriteDataVerify(self.POWER_REGULATOR_CONFIG_CMD, [ind])
 
-    def GetRunPinConfig(self):
-        result = self.interface.ReadData(self.RUN_PIN_CONFIG_CMD, 1)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            d = result['data']
-            if d[0] < len(self.runPinConfigs):
-                return {'data': self.runPinConfigs[d[0]], 'error': 'NO_ERROR'}
-            else:
-                return {'error': 'UNKNOWN_DATA'}
+	runPinConfigs = ['NOT_INSTALLED', 'INSTALLED']
 
-    def SetRunPinConfig(self, config):
-        try:
-            ind = self.runPinConfigs.index(config)
-        except:
-            return {'error': 'BAD_ARGUMENT'}
-        return self.interface.WriteDataVerify(self.RUN_PIN_CONFIG_CMD, [ind])
+	def GetRunPinConfig(self):
+		result = self.interface.ReadData(self.RUN_PIN_CONFIG_CMD, 1)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			d = result['data']
+			if d[0] < len(self.runPinConfigs):
+				return {'data': self.runPinConfigs[d[0]], 'error': 'NO_ERROR'}
+			else:
+				return {'error': 'UNKNOWN_DATA'}
 
-    ioModes = ['NOT_USED', 'ANALOG_IN', 'DIGITAL_IN', 'DIGITAL_OUT_PUSHPULL',
-               'DIGITAL_IO_OPEN_DRAIN', 'PWM_OUT_PUSHPULL', 'PWM_OUT_OPEN_DRAIN']
-    ioSupportedModes = {
-            1: ['NOT_USED', 'ANALOG_IN', 'DIGITAL_IN', 'DIGITAL_OUT_PUSHPULL',
-                'DIGITAL_IO_OPEN_DRAIN', 'PWM_OUT_PUSHPULL', 'PWM_OUT_OPEN_DRAIN'],
+	def SetRunPinConfig(self, config):
+		try:
+			ind = self.runPinConfigs.index(config)
+		except:
+			return {'error': 'BAD_ARGUMENT'}
+		return self.interface.WriteDataVerify(self.RUN_PIN_CONFIG_CMD, [ind])
 
-            2: ['NOT_USED', 'DIGITAL_IN', 'DIGITAL_OUT_PUSHPULL',
-                'DIGITAL_IO_OPEN_DRAIN', 'PWM_OUT_PUSHPULL', 'PWM_OUT_OPEN_DRAIN']
-        }
-    ioPullOptions = ['NOPULL', 'PULLDOWN', 'PULLUP']
-    ioConfigParams = {
-        'DIGITAL_OUT_PUSHPULL': [{'name': 'value', 'type': 'int', 'min': 0, 'max': 1}],
-        'DIGITAL_IO_OPEN_DRAIN': [{'name': 'value', 'type': 'int', 'min': 0, 'max': 1}],
-        'PWM_OUT_PUSHPULL': [{'name': 'period', 'unit': 'us', 'type': 'int', 'min': 2, 'max': 65536 * 2},
-                             {'name': 'duty_circle', 'unit': '%', 'type': 'float', 'min': 0, 'max': 100}],
-        'PWM_OUT_OPEN_DRAIN': [{'name': 'period', 'unit': 'us', 'type': 'int', 'min': 2, 'max': 65536 * 2},
-                               {'name': 'duty_circle', 'unit': '%', 'type': 'float', 'min': 0, 'max': 100}]
-    }
-    def SetIoConfiguration(self, io_pin, config, non_volatile=False):
-        d = [0x00, 0x00, 0x00, 0x00, 0x00]
-        try:
-            mode = self.ioModes.index(config['mode'])
-            pull = self.ioPullOptions.index(config['pull'])
-            nv = 0x80 if non_volatile == True else 0x00
-            d[0] = (mode & 0x0F) | ((pull & 0x03) << 4) | nv
+	ioModes = ['NOT_USED', 'ANALOG_IN', 'DIGITAL_IN', 'DIGITAL_OUT_PUSHPULL',
+			   'DIGITAL_IO_OPEN_DRAIN', 'PWM_OUT_PUSHPULL', 'PWM_OUT_OPEN_DRAIN']
+	ioSupportedModes = {
+			1: ['NOT_USED', 'ANALOG_IN', 'DIGITAL_IN', 'DIGITAL_OUT_PUSHPULL',
+				'DIGITAL_IO_OPEN_DRAIN', 'PWM_OUT_PUSHPULL', 'PWM_OUT_OPEN_DRAIN'],
 
-            if config['mode'] == 'DIGITAL_OUT_PUSHPULL' or config['mode'] == 'DIGITAL_IO_OPEN_DRAIN':
-                d[1] = int(config['value']) & 0x01  # output value
-            elif config['mode'] == 'PWM_OUT_PUSHPULL' or config['mode'] == 'PWM_OUT_OPEN_DRAIN':
-                if config['period'] >= 2:
-                    p = int(config['period']) // 2 - 1
-                else:
-                    return {'error': 'INVALID_PERIOD'}
-                d[1] = p & 0xFF
-                d[2] = (p >> 8) & 0xFF
-                d[3] = 0xFF
-                d[4] = 0xFF
-                dc = float(config['duty_circle'])
-                if dc < 0 or dc > 100:
-                    return {'error': 'INVALID_CONFIG'}
-                elif dc < 100:
-                    dci = int(dc*65534//100)
-                    d[3] = dci & 0xFF
-                    d[4] = (dci >> 8) & 0xFF
-        except:
-            return {'error': 'INVALID_CONFIG'}
-        return self.interface.WriteDataVerify(self.IO_CONFIGURATION_CMD + (io_pin-1)*5, d)
+			2: ['NOT_USED', 'DIGITAL_IN', 'DIGITAL_OUT_PUSHPULL',
+				'DIGITAL_IO_OPEN_DRAIN', 'PWM_OUT_PUSHPULL', 'PWM_OUT_OPEN_DRAIN']
+		}
+	ioPullOptions = ['NOPULL', 'PULLDOWN', 'PULLUP']
+	ioConfigParams = {
+		'DIGITAL_IN': [{'name': 'wakeup', 'type': 'enum', 'options':['NO_WAKEUP', 'FALLING_EDGE', 'RISING_EDGE']}],
+		'DIGITAL_OUT_PUSHPULL': [{'name': 'value', 'type': 'int', 'min': 0, 'max': 1}],
+		'DIGITAL_IO_OPEN_DRAIN': [{'name': 'value', 'type': 'int', 'min': 0, 'max': 1}],
+		'PWM_OUT_PUSHPULL': [{'name': 'period', 'unit': 'us', 'type': 'int', 'min': 2, 'max': 65536 * 2},
+							 {'name': 'duty_circle', 'unit': '%', 'type': 'float', 'min': 0, 'max': 100}],
+		'PWM_OUT_OPEN_DRAIN': [{'name': 'period', 'unit': 'us', 'type': 'int', 'min': 2, 'max': 65536 * 2},
+							   {'name': 'duty_circle', 'unit': '%', 'type': 'float', 'min': 0, 'max': 100}]
+	}
+	def SetIoConfiguration(self, io_pin, config, non_volatile=False):
+		d = [0x00, 0x00, 0x00, 0x00, 0x00]
+		try:
+			mode = self.ioModes.index(config['mode'])
+			pull = self.ioPullOptions.index(config['pull'])
+			nv = 0x80 if non_volatile == True else 0x00
+			d[0] = (mode & 0x0F) | ((pull & 0x03) << 4) | nv
 
-    def GetIoConfiguration(self, io_pin):
-        ret = self.interface.ReadData(self.IO_CONFIGURATION_CMD + (io_pin-1)*5, 5)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        else:
-            d = ret['data']
-            nv = bool(d[0] & 0x80)
-            mode = self.ioModes[d[0] & 0x0F] if ((d[0] & 0x0F) < len(self.ioModes)) else 'UNKNOWN'
-            pull = self.ioPullOptions[(d[0] >> 4) & 0x03] if (((d[0] >> 4) & 0x03) < len(self.ioPullOptions)) else 'UNKNOWN'
-            if mode == 'DIGITAL_OUT_PUSHPULL' or mode == 'DIGITAL_IO_OPEN_DRAIN':
-                return {'data': {'mode': mode, 'pull': pull, 'value': int(d[1])},
-                        'non_volatile': nv, 'error': 'NO_ERROR'}
-            elif mode == 'PWM_OUT_PUSHPULL' or mode == 'PWM_OUT_OPEN_DRAIN':
-                per = ((d[1] | (d[2] << 8)) + 1) * 2
-                dci = d[3] | (d[4] << 8)
-                dc = float(dci) * 100 // 65534 if dci < 65535 else 100
-                return {'data': {'mode': mode, 'pull': pull, 'period': per, 'duty_circle': dc},
-                        'non_volatile': nv, 'error': 'NO_ERROR'}
-            else:
-                return {'data': {'mode': mode, 'pull': pull},
-                        'non_volatile': nv, 'error': 'NO_ERROR'}
+			if config['mode'] == 'DIGITAL_IN':
+				wup = config['wakeup'] if config['wakeup'] else 'NO_WAKEUP'
+				d[1] = self.ioConfigParams['DIGITAL_IN'][0]['options'].index(wup) & 0x03
+			elif config['mode'] == 'DIGITAL_OUT_PUSHPULL' or config['mode'] == 'DIGITAL_IO_OPEN_DRAIN':
+				d[1] = int(config['value']) & 0x01  # output value
+			elif config['mode'] == 'PWM_OUT_PUSHPULL' or config['mode'] == 'PWM_OUT_OPEN_DRAIN':
+				if config['period'] >= 2:
+					p = int(config['period']) // 2 - 1
+				else:
+					return {'error': 'INVALID_PERIOD'}
+				d[1] = p & 0xFF
+				d[2] = (p >> 8) & 0xFF
+				d[3] = 0xFF
+				d[4] = 0xFF
+				dc = float(config['duty_circle'])
+				if dc < 0 or dc > 100:
+					return {'error': 'INVALID_CONFIG'}
+				elif dc < 100:
+					dci = int(dc*65534//100)
+					d[3] = dci & 0xFF
+					d[4] = (dci >> 8) & 0xFF
+		except:
+			return {'error': 'INVALID_CONFIG'}
+		return self.interface.WriteDataVerify(self.IO_CONFIGURATION_CMD + (io_pin-1)*5, d)
 
-    def GetAddress(self, slave):
-        if slave != 1 and slave != 2:
-            return {'error': 'BAD_ARGUMENT'}
-        result = self.interface.ReadData(self.I2C_ADDRESS_CMD + slave - 1, 1)
-        if result['error'] != 'NO_ERROR':
-            return result
-        else:
-            return {'data': format(result['data'][0], 'x'), 'error': 'NO_ERROR'}
+	def GetIoConfiguration(self, io_pin):
+		ret = self.interface.ReadData(self.IO_CONFIGURATION_CMD + (io_pin-1)*5, 5)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			d = ret['data']
+			nv = bool(d[0] & 0x80)
+			mode = self.ioModes[d[0] & 0x0F] if ((d[0] & 0x0F) < len(self.ioModes)) else 'UNKNOWN'
+			pull = self.ioPullOptions[(d[0] >> 4) & 0x03] if (((d[0] >> 4) & 0x03) < len(self.ioPullOptions)) else 'UNKNOWN'
+			if mode == 'DIGITAL_OUT_PUSHPULL' or mode == 'DIGITAL_IO_OPEN_DRAIN':
+				return {'data': {'mode': mode, 'pull': pull, 'value': int(d[1])},
+						'non_volatile': nv, 'error': 'NO_ERROR'}
+			elif mode == 'PWM_OUT_PUSHPULL' or mode == 'PWM_OUT_OPEN_DRAIN':
+				per = ((d[1] | (d[2] << 8)) + 1) * 2
+				dci = d[3] | (d[4] << 8)
+				dc = float(dci) * 100 // 65534 if dci < 65535 else 100
+				return {'data': {'mode': mode, 'pull': pull, 'period': per, 'duty_circle': dc},
+						'non_volatile': nv, 'error': 'NO_ERROR'}
+			else:
+				wup = self.ioConfigParams['DIGITAL_IN'][0]['options'][d[1]&0x03] if d[1]&0x03 < len(self.ioConfigParams['DIGITAL_IN'][0]['options']) else ''
+				return {'data': {'mode': mode, 'pull': pull, 'wakeup':wup},
+						'non_volatile': nv, 'error': 'NO_ERROR'}
 
-    def SetAddress(self, slave, hexAddress):
-        adr = None
-        try:
-            adr = int(str(hexAddress), 16)
-        except:
-            return {'error': 'BAD_ARGUMENT'}
-        if (slave != 1 and slave != 2) or adr < 0 or adr > 0x7F:
-            return {'error': 'BAD_ARGUMENT'}
-        return self.interface.WriteData(self.I2C_ADDRESS_CMD + slave - 1, [adr])
+	def GetAddress(self, slave):
+		if slave != 1 and slave != 2:
+			return {'error': 'BAD_ARGUMENT'}
+		result = self.interface.ReadData(self.I2C_ADDRESS_CMD + slave - 1, 1)
+		if result['error'] != 'NO_ERROR':
+			return result
+		else:
+			return {'data': format(result['data'][0], 'x'), 'error': 'NO_ERROR'}
 
-    def GetIdEepromWriteProtect(self):
-        ret = self.interface.ReadData(self.ID_EEPROM_WRITE_PROTECT_CTRL_CMD, 1)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        else:
-            status = True if ret['data'][0] == 1 else False
-            return {'data': status, 'error': 'NO_ERROR'}
+	def SetAddress(self, slave, hexAddress):
+		adr = None
+		try:
+			adr = int(str(hexAddress), 16)
+		except:
+			return {'error': 'BAD_ARGUMENT'}
+		if (slave != 1 and slave != 2) or adr < 0 or adr > 0x7F:
+			return {'error': 'BAD_ARGUMENT'}
+		return self.interface.WriteData(self.I2C_ADDRESS_CMD + slave - 1, [adr])
 
-    def SetIdEepromWriteProtect(self, status):
-        d = None
-        if status == True:
-            d = 1
-        elif status == False:
-            d = 0
-        else:
-            return {'error': 'BAD_ARGUMENT'}
-        return self.interface.WriteDataVerify(self.ID_EEPROM_WRITE_PROTECT_CTRL_CMD, [d])
+	def GetIdEepromWriteProtect(self):
+		ret = self.interface.ReadData(self.ID_EEPROM_WRITE_PROTECT_CTRL_CMD, 1)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			status = True if ret['data'][0] == 1 else False
+			return {'data': status, 'error': 'NO_ERROR'}
 
-    idEepromAddresses = ['50', '52']
-    def GetIdEepromAddress(self):
-        ret = self.interface.ReadData(self.ID_EEPROM_ADDRESS_CMD, 1)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        else:
-            return {'data': format(ret['data'][0], 'x'), 'error': 'NO_ERROR'}
+	def SetIdEepromWriteProtect(self, status):
+		d = None
+		if status == True:
+			d = 1
+		elif status == False:
+			d = 0
+		else:
+			return {'error': 'BAD_ARGUMENT'}
+		return self.interface.WriteDataVerify(self.ID_EEPROM_WRITE_PROTECT_CTRL_CMD, [d])
 
-    def SetIdEepromAddress(self, hexAddress):
-        if str(hexAddress) in self.idEepromAddresses:
-            adr = int(str(hexAddress), 16)
-        else:
-            return {'error': 'BAD_ARGUMENT'}
-        return self.interface.WriteDataVerify(self.ID_EEPROM_ADDRESS_CMD, [adr])
+	idEepromAddresses = ['50', '52']
+	def GetIdEepromAddress(self):
+		ret = self.interface.ReadData(self.ID_EEPROM_ADDRESS_CMD, 1)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			return {'data': format(ret['data'][0], 'x'), 'error': 'NO_ERROR'}
 
-    def SetDefaultConfiguration(self):
-        return self.interface.WriteData(self.RESET_TO_DEFAULT_CMD, [0xaa, 0x55, 0x0a, 0xa3])
+	def SetIdEepromAddress(self, hexAddress):
+		if str(hexAddress) in self.idEepromAddresses:
+			adr = int(str(hexAddress), 16)
+		else:
+			return {'error': 'BAD_ARGUMENT'}
+		return self.interface.WriteDataVerify(self.ID_EEPROM_ADDRESS_CMD, [adr])
 
-    def GetFirmwareVersion(self):
-        ret = self.interface.ReadData(self.FIRMWARE_VERSION_CMD, 2)
-        if ret['error'] != 'NO_ERROR':
-            return ret
-        else:
-            major_version = ret['data'][0] >> 4
-            minor_version = (ret['data'][0] << 4 & 0xf0) >> 4
-            version_str = '%i.%i' % (major_version, minor_version)
-            return {'data': {
-                'version': version_str,
-                'variant': format(ret['data'][1], 'x')},
-                'error': 'NO_ERROR'}
+	def SetDefaultConfiguration(self):
+		return self.interface.WriteData(self.RESET_TO_DEFAULT_CMD, [0xaa, 0x55, 0x0a, 0xa3])
 
-    def RunTestCalibration(self):
-        self.interface.WriteData(248, [0x55, 0x26, 0xa0, 0x2b])
+	def GetFirmwareVersion(self):
+		ret = self.interface.ReadData(self.FIRMWARE_VERSION_CMD, 2)
+		if ret['error'] != 'NO_ERROR':
+			return ret
+		else:
+			major_version = ret['data'][0] >> 4
+			minor_version = (ret['data'][0] << 4 & 0xf0) >> 4
+			version_str = '%i.%i' % (major_version, minor_version)
+			return {'data': {
+				'version': version_str,
+				'variant': format(ret['data'][1], 'x')},
+				'error': 'NO_ERROR'}
+
+	def RunTestCalibration(self):
+		self.interface.WriteData(248, [0x55, 0x26, 0xa0, 0x2b])
 
 
 # Create an interface object for accessing PiJuice features via I2C bus.
