@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division
 
@@ -10,10 +10,14 @@ import os
 import re
 import signal
 import subprocess
+import fcntl
 import sys
 import time
+from signal import SIGUSR1, SIGUSR2
 
-try:
+py3 = sys.version_info > (3, 0)
+
+if not py3:
     # Python 2
     from Tkinter import Button as tkButton
     from Tkinter import (Tk, BooleanVar, IntVar, StringVar, Toplevel,
@@ -23,7 +27,7 @@ try:
     from tkColorChooser import askcolor
     from tkFileDialog import askopenfilename
     import tkMessageBox as MessageBox
-except ImportError:
+else:
     # Python 3
     from tkinter import Button as tkButton
     from tkinter import (Tk, BooleanVar, IntVar, StringVar, Toplevel,
@@ -44,6 +48,8 @@ except:
     pijuice = None
 
 PID_FILE = '/var/run/pijuice.pid'
+TRAY_PID_FILE = '/tmp/pijuice_tray.pid'
+LOCK_FILE = '/tmp/pijuice_gui.lock'
 USER_FUNCS_TOTAL = 15
 USER_FUNCS_MINI = 8
 pijuiceConfigData = {}
@@ -678,420 +684,527 @@ class PiJuiceLedConfig(object):
 
 
 class PiJuiceBatteryConfig(object):
-    def __init__(self, master):
-        # frame to hold contentx
-        self.frame = Frame(master, name='battery')
-        self.frame.columnconfigure(0, weight=0, uniform=1)
+	def __init__(self, master):
+		# frame to hold contentx
+		self.frame = Frame(master, name='battery')
+		self.frame.columnconfigure(0, weight=0, uniform=1)
 
-        # position and set resize behaviour
-        self.frame.rowconfigure(14, weight=1)
-        self.frame.columnconfigure((1,2), weight=1, uniform=1)
+		# position and set resize behaviour
+		self.frame.rowconfigure(21, weight=1)
+		self.frame.columnconfigure((1,2), weight=1, uniform=1)
 
-        # widgets to be displayed on 'Description' tab
+		# widgets to be displayed on 'Description' tab
 
-        self.profileId = StringVar()
-        self.profileSel = Combobox(self.frame, textvariable=self.profileId, state='readonly')
-        vals = copy.deepcopy(pijuice.config.batteryProfiles)
-        vals.append('CUSTOM')
-        vals.append('DEFAULT')
-        self.profileSel['values'] = vals
-        self.profileSel.set('')
-        self.profileSel.grid(column=0, row=1, sticky = W, pady=(0, 2))
-        self.profileSel.bind("<<ComboboxSelected>>", self._NewProfileSelection)
-        self.customCheck = IntVar()
-        self.checkbutton = Checkbutton(self.frame, text = "Custom", variable = self.customCheck).grid(row=1, column=1, sticky = W, pady=(0, 2))
-        self.customCheck.trace("w", self._CustomCheckEvent)
-        #self.checkbutton.select()
+		self.profileId = StringVar()
+		self.profileSel = Combobox(self.frame, textvariable=self.profileId, state='readonly')
+		vals = copy.deepcopy(pijuice.config.batteryProfiles)
+		vals.append('CUSTOM')
+		vals.append('DEFAULT')
+		self.profileSel['values'] = vals
+		self.profileSel.set('')
+		self.profileSel.grid(column=0, row=1, sticky = W, pady=(0, 2))
+		self.profileSel.bind("<<ComboboxSelected>>", self._NewProfileSelection)
+		self.customCheck = IntVar()
+		self.checkbutton = Checkbutton(self.frame, text = "Custom", variable = self.customCheck).grid(row=1, column=1, sticky = W, pady=(0, 2))
+		self.customCheck.trace("w", self._CustomCheckEvent)
+		#self.checkbutton.select()
 
-        Label(self.frame, text="Profile:").grid(row=0, column=0, sticky = W, pady=(8, 4))
-        self.prfStatus = StringVar()
-        self.statusLbl = Label(self.frame, text="" ,textvariable=self.prfStatus).grid(row=0, column=1, sticky = W+E, pady=(8, 4))
+		Label(self.frame, text="Profile:").grid(row=0, column=0, sticky = W, pady=(8, 4))
+		self.prfStatus = StringVar()
+		self.statusLbl = Label(self.frame, text="" ,textvariable=self.prfStatus).grid(row=0, column=1, sticky = W+E, pady=(8, 4))
 
-        Label(self.frame, text="Capacity [mAh]:").grid(row=2, column=0, sticky = W)
-        self.capacity = StringVar()
-        self.capacity.trace("w", self._ProfileEdited)
-        self.capacityEntry = Entry(self.frame,textvariable=self.capacity)
-        self.capacityEntry.grid(row=2, column=1, sticky = W+E)
-        Label(self.frame, text="Charge current [mA]:").grid(row=3, column=0, sticky = W)
-        self.chgCurrent = StringVar()
-        self.chgCurrent.trace("w", self._ProfileEdited)
-        self.chgCurrentEntry = Entry(self.frame, textvariable=self.chgCurrent)
-        self.chgCurrentEntry.grid(row=3, column=1, sticky = W+E)
-        Label(self.frame, text="Termination current [mA]:").grid(row=4, column=0, sticky = W)
-        self.termCurrent = StringVar()
-        self.termCurrent.trace("w", self._ProfileEdited)
-        self.termCurrentEntry = Entry(self.frame, textvariable=self.termCurrent)
-        self.termCurrentEntry.grid(row=4, column=1, sticky = W+E)
-        Label(self.frame, text="Regulation voltage [mV]:").grid(row=5, column=0, sticky = W)
-        self.regVoltage = StringVar()
-        self.regVoltage.trace("w", self._ProfileEdited)
-        self.regVoltageEntry = Entry(self.frame,textvariable=self.regVoltage)
-        self.regVoltageEntry.grid(row=5, column=1, sticky = W+E)
-        Label(self.frame, text="Cutoff voltage [mV]:").grid(row=6, column=0, sticky = W)
-        self.cutoffVoltage = StringVar()
-        self.cutoffVoltage.trace("w", self._ProfileEdited)
-        self.cutoffVoltageEntry = Entry(self.frame,textvariable=self.cutoffVoltage)
-        self.cutoffVoltageEntry.grid(row=6, column=1, sticky = W+E)
-        Label(self.frame, text="Cold temperature [C]:").grid(row=7, column=0, sticky = W)
-        self.tempCold = StringVar()
-        self.tempCold.trace("w", self._ProfileEdited)
-        self.tempColdEntry = Entry(self.frame,textvariable=self.tempCold)
-        self.tempColdEntry.grid(row=7, column=1, sticky = W+E)
-        Label(self.frame, text="Cool temperature [C]:").grid(row=8, column=0, sticky = W)
-        self.tempCool = StringVar()
-        self.tempCool.trace("w", self._ProfileEdited)
-        self.tempCoolEntry = Entry(self.frame,textvariable=self.tempCool)
-        self.tempCoolEntry.grid(row=8, column=1, sticky = W+E)
-        Label(self.frame, text="Warm temperature [C]:").grid(row=9, column=0, sticky = W)
-        self.tempWarm = StringVar()
-        self.tempWarm.trace("w", self._ProfileEdited)
-        self.tempWarmEntry = Entry(self.frame,textvariable=self.tempWarm)
-        self.tempWarmEntry.grid(row=9, column=1, sticky = W+E)
-        Label(self.frame, text="Hot temperature [C]:").grid(row=10, column=0, sticky = W)
-        self.tempHot = StringVar()
-        self.tempHot.trace("w", self._ProfileEdited)
-        self.tempHotEntry = Entry(self.frame,textvariable=self.tempHot)
-        self.tempHotEntry.grid(row=10, column=1, sticky = W+E)
-        Label(self.frame, text="NTC B constant [1k]:").grid(row=11, column=0, sticky = W)
-        self.ntcB = StringVar()
-        self.ntcB.trace("w", self._ProfileEdited)
-        self.ntcBEntry = Entry(self.frame,textvariable=self.ntcB)
-        self.ntcBEntry.grid(row=11, column=1, sticky = W+E)
-        Label(self.frame, text="NTC resistance [ohm]:").grid(row=12, column=0, sticky = W)
-        self.ntcResistance = StringVar()
-        self.ntcResistance.trace("w", self._ProfileEdited)
-        self.ntcResistanceEntry = Entry(self.frame,textvariable=self.ntcResistance)
-        self.ntcResistanceEntry.grid(row=12, column=1, sticky = W+E)
+		Label(self.frame, text="Chemistry:").grid(row=2, column=0, sticky = W)
+		self.chemistry = StringVar()
+		self.chemistry.trace("w", self._ProfileEdited)
+		self.chemistrySel = Combobox(self.frame, textvariable=self.chemistry, state='readonly')
+		self.chemistrySel['values'] = pijuice.config.batteryChemisties
+		self.chemistrySel.set('')
+		self.chemistrySel.grid(row=2, column=1, sticky = W+E)
+		
+		Label(self.frame, text="Capacity [mAh]:").grid(row=3, column=0, sticky = W)
+		self.capacity = StringVar()
+		self.capacity.trace("w", self._ProfileEdited)
+		self.capacityEntry = Entry(self.frame,textvariable=self.capacity)
+		self.capacityEntry.grid(row=3, column=1, sticky = W+E)
+		Label(self.frame, text="Charge current [mA]:").grid(row=4, column=0, sticky = W)
+		self.chgCurrent = StringVar()
+		self.chgCurrent.trace("w", self._ProfileEdited)
+		self.chgCurrentEntry = Entry(self.frame, textvariable=self.chgCurrent)
+		self.chgCurrentEntry.grid(row=4, column=1, sticky = W+E)
+		Label(self.frame, text="Termination current [mA]:").grid(row=5, column=0, sticky = W)
+		self.termCurrent = StringVar()
+		self.termCurrent.trace("w", self._ProfileEdited)
+		self.termCurrentEntry = Entry(self.frame, textvariable=self.termCurrent)
+		self.termCurrentEntry.grid(row=5, column=1, sticky = W+E)
+		Label(self.frame, text="Regulation voltage [mV]:").grid(row=6, column=0, sticky = W)
+		self.regVoltage = StringVar()
+		self.regVoltage.trace("w", self._ProfileEdited)
+		self.regVoltageEntry = Entry(self.frame,textvariable=self.regVoltage)
+		self.regVoltageEntry.grid(row=6, column=1, sticky = W+E)
+		Label(self.frame, text="Cutoff voltage [mV]:").grid(row=7, column=0, sticky = W)
+		self.cutoffVoltage = StringVar()
+		self.cutoffVoltage.trace("w", self._ProfileEdited)
+		self.cutoffVoltageEntry = Entry(self.frame,textvariable=self.cutoffVoltage)
+		self.cutoffVoltageEntry.grid(row=7, column=1, sticky = W+E)
+		Label(self.frame, text="Cold temperature [C]:").grid(row=8, column=0, sticky = W)
+		self.tempCold = StringVar()
+		self.tempCold.trace("w", self._ProfileEdited)
+		self.tempColdEntry = Entry(self.frame,textvariable=self.tempCold)
+		self.tempColdEntry.grid(row=8, column=1, sticky = W+E)
+		Label(self.frame, text="Cool temperature [C]:").grid(row=9, column=0, sticky = W)
+		self.tempCool = StringVar()
+		self.tempCool.trace("w", self._ProfileEdited)
+		self.tempCoolEntry = Entry(self.frame,textvariable=self.tempCool)
+		self.tempCoolEntry.grid(row=9, column=1, sticky = W+E)
+		Label(self.frame, text="Warm temperature [C]:").grid(row=10, column=0, sticky = W)
+		self.tempWarm = StringVar()
+		self.tempWarm.trace("w", self._ProfileEdited)
+		self.tempWarmEntry = Entry(self.frame,textvariable=self.tempWarm)
+		self.tempWarmEntry.grid(row=10, column=1, sticky = W+E)
+		Label(self.frame, text="Hot temperature [C]:").grid(row=11, column=0, sticky = W)
+		self.tempHot = StringVar()
+		self.tempHot.trace("w", self._ProfileEdited)
+		self.tempHotEntry = Entry(self.frame,textvariable=self.tempHot)
+		self.tempHotEntry.grid(row=11, column=1, sticky = W+E)
+		Label(self.frame, text="NTC B constant [1k]:").grid(row=12, column=0, sticky = W)
+		self.ntcB = StringVar()
+		self.ntcB.trace("w", self._ProfileEdited)
+		self.ntcBEntry = Entry(self.frame,textvariable=self.ntcB)
+		self.ntcBEntry.grid(row=12, column=1, sticky = W+E)
+		Label(self.frame, text="NTC resistance [ohm]:").grid(row=13, column=0, sticky = W)
+		self.ntcResistance = StringVar()
+		self.ntcResistance.trace("w", self._ProfileEdited)
+		self.ntcResistanceEntry = Entry(self.frame,textvariable=self.ntcResistance)
+		self.ntcResistanceEntry.grid(row=13, column=1, sticky = W+E)
 
-        self.apply = StringVar()
-        self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=lambda v=self.apply: self._ApplyNewProfile(v))
-        self.applyBtn.grid(row=13, column=2, pady=(4,2), sticky = E)
+		Label(self.frame, text="OCV10 [mV]:").grid(row=14, column=0, sticky = W)
+		self.ocv10 = StringVar()
+		self.ocv10.trace("w", self._ProfileEdited)
+		self.ocv10Entry = Entry(self.frame,textvariable=self.ocv10)
+		self.ocv10Entry.grid(row=14, column=1, sticky = W+E)
+		Label(self.frame, text="OCV50 [mV]:").grid(row=15, column=0, sticky = W)
+		self.ocv50 = StringVar()
+		self.ocv50.trace("w", self._ProfileEdited)
+		self.ocv50Entry = Entry(self.frame,textvariable=self.ocv50)
+		self.ocv50Entry.grid(row=15, column=1, sticky = W+E)
+		Label(self.frame, text="OCV90 [mV]:").grid(row=16, column=0, sticky = W)
+		self.ocv90 = StringVar()
+		self.ocv90.trace("w", self._ProfileEdited)
+		self.ocv90Entry = Entry(self.frame,textvariable=self.ocv90)
+		self.ocv90Entry.grid(row=16, column=1, sticky = W+E)
+		Label(self.frame, text="R10 [mOhm]:").grid(row=17, column=0, sticky = W)
+		self.r10 = StringVar()
+		self.r10.trace("w", self._ProfileEdited)
+		self.r10Entry = Entry(self.frame,textvariable=self.r10)
+		self.r10Entry.grid(row=17, column=1, sticky = W+E)
+		Label(self.frame, text="R50 [mOhm]:").grid(row=18, column=0, sticky = W)
+		self.r50 = StringVar()
+		self.r50.trace("w", self._ProfileEdited)
+		self.r50Entry = Entry(self.frame,textvariable=self.r50)
+		self.r50Entry.grid(row=18, column=1, sticky = W+E)
+		Label(self.frame, text="R90 [mOhm]:").grid(row=19, column=0, sticky = W)
+		self.r90 = StringVar()
+		self.r90.trace("w", self._ProfileEdited)
+		self.r90Entry = Entry(self.frame,textvariable=self.r90)
+		self.r90Entry.grid(row=19, column=1, sticky = W+E)
+		
+		self.apply = StringVar()
+		self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=lambda v=self.apply: self._ApplyNewProfile(v))
+		self.applyBtn.grid(row=20, column=2, pady=(4,2), sticky = E)
 
-        Label(self.frame, text="Temperature sense:").grid(row=2, column=2, padx=(5, 5), sticky = (W, E))
-        self.tempSense = StringVar()
-        self.tempSenseSel = Combobox(self.frame, textvariable=self.tempSense, state='readonly')
-        self.tempSenseSel['values'] = pijuice.config.batteryTempSenseOptions
-        self.tempSenseSel.set('')
-        self.tempSenseSel.grid(column=2, row=3, padx=(5, 5), pady=(0,2), sticky = W)
-        self.tempSenseSel.bind("<<ComboboxSelected>>", self._NewTempSenseConfigSel)
+		Label(self.frame, text="Temperature sense:").grid(row=2, column=2, padx=(5, 5), sticky = (W, E))
+		self.tempSense = StringVar()
+		self.tempSenseSel = Combobox(self.frame, textvariable=self.tempSense, state='readonly')
+		self.tempSenseSel['values'] = pijuice.config.batteryTempSenseOptions
+		self.tempSenseSel.set('')
+		self.tempSenseSel.grid(column=2, row=3, padx=(5, 5), pady=(0,2), sticky = W)
+		self.tempSenseSel.bind("<<ComboboxSelected>>", self._NewTempSenseConfigSel)
+		
+		Label(self.frame, text="RSoC estimation:").grid(row=5, column=2, padx=(5, 5), sticky = (W, E))
+		self.rsocEst = StringVar()
+		self.rsocEstSel = Combobox(self.frame, textvariable=self.rsocEst, state='readonly')
+		self.rsocEstSel['values'] = pijuice.config.rsocEstimationOptions
+		self.rsocEstSel.set('')
+		self.rsocEstSel.grid(column=2, row=6, padx=(5, 5), pady=(0,2), sticky = W)
+		self.rsocEstSel.bind("<<ComboboxSelected>>", self._NewRSocEstConfigSel)
 
-        self.refreshConfig = StringVar()
-        self.refreshConfigBtn = Button(self.frame, text='Refresh', underline=0, command=lambda v=self.refreshConfig: self.Refresh(v))
-        self.refreshConfigBtn.grid(row=0, column=2, pady=(4,2), sticky = E)
+		self.refreshConfig = StringVar()
+		self.refreshConfigBtn = Button(self.frame, text='Refresh', underline=0, command=lambda v=self.refreshConfig: self.Refresh(v))
+		self.refreshConfigBtn.grid(row=0, column=2, pady=(4,2), sticky = E)
 
         #self.closeConfig = StringVar()
         #self.closeBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=lambda v=self.closeConfig: self._Close(v))
         #self.closeBtn.grid(row=13, column=2, pady=(4,2), sticky = E)
 
-        self.Refresh(self.refreshConfig)
+		self.Refresh(self.refreshConfig)
 
-    def Refresh(self, v):
-        self.ReadProfileStatus()
-        self.ReadProfileData()
-        self._CustomEditEnable(False)
-        self.applyBtn.configure(state="disabled")
-        self.profileSel.configure(state='readonly')
-        self.customCheck.set(0)
+	def Refresh(self, v):
+		self.ReadProfileStatus()
+		self.ReadProfileData()
+		self._CustomEditEnable(False)
+		self.applyBtn.configure(state="disabled")
+		self.profileSel.configure(state='readonly')
+		self.customCheck.set(0)
 
-        tempSenseConfig = pijuice.config.GetBatteryTempSenseConfig()
-        if tempSenseConfig['error'] == 'NO_ERROR':
-            self.tempSenseSel.current(pijuice.config.batteryTempSenseOptions.index(tempSenseConfig['data']))
+		tempSenseConfig = pijuice.config.GetBatteryTempSenseConfig()
+		if tempSenseConfig['error'] == 'NO_ERROR':
+			self.tempSenseSel.current(pijuice.config.batteryTempSenseOptions.index(tempSenseConfig['data']))
+		ret = pijuice.config.GetRsocEstimationConfig()
+		if ret['error'] == 'NO_ERROR':
+			self.rsocEstSel.current(pijuice.config.rsocEstimationOptions.index(ret['data']))
 
-    def _NewProfileSelection(self, event):
-        self._ClearProfileEditParams()
-        self.applyBtn.configure(state="normal")
+	def _NewProfileSelection(self, event):
+		self._ClearProfileEditParams()
+		self.applyBtn.configure(state="normal")
 
-    def _ProfileEdited(self, *args):
-        self.applyBtn.configure(state="normal")
+	def _ProfileEdited(self, *args):
+		self.applyBtn.configure(state="normal")
 
-    def _CustomCheckEvent(self, *args):
-        self.ReadProfileStatus()
-        self.ReadProfileData()
-        self._CustomEditEnable(self.customCheck.get())
-        if self.customCheck.get():
-            #self.profileSel.set('')
-            self.profileSel.configure(state='disabled')
-        else:
-            #self._ClearProfileEditParams()
-            #self.ReadProfileStatus()
-            self.profileSel.configure(state='readonly')
-        self.applyBtn.configure(state="disabled")
+	def _CustomCheckEvent(self, *args):
+		self.ReadProfileStatus()
+		self.ReadProfileData()
+		self._CustomEditEnable(self.customCheck.get())
+		if self.customCheck.get():
+			#self.profileSel.set('')
+			self.profileSel.configure(state='disabled')
+		else:
+			#self._ClearProfileEditParams()
+			#self.ReadProfileStatus()
+			self.profileSel.configure(state='readonly')
+		self.applyBtn.configure(state="disabled")
 
-    def _CustomEditEnable(self, en):
-        newState = 'normal' if en == True else 'disabled'
-        self.capacityEntry.configure(state=newState)
-        self.chgCurrentEntry.configure(state=newState)
-        self.termCurrentEntry.configure(state=newState)
-        self.regVoltageEntry.configure(state=newState)
-        self.cutoffVoltageEntry.configure(state=newState)
-        self.tempColdEntry.configure(state=newState)
-        self.tempCoolEntry.configure(state=newState)
-        self.tempWarmEntry.configure(state=newState)
-        self.tempHotEntry.configure(state=newState)
-        self.ntcBEntry.configure(state=newState)
-        self.ntcResistanceEntry.configure(state=newState)
+	def _CustomEditEnable(self, en):
+		newState = 'normal' if en == True else 'disabled'
+		self.capacityEntry.configure(state=newState)
+		self.chgCurrentEntry.configure(state=newState)
+		self.termCurrentEntry.configure(state=newState)
+		self.regVoltageEntry.configure(state=newState)
+		self.cutoffVoltageEntry.configure(state=newState)
+		self.tempColdEntry.configure(state=newState)
+		self.tempCoolEntry.configure(state=newState)
+		self.tempWarmEntry.configure(state=newState)
+		self.tempHotEntry.configure(state=newState)
+		self.ntcBEntry.configure(state=newState)
+		self.ntcResistanceEntry.configure(state=newState)
+		self.chemistrySel.configure(state=newState)
+		self.ocv10Entry.configure(state=newState)
+		self.ocv50Entry.configure(state=newState)
+		self.ocv90Entry.configure(state=newState)
+		self.r10Entry.configure(state=newState)
+		self.r50Entry.configure(state=newState)
+		self.r90Entry.configure(state=newState)
 
-    def _ClearProfileEditParams(self):
-        self.capacity.set('')
-        self.chgCurrent.set('')
-        self.termCurrent.set('')
-        self.regVoltage.set('')
-        self.cutoffVoltage.set('')
-        self.tempCold.set('')
-        self.tempCool.set('')
-        self.tempWarm.set('')
-        self.tempHot.set('')
-        self.ntcB.set('')
-        self.ntcResistance.set('')
+	def _ClearProfileEditParams(self):
+		self.capacity.set('')
+		self.chgCurrent.set('')
+		self.termCurrent.set('')
+		self.regVoltage.set('')
+		self.cutoffVoltage.set('')
+		self.tempCold.set('')
+		self.tempCool.set('')
+		self.tempWarm.set('')
+		self.tempHot.set('')
+		self.ntcB.set('')
+		self.ntcResistance.set('')
+		self.chemistry.set('')
+		self.ocv10.set('')
+		self.ocv50.set('')
+		self.ocv90.set('')
+		self.r10.set('')
+		self.r50.set('')
+		self.r90.set('')
 
-    def _ApplyNewProfile(self, v):
-        if self.customCheck.get():
-            self.WriteCustomProfileData()
-        else:
-            #print self.profileSel.get()
-            status = pijuice.config.SetBatteryProfile(self.profileSel.get())
-            if status['error'] == 'NO_ERROR':
-                time.sleep(0.2)
-                self.ReadProfileStatus()
-                self.ReadProfileData()
-                self.applyBtn.configure(state="disabled")
-            #print status
+	def _ApplyNewProfile(self, v):
+		if self.customCheck.get():
+			self.WriteCustomProfileData()
+		else:
+			#print self.profileSel.get()
+			status = pijuice.config.SetBatteryProfile(self.profileSel.get())
+			if status['error'] == 'NO_ERROR':
+				time.sleep(0.2)
+				self.ReadProfileStatus()
+				self.ReadProfileData()
+				self.applyBtn.configure(state="disabled")
+			#print status
 
-    def _NewTempSenseConfigSel(self, event):
-        status = pijuice.config.SetBatteryTempSenseConfig(self.tempSense.get())
-        self.tempSenseSel.set('')
-        if status['error'] == 'NO_ERROR':
-            time.sleep(0.2)
-            config = pijuice.config.GetBatteryTempSenseConfig()
-            if config['error'] == 'NO_ERROR':
-                self.tempSenseSel.current(pijuice.config.batteryTempSenseOptions.index(config['data']))
+	def _NewTempSenseConfigSel(self, event):
+		status = pijuice.config.SetBatteryTempSenseConfig(self.tempSense.get())
+		self.tempSenseSel.set('')
+		if status['error'] == 'NO_ERROR':
+			time.sleep(0.2)
+			config = pijuice.config.GetBatteryTempSenseConfig()
+			if config['error'] == 'NO_ERROR':
+				self.tempSenseSel.current(pijuice.config.batteryTempSenseOptions.index(config['data']))
 
-    def ReadProfileStatus(self):
-        self.profileId = None
-        #self.profileSel.configure(state="disabled")
-        self.profileSel.set('')
-        status = pijuice.config.GetBatteryProfileStatus()
-        if status['error'] == 'NO_ERROR':
-            self.status = status['data']
-            if self.status['validity'] == 'VALID':
-                if self.status['origin'] == 'PREDEFINED':
-                    #self.profileSel.configure(state="readonly")
-                    self.profileId = self.status['profile']
-                    self.profileSel.current(pijuice.config.batteryProfiles.index(self.profileId))
-                else:
-                    self.profileSel.set('')
-            else:
-                self.profileSel.set('INVALID')
-            if self.status['source'] == 'DIP_SWITCH' and self.status['origin'] == 'PREDEFINED' and pijuice.config.batteryProfiles.index(self.profileId) == 1:
-                self.prfStatus.set('Default profile')
-            else:
-                if self.status['origin'] == 'CUSTOM':
-                    self.prfStatus.set('Custom profile by: ' + self.status['source'])
-                else:
-                    self.prfStatus.set('Profile selected by: ' + self.status['source'])
-        else:
-            self.profileSel.set('')
-            self._ClearProfileEditParams()
-            self.prfStatus.set(status['error'])
-            #print self.status
+	def _NewRSocEstConfigSel(self, event):
+		status = pijuice.config.SetRsocEstimationConfig(self.rsocEst.get())
+		self.rsocEstSel.set('')
+		if status['error'] == 'NO_ERROR':
+			time.sleep(0.2)
+			config = pijuice.config.GetRsocEstimationConfig()
+			if config['error'] == 'NO_ERROR':
+				self.rsocEstSel.current(pijuice.config.rsocEstimationOptions.index(config['data']))
+				
+	def ReadProfileStatus(self):
+		self.profileId = None
+		#self.profileSel.configure(state="disabled")
+		self.profileSel.set('')
+		status = pijuice.config.GetBatteryProfileStatus()
+		if status['error'] == 'NO_ERROR':
+			self.status = status['data']
+			if self.status['validity'] == 'VALID':
+				if self.status['origin'] == 'PREDEFINED':
+					#self.profileSel.configure(state="readonly")
+					self.profileId = self.status['profile']
+					self.profileSel.current(pijuice.config.batteryProfiles.index(self.profileId))
+				else:
+					self.profileSel.set('')
+			else:
+				self.profileSel.set('INVALID')
+			if self.status['source'] == 'DIP_SWITCH' and self.status['origin'] == 'PREDEFINED' and pijuice.config.batteryProfiles.index(self.profileId) == 1:
+				self.prfStatus.set('Default profile')
+			else:
+				if self.status['origin'] == 'CUSTOM':
+					self.prfStatus.set('Custom profile by: ' + self.status['source'])
+					self.profileSel.set('CUSTOM')
+				else:
+					self.prfStatus.set('Profile selected by: ' + self.status['source'])
+		else:
+			self.profileSel.set('')
+			self._ClearProfileEditParams()
+			self.prfStatus.set(status['error'])
+			#print self.status
 
-    def ReadProfileData(self):
-        config = pijuice.config.GetBatteryProfile()
-        if config['error'] == 'NO_ERROR':
-            self.config = config['data']
-            self.capacity.set(self.config['capacity'])
-            self.chgCurrent.set(self.config['chargeCurrent'])
-            self.termCurrent.set(self.config['terminationCurrent'])
-            self.regVoltage.set(self.config['regulationVoltage'])
-            self.cutoffVoltage.set(self.config['cutoffVoltage'])
-            self.tempCold.set(self.config['tempCold'])
-            self.tempCool.set(self.config['tempCool'])
-            self.tempWarm.set(self.config['tempWarm'])
-            self.tempHot.set(self.config['tempHot'])
-            self.ntcB.set(self.config['ntcB'])
-            self.ntcResistance.set(self.config['ntcResistance'])
-            #print self.config
-        else:
-            self.applyBtn.configure(state="disabled")
+	def ReadProfileData(self):
+		config = pijuice.config.GetBatteryProfile()
+		if config['error'] == 'NO_ERROR':
+			self.config = config['data']
+			self.capacity.set(self.config['capacity'])
+			self.chgCurrent.set(self.config['chargeCurrent'])
+			self.termCurrent.set(self.config['terminationCurrent'])
+			self.regVoltage.set(self.config['regulationVoltage'])
+			self.cutoffVoltage.set(self.config['cutoffVoltage'])
+			self.tempCold.set(self.config['tempCold'])
+			self.tempCool.set(self.config['tempCool'])
+			self.tempWarm.set(self.config['tempWarm'])
+			self.tempHot.set(self.config['tempHot'])
+			self.ntcB.set(self.config['ntcB'])
+			self.ntcResistance.set(self.config['ntcResistance'])
+			#print self.config
+		else:
+			self.applyBtn.configure(state="disabled")
+		extconf = pijuice.config.GetBatteryExtProfile()
+		if extconf['error'] == 'NO_ERROR':
+			self.extconf = extconf['data']
+			self.chemistry.set(self.extconf['chemistry'])
+			self.ocv10.set(self.extconf['ocv10'])
+			self.ocv50.set(self.extconf['ocv50'])
+			self.ocv90.set(self.extconf['ocv90'])
+			self.r10.set(self.extconf['r10'])
+			self.r50.set(self.extconf['r50'])
+			self.r90.set(self.extconf['r90'])
+		else:
+			self.applyBtn.configure(state="disabled")
 
-    def WriteCustomProfileData(self):
-        profile = {}
-        profile['capacity'] = int(self.capacity.get())
-        chc = int(self.chgCurrent.get())
-        if chc < 550:
-            chc = 550
-        elif chc > 2500:
-            chc = 2500
-        profile['chargeCurrent'] = chc
-        tc = int(self.termCurrent.get())
-        if tc < 50:
-            tc = 50
-        elif tc > 400:
-            tc = 400
-        profile['terminationCurrent'] = tc
-        rv = int(self.regVoltage.get())
-        if rv < 3500:
-            rv = 3500
-        elif rv > 4440:
-            rv = 4440
-        profile['regulationVoltage'] = rv
-        profile['cutoffVoltage'] = int(self.cutoffVoltage.get())
-        profile['tempCold'] = int(self.tempCold.get())
-        profile['tempCool'] = int(self.tempCool.get())
-        profile['tempWarm'] = int(self.tempWarm.get())
-        profile['tempHot'] = int(self.tempHot.get())
-        profile['ntcB'] = int(self.ntcB.get())
-        profile['ntcResistance'] = int(self.ntcResistance.get())
-        status = pijuice.config.SetCustomBatteryProfile(profile)
-        if status['error'] == 'NO_ERROR':
-            time.sleep(0.2)
-            self.ReadProfileData()
-            self.applyBtn.configure(state="disabled")
+	def WriteCustomProfileData(self):
+		profile = {}
+		profile['capacity'] = int(self.capacity.get())
+		chc = int(self.chgCurrent.get())
+		if chc < 550:
+			chc = 550
+		elif chc > 2500:
+			chc = 2500
+		profile['chargeCurrent'] = chc
+		tc = int(self.termCurrent.get())
+		if tc < 50:
+			tc = 50
+		elif tc > 400:
+			tc = 400
+		profile['terminationCurrent'] = tc
+		rv = int(self.regVoltage.get())
+		if rv < 3500:
+			rv = 3500
+		elif rv > 4440:
+			rv = 4440
+		profile['regulationVoltage'] = rv
+		profile['cutoffVoltage'] = int(self.cutoffVoltage.get())
+		profile['tempCold'] = int(self.tempCold.get())
+		profile['tempCool'] = int(self.tempCool.get())
+		profile['tempWarm'] = int(self.tempWarm.get())
+		profile['tempHot'] = int(self.tempHot.get())
+		profile['ntcB'] = int(self.ntcB.get())
+		profile['ntcResistance'] = int(self.ntcResistance.get())
+		status = pijuice.config.SetCustomBatteryProfile(profile)
+		if status['error'] != 'NO_ERROR':
+			return
+			
+		extprf = {
+			'chemistry': self.chemistry.get(),
+			'ocv10': int(self.ocv10.get()),
+			'ocv50': int(self.ocv50.get()),
+			'ocv90': int(self.ocv90.get()), 
+			'r10': float(self.r10.get()), 
+			'r50': float(self.r50.get()),   
+			'r90': float(self.r90.get())
+		}
+		time.sleep(0.2)
+		status = pijuice.config.SetCustomBatteryExtProfile(extprf)
+		if status['error'] == 'NO_ERROR':
+			time.sleep(0.2)
+			self.ReadProfileData()
+			self.applyBtn.configure(state="disabled")
+		else:
+			tkMessageBox.showerror('Error writing custom profile', 'Reason: ' + status['error'], parent=self.frame)
 
 
 class PiJuiceIoConfig(object):
-    def __init__(self, master):
+	def __init__(self, master):
 
-        # frame to hold contentx
-        self.frame = Frame(master, name='io')
+		# frame to hold contentx
+		self.frame = Frame(master, name='io')
 
-        self.frame.columnconfigure((1, 2), weight=1)
+		self.frame.columnconfigure((1, 2), weight=1)
 
-        self.config = [{}, {}]
-        self.mode = [{}, {}]
-        self.modeSel = [{}, {}]
-        self.pull = [{}, {}]
-        self.param1 = [{}, {}]
-        self.oldParam1 = [{}, {}]
-        self.paramName1 = [{}, {}]
-        self.paramEntry1 = [{}, {}]
-        self.paramName2 = [{}, {}]
-        self.param2 = [{}, {}]
-        self.oldParam2 = [{}, {}]
-        self.paramEntry2 = [{}, {}]
-        self.paramConfig1 =[None, None]
-        self.paramConfig2 =[None, None]
+		self.config = [{}, {}]
+		self.mode = [{}, {}]
+		self.modeSel = [{}, {}]
+		self.pull = [{}, {}]
+		self.param1 = [{}, {}]
+		self.oldParam1 = [{}, {}]
+		self.paramName1 = [{}, {}]
+		self.paramEntry1 = [{}, {}]
+		self.paramName2 = [{}, {}]
+		self.param2 = [{}, {}]
+		self.oldParam2 = [{}, {}]
+		self.paramEntry2 = [{}, {}]
+		self.paramConfig1 =[None, None]
+		self.paramConfig2 =[None, None]
 
-        for i in range(0, 2):
-            Label(self.frame, text="IO"+str(i+1)+":").grid(row=1+i*4, column=0, padx=(2, 2), pady=(2, 0), sticky = W)
-            Label(self.frame, text="mode:").grid(row=0+i*4, column=1, padx=5, pady=(10, 0), sticky = W)
-            self.mode[i] = StringVar()
-            self.modeSel[i] = Combobox(self.frame, textvariable=self.mode[i], state='readonly')
-            self.modeSel[i]['values'] = pijuice.config.ioSupportedModes[i+1]
-            self.modeSel[i].grid(column=1, row=1+i*4, padx=5, pady=(2, 0), sticky = W+E)
+		for i in range(0, 2):
+			Label(self.frame, text="IO"+str(i+1)+":").grid(row=1+i*4, column=0, padx=(2, 2), pady=(2, 0), sticky = W)
+			Label(self.frame, text="mode:").grid(row=0+i*4, column=1, padx=5, pady=(10, 0), sticky = W)
+			self.mode[i] = StringVar()
+			self.modeSel[i] = Combobox(self.frame, textvariable=self.mode[i], state='readonly')
+			self.modeSel[i]['values'] = pijuice.config.ioSupportedModes[i+1]
+			self.modeSel[i].grid(column=1, row=1+i*4, padx=5, pady=(2, 0), sticky = W+E)
 
-            Label(self.frame, text="pull:").grid(row=0+i*4, column=2, padx=5, pady=(10, 0), sticky = W)
-            self.pull[i] = StringVar()
-            self.pullSel = Combobox(self.frame, textvariable=self.pull[i], state='readonly')
-            self.pullSel.grid(column=2, row=1+i*4, padx=5, pady=(2, 0), sticky = W+E)
-            self.pullSel['values'] = pijuice.config.ioPullOptions
+			Label(self.frame, text="pull:").grid(row=0+i*4, column=2, padx=5, pady=(10, 0), sticky = W)
+			self.pull[i] = StringVar()
+			self.pullSel = Combobox(self.frame, textvariable=self.pull[i], state='readonly')
+			self.pullSel.grid(column=2, row=1+i*4, padx=5, pady=(2, 0), sticky = W+E)
+			self.pullSel['values'] = pijuice.config.ioPullOptions
 
-            self.paramName1[i] = StringVar()
-            self.paramNameLabel1 = Label(self.frame, textvariable=self.paramName1[i], text="param1:").grid(row=2+i*4, column=1, padx=(2, 2), pady=(5, 0), sticky = W)
-            self.param1[i] = StringVar()
-            self.oldParam1[i] = StringVar()
-            self.paramEntry1[i] = Entry(self.frame,textvariable=self.param1[i])
-            self.paramEntry1[i].grid(row=3+i*4, column=1, padx=5, pady=5, sticky=W+E)
+			self.paramName1[i] = StringVar()
+			self.paramNameLabel1 = Label(self.frame, textvariable=self.paramName1[i], text="param1:").grid(row=2+i*4, column=1, padx=(2, 2), pady=(5, 0), sticky = W)
+			self.param1[i] = StringVar()
+			self.oldParam1[i] = StringVar()
+			self.paramEntry1[i] = Entry(self.frame,textvariable=self.param1[i])
+			self.paramEntry1[i].grid(row=3+i*4, column=1, padx=5, pady=5, sticky=W+E)
 
-            self.paramName2[i] = StringVar()
-            self.paramNameLabel2 = Label(self.frame, textvariable=self.paramName2[i], text="param2:").grid(row=2+i*4, column=2, padx=(2, 2), pady=(5, 0), sticky = W)
-            self.param2[i] = StringVar()
-            self.oldParam2[i] = StringVar()
-            self.paramEntry2[i] = Entry(self.frame,textvariable=self.param2[i])
-            self.paramEntry2[i].grid(row=3+i*4, column=2, padx=5, pady=5, sticky=W+E)
+			self.paramName2[i] = StringVar()
+			self.paramNameLabel2 = Label(self.frame, textvariable=self.paramName2[i], text="param2:").grid(row=2+i*4, column=2, padx=(2, 2), pady=(5, 0), sticky = W)
+			self.param2[i] = StringVar()
+			self.oldParam2[i] = StringVar()
+			self.paramEntry2[i] = Entry(self.frame,textvariable=self.param2[i])
+			self.paramEntry2[i].grid(row=3+i*4, column=2, padx=5, pady=5, sticky=W+E)
 
-            ret = pijuice.config.GetIoConfiguration(i+1)
-            if ret['error'] != 'NO_ERROR':
-                self.mode[i].set(ret['error'])
-            else:
-                self.config[i] = ret['data']
-                self.mode[i].set(self.config[i]['mode'])
-                self.pull[i].set(self.config[i]['pull'])
+			ret = pijuice.config.GetIoConfiguration(i+1)
+			if ret['error'] != 'NO_ERROR':
+				self.mode[i].set(ret['error'])
+			else:
+				self.config[i] = ret['data']
+				self.mode[i].set(self.config[i]['mode'])
+				self.pull[i].set(self.config[i]['pull'])
 
-            self._ModeSelected(None, i)
+			self._ModeSelected(None, i)
 
-            if self.paramConfig1[i]:
-                self.param1[i].set(self.config[i][self.paramConfig1[i]['name']])
-            if self.paramConfig2[i]:
-                self.param2[i].set(self.config[i][self.paramConfig2[i]['name']])
+			if self.paramConfig1[i]:
+				self.param1[i].set(self.config[i][self.paramConfig1[i]['name']])
+			if self.paramConfig2[i]:
+				self.param2[i].set(self.config[i][self.paramConfig2[i]['name']])
 
-            self.modeSel[i].bind("<<ComboboxSelected>>", lambda event, idx=i: self._ModeSelected(event, idx))
-            self.param1[i].trace("w", lambda name, index, mode, idx=i: self._ParamEdited1(idx))
-            self.param2[i].trace("w", lambda name, index, mode, idx=i: self._ParamEdited2(idx))
+			self.modeSel[i].bind("<<ComboboxSelected>>", lambda event, idx=i: self._ModeSelected(event, idx))
+			self.param1[i].trace("w", lambda name, index, mode, idx=i: self._ParamEdited1(idx))
+			self.param2[i].trace("w", lambda name, index, mode, idx=i: self._ParamEdited2(idx))
 
-        self.apply = StringVar()
-        self.applyBtn = Button(self.frame, text='Apply', state="normal", underline=0, command=lambda v=self.apply: self._ApplyNewConfig(v))
-        self.applyBtn.grid(row=8, column=2, padx=(2, 2), pady=(20, 0), sticky=E)
+		self.apply = StringVar()
+		self.applyBtn = Button(self.frame, text='Apply', state="normal", underline=0, command=lambda v=self.apply: self._ApplyNewConfig(v))
+		self.applyBtn.grid(row=8, column=2, padx=(2, 2), pady=(20, 0), sticky=E)
 
-    def _ModeSelected(self, event, i):
-        try:
-            self.paramConfig1[i] = pijuice.config.ioConfigParams[self.mode[i].get()][0]
-        except:
-            self.paramConfig1[i] = None
-        if self.paramConfig1[i]:
-            self.paramEntry1[i].configure(state="normal")
-            self.paramName1[i].set(self.paramConfig1[i]['name']+((' [' + self.paramConfig1[i]['unit']+']:') if 'unit' in self.paramConfig1[i] else ':'))
-        else:
-            self.paramEntry1[i].configure(state="disabled")
-            self.paramName1[i].set('')
-        self.param1[i].set('')
+	def _ModeSelected(self, event, i):
+		try:
+			self.paramConfig1[i] = pijuice.config.ioConfigParams[self.mode[i].get()][0]
+		except:
+			self.paramConfig1[i] = None
+		if self.paramConfig1[i]:
+			if self.paramConfig1[i]['type'] == 'enum':
+				self.paramEntry1[i] = Combobox(self.frame, textvariable=self.param1[i], state='readonly')
+				self.paramEntry1[i]['values'] = self.paramConfig1[i]['options']
+				if i == 0:
+					self.param1[i].set(self.paramConfig1[i]['options'][0])
+					self.paramEntry1[i].configure(state="disabled")
+			else:
+				self.paramEntry1[i] = Entry(self.frame,textvariable=self.param1[i], state="normal")
+			self.paramEntry1[i].grid(row=3+i*4, column=1, padx=5, pady=5, sticky=W+E)
+			self.paramName1[i].set(self.paramConfig1[i]['name']+((' [' + self.paramConfig1[i]['unit']+']:') if 'unit' in self.paramConfig1[i] else ':'))
+		else:
+			self.paramEntry1[i].configure(state="disabled")
+			self.paramName1[i].set('')
+		self.param1[i].set('')
 
-        try:
-            self.paramConfig2[i] = pijuice.config.ioConfigParams[self.mode[i].get()][1]
-        except:
-            self.paramConfig2[i] = None
-        if self.paramConfig2[i]:
-            self.paramEntry2[i].configure(state="normal")
-            self.paramName2[i].set(self.paramConfig2[i]['name']+((' [' + self.paramConfig2[i]['unit']+']:') if 'unit' in self.paramConfig2[i] else ':'))
-        else:
-            self.paramEntry2[i].configure(state="disabled")
-            self.paramName2[i].set('')
-        self.param2[i].set('')
+		try:
+			self.paramConfig2[i] = pijuice.config.ioConfigParams[self.mode[i].get()][1]
+		except:
+			self.paramConfig2[i] = None
+		if self.paramConfig2[i]:
+			self.paramEntry2[i].configure(state="normal")
+			self.paramName2[i].set(self.paramConfig2[i]['name']+((' [' + self.paramConfig2[i]['unit']+']:') if 'unit' in self.paramConfig2[i] else ':'))
+		else:
+			self.paramEntry2[i].configure(state="disabled")
+			self.paramName2[i].set('')
+		self.param2[i].set('')
 
-    def _ParamEdited1(self, i):
-        if self.paramConfig1[i]:
-            min = 0 if self.paramConfig1[i]['min'] > 0 else self.paramConfig1[i]['min']
-            if self.paramConfig1[i]['type'] == 'int':
-                _ValidateIntEntry(self.param1[i], self.oldParam1[i], min, self.paramConfig1[i]['max'])
-            elif self.paramConfig1[i]['type'] == 'float':
-                _ValidateFloatEntry(self.param1[i], self.oldParam1[i], min, self.paramConfig1[i]['max'])
+	def _ParamEdited1(self, i):
+		if self.paramConfig1[i] and (self.paramConfig1[i]['type'] == 'int' or  self.paramConfig1[i]['type'] == 'float'):
+			min = 0 if self.paramConfig1[i]['min'] > 0 else self.paramConfig1[i]['min']
+			if self.paramConfig1[i]['type'] == 'int':
+				_ValidateIntEntry(self.param1[i], self.oldParam1[i], min, self.paramConfig1[i]['max'])
+			elif self.paramConfig1[i]['type'] == 'float':
+				_ValidateFloatEntry(self.param1[i], self.oldParam1[i], min, self.paramConfig1[i]['max'])
 
-    def _ParamEdited2(self, i):
-        if self.paramConfig2[i]:
-            min = 0 if self.paramConfig2[i]['min'] > 0 else self.paramConfig2[i]['min']
-            if self.paramConfig2[i]['type'] == 'int':
-                _ValidateIntEntry(self.param2[i], self.oldParam2[i], min, self.paramConfig2[i]['max'])
-            elif self.paramConfig2[i]['type'] == 'float':
-                _ValidateFloatEntry(self.param2[i], self.oldParam2[i], min, self.paramConfig2[i]['max'])
+	def _ParamEdited2(self, i):
+		if self.paramConfig2[i] and (self.paramConfig2[i]['type'] == 'int' or  self.paramConfig2[i]['type'] == 'float'):
+			min = 0 if self.paramConfig2[i]['min'] > 0 else self.paramConfig2[i]['min']
+			if self.paramConfig2[i]['type'] == 'int':
+				_ValidateIntEntry(self.param2[i], self.oldParam2[i], min, self.paramConfig2[i]['max'])
+			elif self.paramConfig2[i]['type'] == 'float':
+				_ValidateFloatEntry(self.param2[i], self.oldParam2[i], min, self.paramConfig2[i]['max'])
 
-    def _ApplyNewConfig(self, v):
-        for i in range(0, 2):
-            newCfg = {
-                'mode':self.mode[i].get(),
-                'pull':self.pull[i].get()
-                }
-            if self.paramConfig1[i]:
-                newCfg[self.paramConfig1[i]['name']] = self.param1[i].get()
-            if self.paramConfig2[i]:
-                newCfg[self.paramConfig2[i]['name']] = self.param2[i].get()
+	def _ApplyNewConfig(self, v):
+		for i in range(0, 2):
+			newCfg = {
+				'mode':self.mode[i].get(),
+				'pull':self.pull[i].get()
+				}
+			if self.paramConfig1[i]:
+				newCfg[self.paramConfig1[i]['name']] = self.param1[i].get()
+			if self.paramConfig2[i]:
+				newCfg[self.paramConfig2[i]['name']] = self.param2[i].get()
 
-            print(newCfg)
-            ret = pijuice.config.SetIoConfiguration(i+1, newCfg, True)
-            if ret['error'] != 'NO_ERROR':
-                MessageBox.showerror('IO' + str(i+1) + ' Configuration', 'Reason: ' + ret['error'], parent=self.frame)
+			ret = pijuice.config.SetIoConfiguration(i+1, newCfg, True)
+			if ret['error'] != 'NO_ERROR':
+				tkMessageBox.showerror('IO' + str(i+1) + ' Configuration', 'Reason: ' + ret['error'], parent=self.frame)
 
 
 class PiJuiceHATConfigGui(object):
 
-    def __init__(self, isapp=True, name='pijuiceConfig'):
-        #Frame.__init__(self, name=name)
-        #self.grid(row=0, column=0)#self.pack(expand=Y, fill=BOTH)
-        #self.master.maxsize(width=650, height=500)
-        #self.master.title('PiJuice Advanced Configuration')
-        #self.isapp = isapp
+    def __init__(self, cfg_hat_button):
+        self.cfg_hat_button = cfg_hat_button
+        self.cfg_hat_button.state(["disabled"])
 
         t = Toplevel()
         t.wm_title('PiJuice HAT Configuration')
+        t.protocol("WM_DELETE_WINDOW", lambda x=self.cfg_hat_button, y=t: close_hat_config(x, y))
 
         # create the notebook
         nb = Notebook(t, name='notebook', width=640, height=480)
@@ -1126,6 +1239,9 @@ class PiJuiceHATConfigGui(object):
         t.update()
         t.minsize(t.winfo_width(), t.winfo_height())
 
+def close_hat_config(button, toplevel):
+    button.state(["!disabled"])
+    toplevel.destroy()
 
 class PiJuiceUserScriptConfig(object):
     def __init__(self, master):
@@ -1572,110 +1688,117 @@ class PiJuiceSysTaskTab(object):
 
 
 class PiJuiceHatTab(object):
-    def __init__(self, master):
-        self.frame = Frame(master, name='hat')
-        self.frame.grid(row=0, column=0, sticky=W)
-        self.frame.rowconfigure(10, weight=1)
-        self.frame.columnconfigure(0, minsize=150)
-        # self.frame.columnconfigure((1, 3), weight=1, uniform=1)
+	def __init__(self, master):
+		self.frame = Frame(master, name='hat')
+		self.frame.grid(row=0, column=0, sticky=W)
+		self.frame.rowconfigure(10, weight=1)
+		self.frame.columnconfigure(0, minsize=150)
+		# self.frame.columnconfigure((1, 3), weight=1, uniform=1)
 
-        if pijuice == None:
-            return
+		if pijuice == None:
+			return
 
-        Label(self.frame, text="Battery:").grid(row=0, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
-        self.status = StringVar()
-        self.statusLbl = Label(self.frame,textvariable=self.status, text='')
-        self.statusLbl.grid(row=0, column=1, padx=(2, 2), pady=(20, 0), columnspan=3, sticky = W)
+		Label(self.frame, text="Battery:").grid(row=0, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
+		self.status = StringVar()
+		self.statusLbl = Label(self.frame,textvariable=self.status, text='')
+		self.statusLbl.grid(row=0, column=1, padx=(2, 2), pady=(20, 0), columnspan=3, sticky = W)
 
-        Label(self.frame, text="GPIO power input:").grid(row=1, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
-        self.gpioPower = StringVar()
-        self.gpioPowerLbl = Label(self.frame,textvariable=self.gpioPower, text='')
-        self.gpioPowerLbl.grid(row=1, column=1, padx=(2, 2), pady=(20, 0), columnspan=3, sticky = W)
+		Label(self.frame, text="GPIO power input:").grid(row=1, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
+		self.gpioPower = StringVar()
+		self.gpioPowerLbl = Label(self.frame,textvariable=self.gpioPower, text='')
+		self.gpioPowerLbl.grid(row=1, column=1, padx=(2, 2), pady=(20, 0), columnspan=3, sticky = W)
 
-        Label(self.frame, text="USB Micro power input:").grid(row=2, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
-        self.usbPower = StringVar()
-        self.usbPowerLbl = Label(self.frame,textvariable=self.usbPower, text='')
-        self.usbPowerLbl.grid(row=2, column=1, padx=(2, 2), pady=(20, 0), columnspan=3, sticky = W)
+		Label(self.frame, text="USB Micro power input:").grid(row=2, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
+		self.usbPower = StringVar()
+		self.usbPowerLbl = Label(self.frame,textvariable=self.usbPower, text='')
+		self.usbPowerLbl.grid(row=2, column=1, padx=(2, 2), pady=(20, 0), columnspan=3, sticky = W)
 
-        Label(self.frame, text="Fault:").grid(row=3, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
-        self.fault = StringVar()
-        self.faultLbl = Label(self.frame,textvariable=self.fault, text='')
-        self.faultLbl.grid(row=3, column=1, padx=(2, 2), pady=(20, 0), columnspan=3, sticky = W)
+		Label(self.frame, text="Fault:").grid(row=3, column=0, padx=(2, 10), pady=(20, 0), sticky = W)
+		self.fault = StringVar()
+		self.faultLbl = Label(self.frame,textvariable=self.fault, text='')
+		self.faultLbl.grid(row=3, column=1, padx=(2, 2), pady=(20, 0), columnspan=3, sticky = W)
 
-        Label(self.frame, text="System switch:").grid(row=4, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
-        self.sysSwLimit = IntVar()
-        Radiobutton(self.frame, text="Off", variable=self.sysSwLimit, value=0).grid(row=4, column=1, padx=(2, 2), pady=(20, 0), sticky = W)
-        Radiobutton(self.frame, text="500mA", variable=self.sysSwLimit, value=500).grid(row=4, column=2, padx=(2, 2), pady=(20, 0), sticky = W+E)
-        Radiobutton(self.frame, text="2100mA", variable=self.sysSwLimit, value=2100).grid(row=4, column=3, padx=(2, 2), pady=(20, 0), sticky = W)
-        self.sysSwLimit.trace("w", self._SetSysSwitch)
+		Label(self.frame, text="System switch:").grid(row=4, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
+		self.sysSwLimit = IntVar()
+		Radiobutton(self.frame, text="Off", variable=self.sysSwLimit, value=0).grid(row=4, column=1, padx=(2, 2), pady=(20, 0), sticky = W)
+		Radiobutton(self.frame, text="500mA", variable=self.sysSwLimit, value=500).grid(row=4, column=2, padx=(2, 2), pady=(20, 0), sticky = W+E)
+		Radiobutton(self.frame, text="2100mA", variable=self.sysSwLimit, value=2100).grid(row=4, column=3, padx=(2, 2), pady=(20, 0), sticky = W)
+		self.sysSwLimit.trace("w", self._SetSysSwitch)
 
-        self.hatConfigBtn = Button(self.frame, text='Configure HAT', state="normal", underline=0, command= self._HatConfigCmd)
-        self.hatConfigBtn.grid(row=9, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
-        self.counter = 0
-        #print 'hat _RefreshStatus()'
-        self.frame.after(1000, self._RefreshStatus)
-        #self._RefreshStatus()
-        #print 'hat _RefreshStatus()  end'
+		self.hatConfigBtn = Button(self.frame, text='Configure HAT', state="normal", underline=0, command= self._HatConfigCmd)
+		self.hatConfigBtn.grid(row=9, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
+		self.counter = 0
+		#print 'hat _RefreshStatus()'
+		self.frame.after(1000, self._RefreshStatus)
+		#self._RefreshStatus()
+		#print 'hat _RefreshStatus()  end'
 
-    def _RefreshStatus(self):
-        try:
-            ret = pijuice.status.GetStatus()
-            if ret['error'] == 'NO_ERROR':
-                self.usbPower.set(ret['data']['powerInput'])
+	def _RefreshStatus(self):
+		try:
+			ret = pijuice.status.GetStatus()
+			if ret['error'] == 'NO_ERROR':
+				self.usbPower.set(ret['data']['powerInput'])
 
-            chg = pijuice.status.GetChargeLevel()
-            if chg['error'] == 'NO_ERROR':
-                self.status.set(str(chg['data'])+'%')
-            else:
-                self.status.set(chg['error'])
+			batstat = ''
+			chg = pijuice.status.GetChargeLevel()
+			if chg['error'] == 'NO_ERROR':
+				batstat = str(chg['data'])+'%, '
+				volt = pijuice.status.GetBatteryVoltage()
+				if volt['error'] == 'NO_ERROR':
+					batstat = batstat + str(float(volt['data']) / 1000)+'V, '
+					temp = pijuice.status.GetBatteryTemperature()
+					if temp['error'] == 'NO_ERROR':
+						batstat = batstat + str(temp['data'])+'°C, ' + ret['data']['battery']
+						self.status.set(batstat)
+					else:
+						self.status.set(chg['error'])
+				else:
+					self.status.set(volt['error'])
+			else:
+				self.status.set(chg['error'])
 
-            volt = pijuice.status.GetBatteryVoltage()
-            if volt['error'] == 'NO_ERROR':
-                self.status.set(str(chg['data'])+'%, '+str(float(volt['data']) / 1000)+'V, '+ret['data']['battery'])
-            else:
-                self.status.set(volt['error'])
+			curr = pijuice.status.GetIoCurrent()
+			if curr['error'] == 'NO_ERROR':
+				curr = str("{0:.1f}".format(float(curr['data']) / 1000)) + 'A, '
+			else:
+				curr = ''
 
-            curr = pijuice.status.GetIoCurrent()
-            if curr['error'] == 'NO_ERROR':
-                curr = str("{0:.1f}".format(float(curr['data']) / 1000)) + 'A, '
-            else:
-                curr = ''
+			v5v = pijuice.status.GetIoVoltage()
+			if v5v['error'] == 'NO_ERROR':
+				self.gpioPower.set(str(float(v5v['data']) / 1000)+'V, ' + curr + ret['data']['powerInput5vIo'])
+			else:
+				self.gpioPower.set(v5v['error'])
 
-            v5v = pijuice.status.GetIoVoltage()
-            if v5v['error'] == 'NO_ERROR':
-                self.gpioPower.set(str(float(v5v['data']) / 1000)+'V, ' + curr + ret['data']['powerInput5vIo'])
-            else:
-                self.gpioPower.set(v5v['error'])
+			fau = pijuice.status.GetFaultStatus()
+			if fau['error'] == 'NO_ERROR':
+				bpi = None
+				if ('battery_profile_invalid' in fau['data']) and fau['data']['battery_profile_invalid']:
+					bpi = 'battery profile invalid'
+				cti = None
+				if ('charging_temperature_fault' in fau['data']) and (fau['data']['charging_temperature_fault'] != 'NORMAL'):
+					cti = 'charging temperature' + fau['data']['charging_temperature_fault']
+				if (bpi == None) and (cti == None):
+					self.fault.set('no fault')
+				else:
+					self.fault.set(bpi + ' ' + cti)
+			else:
+				self.fault.set(fau['error'])
 
-            fau = pijuice.status.GetFaultStatus()
-            if fau['error'] == 'NO_ERROR':
-                bpi = None
-                if ('battery_profile_invalid' in fau['data']) and fau['data']['battery_profile_invalid']:
-                    bpi = 'battery profile invalid'
-                cti = None
-                if ('charging_temperature_fault' in fau['data']) and (fau['data']['charging_temperature_fault'] != 'NORMAL'):
-                    cti = 'charging temperature' + fau['data']['charging_temperature_fault']
-                if (bpi == None) and (cti == None):
-                    self.fault.set('no fault')
-                else:
-                    self.fault.set(bpi + ' ' + cti)
-            else:
-                self.fault.set(fau['error'])
+			ret = pijuice.power.GetSystemPowerSwitch()
+			if ret['error'] == 'NO_ERROR':
+				self.sysSwLimit.set(ret['data'])
+			#else:
+			#	self.sysSwLimit = ret['error']
+		except:
+			pass
+		self.frame.after(6000, self._RefreshStatus)
 
-            ret = pijuice.power.GetSystemPowerSwitch()
-            if ret['error'] == 'NO_ERROR':
-                self.sysSwLimit.set(ret['data'])
-            #else:
-            #	self.sysSwLimit = ret['error']
-        except:
-            pass
-        self.frame.after(6000, self._RefreshStatus)
+	def _SetSysSwitch(self, *args):
+		pijuice.power.SetSystemPowerSwitch(self.sysSwLimit.get())
 
-    def _SetSysSwitch(self, *args):
-        pijuice.power.SetSystemPowerSwitch(self.sysSwLimit.get())
-    def _HatConfigCmd(self):
-        if pijuice != None:
-            self.advWindow = PiJuiceHATConfigGui()
+	def _HatConfigCmd(self):
+		if pijuice != None:
+			self.advWindow = PiJuiceHATConfigGui(self.hatConfigBtn)
 
 
 class PiJuiceConfigGui(Frame):
@@ -1770,10 +1893,17 @@ def notify_service():
 
 
 def PiJuiceGuiOnclosing(gui):
-    gui.apply_settings()
-    global root
-    root.destroy()
+    global pid, root
 
+    gui.apply_settings()
+
+    # Send signal to pijuice_tray to enable the 'Settings' menuitem again
+    try:
+        os.kill(pid, SIGUSR2)
+    except:
+        pass
+
+    root.destroy()
 
 def configure_style(style):
     DISABLED_BG_COLOR = 'gray80'
@@ -1788,7 +1918,7 @@ def configure_style(style):
 
 
 def start_app():
-    global root
+    global root, pid
     root = Tk()
     s = Style()
     theme_name = 'clam'
@@ -1796,7 +1926,30 @@ def start_app():
         s.theme_use(theme_name)
         configure_style(s)
     if pijuice is None:
-        MessageBox.showerror('PuJuice Interfacing', 'Failed to use I2C bus. Check if I2C is enabled', parent=root)
+        root.withdraw()
+        MessageBox.showerror('PiJuice Settings', 'Failed to use I2C bus. Check if I2C is enabled', parent=root)
+        sys.exit()
+
+    # Acquire lock on lock file
+    lock_file = open(LOCK_FILE, 'w')
+    try:
+        fcntl.lockf(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        root.withdraw()
+        MessageBox.showerror('PiJuice Settings', 'Another instance of PiJuice Settings is already running')
+        sys.exit()
+
+    # Send signal to pijuice_tray to disable the 'Settings' menuitem
+    try:
+        with open(TRAY_PID_FILE, 'r') as f:
+            pid = int(f.read())
+    except:
+        pid = -1
+    try:
+        os.kill(pid, SIGUSR1)
+    except:
+        pass
+
     root.update()
     root.minsize(400, 400)
     gui = PiJuiceConfigGui()
