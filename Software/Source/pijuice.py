@@ -417,7 +417,6 @@ class PiJuiceStatus(object):
             dc = float(dci) * 100 // 65534 if dci < 65535 else 100
             return {'data': dc, 'error': 'NO_ERROR'}
 
-
 class PiJuiceRtcAlarm(object):
 
     RTC_ALARM_CMD = 0xB9
@@ -632,7 +631,7 @@ class PiJuiceRtcAlarm(object):
         if 'daylightsaving' in dt:
             if dt['daylightsaving'] == 'SUB1H':
                 d[8] |= 2
-            elif dt['daylightsaving'] == 'SUB1H':
+            elif dt['daylightsaving'] == 'ADD1H':
                 d[8] |= 1
 
         if 'storeoperation' in dt and dt['storeoperation'] == True:
@@ -1446,7 +1445,6 @@ class PiJuiceConfig(object):
 
     def RunTestCalibration(self):
         self.interface.WriteData(248, [0x55, 0x26, 0xa0, 0x2b])
-
 
 # Create an interface object for accessing PiJuice features via I2C bus.
 class PiJuice(object):

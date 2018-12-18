@@ -17,7 +17,6 @@ import fcntl
 import sys
 import time
 from signal import SIGUSR1, SIGUSR2
-
 from tkinter import Button as tkButton
 from tkinter import (Tk, BooleanVar, DoubleVar, IntVar, StringVar, Toplevel,
                      N, W, S, E, X, Y, BOTH, RIGHT, HORIZONTAL)
@@ -27,7 +26,6 @@ from tkinter.colorchooser import askcolor
 from tkinter.filedialog import askopenfilename
 import tkinter.messagebox as MessageBox
 from queue import Queue, Empty
-
 from pijuice import (PiJuice, pijuice_hard_functions, pijuice_sys_functions,
                      pijuice_user_functions)
 
@@ -1680,7 +1678,6 @@ class PiJuiceHatTab(object):
     def _HatConfigCmd(self):
         if pijuice != None:
             self.advWindow = PiJuiceHATConfigGui(self.hatConfigBtn)
-
 
 class PiJuiceConfigGui(Frame):
     def __init__(self, isapp=True, name='pijuiceConfig'):
