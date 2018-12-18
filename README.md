@@ -4,27 +4,26 @@ Resources for the [PiJuice range](https://www.pi-supply.com/?s=pijuice&post_type
 
 #### Where to buy a PiJuice?
 
-Due to our Kickstarter, there will be no PiJuice boards available to purchase until after the Kickstarter units are all shipped out to our backers. However, we have already got some confirmed outlets that will sell PiJuice HATs, solar panels and cases. Some of them will let you provide an expression of interest (and receive an email when in stock) and others will actually let you place provisional pre-orders. We have indicated whether you can pre-order / register your interest / quote next to each one:
+Below a (incomplete) list of outlets that sell PiJuice HATs, solar panels and cases.
 
-- [Pi Supply](https://www.pi-supply.com/product/pijuice-standard/) - register interest
-- [ModMyPi](https://www.modmypi.com/raspberry-pi/power-1051/ups-boards-1051/pijuice-standard) - register interest
-- [Raspberry Pi Denmark](https://raspberrypi.dk/produkt/pijuice-stroem-platform-hat-batteri/) - register interest
-- [Pi Shop Switzerland](https://www.pi-shop.ch/pi-supply-pijuice) - register interest
-- [Allied Elec](https://www.alliedelec.com/pi-supply-pis-0212/71079304/) - pre order
-- [Arrow](https://www.arrow.com/en/products/pis-0212/pi-supply) - quote / pre order
-- [Newark](http://www.newark.com/pi-supply/pi-juice/pijuice-pi-ups-hat/dp/31AC3820) - pre order / register interest
-- [Farnell](http://uk.farnell.com/pi-supply/pi-juice/power-supply-board-raspberry-pi/dp/2671595) - pre order / register interest
-- [KUBII](https://www.kubii.fr/es/cargadores-fuentes-raspberry-pi/2019-pijuice-hat-3272496008793.html) - register interest
-- [Ameridroid](https://ameridroid.com/products?keywords=pijuice) - pre order
-- [S.O.S Solutions](https://www.sossolutions.nl/catalogsearch/result/?q=pijuice) - register interest
-- [BuyAPi](https://www.buyapi.ca/?s=pijuice&product_cat=0&post_type=product) - register interest
-- [Melopero](https://www.melopero.com/?s=pijuice&post_type=product) - register interest
-- [Botland](https://botland.com.pl/szukaj?controller=search&orderby=position&orderway=desc&search_query=pijuice&submit_search=) - register interest
-- [Chicago Electronics Distributors](https://chicagodist.com/search?q=pijuice) - register interest
-- [Elmwood Electronic](https://elmwoodelectronics.ca/search?q=pijuice) - register interest
-- [RS Components (coming soon)](https://uk.rs-online.com/web/zr/?searchTerm=pijuice) - register interest
-- [RPiShop.cz](http://rpishop.cz/vyhledavani?controller=search&orderby=position&orderway=desc&search_query=pijuice&submit_search=Hledat) - register interest
-- [Eckstein GmbH](https://eckstein-shop.de/navi.php?qs=pijuice) - register interest
+- [Pi Supply (UK)](https://www.pi-supply.com/product/pijuice-standard/)
+- [ModMyPi (UK)](https://www.modmypi.com/raspberry-pi/power-1051/ups-boards-1051/pijuice-standard)
+- [Raspberry Pi Denmark](https://raspberrypi.dk/produkt/pijuice-stroem-platform-hat-batteri/)
+- [Pi Shop Switzerland](https://www.pi-shop.ch/pi-supply-pijuice)
+- [Allied Elec (USA)](https://www.alliedelec.com/pi-supply-pis-0212/71079304/)
+- [Arrow](https://www.arrow.com/en/products/pis-0212/pi-supply)
+- [Newark](http://www.newark.com/pi-supply/pi-juice/pijuice-pi-ups-hat/dp/31AC3820)
+- [Farnell](http://uk.farnell.com/pi-supply/pi-juice/power-supply-board-raspberry-pi/dp/2671595)
+- [KUBII (France/Spain)](https://www.kubii.fr/es/cargadores-fuentes-raspberry-pi/2019-pijuice-hat-3272496008793.html)
+- [Ameridroid (USA)](https://ameridroid.com/product/pijuice-hat-1)
+- [S.O.S Solutions (Netherlands)](https://www.sossolutions.nl/catalogsearch/result/?q=pijuice)
+- [BuyAPi9 (Canada)](https://www.buyapi.ca/?s=pijuice&product_cat=0&post_type=product)
+- [Melopero (Italy)](https://www.melopero.com/?s=pijuice&post_type=product)
+- [Botland (Poland)](https://botland.com.pl/szukaj?controller=search&orderby=position&orderway=desc&search_query=pijuice&submit_search=)
+- [Chicago Electronics Distributorsi (USA)](https://chicagodist.com/search?q=pijuice)
+- [Elmwood Electronici (Canada)](https://elmwoodelectronics.ca/search?q=pijuice)
+- [RPiShop.cz (Czechia)](http://rpishop.cz/vyhledavani?controller=search&orderby=position&orderway=desc&search_query=pijuice&submit_search=Hledat)
+- [Eckstein GmbH (Germany)](https://eckstein-shop.de/navi.php?qs=pijuice)
 
 ## Board overview
 
@@ -56,6 +55,8 @@ This is particularly indicated for Raspbian Lite or an headless installation.
 
 ## Basic functionality
 
+**Important note**: If your PiJuice was supplied with a battery fitted, you will **need to remove the little plastic battery isolation tab**. If you don't remove that plastic tab, your PiJuice will not charge up, and will report 0% battery level.
+
 Once the battery is slotted into place (make sure you remove the little plastic battery isolation tab too!) LED1 will start blinking in green. This doesn't mean your Raspberry Pi is yet receiving power it is just telling you that the PiJuice MCU is receiving power and is in standby.   
 
 ### Power On and Off the Pi
@@ -81,14 +82,15 @@ SW1 and LED1 have predefined default functions associated.
 
 * **LED1** - Charge status:
   * with Pi off
-    * ![#00FF00](http://via.placeholder.com/15x15/00FF00/000000?text=+) Green blinking: Standby
+    * ![#0000FF](http://via.placeholder.com/15x15/0000FF/000000?text=+) Blue steady: Battery fully charged
+    * ![#00FF00](http://via.placeholder.com/15x15/00FF00/000000?text=+) Green blinking: Charge over 50%
     * ![#0000FF](http://via.placeholder.com/15x15/0000FF/000000?text=+) Blue blinking: Charging
     * ![#FF0000](http://via.placeholder.com/15x15/FF0000/000000?text=+) Red blinking: Low battery
   * with Pi on
-    * ![#00FF00](http://via.placeholder.com/15x15/00FF00/000000?text=+) Green steady: Power on - Battery over 50%
+    * ![#00FF00](http://via.placeholder.com/15x15/00FF00/000000?text=+) Green blinking: Power on - Battery over 50%
     * ![#0000FF](http://via.placeholder.com/15x15/0000FF/000000?text=+) Blue blinking: Charging
-    * ![#FFA500](http://via.placeholder.com/15x15/FFA500/000000?text=+) Orange steady: Low battery - level < 50%
-    * ![#FF0000](http://via.placeholder.com/15x15/FF0000/000000?text=+) Red steady: Low battery - level < 15% or battery absent
+    * ![#FFA500](http://via.placeholder.com/15x15/FFA500/000000?text=+) Orange blinking: Low battery - level < 50%
+    * ![#FF0000](http://via.placeholder.com/15x15/FF0000/000000?text=+) Red blinking: Low battery - level < 15% or battery absent
 
 On board the PiJuice there are three buttons and two multicolour LEDs please refer to the [hardware](https://github.com/PiSupply/PiJuice/blob/master/Hardware/README.md) and the [software](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md) sections to find out more.
 
@@ -115,12 +117,14 @@ PiJuice is compatible with any single cell LiPo or LiIon battery so bigger (or e
 
 The batteries can be replaced without downtime as long as an alternative power source is provided in the meantime. You could for example even use a battery bank whilst replacing either the onboard battery or one connected to the screw terminal (you shouldn't connect a battery on board and to screw terminal at same time though or you will fry your PiJuice). Using a standard PSU will of course work too and that configuration is in fact ideal for a UPS setup.    
 
-### GUI interface
+### Graphic and Terminal based user interface
 
-An enhanced graphical user interface (GUI) is available via APT and provides a full power management API for Raspbian that allows auto shutdown capability when running low on batteries.
+A graphical user interface (GUI) is available via the pijuice-gui Raspbian package and provides a full power management API for the Raspbian desktop that allows auto shutdown capability when running low on batteries.
 
 It also provides a means to attach customisable scripts to power events and reporting of the battery status.
 You can find out more in the [software section](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md).
+
+For a headless installation the pijuice-base Raspbian package provides a terminal based equivalent (pijuice_cli) with the same capabilities as the GUI one.
 
 ## Technical specs summary
 
@@ -144,23 +148,25 @@ You can find out more in the [software section](https://github.com/PiSupply/PiJu
 ## Additional content
 Apart from the material available on Github we are also preparing guides, tutorials and additional information on various platforms and media. This is a list of current and future resources:
 
-* Check the main [PiJuice Quick Start Guide and FAQ](https://www.pi-supply.com/make/pijuice-quick-start-guide-faq/) for a detailed assembly guide
-* Our [PiJuice Battery Discharge Time Calculator](https://www.pi-supply.com/battery-levels/)  
+* Check the main [PiJuice Quick Start Guide and FAQ](https://learn.pi-supply.com/make/pijuice-quick-start-guide-faq/) for a detailed assembly guide
+* Our [PiJuice Battery Discharge Time Calculator](https://learn.pi-supply.com/battery-levels/)  
 * There is a "quick start guide" in the package [which you can see here](https://github.com/PiSupply/PiJuice/blob/master/Documentation/PiJuice%20Guide.pdf). As you can see it's pretty basic but really the PiJuice is quite intuitive and very easy to use. 
-* A lot of picture guides and tutorials are going up on our [Maker Zone](https://www.pi-supply.com/make) 
-* We will soon have the pinouts available at [Raspberry Pi Pinout](https://pinout.xyz/pinout/pijuice)
-* We will also have tutorials on [Instructables](http://www.instructables.com/member/PiJuice/) and [Hackster.io](https://www.hackster.io/PiJuice) 
+* Pinout is available at [Raspberry Pi Pinout](https://pinout.xyz/pinout/pijuice)
 
 # Reviews and links
 Here are some links to reviews and articles from around the web:
 
 * MagPi 5 star review - [PiJuice Review: Portable Power For Raspberry Pi](https://www.raspberrypi.org/magpi/pijuice-review/)
+* Electromaker 4.5 star review - [A smart portable power solution for your Raspberry Pi](https://www.electromaker.io/blog/article/a-smart-portable-power-solution-for-your-raspberry-pi-34)
 * RasPi.TV technical discussion - [PiJuice – testing the software and hardware plus 6W 40W solar panels video?](http://raspi.tv/2017/pijuice-testing-the-software-and-hardware-plus-6w-40w-solar-panels-video)
 * RasPi.TV unboxing - [PiJuice – unboxing, first look and why it’s 2 years late?](http://raspi.tv/2017/pijuice-unboxing-first-look-and-why-its-2-years-late)
 * Michael Horne / Tim Richardson review - [PiJuice – portable battery power for your Raspberry Pi – a review](http://www.recantha.co.uk/blog/?p=17790)
+* Novaspirit Tech review / video - [PiJuice HAT Review](https://www.youtube.com/watch?v=VLNguCP7kjE)
 * Lots of info and images and updates available on the [PiJuice Kickstarter](https://www.kickstarter.com/projects/pijuice/pijuice-a-portable-project-platform-for-every-rasp/)
 
-# Third party software libraries
+# Third party software libraries and projects
 It is safe to say we have an awesome and growing community of people using PiJuice to add battery power to their projects  - both from our Kickstarter and beyond. We get a huge amount of contributions of code, some of which we can easily integrate here and others which we can't (we are only a small team). However we want to make sure that any contributions are easy to find, for anyone looking. So here is a list of other software libraries that might be useful to you (if you have one of your own, please visit the "Issues" tab above and let us know!):
 
 * Power outage monitor (using PiJuice and PaPiRus) by Frederick Vandenbosch. [You can find pictures and code here](http://frederickvandenbosch.be/?p=2876)
+* Build a wildlife camera using a Raspberry Pi and PiJuice [by Electromaker](https://www.electromaker.io/blog/article/build-a-wildlife-camera-using-a-raspberry-pi-and-pijuice)
+* CarPi - a Raspberry Pi, PiJuice and a HifiBerry all living neatly in a dashboard running Android Auto! [by Rick Tonoli](http://www.ricktonoli.com/2018/06/13/car-pi-hardware/)

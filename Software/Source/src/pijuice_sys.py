@@ -1,17 +1,21 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
 import calendar
 import datetime
 import getopt
+import grp
 import json
 import logging
 import os
+import pwd
 import signal
+import stat
 import subprocess
 import sys
 import time
+import re
 
 from pijuice import PiJuice
 
@@ -29,10 +33,9 @@ lowBatVolEn = False
 chargeLevel = 50
 noPowEn = False
 noPowCnt = 100
-logger = None
 dopoll = True
-PID_FILE = '/var/run/pijuice.pid'
-
+PID_FILE = '/tmp/pijuice_sys.pid'
+HALT_FILE = '/tmp/pijuice_halt.flag'
 
 def _SystemHalt(event):
     if (event in ('low_charge', 'low_battery_voltage', 'no_power')
@@ -45,14 +48,14 @@ def _SystemHalt(event):
         except:
             tl = None
     pijuice.status.SetLedBlink('D2', 3, [150, 0, 0], 200, [0, 100, 0], 200)
+    # Setting halt flag for 'pijuice_sys.py stop'
+    with open(HALT_FILE, 'w') as f:
+        pass
     subprocess.call(["sudo", "halt"])
-
 
 def ExecuteFunc(func, event, param):
     if func == 'SYS_FUNC_HALT':
-        #logger.info(func+' '+str(event)+' '+str(param))
         _SystemHalt(event)
-
     elif func == 'SYS_FUNC_HALT_POW_OFF':
         pijuice.power.SetSystemPowerSwitch(0)
         pijuice.power.SetPowerOff(60)
@@ -63,17 +66,55 @@ def ExecuteFunc(func, event, param):
     elif func == 'SYS_FUNC_REBOOT':
         subprocess.call(["sudo", "reboot"])
     elif ('USER_FUNC' in func) and ('user_functions' in configData) and (func in configData['user_functions']):
+        function=configData['user_functions'][func]
+        # Check function is defined
+        if function == "":
+            return
+        # Remove possible argumemts
+        cmd = function.split()[0]
+
+        # Check cmd is an executable file and the file owner belongs
+        # to the pijuice group.
+        # If so, execute the command as the file owner
+
         try:
-            os.system(
-                "{function} {event} {param}".format(
-                    function=configData['user_functions'][func],
-                    event=str(event),
-                    param=str(param)
-                )
-            )
-            #subprocess.call([configData['user_functions'][func], event, param])
+            statinfo = os.stat(cmd)
         except:
-            print('failed to execute user func')
+            # File not found
+            return
+        # Get owner and ownergroup names
+        owner = pwd.getpwuid(statinfo.st_uid).pw_name
+        ownergroup = grp.getgrgid(statinfo.st_gid).gr_name
+        # Do not allow programs owned by root
+        if owner == 'root':
+            print("root owned " + cmd + " not allowed")
+            return
+        # Check cmd has executable permission
+        if statinfo.st_mode & stat.S_IXUSR == 0:
+            print(cmd + " is not executable")
+            return
+        # Owner of cmd must belong to mygroup ('pijuice')
+        mygroup = grp.getgrgid(os.getegid()).gr_name
+        # Find all groups owner belongs too
+        groups = [g.gr_name for g in grp.getgrall() if owner in g.gr_mem]
+        groups.append(ownergroup) # append primary group
+        # Does owner belong to mygroup?
+        found = 0
+        for g in groups:
+            if g == mygroup:
+                found = 1
+                break
+        if found == 0:
+            print(cmd + " owner ('" + owner + "') does not belong to '" + mygroup + "'")
+            return
+        # All checks passed
+        cmd = "sudo -u " + owner + " " + cmd + " {event} {param}".format(
+                                                      event=str(event),
+                                                      param=str(param))
+        try:
+            os.system(cmd)
+        except:
+            print('Failed to execute user func')
 
 
 def _EvalButtonEvents():
@@ -149,7 +190,6 @@ def _EvalFaultFlags():
         faults = faults['data']
         for f in (pijuice.status.faultEvents + pijuice.status.faults):
             if f in faults:
-                #logger.info('fault:' + f)
                 if sysEvEn and (f in configData['system_events']) and ('enabled' in configData['system_events'][f]) and configData['system_events'][f]['enabled']:
                     if configData['system_events'][f]['function'] != 'USER_EVENT':
                         pijuice.status.ResetFaultFlags([f])
@@ -161,20 +201,60 @@ def _EvalFaultFlags():
 
 
 def reload_settings(signum=None, frame=None):
+    global pijuice
     global configData
+    global btConfig
+    global sysEvEn
+    global minChgEn
+    global minBatVolEn
+    global lowChgEn
+    global lowBatVolEn
+    global noPowEn
+
     with open(configPath, 'r') as outputConfig:
         config_dict = json.load(outputConfig)
         configData.update(config_dict)
 
+    try:
+        for b in pijuice.config.buttons:
+            conf = pijuice.config.GetButtonConfiguration(b)
+            if conf['error'] == 'NO_ERROR':
+                btConfig[b] = conf['data']
+    except:
+        pass
+
+    sysEvEn = 'system_events' in configData
+    minChgEn = configData.get('system_task', {}).get('min_charge', {}).get('enabled', False)
+    minBatVolEn = configData.get('system_task', {}).get('min_bat_voltage', {}).get('enabled', False)
+    lowChgEn = sysEvEn and configData.get('system_events', {}).get('low_charge', {}).get('enabled', False)
+    lowBatVolEn = sysEvEn and configData.get('system_events', {}).get('low_battery_voltage', {}).get('enabled', False)
+    noPowEn = sysEvEn and configData.get('system_events', {}).get('no_power', {}).get('enabled', False)
+
+    # Update watchdog setting
+    if (('watchdog' in configData['system_task'])
+            and ('enabled' in configData['system_task']['watchdog'])
+            and configData['system_task']['watchdog']['enabled']
+            and ('period' in configData['system_task']['watchdog'])
+        ):
+        try:
+            p = int(configData['system_task']['watchdog']['period'])
+            ret = pijuice.power.SetWatchdog(p)
+        except:
+            p = None
+    else:
+        # Disable watchdog
+        ret = pijuice.power.SetWatchdog(0)
+        if ret['error'] != 'NO_ERROR':
+            time.sleep(0.05)
+            pijuice.power.SetWatchdog(0)
 
 def main():
     global pijuice
     global btConfig
     global configData
     global status
-    global sysEvEn
     global chargeLevel
-    global logger
+    global sysEvEn
     global minChgEn
     global minBatVolEn
     global lowChgEn
@@ -191,31 +271,21 @@ def main():
 
     try:
         pijuice = PiJuice(1, 0x14)
+        #pijuice = PiJuice(3, 0x14)
     except:
         sys.exit(0)
 
     reload_settings()
 
-    try:
-        for b in pijuice.config.buttons:
-            conf = pijuice.config.GetButtonConfiguration(b)
-            if conf['error'] == 'NO_ERROR':
-                btConfig[b] = conf['data']
-    except:
-        # powButton = None
-        pass
-
     # Handle SIGHUP signal to reload settings
     signal.signal(signal.SIGHUP, reload_settings)
 
-    #logger = logging.getLogger('pijuice')
-    #hdlr = logging.FileHandler('/home/pi/pijuice.log')
-    #formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    #hdlr.setFormatter(formatter)
-    #logger.addHandler(hdlr)
-    #logger.setLevel(logging.INFO)
-
     if len(sys.argv) > 1 and str(sys.argv[1]) == 'stop':
+        isHalting = False
+        if os.path.exists(HALT_FILE):   # Created in _SystemHalt() called in main pijuice_sys process
+            isHalting = True
+            os.remove(HALT_FILE)
+
         try:
             if (('watchdog' in configData['system_task'])
                 and ('enabled' in configData['system_task']['watchdog'])
@@ -226,30 +296,27 @@ def main():
                 if ret['error'] != 'NO_ERROR':
                     time.sleep(0.05)
                     ret = pijuice.power.SetWatchdog(0)
-                #logger.info('watchdog disabled')
         except:
             pass
+        sysJobTargets = subprocess.check_output(["sudo", "systemctl", "list-jobs"]).decode('utf-8')
+        reboot = True if re.search('reboot.target.*start', sysJobTargets) is not None else False                      # reboot.target exists
+        swStop = True if re.search('(?:halt|shutdown).target.*start', sysJobTargets) is not None else False           # shutdown | halt exists
+        causePowerOff = True if (swStop and not reboot) else False
+        ret = pijuice.status.GetStatus()
+        if ( ret['error'] == 'NO_ERROR' 
+            and not isHalting
+            and causePowerOff                                # proper time to power down (!rebooting)
+            and configData.get('system_task',{}).get('ext_halt_power_off', {}).get('enabled',False)
+            ):
+            # Set duration for when pijuice will cut power (Recommended 30+ sec, for halt to complete)
+            try:
+                powerOffDelay = int(configData['system_task']['ext_halt_power_off'].get('period',30))
+                pijuice.power.SetPowerOff(powerOffDelay)
+            except ValueError:
+                pass
         sys.exit(0)
 
-    if (('watchdog' in configData['system_task'])
-            and ('enabled' in configData['system_task']['watchdog'])
-            and configData['system_task']['watchdog']['enabled']
-            and ('period' in configData['system_task']['watchdog'])
-        ):
-        try:
-            p = int(configData['system_task']['watchdog']['period'])
-            ret = pijuice.power.SetWatchdog(p)
-            #logger.info('watchdog enabled')
-        except:
-            p = None
-            #logger.info('cannot enable watchdg')
-
-    sysEvEn = 'system_events' in configData
-    minChgEn = configData.get('system_task', {}).get('min_charge', {}).get('enabled', False)
-    minBatVolEn = configData.get('system_task', {}).get('min_bat_voltage', {}).get('enabled', False)
-    lowChgEn = sysEvEn and configData.get('system_events', {}).get('low_charge', {}).get('enabled', False)
-    lowBatVolEn = sysEvEn and configData.get('system_events', {}).get('low_battery_voltage', {}).get('enabled', False)
-    noPowEn = sysEvEn and configData.get('system_events', {}).get('no_power', {}).get('enabled', False)
+    # Watchdog already updated in reload_settings()
 
     timeCnt = 5
 

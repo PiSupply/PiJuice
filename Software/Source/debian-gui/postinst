@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Check if user pijuice exists
+if ! id -u pijuice > /dev/null 2>&1; then
+	echo "User pijuice does not exist"
+	echo "Is pijuice-base (>= 1.4) installed?"
+	exit 1
+fi
+
+echo "Setting ownership and permissions of pijuice_gui"
+chown pijuice.pijuice /usr/bin/pijuice_gui
+chmod 4755 /usr/bin/pijuice_gui
+chown pijuice.pijuice /usr/bin/pijuice_gui.py
+chmod -x /usr/bin/pijuice_gui.py
+
+exit 0
