@@ -1,3 +1,6 @@
-- Improved Battery charge level measurement. Eliminated sudden jumps and improved accuracy. 
-- Added possibility for configuring and calibrating charge level measurement for different  
-  Li-ion chemistries, particularly Lifepo4.
+-Introduced alternative to fuel gauge ic way of remaining state of charge estimation, together with fixes of fuel gauge estimation.
+	-By default fuel gauge ic is used, and if it is not present or in faulty state, RSoC estimation is calculated directly by mcu.
+	-Battery profiles are extended with battery parameters used in RSoC estimation (battery chemistry, open circuit voltage, internal impedance).
+	-Introduced possibility to force direct mcu way of estimation by configuration command.
+-Battery temperature measurement fixes.
+-Added possibility to configure IO2 as digital input wake-up interrupt, enabling peripheral attached to P3 header to wake-up Raspberry Pi.
