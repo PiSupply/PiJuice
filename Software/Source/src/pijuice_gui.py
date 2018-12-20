@@ -280,11 +280,11 @@ class PiJuiceFirmware(object):
                 self.returnCode = self.process.wait()
                 return
             else:
-                m = re.search('^page count (\d+)$', line)
+                m = re.search('^page count (\d+)$', line.decode('utf-8'))
                 if m:
                     self.maxvar = int(m.group(1))
                 if self.maxvar > 0:
-                    m = re.search('^Page (\d+) programmed successfully$', line)
+                    m = re.search('^Page (\d+) programmed successfully$', line.decode('utf-8'))
                     if m:
                         var = int(m.group(1))
                         progress = (self.maxvar - var) / self.maxvar * 100
