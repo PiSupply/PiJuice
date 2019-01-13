@@ -4,10 +4,8 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=import-error
 import datetime
-import json
 import os
 import re
-import signal
 import subprocess
 import time
 import fcntl
@@ -946,40 +944,42 @@ class BatteryProfileTab(object):
         ]
 
         self.param_edits = [
-            urwid.IntEdit("Capacity [mAh]: ", default=self.profile_data['capacity']),
-            urwid.IntEdit("Charge current [mA]: ", default=self.profile_data['chargeCurrent']),
+            urwid.IntEdit("Capacity [mAh]:           ", default=self.profile_data['capacity']),
+            urwid.IntEdit("Charge current [mA]:      ", default=self.profile_data['chargeCurrent']),
             urwid.IntEdit("Termination current [mA]: ", default=self.profile_data['terminationCurrent']),
-            urwid.IntEdit("Regulation voltage [mV]: ", default=self.profile_data['regulationVoltage']),
-            urwid.IntEdit("Cutoff voltage [mV]: ", default=self.profile_data['cutoffVoltage']),
-            urwid.IntEdit("Cold temperature [C]: ", default=self.profile_data['tempCold']),
-            urwid.IntEdit("Cool temperature [C]: ", default=self.profile_data['tempCool']),
-            urwid.IntEdit("Warm temperature [C]: ", default=self.profile_data['tempWarm']),
-            urwid.IntEdit("Hot temperature [C]: ", default=self.profile_data['tempHot']),
-            urwid.IntEdit("NTC B constant [1k]: ", default=self.profile_data['ntcB']),
-            urwid.IntEdit("NTC resistance [ohm]: ", default=self.profile_data['ntcResistance']),
+            urwid.IntEdit("Regulation voltage [mV]:  ", default=self.profile_data['regulationVoltage']),
+            urwid.IntEdit("Cutoff voltage [mV]:      ", default=self.profile_data['cutoffVoltage']),
+            urwid.IntEdit("Cold temperature [C]:     ", default=self.profile_data['tempCold']),
+            urwid.IntEdit("Cool temperature [C]:     ", default=self.profile_data['tempCool']),
+            urwid.IntEdit("Warm temperature [C]:     ", default=self.profile_data['tempWarm']),
+            urwid.IntEdit("Hot temperature [C]:      ", default=self.profile_data['tempHot']),
+            urwid.IntEdit("NTC B constant [1k]:      ", default=self.profile_data['ntcB']),
+            urwid.IntEdit("NTC resistance [ohm]:     ", default=self.profile_data['ntcResistance']),
         ]
 
         for i, edit in enumerate(self.param_edits):
             urwid.connect_signal(edit, 'change', lambda x, text, idx: self.profile_data.update({self.EDIT_KEYS[idx]: text}), i)
 
-        for i, edit in enumerate(self.param_edits):
-            self.param_edits[i] = urwid.Padding(attrmap(edit), width=32)
+        #for i, edit in enumerate(self.param_edits):
+        #    self.param_edits[i] = urwid.Padding(attrmap(edit), width=32)
 
         if self.custom_values:
-            elements += self.param_edits
+            #elements += self.param_edits
+            for edit in self.param_edits:
+                 elements += [urwid.Padding(attrmap(edit), width=32),]
         else:
             elements += [
-            urwid.Text("Capacity [mAh]: " + str(self.profile_data['capacity'])),
-            urwid.Text("Charge current [mA]: " + str(self.profile_data['chargeCurrent'])),
+            urwid.Text("Capacity [mAh]:           " + str(self.profile_data['capacity'])),
+            urwid.Text("Charge current [mA]:      " + str(self.profile_data['chargeCurrent'])),
             urwid.Text("Termination current [mA]: " + str(self.profile_data['terminationCurrent'])),
-            urwid.Text("Regulation voltage [mV]: " + str(self.profile_data['regulationVoltage'])),
-            urwid.Text("Cutoff voltage [mV]: " + str(self.profile_data['cutoffVoltage'])),
-            urwid.Text("Cold temperature [C]: " + str(self.profile_data['tempCold'])),
-            urwid.Text("Cool temperature [C]: " + str(self.profile_data['tempCool'])),
-            urwid.Text("Warm temperature [C]: " + str(self.profile_data['tempWarm'])),
-            urwid.Text("Hot temperature [C]: " + str(self.profile_data['tempHot'])),
-            urwid.Text("NTC B constant [1k]: " + str(self.profile_data['ntcB'])),
-            urwid.Text("NTC resistance [ohm]: " + str(self.profile_data['ntcResistance'])),
+            urwid.Text("Regulation voltage [mV]:  " + str(self.profile_data['regulationVoltage'])),
+            urwid.Text("Cutoff voltage [mV]:      " + str(self.profile_data['cutoffVoltage'])),
+            urwid.Text("Cold temperature [C]:     " + str(self.profile_data['tempCold'])),
+            urwid.Text("Cool temperature [C]:     " + str(self.profile_data['tempCool'])),
+            urwid.Text("Warm temperature [C]:     " + str(self.profile_data['tempWarm'])),
+            urwid.Text("Hot temperature [C]:      " + str(self.profile_data['tempHot'])),
+            urwid.Text("NTC B constant [1k]:      " + str(self.profile_data['ntcB'])),
+            urwid.Text("NTC resistance [ohm]:     " + str(self.profile_data['ntcResistance'])),
         ]
 
         elements.extend([urwid.Divider(),
@@ -1692,209 +1692,6 @@ class UserScriptsTab(object):
         pijuiceConfigData = loadPiJuiceConfig()
         self.main()
 
-class SystemSettingsTab(object):
-    def __init__(self):
-        self.current_config = self.read_config_file()
-        self.main()
-
-    def read_config_file(self, *args):
-        try:
-            with open(CONFIG_PATH, 'r') as config_file:
-                config = json.load(config_file)
-            return config
-        except IOError as e:  # No file or insufficient permissions
-            confirmation_dialog("Unable to read system configuration file. Reason: {}".format(e.strerror), next=main_menu)
-            return {}
-
-    def apply_config(self, *args):
-        try:
-            if not os.path.exists(os.path.dirname(CONFIG_PATH)):
-                os.makedirs(os.path.dirname(CONFIG_PATH))
-            with open(CONFIG_PATH, 'w+') as output_config_file:
-                json.dump(self.current_config, output_config_file, indent=2)
-        except IOError as e:  # Insufficient permissions
-            confirmation_dialog("Unable to write to system configuration file. Reason: {}".format(e.strerror), next=main_menu)
-            return
-
-        # Notify service about changes
-        try:
-            pid = int(open(PID_FILE, 'r').read())
-            os.kill(pid, signal.SIGHUP)
-        except OSError:
-            os.system("sudo kill -s SIGHUP %i" % pid)
-        except:
-            confirmation_dialog("Failed to communicate with PiJuice service.", next=main_menu)
-
-    def main(self, *args):
-        elements = [urwid.Text("System Settings"),
-                    urwid.Divider(),
-                    urwid.Button("System Task", on_press=self.system_task),
-                    urwid.Button("System Events", on_press=self.system_events),
-                    urwid.Button("User Scripts", on_press=self.user_scripts),
-                    urwid.Divider(),
-                    urwid.Button("Apply Settings", on_press=self.apply_config),
-                    urwid.Button("Show current config", on_press=self._show_current_config),
-                    urwid.Button("Back", on_press=main_menu),
-                    ]
-        main.original_widget = urwid.Padding(urwid.ListBox(
-            urwid.SimpleFocusListWalker(elements)), left=2, right=2)
-
-    def system_task(self, btn=None, focus=1):
-        elements = [urwid.Text("System Task")]
-        sys_task_enabled_cbox = urwid.CheckBox(
-            "System task enabled", state=self.current_config['system_task'].get('enabled', False),
-            on_state_change=lambda x, state: self.current_config['system_task'].update({'enabled': state}))
-        elements += [sys_task_enabled_cbox, urwid.Divider()]
-
-        # Key, Title, Value key, Label
-        config_entries = (('watchdog', "Watchdog", 'period', "Expire period [minutes]: "),
-                          ('wakeup_on_charge', "Wakeup on charge", 'trigger_level', "Trigger level [%]: "),
-                          ('min_charge', "Minimum charge", 'threshold', "Threshold [%]: "),
-                          ('min_bat_voltage', "Minimum battery voltage", 'threshold', "Threshold [V]: "))
-
-        for option_key, title, value_key, edit_label in config_entries:
-            cbox = urwid.CheckBox(title, state=self.current_config['system_task'].get(option_key, {}).get('enabled', False),
-                                  on_state_change=self._toggle_system_task, user_data=[str(option_key), str(value_key)])
-            elements.append(cbox)
-            if self.current_config['system_task'].get(option_key, {}).get('enabled'):
-                value_widget = urwid.Edit(edit_label, edit_text=self.current_config['system_task'].get(option_key, {}).get(value_key, ''))
-                urwid.connect_signal(value_widget, 'change', self._update_sys_task_value, [str(option_key), str(value_key)])
-                elements += [value_widget, urwid.Divider()]
-
-        elements += [urwid.Divider(),
-                     urwid.Button("Apply Settings",
-                                  on_press=self.apply_config),
-                     urwid.Button("Back", on_press=self.main)]
-
-        self.list_walker = urwid.SimpleFocusListWalker(elements)
-        self.list_walker.set_focus(focus)
-        main.original_widget = urwid.Padding(urwid.ListBox(self.list_walker), left=2, right=2)
-
-    def _toggle_system_task(self, element, state, keys):
-        option_key = keys[0]
-        value_key = keys[1]
-        if option_key not in self.current_config['system_task'].keys():
-            # Option had not been set
-            self.current_config['system_task'][option_key] = {'enabled': state, value_key: ''}
-        else:
-            self.current_config['system_task'][option_key]['enabled'] = state
-            if value_key not in self.current_config['system_task'][option_key].keys():
-                self.current_config['system_task'][option_key][value_key] = ''
-
-        # Keep focus on clicked element
-        self.system_task(focus=self.list_walker.get_focus()[1])
-
-    def _update_sys_task_value(self, element, text, keys):
-        option_key = keys[0]
-        value_key = keys[1]
-        self.current_config['system_task'][option_key][value_key] = text
-
-    def system_events(self, btn=None, focus=1):
-        ALL_FUNCTIONS = ['NO_FUNC'] + pijuice_sys_functions + pijuice_user_functions  # battery_voltage, low_charge, no_power
-        USER_FUNCTIONS = ['NO_FUNC'] + pijuice_user_functions  # button_power_off, forced_power_off, forced_sys_power_off, watchdog_reset 
-
-        elements = [urwid.Text("System Events"), urwid.Divider()]
-
-        # Key, Label, Value type (0 - all, 1 - user)
-        config_entries = (('low_charge', "Low charge", 0),
-                          ('battery_voltage', "Low battery voltage", 0),
-                          ('no_power', "No power", 0),
-                          ('watchdog_reset', "Watchdog reset", 1),
-                          ('button_power_off', "Button power off", 1),
-                          ('forced_power_off', "Forced power off", 1),
-                          ('forced_sys_power_off', "Forced sys power off", 1))
-
-        system_events_config = self.current_config.get('system_events', {})
-        for key, label, value_type in config_entries:
-            options = list(ALL_FUNCTIONS) if value_type == 0 else list(USER_FUNCTIONS)
-            event_enabled = system_events_config.get(key, {}).get('enabled', False)
-            event_function = system_events_config.get(key, {}).get('function', 'NO_FUNC')
-            cbox = urwid.CheckBox(label, state=event_enabled, on_state_change=self._toggle_system_event, user_data=key)
-            if event_enabled:
-                value_widget = urwid.Button(event_function, on_press=self._select_event_function, user_data={'options': options, 'event': key})
-            else:
-                value_widget = urwid.Text(event_function)
-            row = urwid.Columns([cbox, value_widget])
-            elements.append(row)
-
-        elements += [urwid.Divider(),
-                     urwid.Button("Apply Settings",
-                                  on_press=self.apply_config),
-                     urwid.Button("Back", on_press=self.main)]
-
-        self.list_walker = urwid.SimpleFocusListWalker(elements)
-        self.list_walker.set_focus(focus)
-        main.original_widget = urwid.Padding(urwid.ListBox(self.list_walker), left=2, right=2)
-
-    def _toggle_system_event(self, element, state, key):
-        if 'system_events' not in self.current_config.keys():
-            self.current_config['system_events'] = {}
-
-        if key not in self.current_config['system_events'].keys():
-            self.current_config['system_events'][key] = {}
-        self.current_config['system_events'][key]['enabled'] = state
-
-        if not self.current_config['system_events'][key].get('function'):
-            self.current_config['system_events'][key]['function'] = 'NO_FUNC'
-
-        self.system_events(focus=self.list_walker.get_focus()[1])
-
-    def _select_event_function(self, btn, user_data):
-        options = user_data['options']
-        self.event = user_data['event']
-        elements = [urwid.Text("Choose function for {}".format(self.event)), urwid.Divider()]
-
-        self.bgroup = []
-        for option in options:
-            func_btn = urwid.RadioButton(self.bgroup, option, on_state_change=self._set_event_function)
-            elements.append(func_btn)
-
-        selected_function = self.current_config.get('system_events', {}).get(self.event, {}).get('function', 'NO_FUNC')
-        self.bgroup[options.index(selected_function)].toggle_state()
-
-        elements += [urwid.Divider(), urwid.Button('Back', on_press=self.system_events)]
-
-        main.original_widget = urwid.Padding(urwid.ListBox(
-            urwid.SimpleFocusListWalker(elements)), left=2, right=2)
-
-    def _set_event_function(self, rb, state):
-        if state:
-            if 'system_events' not in self.current_config.keys():
-                self.current_config['system_events'] = {}
-
-            if self.event not in self.current_config['system_events'].keys():
-                self.current_config['system_events'][self.event] = {'enabled': True, 'function': 'NO_FUNC'}
-            self.current_config['system_events'][self.event]['function'] = rb.get_label()
-
-            del self.event
-            del self.bgroup
-
-    def user_scripts(self, *args):
-        elements = [urwid.Text("User Scripts"), urwid.Divider()]
-
-        for i in range(1, 16):
-            func_name = "USER_FUNC" + str(i)
-            func_edit = urwid.Edit(func_name + ": ", edit_text=self.current_config.get('user_functions', {}).get(func_name, ''))
-            elements.append(func_edit)
-            urwid.connect_signal(func_edit, 'change', self._set_user_function, func_name)
-
-        elements += [urwid.Divider(),
-                     urwid.Button("Apply Settings",
-                                  on_press=self.apply_config),
-                     urwid.Button("Back", on_press=self.main)]
-        main.original_widget = urwid.Padding(urwid.ListBox(
-            urwid.SimpleFocusListWalker(elements)), left=2, right=2)
-
-    def _set_user_function(self, edit, text, func_name):
-        if self.current_config.get('user_functions') is None:
-            self.current_config['user_functions'] = {}
-        self.current_config['user_functions'][func_name] = text
-
-    def _show_current_config(self, *args):
-        main.original_widget = urwid.Filler(urwid.Pile(
-            [urwid.Text(json.dumps(self.current_config, indent=2)), urwid.Button('Back', on_press=self.main)]))
-
-
 def menu(title, choices):
     body = [urwid.Text(title), urwid.Divider()]
     for c in choices:
@@ -2011,3 +1808,4 @@ top = urwid.Overlay(urwid.LineBox(main, title='PiJuice CLI'), urwid.SolidFill(u'
                     valign='middle', height=20)
 loop = urwid.MainLoop(top, palette=[('reversed', 'standout', '')])
 loop.run()
+
