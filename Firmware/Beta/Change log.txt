@@ -4,3 +4,5 @@
 	-Introduced possibility to force direct mcu way of estimation by configuration command.
 -Battery temperature measurement fixes.
 -Added possibility to configure IO2 as digital input wake-up interrupt, enabling peripheral attached to P3 header to wake-up Raspberry Pi.
+-Rpi reset after update fix
+-Added alternative wakeup via Rpi SCL (GPIO3) if run pin is not connected via pogo pin.
