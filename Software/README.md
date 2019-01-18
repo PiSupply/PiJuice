@@ -18,15 +18,19 @@ Note: Users using Debian Jessie must run `sudo apt-get update` & `sudo apt-get u
 
 ### Manual process
 
-Copy either of the deb packages to the pi home and install it.
+Install the dependency python urwid package:
 
-For example for the full version with GUI:
-
-`sudo dpkg -i ./pijuice-gui_1.1-1_all.deb`
+`sudo apt-get install python3-urwid`
 
 For the light version:
 
-`sudo dpkg -i ./pijuice-base_1.1-1_all.deb`
+`sudo dpkg -i ./pijuice-base_1.4_all.deb`
+
+For example for the full version with GUI:
+
+`sudo dpkg -i ./pijuice-gui_1.4_all.deb`
+
+**Note:** You must install the PiJuice base version prior to installing the GUI.
 
 Should the installation complain about missing dependencies you need to sort them first and try with the installation once again.
 
@@ -123,9 +127,14 @@ In this screenshot we have moved over to the Wakeup alarm tab of the config menu
 
 This feature will only work if you are either plugged in to the PiJuice microUSB / running on battery. If the battery is low and you are plugged in via the Raspberry Pis GPIO the only way to enable this feature is by soldering the optional "spring pin" that comes with the PiJuice HAT (See the [hardware section](https://github.com/PiSupply/PiJuice/tree/master/Hardware#unpopulated) for further details).
 
+**Note:** As of Firmware v1.3_2019_01_15 pogo/spring pin is no longer required to wakeup the Raspberry Pi when powering from the Pi micro USB.
+
+#### Repeated Wakeup
+
 When setting the Wakeup alarm for a repeated wakeup, after the initial reboot the Wakeup enabled capability is disabled due to the Raspbian RTC clock initialisation resetting the bit in the PiJuice firmware. To overcome this you will need to run a script to re-enable the wakeup-enable capability. The script is located in PiJuice > Software > Test > wakeup_enable.py
 
 ```bash
+#!/usr/bin/python3
 # This script is started at reboot by cron
 # Since the start is very early in the boot sequence we wait for the i2c-1 device
 
@@ -146,7 +155,7 @@ The first time you run `crontab` you will be prompted to select an editor; if yo
 Add the following to the cron table:
 
 ```bash
-@reboot /usr/bin/python /home/pi/PiJuice/Software/Test/wakeup_enable.py
+@reboot /usr/bin/python3 /home/pi/PiJuice/Software/Test/wakeup_enable.py
 ```
 
 To test the script simply disable the wakeup alarm in the GUI then reboot your Raspberry Pi. You should see that the wakeup alarm checked again.
@@ -204,7 +213,7 @@ This is the system events menu tab. It allows you to trigger events for certain 
 
 This is the user scripts menu tab as we mentioned in the above screenshot description where you can add paths to custom scripts that you can trigger on events.
 
-User scripts can be assigned to user functions called by system task when configured event arise. This should be non-blocking callback function that implements customized system functions or event logging.
+User scripts can be assigned to user functions called by system task when configured event arise. This should be non-blocking callback function that implements customised system functions or event logging.
 
 User functions are 4 digit binary coded and have 15 combinations, code 0 is USER_EVENT meant that it will not be processed by system task, but left to user and python API to manage it. The GUI initially only shows 8. Clicking the "Show more" button will show all 15.
 
@@ -213,12 +222,20 @@ User functions are 4 digit binary coded and have 15 combinations, code 0 is USER
 ```bash
 chmod +x user_script.py
 ```
-**NOTE:** Scripts executed by the pijuice.service will run as root not pi
+**NOTE:** Scripts executed by the pijuice.service will run as the "owner" of the script i.e. pi and must belong to the pijuice user group. By default the pijuice install script adds user `pi` to user group `pijuice`.
 
-Alternatively you can simply add the following in the User Scripts tab under the function:
+Scripts now must determine where the interpreter is located as a shebang line so the pijuice service knows that type of script it is:
 
-```text
-python user_script.py
+```bash
+#!/usr/bin/python
+```
+
+```bash
+#!/usr/bin/python3
+```
+
+```bash
+#!/usr/bin/bash
 ```
 
 
@@ -333,7 +350,7 @@ Click Apply button to save new settings.
 
 Last but very much not least is the firmware menu. This allows you to update the firmware on the PiJuice MCU chip as and when necessary meaning we can actively improve the firmware and any updates or improvements we make in the future can be retrospectively applied to all PiJuice HATs!
 
-*Note that the PiJuice package you installed comes with a default firmware located at the path below:*
+*Note: that the PiJuice package you installed comes with a default firmware located at the path below:*
 ```text
 /usr/share/pijuice/data/firmware/
 ```
@@ -352,7 +369,7 @@ For those users who would rather run their Raspberry Pi using a Lite version of 
 
 To launch the PiJuice CLI simply open up the Terminal or from the command line type in the following command:
 
-`pijuice_cli.py`
+`pijuice_cli`
 
 ![pijuice cli](https://drive.google.com/uc?id=1bSHhI6uIXOhCBUWUfkAwLAHcVTAm7UbD)
 
@@ -767,7 +784,7 @@ When you manually edit the JSON file and save the settings, the changes will not
 PiJuice HAT provides control, status and configuration of supported features through I2C Command API. Read/write commands are based on I2C block read/write transfers where messages carrying data are exchanged with Master. Message starts with one byte command code, followed by data payload and with checksum byte at the end of message. Checksum is 8-bit XOR calculated over all data payload bytes.
 
 ### Command Abstraction Layer
-In order to facilitate communication with PiJuice HAT using I2C Command API there is abstraction layer hat encapsulates commands into more intuitive interface to configure, control and retrieve status of PiJuice features. This layer is implemented as python script module pijuice.py. Different types of interface function are encapsulated in next set of classes:
+In order to facilitate communication with PiJuice HAT using I2C Command API there is abstraction layer that encapsulates commands into more intuitive interface to configure, control and retrieve status of PiJuice features. This layer is implemented as python script module pijuice.py. Different types of interface function are encapsulated in next set of classes:
 * **PiJuiceInterface**. Functions for low level message exchange end error checking through I2C bus.
 * **PiJuiceStatus** Functions for dynamically controlling and reading status of PiJuice features.
 * **PiJuiceRtcAlarm** Functions for setting-up real time clock and wake-up alarm.
@@ -776,6 +793,7 @@ In order to facilitate communication with PiJuice HAT using I2C Command API ther
 All the function classes are encapsulated in top level object PiJuice(bus, address), where bus presents I2C bus identifier and address presents PiJuice HAT I2C slave address.
 Usage example:
 ```python
+#!/usr/bin/python3
 from pijuice import PiJuice # Import pijuice module
 pijuice = PiJuice(1, 0x14) # Instantiate PiJuice interface object
 print pijuice.status.GetStatus() # Read PiJuice staus.
@@ -794,6 +812,8 @@ Where error_staus value can be NO_ERROR in case data are exchanged with no commu
 'data':data
 }
 ```
+**Note:** All user scripts that import the pijuice module must now be run as Python3
+
 #### PiJuiceStatus functions
 **GetStatus()**
 
