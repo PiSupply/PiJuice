@@ -2,7 +2,7 @@
 Encoding=UTF-8
 Type=Application
 Name=Point-Shoot-Cam
-Exec=lxterminal -e python /home/pi/PiJuice/MakerKits/Point-shoot-cam/point-shoo$
+Exec=lxterminal -e python /home/pi/PiJuice/MakerKits/Point-shoot-cam/point-shoot-cam.py
 Path=/home/pi/PiJuice/MakerKits/Point-shoot-cam/
 Icon=/home/pi/PiJuice/MakerKits/Point-shoot-cam/icons/24x24@2x.png
 StartupNotify=true
