@@ -1,12 +1,14 @@
 # Hardware
 ![PiJuice_Overview](https://user-images.githubusercontent.com/16068311/36384527-7d562e2c-1587-11e8-81d1-d78835ff8e67.png "PiJuice Overview")
 
-The above image of the PiJuice PCB is used in the following descriptions to highlight some of the inputs / outputs and other useful hardware information.
+![PiJuice_Zero](https://drive.google.com/uc?id=1l1uLXDp_rf0GQmAKm7W06QNgxjKIoULq)
+
+The above images of the PiJuice PCB are used in the following descriptions to highlight some of the inputs / outputs and other useful hardware information.
 
 ## Switches
-On board the PiJuice, highlighted in green in the above overview image, there are three momentary switches and one DIP switch. Please note that SW1 and J5 have the same function...J5 has been provided so that a separate tactile pushbutton can be used for ease of use for example on a custom case (similar to a reset or power button on a normal computer).
+On board the PiJuice, highlighted in green in the above overview images, there are momentary switches and one DIP switch(PiJuice HAT). Please note that SW1 and J5 have the same function...J5 has been provided so that a separate tactile pushbutton can be used for ease of use for example on a custom case (similar to a reset or power button on a normal computer).
 
-The following lists the default function/configuration (these can be easily overriden in the software GUI/JSON file - see below):
+The following lists the default function/configuration (these can be easily overwritten in the software GUI/JSON file - see below):
 
 ### Buttons
 
@@ -26,7 +28,7 @@ Default settings can be overridden in the "Buttons" tab of PiJuice HAT configura
 #### Special functions
 
 * Dual long press of SW1 and SW2 for 20 seconds will reset PiJuice HAT configuration to default. This applies to the MCU configuration only.
-* Holding pressed SW3 while powering up PiJuice will initiate the bootloader. This is used only in cases when ordinary initiation through I2C does not work because of damaged firmware.
+* Holding pressed SW3 while powering up PiJuice HAT will initiate the bootloader. This is used only in cases when ordinary initiation through I2C does not work because of damaged firmware.
 
 ### DIP Switch
 
@@ -90,13 +92,15 @@ On board the PiJuice there are several connectors. The connectors / headers avai
   You can plug in power sources to this connector with input voltage between 4.2V and 10V. A minimum current of 80mA will be sufficient for the battery to charge.
   *Note: Although this connector may be used for some types of solar panels be aware that we only support the use of the official panels.*
 
-* The **screw terminal** can be used to connect an off-board / external battery instead of the provided onboard battery (the BP7X). We recommend you use a battery with an NTC thermistor integrated with the battery and used for temperature regulation of battery during charging we also recommend that the battery have onboard over charge / over current etc. protection (this is not essential, but it is far safer if you have them - lithium batteries can be dangerous so it is wise to think about safety). The requirements are that battery uses a 10KOhm NTC resistor with known thermistor B constant which can be entered as profile data in config GUI "Battery" tab. There are regulation threshold data points that can be entered for custom batteries like Cold, Cool, Warm and HOT temperatures that are derived from the battery manufacturers specification. The ID pin is not used and it is just reserved for possible future use. It could for example be used to automatically recognise which battery is connected when using BP7X or BP6X. The screw teminal is intenionally facing inwards, towards the onboard battery, for safety...**this is not a mistake!** The idea is to make it harder for you to accidentally plug in two batteries at once and fry your PiJuice. If you would like to turn the screw terminal to face the other direction you can do so by unscrewing all four screws, turning it around, and then screwing them back in again. Please note that you do this at your own risk and it will void your warranty.
+* The **screw terminal** can be used to connect an off-board / external battery instead of the provided onboard battery (the BP7X). We recommend you use a battery with an NTC thermistor integrated with the battery and used for temperature regulation of battery during charging we also recommend that the battery have onboard over charge / over current etc. protection (this is not essential, but it is far safer if you have them - lithium batteries can be dangerous so it is wise to think about safety). The requirements are that battery uses a 10KOhm NTC resistor with known thermistor B constant which can be entered as profile data in config GUI "Battery" tab. There are regulation threshold data points that can be entered for custom batteries like Cold, Cool, Warm and HOT temperatures that are derived from the battery manufacturers specification. The ID pin is not used and it is just reserved for possible future use. It could for example be used to automatically recognise which battery is connected when using BP7X or BP6X. The screw terminal is intentionally facing inwards, towards the onboard battery, for safety...**this is not a mistake!** The idea is to make it harder for you to accidentally plug in two batteries at once and fry your PiJuice. If you would like to turn the screw terminal to face the other direction you can do so by unscrewing all four screws, turning it around, and then screwing them back in again. Please note that you do this at your own risk and it will void your warranty.
+
+* **J2** header on the **PiJuice Zero** provides the same functionality as the screw terminals on the PiJuice HAT. This header allows you to directly connect a single cell Lithium polymer battery with 3 terminals to the PiJuice Zero, providing VBAT, GND and NTC connections.
 
 * **P3** is an expansion header which provides access to two unused GPIO pins on the ARM Cortex M0 (STM32-F0) MCU on board the PiJuice. There is also a regulated 3V3 and 5V0 pin, a GND pin and a VSYS pin which has the same function as VSYS on J3. VSYS is a switchable battery voltage for system use and can be used with boards like PiBot to provide power. VSYS output is programmable via with software with "OFF", "ON 500mA current limit" and "ON 2100mA current limit".
   The 5V pin is wired with the GPIO header and is then share amongst the Raspberry Pi's electronics and the PiJuice for battery charging. The available current that this pin can supply is around 800mA.
   As for the 3V3 a maximum of 100mA sourced by the internal LDO.
 
-### Bottom of the board
+### Bottom of the board (**PiJuice HAT only**)
 
 * **J3** provides the same VSYS as per P3. J3 is a battery output for external load connections with current limit, we use this for external boards such as PiBot. Current limit prevents power loss on the Raspberry Pi if load draws excessive current.
 * **J7** is a development header to be used in conjunction with an ST-Link programmer for the MCU and a [Tag-Connect cable](http://www.tag-connect.com/TC2050-IDC). It is used to download firmware or perform debugging. It can be also used during production to write the firmware. It requires a [Tag-connect TC2050 ARM20-10](http://www.tag-connect.com/TC2050-ARM2010) adapter to connect ST-Link to cable. This connector is not intended for end users.
@@ -151,6 +155,15 @@ J2
 ------------------------
 ```
 
+#### J2 Pinout PiJuice Zero
+```text
+J2
+----------------------
+|  1      2     3    |
+| VBAT   GND   NTC   |
+----------------------
+```
+
 #### J3 Pinout
 ```text
 J3
@@ -197,7 +210,9 @@ J7
 
 ![Main ICs](https://user-images.githubusercontent.com/16068311/33900058-345d3218-df65-11e7-9335-7973c1a7a599.png "Main ICs")
 
-The picture above highlights the main ICs used on PiJuice. Links to the various datasheets have been provided in line with the description.
+![PiJuice Zero ICs](https://drive.google.com/uc?id=1ElkbDf5VM5ce5g07ztZ3CUCaMfaSJwVZ)
+
+The images above highlight the main ICs used on PiJuice. Links to the various datasheets have been provided in line with the description.
 
 1. **Microcontroller** is an [ST Micro STM32F030CCT6](https://github.com/PiSupply/PiJuice/tree/master/Hardware/STM32F030CCT6.pdf) ARM Cortex-M0, 48MHz, F64KB, R8KB, I2C, SPI, USART, 2.4-3.6V
 2. **Charge IC** - [BQ24160RGET](https://github.com/PiSupply/PiJuice/tree/master/Hardware/BQ24160RGET.pdf) Charger IC Lithium-Ion/Polymer, 2.5A, 4.2-10V
@@ -265,7 +280,7 @@ The maximum current at 5V via the GPIO is 2.5A and via VSYS is 2.1A. This is als
 
 ### Which batteries can be used with PiJuice
 
-You can use any single cell lipo with PiJuice as far as you configure the board and the software correctly. You cannot use cells/batteries in parallel or series. As mentioned above we recommend that you use a battery with an NTC temperature sensor on board as well as on board protection circuitry (overcharge / overcurrent etc). Please note that you use your own battery at your own cost and risk and we do not officially support using it in this configuration as there are far too many variables - so you are on your own if there are any issues or if you break your Pi or PiJuice or damage anything else.
+You can use any single cell lipo with the PiJuice as long as you configure the board and the software correctly. You cannot use cells/batteries in parallel or series. As mentioned above we recommend that you use a battery with an NTC temperature sensor on board as well as on board protection circuitry (overcharge / overcurrent etc). Please note that you use your own battery at your own cost and risk and we do not officially support using it in this configuration as there are far too many variables - so you are on your own if there are any issues or if you break your Pi or PiJuice or damage anything else.
 
 We intend to create add on boards as accessories in the future which will allow use with other battery technologies but we do not have anything like this right now.
 

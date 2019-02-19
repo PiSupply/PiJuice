@@ -1,4 +1,5 @@
 #!/bin/bash
+cd ~
 sudo apt-get update -y
 sudo apt-get install pijuice-base -y
 git clone https://github.com/PiSupply/PiJuice.git

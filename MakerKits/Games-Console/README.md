@@ -35,7 +35,7 @@ Once connected you will go back to the main WiFi menu where you should see an IP
 
 If you are in the emulationstation menu or RetroPie menu then press F4 to exit and go to the command line. In the command line enter the following command to install the media center HAT:
 ```bash
-curl -sSL https://pisupp.ly/mediacentersoftware | sudo bash
+curl -sSL https://raw.githubusercontent.com/PiSupply/Media-Center-HAT/master/Software/media-center.sh 270 | sudo bash
 ```
 Follow the install procedure and then reboot the Raspberry Pi. Then enter the following command to copy the framebuffer to the Media Center HAT:
 ```bash
