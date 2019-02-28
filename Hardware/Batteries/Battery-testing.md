@@ -9,12 +9,12 @@ Battery capacity is usually specified at discharge load of 0.2, so for 12000mA b
 ## Full discharge test procedure
 
 - Connect power supply to the Raspberry Pi
-- Use PIJuice setup GUI to enter custom battery profile, for Li-Po battery set cut of voltage to somewhat below nominal for Li-Po 2850 is a good value
+- Use PIJuice setup GUI to enter custom battery profile, for Li-Po battery set cut off voltage to somewhat below nominal for Li-Po 2850 is a good value
 - Charge battery to full level
 - Edit `pijuice-soc-test.py` script and enter c0 - nominal battery capacity value and Rload - resistor value attached to VSYS
 - Run test with: `python pijuice-soc-test.py`
 - Wait until test is complete, it may take hours
 - Test results are logged onscreen and in log file: battery_soc_test.txt
-NOTE: Before running the test rename of delete any previous test logs, otherwise it will append to the existing log
+NOTE: Before running the test rename and delete any previous test logs, otherwise it will append to the existing log
 
 Battery parameters derived from full discharge test can be written to pijuice with `pijuice_calib.py` script to calibrate state of charge evaluation.

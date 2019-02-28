@@ -1,4 +1,4 @@
-# PiJuice Software
+milliseconds# PiJuice Software
 
 ## Software installation
 ### Automated process
@@ -14,7 +14,7 @@ sudo apt-get install pijuice-base
 ```
 This is particularly indicated for Raspbian Lite or an headless installation.
 
-Note: Users using Debian Jessie must run `sudo apt-get update` & `sudo apt-get upgrade` followed by `sudo apt-get install pijuice-gui` or `sudo apt-get install pijuice-base`
+Note: Users using Debian Jessie must install the v1.3.3 .deb package manually from [here](https://github.com/PiSupply/PiJuice/tree/master/Software/Install) however some features may not be available.
 
 ### Manual process
 
@@ -48,6 +48,18 @@ or for the light version without GUI:
 `./pckg-pijuice.sh --light`
 
 *Note: You will need python-stdeb, dh-systemd and debhelper in order to be able to build.*
+
+#### OSMC/Kodi Installations
+
+When installing the pijuice-base package the setup procedure assumes that the default user, which is normally 'pi' on Raspbian, has the privilege to sudo to another user 'pijuice'. On Raspbain user 'pi' has this privilege by default. To overcome this you need to edit the sudoers file with the following:
+
+```bash
+sudo visudo
+```
+Add the following line:
+```bash
+osmc ALL=(pijuice) ALL
+```
 
 ## GUI Menus
 
@@ -371,6 +383,8 @@ To launch the PiJuice CLI simply open up the Terminal or from the command line t
 
 `pijuice_cli`
 
+**Note:** Previous versions before v1.4 must run `pijuice_cli.py`
+
 ![pijuice cli](https://drive.google.com/uc?id=1bSHhI6uIXOhCBUWUfkAwLAHcVTAm7UbD)
 
 The PiJuice command line interface is an extension of the PiJuice HAT Configuration GUI with the exception that System Task, System Events and User Scripts cannot be configurable from the command line interface. To configure these options you will need to directly modify the JSON file as shown in the next section.
@@ -516,7 +530,7 @@ Once finished making the changes go Back and then select Apply Settings for the 
 
 The Battery profile menu allows you to set up the battery profile, which includes all the battery characteristics such as capacity, voltages and temperature. It is very important that the battery profile is set correctly in order for your battery to operate efficiently and correctly monitor the voltage and battery levels.
 
-There are a number of built-in battery profile presets such as the ones that will come with the PiJuce by default (BP7X) and all of the other ones that will be supplied. These default battery profiles can be set using the hardware DIP switch on the reverse side of the PiJuice board, so no software would be required.
+There are a number of built-in battery profile presets such as the ones that will come with the PiJuice by default (BP7X) and all of the other ones that will be supplied. These default battery profiles can be set using the hardware DIP switch on the reverse side of the PiJuice board, so no software would be required.
 
 ![pijuice battery dip switches](https://user-images.githubusercontent.com/16068311/34769251-25c7c3b6-f5f5-11e7-971f-e93f5d4d3cc0.jpg)
 
@@ -625,7 +639,7 @@ You can check this with:
 
 When the Raspberry Pi shutsdown and then reboots you must copy the RTC time back to the system clock at boot and you can do this in `/etc/rc.local` with `sudo hwclock -s`.
 
-**Note:** This assumes that your PiJuice has sufficient power from the battery to keep the simulated RTC running in the PiJuce microcontroller while the Pi is shut down.
+**Note:** This assumes that your PiJuice has sufficient power from the battery to keep the simulated RTC running in the PiJuice microcontroller while the Pi is shut down.
 
 
 ## JSON configuration file
@@ -796,7 +810,7 @@ Usage example:
 #!/usr/bin/python3
 from pijuice import PiJuice # Import pijuice module
 pijuice = PiJuice(1, 0x14) # Instantiate PiJuice interface object
-print pijuice.status.GetStatus() # Read PiJuice staus.
+print pijuice.status.GetStatus() # Read PiJuice status.
 ```
 Commands are encapsulated with two type of functions, Setters that writes configuration and control data to PiJuice and Getters that reads status or current configuration/control data.
 Every function returns object of dictionary type containing communication error status:
@@ -907,9 +921,9 @@ Arguments:
 led: LED designator, one of: 'D1', 'D2'.
 count: number of blinks for count in range [1 - 254], blink indefinite number of times for count = 255.
 rgb1: [r, g, b] is array of brightness levels of LED components in first period of blink, where r, g and b, are in range [0 – 255].
-period1: duration of first blink period in range [10 – 2550] miliseconds.
+period1: duration of first blink period in range [10 – 2550] milliseconds.
 rgb2: [r, g, b] is array of brightness levels of LED components in second period of blink, where r, g and b, are in range [0 – 255].
-Period2: duration of second blink period in range [10 – 2550] miliseconds.
+Period2: duration of second blink period in range [10 – 2550] milliseconds.
 Example:
 ```python
 pijuice.status.SetLedBlink('D2', 10, [0,200,100], 1000, [100, 0, 0], 500)

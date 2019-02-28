@@ -31,7 +31,7 @@ PiJuice is a fully uninterruptable / uninterupted power supply that will always 
 
 The tri-coloured RGB LEDs will allow you to keep track of the battery charge levels and other info (they are programmable). There are also three programmable buttons which will allow you to trigger events or customisable scripts aside from their predefined functions. PiJuice only uses five of the Pi's GPIO pins (just power and I2C), the rest are free and made available via the stacking header which allows for other boards to be used along side PiJuice. The board can be powered directly from the grid with the standard Raspberry Pi PSU, via an on board battery, via external batteries, solar panels, wind turbines and other renewable sources.
 
-The board has a Raspberry Pi HAT compatible layout, with onboard EEPROM (you can disable the EEPROM if you want also). It has been designed for the Raspberry Pi A+, B+, 2B and 3B but it is also electrically compatible with the Raspberry Pi Zero v1.3 and Zero W v1.1 or any other Pi.
+The board has a Raspberry Pi HAT or pHAT compatible layout, with onboard EEPROM (you can disable the EEPROM if you want also). It has been designed for the Raspberry Pi A+, B+, 2B, 3A+, 3B and 3B+. It is also compatible with the Raspberry Pi Zero v1.3 and Zero W v1.1 or any other Pi with a 40 way GPIO header.
 
 PiJuice is a fully [CE and FCC tested](https://github.com/PiSupply/PiJuice/tree/master/Documentation/Compliance) design and [battery safety tests](https://github.com/PiSupply/PiJuice/tree/master/Documentation/Battery%20Safety) have also been carried out for peace of mind when using in educational or industrial settings.
 
@@ -40,7 +40,7 @@ PiJuice is a fully [CE and FCC tested](https://github.com/PiSupply/PiJuice/tree/
 PiJuice will actually work straight out of the box, with no software, to power the Pi and for some other basic functionality. However to get the most out of PiJuice you really need to install the software packages. For PiJuice we have created a Raspbian / Debian Package to make it extra simple to obtain and install the necessary software. At the command line simply type:
 ```bash
 sudo apt-get install pijuice-gui
-``` 
+```
 After a restart a new icon "PiJuice Settings" will appear under Menu>Preferences.
 
 ![pijuice](https://raw.githubusercontent.com/PiSupply/PiJuice/master/Software/Source/data/images/pijuice.png)
@@ -48,7 +48,7 @@ After a restart a new icon "PiJuice Settings" will appear under Menu>Preferences
 If you wish to install just the light version of PiJuice with no GUI:
 ```bash
 sudo apt-get install pijuice-base
-``` 
+```
 This is particularly indicated for Raspbian Lite or an headless installation.
 
  Please refer to our [software section](https://github.com/PiSupply/PiJuice/tree/master/Software) to find out more.
@@ -65,7 +65,7 @@ Once the battery is slotted into place (make sure you remove the little plastic 
 
 **If you wish to start your Raspberry Pi using the PiJuice SW1 you'll have to connect the micro USB to the PiJuice directly.**
 
-To power on the Raspberry Pi single press SW1 briefly as you would for a click of a mouse. If the micro USB is directly connected to the Raspberry Pi then it will power up immediately without you needing to press the SW1. To power off press and keep pressed SW1 for about 10 seconds. A "halt" command will be received by the OS and the Raspberry Pi will shut down in the proper manner. To remove power to the Pi press and keep pressed SW1 for at least 20 seconds. This will remove power from the Raspberry Pi without issuing a "power off" command to the OS. This approach should only be used in case nothing else works or if the OS is mounted in read only mode otherwise data on SD card may be corrupted. 
+To power on the Raspberry Pi single press SW1 briefly as you would for a click of a mouse. If the micro USB is directly connected to the Raspberry Pi then it will power up immediately without you needing to press the SW1. To power off press and keep pressed SW1 for about 10 seconds. A "halt" command will be received by the OS and the Raspberry Pi will shut down in the proper manner. To remove power to the Pi press and keep pressed SW1 for at least 20 seconds. This will remove power from the Raspberry Pi without issuing a "power off" command to the OS. This approach should only be used in case nothing else works or if the OS is mounted in read only mode otherwise data on SD card may be corrupted.
 
 ### Providing power to the board
 
@@ -92,13 +92,13 @@ SW1 and LED1 have predefined default functions associated.
     * ![#FFA500](http://via.placeholder.com/15x15/FFA500/000000?text=+) Orange blinking: Low battery - level < 50%
     * ![#FF0000](http://via.placeholder.com/15x15/FF0000/000000?text=+) Red blinking: Low battery - level < 15% or battery absent
 
-On board the PiJuice there are three buttons and two multicolour LEDs please refer to the [hardware](https://github.com/PiSupply/PiJuice/blob/master/Hardware/README.md) and the [software](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md) sections to find out more.
+On board the PiJuice HAT there are three buttons and two multicolour LEDs and on the PiJuice Zero pHAT, 1 button and two multicolour LEDs; please refer to the [hardware](https://github.com/PiSupply/PiJuice/blob/master/Hardware/README.md) and the [software](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md) sections to find out more.
 
 ### Power management
 
 The PiJuice provides an onboard intelligent on/off switch allowing you to have control on when the Raspberry Pi will be switched on or off without having to plug or unplug the PSU as you would normally have to do.
 
-*Note: Turning on the Raspberry Pi via the onboard intelligent switch only works when the power is provided to the micro USB on the PiJuice.* 
+*Note: Turning on the Raspberry Pi via the onboard intelligent switch only works when the power is provided to the micro USB on the PiJuice.*
 
 When the Raspberry Pi is off, for example due to a scheduled power off via the onboard RTC, the PiJuice will enter a low power deep-sleep state which guarantees only a minute fraction of the battery charge will be required to keep the circuitry on ensuring long periods of inactivity between recharges.
 
@@ -110,12 +110,14 @@ You can find out more in the [hardware section](https://github.com/PiSupply/PiJu
 
 ### UPS  and remote functionality
 
-One of the main functionalities provided by PiJuice is to ensure that the Raspberry Pi always remains on when it needs to and shuts down safely when low on power. It provides a hardware watchdog timer to keep your Raspberry Pi up and running for mission-critical remote applications and works as a full uninterrupted / uninterruptable power supply solution.
+One of the main functionalities provided by PiJuice is to ensure that the Raspberry Pi always remains on when it needs to and shuts down safely when low on power. It provides a hardware watchdog timer to keep your Raspberry Pi up and running for mission-critical remote applications and works as a full uninterrupted / uninterruptible power supply solution.
 
-The board comes with an onboard 1820 mAh "off the shelf" Lipo / LiIon battery which guarantees ~4/6 hours of up time.
+The PiJuice HAT comes with an onboard 1820 mAh "off the shelf" Lipo / LiIon battery which guarantees ~4/6 hours of up time.
 PiJuice is compatible with any single cell LiPo or LiIon battery so bigger (or even smaller) batteries can be chosen especially depending on CPU load and connected hardware which may cause significant variations to the overall maximum up time of the Raspberry Pi. That's why we have provided means to support bigger battery sizes like 5000 or 10,000 mAH+ to help your PiJuice last up to 24 hrs +.
 
-The batteries can be replaced without downtime as long as an alternative power source is provided in the meantime. You could for example even use a battery bank whilst replacing either the onboard battery or one connected to the screw terminal (you shouldn't connect a battery on board and to screw terminal at same time though or you will fry your PiJuice). Using a standard PSU will of course work too and that configuration is in fact ideal for a UPS setup.    
+The batteries can be replaced without downtime as long as an alternative power source is provided in the meantime. You could for example even use a battery bank whilst replacing either the onboard battery or one connected to the screw terminal (you shouldn't connect a battery on board and to screw terminal at same time though or you will fry your PiJuice). Using a standard PSU will of course work too and that configuration is in fact ideal for a UPS setup.
+
+The PiJuice Zero pHAT comes with a 3-pin JST battery connector for directly connecting any single cell LiPo or LiIon. In the Pi-Supply store we stock a large range of various capacity of LiPo batteries that have been tested and are compatible with the PiJuice boards - [available batteries](https://uk.pi-supply.com/search?type=product&q=pijuice+batteries)
 
 ### Graphic and Terminal based user interface
 
@@ -143,14 +145,14 @@ For a headless installation the pijuice-base Raspbian package provides a termina
 - Optional RF Shield attachment - Harwin S02-20150300 (can also double as an inexpensive heatsink)
 - Input voltage range - 4.2V – 10V
 - Output voltage - 3.3V and 5V
-- Output amperage - maximum current at 5V gpio is 2.5A and at VSYS output 2.1A, but also this depends heavily on battery capacity. For BP7X have measured around 1.1A at 5V GPIO and around 1.6A at VSYS output. Obviously this also depends heavily on the current draw demanded by the Raspberry Pi / device itself. To achieve maximum of 2.5A it will need battery over 3500mAh.
+- Output amperage - maximum current at 5V GPIO is 2.5A and at VSYS output 2.1A, but also this depends heavily on battery capacity. For BP7X have measured around 1.1A at 5V GPIO and around 1.6A at VSYS output. Obviously this also depends heavily on the current draw demanded by the Raspberry Pi / device itself. To achieve maximum of 2.5A it will need battery over 3500mAh.
 
 ## Additional content
 Apart from the material available on Github we are also preparing guides, tutorials and additional information on various platforms and media. This is a list of current and future resources:
 
 * Check the main [PiJuice Quick Start Guide and FAQ](https://learn.pi-supply.com/make/pijuice-quick-start-guide-faq/) for a detailed assembly guide
 * Our [PiJuice Battery Discharge Time Calculator](https://learn.pi-supply.com/battery-levels/)  
-* There is a "quick start guide" in the package [which you can see here](https://github.com/PiSupply/PiJuice/blob/master/Documentation/PiJuice%20Guide.pdf). As you can see it's pretty basic but really the PiJuice is quite intuitive and very easy to use. 
+* There is a "quick start guide" in the package [which you can see here](https://github.com/PiSupply/PiJuice/blob/master/Documentation/PiJuice%20Guide.pdf). As you can see it's pretty basic but really the PiJuice is quite intuitive and very easy to use.
 * Pinout is available at [Raspberry Pi Pinout](https://pinout.xyz/pinout/pijuice)
 
 # Reviews and links
