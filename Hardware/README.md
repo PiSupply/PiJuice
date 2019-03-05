@@ -214,11 +214,11 @@ J7
 
 The images above highlight the main ICs used on PiJuice. Links to the various datasheets have been provided in line with the description.
 
-1. **Microcontroller** is an [ST Micro STM32F030CCT6](https://github.com/PiSupply/PiJuice/blob/master/Hardware/Datasheets/BQ24160RGET.pdf) ARM Cortex-M0, 48MHz, F64KB, R8KB, I2C, SPI, USART, 2.4-3.6V
-2. **Charge IC** - [BQ24160RGET](https://github.com/PiSupply/PiJuice/tree/master/Hardware/Datasheets/BQ24160RGET.pdf) Charger IC Lithium-Ion/Polymer, 2.5A, 4.2-10V
-3. **Fuel gauge IC** - [LC709203FQH-01TWG](https://github.com/PiSupply/PiJuice/tree/master/Datasheets/Hardware/LC709203FQH.pdf) Battery Fuel Gauge, 1-Cell Li-ion, 2.8%
-4. **High side power-distribution switch** - [NCP380LMUAJAATBG](https://github.com/PiSupply/PiJuice/tree/master/Datasheets/Hardware/NCP380-D.pdf) Fixed/Adjustable Current‐Limiting Power‐Distribution Switch
-5. **EEPROM** - [CAT24C32WI-GT3](https://github.com/PiSupply/PiJuice/tree/master/Datasheets/Hardware/CAT24C32-D.pdf) EEPROM, I2C, 32KBIT, 400KHZ, 1V7-5V5
+1. **Microcontroller** is an [ST Micro STM32F030CCT6](https://github.com/PiSupply/PiJuice/blob/master/Hardware/Datasheets/STM32F030CCT6.pdf) ARM Cortex-M0, 48MHz, F64KB, R8KB, I2C, SPI, USART, 2.4-3.6V
+2. **Charge IC** - [BQ24160RGET](https://github.com/PiSupply/PiJuice/blob/master/Hardware/Datasheets/BQ24160RGET.pdf) Charger IC Lithium-Ion/Polymer, 2.5A, 4.2-10V
+3. **Fuel gauge IC** - [LC709203FQH-01TWG](https://github.com/PiSupply/PiJuice/blob/master/Datasheets/Hardware/LC709203FQH.pdf) Battery Fuel Gauge, 1-Cell Li-ion, 2.8%
+4. **High side power-distribution switch** - [NCP380LMUAJAATBG](https://github.com/PiSupply/PiJuice/blob/master/Datasheets/Hardware/NCP380-D.pdf) Fixed/Adjustable Current‐Limiting Power‐Distribution Switch
+5. **EEPROM** - [CAT24C32WI-GT3](https://github.com/PiSupply/PiJuice/blob/master/Datasheets/Hardware/CAT24C32-D.pdf) EEPROM, I2C, 32KBIT, 400KHZ, 1V7-5V5
 
 ### Unpopulated
 
