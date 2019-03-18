@@ -1,5 +1,5 @@
 # Hardware
-![PiJuice_Overview](https://user-images.githubusercontent.com/16068311/36384527-7d562e2c-1587-11e8-81d1-d78835ff8e67.png "PiJuice Overview")
+![PiJuice_Overview](https://user-images.githubusercontent.com/16068311/53577635-47e6d280-3b76-11e9-8b91-c8111b53da4c.png "PiJuice Overview")
 
 ![PiJuice_Zero](https://drive.google.com/uc?id=1l1uLXDp_rf0GQmAKm7W06QNgxjKIoULq)
 
@@ -12,6 +12,8 @@ The following lists the default function/configuration (these can be easily over
 
 ### Buttons
 
+#### HAT
+
 * **SW1/J5** is power button by default:
     * Single press to power on (release in less than 800 ms)
     * Long press of at least 10 seconds to halt
@@ -22,13 +24,25 @@ The following lists the default function/configuration (these can be easily over
 * **SW3** is user button by default, configured to trigger user scripts:
     * Press will invoke “USER_FUNC3”
     * Release will invoke “USER_FUNC4”
+    
+#### Zero
+
+* **SW1** is power button by default:
+    * Single press to power on (release in less than 800 ms)
+    * Long press of at least 10 seconds to halt
+    * Long press of at least 20 seconds to cut power
 
 Default settings can be overridden in the "Buttons" tab of PiJuice HAT configuration window. Check the [software section](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md) for more information.
 
 #### Special functions
 
+##### HAT
 * Dual long press of SW1 and SW2 for 20 seconds will reset PiJuice HAT configuration to default. This applies to the MCU configuration only.
 * Holding pressed SW3 while powering up PiJuice HAT will initiate the bootloader. This is used only in cases when ordinary initiation through I2C does not work because of damaged firmware.
+
+##### Zero
+
+* Shorting J5 while powering up PiJuice HAT will initiate the bootloader. This is used only in cases when ordinary initiation through I2C does not work because of damaged firmware.
 
 ### DIP Switch
 
