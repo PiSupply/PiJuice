@@ -12,7 +12,6 @@ The project is a prototype and is designed to get you started with building your
 
 For this weather station project you will require the following parts:
 
-- PiJuice HAT Maker Kit (Excludes components)
 - Raspberry Pi computer
 - Wi-Fi or Ethernet network capability
 - 8GB microSD card with Raspbian OS
@@ -22,7 +21,7 @@ For this weather station project you will require the following parts:
 - LDR sensor
 - 2.2K resistor
 - PiJuice HAT
-- PiJuice Solar Panel
+- PiJuice Solar Panel (optional)
 - PiCrust Pro prototyping HAT (optional)
 
 
@@ -47,7 +46,7 @@ curl -sSL https://raw.githubusercontent.com/PiSupply/PiJuice/master/MakerKits/We
 ### Adafruit DHT22 Library
 
 ```bash
-pip install Adafruit_DHT
+pip3 install Adafruit_DHT
 ```
 
 ### Flask
@@ -88,7 +87,7 @@ To run the Flask web server:
 
 ```bash
 cd weather
-sudo python weather.py
+sudo python3 weather.py
 ```
 
 To view the webpage you will need to go to the Raspberry Pi's IP address on your local network such as http://192.168.0.23:5000 yours may differ. You can find your IP address from the terminal window on the Raspberry Pi by typing in the following command:

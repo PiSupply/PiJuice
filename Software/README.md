@@ -1,4 +1,4 @@
-milliseconds# PiJuice Software
+# PiJuice Software
 
 ## Software installation
 ### Automated process
@@ -336,6 +336,18 @@ Each LED can be assigned to predefined predefined function or configured for use
 
 The battery menu is a very important one. It basically allows you to set charge profiles for the PiJuice charge chip in order to correctly and efficiently charge the battery, correctly monitor the charge percentages and more. We have got a number of built in presets such as the ones that will come with the PiJuice by default (the BP7X) and all of the other ones we will supply. But as promised, there is also the ability to add your own custom charge profiles and even your own battery temperature sensor in order to increase the safety and efficiency of charging your batteries.
 
+* **Capacity**. Charge capacity of battery.
+* **Charge current**. [550mA – 2500mA]. Defines constant current that PiJuice battery is charged in current regulation phase of charging process.
+* **Termination current**. [50mA – 400mA]. When charging current drops below termination current threshold in voltage regulation phase charging process terminates.
+* **Regulation voltage**. [3500mV – 4440mV]. Defines constant voltage to which voltage over battery is regulated in voltage regulation phase of charging process.
+* **Cut-off voltage**. [0mV – 5100mV]. Defines minimum voltage at which battery is fully discharged.
+* **Cold temperature**. Defines temperature threshold according to JEITA standard below which charging is suspended.
+* **Cool temperature**. Defines temperature threshold according to JEITA standard below which charge current is reduced to half of programmed charge current. This threshold should be set above cold temperature.
+* **Warm temperature**. Defines temperature threshold according to JEITA standard above which the battery regulation voltage is reduced by 140mV from the programmed regulation voltage. This threshold should be set above cool temperature.
+* **Hot temperature**.  Defines temperature threshold according to JEITA standard above which charging is suspended. This threshold should be set above warm temperature.
+* **NTC  B constant**. Defines thermistor B constant of NTC temperature sensor if it is integrated with battery.
+* **NTC resistance**. Defines nominal thermistor resistance at 25°C of NTC temperature sensor if it is integrated with battery.
+
 As previously mentioned, some of these are even hard coded into the firmware on the PiJuice which enables you to actually select profiles using the PiJuices on board DIP switch.
 
 More information on the default profiles and how to created additional ones can be found in the [Hardware Section](https://github.com/PiSupply/PiJuice/tree/master/Hardware#battery-profiles)
@@ -537,6 +549,18 @@ There are a number of built-in battery profile presets such as the ones that wil
 To change the battery profile you will need to select **Profile** option and then select from one of the following battery profiles. If you have connected your own battery to to the PiJuice then you will need to select **Custom** from the profile options.
 
 ![pijuice cli battery menu](https://drive.google.com/uc?id=1J49Z8I8kxt2qgesf6DDaPqU7SO7W2xAj)
+
+* **Capacity**. Charge capacity of battery.
+* **Charge current**. [550mA – 2500mA]. Defines constant current that PiJuice battery is charged in current regulation phase of charging process.
+* **Termination current**. [50mA – 400mA]. When charging current drops below termination current threshold in voltage regulation phase charging process terminates.
+* **Regulation voltage**. [3500mV – 4440mV]. Defines constant voltage to which voltage over battery is regulated in voltage regulation phase of charging process.
+* **Cut-off voltage**. [0mV – 5100mV]. Defines minimum voltage at which battery is fully discharged.
+* **Cold temperature**. Defines temperature threshold according to JEITA standard below which charging is suspended.
+* **Cool temperature**. Defines temperature threshold according to JEITA standard below which charge current is reduced to half of programmed charge current. This threshold should be set above cold temperature.
+* **Warm temperature**. Defines temperature threshold according to JEITA standard above which the battery regulation voltage is reduced by 140mV from the programmed regulation voltage. This threshold should be set above cool temperature.
+* **Hot temperature**.  Defines temperature threshold according to JEITA standard above which charging is suspended. This threshold should be set above warm temperature.
+* **NTC  B constant**. Defines thermistor B constant of NTC temperature sensor if it is integrated with battery.
+* **NTC resistance**. Defines nominal thermistor resistance at 25°C of NTC temperature sensor if it is integrated with battery.
 
 Before you can start changing the values of the battery profile you will need to make sure that you select **Custom** from the **Battery Settings** menu, when it is selected you will see a cross in the box.
 

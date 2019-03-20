@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 #    Copyright (C) 2018  Chris Rush
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -17,10 +18,11 @@ import Adafruit_DHT # this library works for DHT11 DHT22 and AM2302 sensors
 import time
 import spidev
 
-from pijuice import PiJuice # Import pijuice module
+from pijuice import PiJuice # Import pijuice module now using python 3 only
 from flask import Flask, render_template
 
-pijuice = PiJuice(1, 0x14) # Instantiate PiJuice interface object
+pijuice = PiJuice(1, 0x14) # Initiate PiJuice interface object
+
 
 # Open SPI bus
 spi = spidev.SpiDev()
