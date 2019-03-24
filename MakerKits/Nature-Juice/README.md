@@ -9,7 +9,7 @@ A modified PIR Motion Sensor is connected to the PiJuice and allows to powerup t
 The PiJuice P3 connector provides 5V as well as 3V3 but only 3V3 remains available once power is removed to the Raspberry Pi. The PIR Motion Sensor then needed to be modified to run at 3v3 as it's natively intended to run at 5V.
 The sensor will have to be modified as in the picture below. The voltage regulator and the diode will need to be removed and a small wire soldered in so that VCC will carry directly 3V3 from P3 on the PiJuice.
 
---NatureJuice-PIR-Mod--
+![PIR Mod](https://user-images.githubusercontent.com/16068311/54878254-63b65f00-4e2a-11e9-922e-37ad1f833c22.jpg "PIR Mod")
 
 Using the API provided by PiJuice we can monitor the PIR at runtime and the script will continue to take pictures as far as motion is captured.
 The script will wait for 10 minutes and if no motion is detected it is going to shutdown the Raspberry Pi. The PiJuice will have to be setup so that it will remove power after the shutdown is complete.
@@ -166,6 +166,8 @@ sudo reboot
 
 Move to [Configure the PiJuice](#configure-the-pijuice)
 
+#### Default folders
+
 The default folders where the various parts of the script will be installed are:
 
 * bin: /usr/local/bin
@@ -214,7 +216,7 @@ It can be invoked from the command line as follows:
 
 We have developed a new logo that can be used as a watermark for the pictures. You can add it and a timestamp by using the -l option.
 
-![naturejuice-logo](https://raw.githubusercontent.com/PiSupply/PiJuice/makerkits/nature-juice/nature-juice_logo_90.png)
+![naturejuice-logo](https://raw.githubusercontent.com/PiSupply/PiJuice/master/MakerKits/Nature-Juice/nature-juice_logo_90.png)
 
 Despite not using the -v flag you can easily check the logs as they are created with:
 
