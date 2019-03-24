@@ -5,6 +5,8 @@ sudo apt-get install pijuice-base -y
 
 sudo apt-get install git i2c-tools python3-smbus python3-urwid python3-picamera python3-pil fonts-freefont-ttf -y
 
+cd ~
+
 git clone https://github.com/PiSupply/PiJuice.git
 
 cd ~/PiJuice/MakerKits/Nature-Juice
