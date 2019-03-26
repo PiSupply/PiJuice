@@ -110,7 +110,7 @@ On board the PiJuice there are several connectors. The connectors / headers avai
 
 * **J2** header on the **PiJuice Zero** provides the same functionality as the screw terminals on the PiJuice HAT. This header allows you to directly connect a single cell Lithium polymer battery with 3 terminals to the PiJuice Zero, providing VBAT, GND and NTC connections.
 
-* **P3** is an expansion header which provides access to two unused GPIO pins on the ARM Cortex M0 (STM32-F0) MCU on board the PiJuice. There is also a regulated 3V3 and 5V0 pin, a GND pin and a VSYS pin which has the same function as VSYS on J3. VSYS is a switchable battery voltage for system use and can be used with boards like PiBot to provide power. VSYS output is programmable via with software with "OFF", "ON 500mA current limit" and "ON 2100mA current limit".
+* **P3** is an expansion header which provides access to two unused GPIO pins on the ARM Cortex M0 (STM32-F0) MCU on board the PiJuice. There is also a regulated 3V3 and 5V0 pin, a GND pin and a VSYS pin which has the same function as VSYS on J3. VSYS is a switchable battery voltage for system use and can be used with boards like PiBot to provide power. VSYS output is programmable via with software with "OFF", "ON 500mA current limit" and "ON 2100mA current limit". The voltage for VSYS is in principle the battery voltage (nominal 3.7V, varies between 3V and 4.2V depending on charge level)
   The 5V pin is wired with the GPIO header and is then share amongst the Raspberry Pi's electronics and the PiJuice for battery charging. The available current that this pin can supply is around 800mA.
   As for the 3V3 a maximum of 100mA sourced by the internal LDO.
 
