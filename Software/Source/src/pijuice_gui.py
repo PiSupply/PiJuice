@@ -141,6 +141,7 @@ class PiJuiceFirmware(object):
         binDir = '/usr/share/pijuice/data/firmware/'
         try:
             files = [f for f in listdir(binDir) if isfile(join(binDir, f))]
+            files = sorted(files)
         except:
             files = []
         self.newVerStr = ''
@@ -436,6 +437,7 @@ class PiJuiceHATConfig(object):
                 MessageBox.showinfo('Address update', "Success!", parent=self.frame)
 
     def _RunPinConfigSelected(self, event):
+        print("_RunPinConfigSelected:", event)
         status = pijuice.config.SetRunPinConfig(self.runPinConfig.get())
         if status['error'] != 'NO_ERROR':
             self.runPinConfig.set(status['error'])
@@ -511,12 +513,10 @@ class PiJuiceButtonsConfig(object):
         self.errorState = False
         self.eventFunctions = ['NO_FUNC'] + copy.deepcopy(pijuice_hard_functions) + pijuice_sys_functions + pijuice_user_functions
 
-        self.refreshConfig = StringVar()
-        self.refreshConfigBtn = Button(self.frame, text='Refresh', underline=0, command=lambda v=self.refreshConfig: self.Refresh(v))
+        self.refreshConfigBtn = Button(self.frame, text='Refresh', underline=0, command=self.Refresh)
         self.refreshConfigBtn.grid(row=0, column=4, padx=2, pady=2, sticky=N+E)
 
-        self.apply = StringVar()
-        self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=lambda v=self.apply: self._ApplyNewConfig(v))
+        self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=self._ApplyNewConfig)
         self.applyBtn.grid(row=apply_btn_row, column=4, padx=2, pady=(5, 2), sticky=N+E)
 
         self.errorStatus = StringVar()
@@ -547,14 +547,14 @@ class PiJuiceButtonsConfig(object):
                 self.evParamEntryList.append(ent)
 
                 self.evFuncSelList[ind].bind("<<ComboboxSelected>>", self._ConfigEdited)
-                self.evParamList[ind].trace("w", lambda name, index, mode, sv=param: self._ConfigEdited(sv))
+                self.evParamList[ind].trace("w", self._ConfigEdited)
 
             self.configs.append({})
             self.ReadConfig(i)
 
         self.applyBtn.configure(state="disabled")
 
-    def _ApplyNewConfig(self, v):
+    def _ApplyNewConfig(self):
         for bind in range(0, len(pijuice.config.buttons)):
             config = {}
             for j in range(0, len(pijuice.config.buttonEvents)):
@@ -573,7 +573,7 @@ class PiJuiceButtonsConfig(object):
 
         self.applyBtn.configure(state="disabled")
 
-    def Refresh(self, v):
+    def Refresh(self):
         isError = False
         for i in range(0, len(pijuice.config.buttons)):
             if self.ReadConfig(i)['error'] != 'NO_ERROR':
@@ -606,7 +606,7 @@ class PiJuiceButtonsConfig(object):
         self.configs[bind] = config
         return config
 
-    def _ConfigEdited(self, sv):
+    def _ConfigEdited(self, *args):
         self.applyBtn.configure(state="normal")
 
     def _ConfigFuncSelected(self, event):
@@ -683,13 +683,12 @@ class PiJuiceLedConfig(object):
                 paramB.set('')
                 self.configs[i] = None
 
-            self.ledConfigsSel[i].bind("<<ComboboxSelected>>", lambda event, idx=i: self._NewConfigSelected(event, idx))
-            paramR.trace("w", lambda name, index, mode, sv=paramR: self._ConfigEdited(sv))
-            paramG.trace("w", lambda name, index, mode, sv=paramG: self._ConfigEdited(sv))
-            paramB.trace("w", lambda name, index, mode, sv=paramB: self._ConfigEdited(sv))
+            self.ledConfigsSel[i].bind("<<ComboboxSelected>>", self._NewConfigSelected)
+            paramR.trace("w", self._ConfigEdited)
+            paramG.trace("w", self._ConfigEdited)
+            paramB.trace("w", self._ConfigEdited)
 
-        self.apply = StringVar()
-        self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=lambda v=self.apply: self._ApplyNewConfig(v))
+        self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=self._ApplyNewConfig)
         self.applyBtn.grid(row=10, column=2, padx=5, sticky=E)
 
     def _pickColor(self, idx):
@@ -700,19 +699,19 @@ class PiJuiceLedConfig(object):
             except ValueError:
                 init_color[i] = 0
         init_color = "#%02x%02x%02x" % tuple(init_color)
-        params, _ = askcolor(init_color, title="Color for D%i" % (idx // 3), parent=self.frame)
+        params, _ = askcolor(init_color, title="Color for D%i" % (idx // 3 + 1), parent=self.frame)
         if params:
             for i in range(3):
                 # Converting to int implicitly because askcolor returns floats in Python3
                 self.paramList[idx + i].set(str(int(params[i])))
 
-    def _NewConfigSelected(self, event, i):
+    def _NewConfigSelected(self, *args):
         self.applyBtn.configure(state="normal")
 
-    def _ConfigEdited(self, sv):
+    def _ConfigEdited(self, *args):
         self.applyBtn.configure(state="normal")
 
-    def _ApplyNewConfig(self, v):
+    def _ApplyNewConfig(self):
         for i in range(0, len(pijuice.config.leds)):
             ledConfig = {'function':self.ledConfigsSel[i].get(), 'parameter':{'r':self.paramList[i*3].get(), 'g':self.paramList[i*3+1].get(), 'b':self.paramList[i*3+2].get()}}
             # Validate values
@@ -769,8 +768,7 @@ class PiJuiceBatteryConfig(object):
         self.prfStatus = StringVar()
         self.statusLbl = Label(self.frame, text="" ,textvariable=self.prfStatus).grid(row=0, column=1, sticky = W+E, pady=(8, 4))
 
-        self.apply = StringVar()
-        self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=lambda v=self.apply: self._ApplyNewProfile(v))
+        self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=self._ApplyNewProfile)
         self.applyBtn.grid(row=20, column=2, pady=(4,2), sticky = E)
 
         Label(self.frame, text="Chemistry:").grid(row=2, column=0, sticky = W)
@@ -899,13 +897,12 @@ class PiJuiceBatteryConfig(object):
         self.rsocEstSel.grid(column=2, row=6, padx=(5, 5), pady=(0,2), sticky = W)
         self.rsocEstSel.bind("<<ComboboxSelected>>", self._NewRSocEstConfigSel)
 
-        self.refreshConfig = StringVar()
-        self.refreshConfigBtn = Button(self.frame, text='Refresh', underline=0, command=lambda v=self.refreshConfig: self.Refresh(v))
+        self.refreshConfigBtn = Button(self.frame, text='Refresh', underline=0, command=self.Refresh)
         self.refreshConfigBtn.grid(row=0, column=2, pady=(4,2), sticky = E)
 
-        self.Refresh(self.refreshConfig)
+        self.Refresh()
 
-    def Refresh(self, v):
+    def Refresh(self):
         self.ReadProfileStatus()
         self.ReadProfileData()
         self._CustomEditEnable(False)
@@ -978,7 +975,7 @@ class PiJuiceBatteryConfig(object):
         self.r50.set('')
         self.r90.set('')
 
-    def _ApplyNewProfile(self, v):
+    def _ApplyNewProfile(self):
         if self.customCheck.get():
             self.WriteCustomProfileData()
         else:
@@ -989,7 +986,7 @@ class PiJuiceBatteryConfig(object):
                 self.ReadProfileData()
                 self.applyBtn.configure(state="disabled")
 
-    def _NewTempSenseConfigSel(self, event):
+    def _NewTempSenseConfigSel(self, *args):
         status = pijuice.config.SetBatteryTempSenseConfig(self.tempSense.get())
         self.tempSenseSel.set('')
         if status['error'] == 'NO_ERROR':
@@ -998,7 +995,7 @@ class PiJuiceBatteryConfig(object):
             if config['error'] == 'NO_ERROR':
                 self.tempSenseSel.current(pijuice.config.batteryTempSenseOptions.index(config['data']))
 
-    def _NewRSocEstConfigSel(self, event):
+    def _NewRSocEstConfigSel(self, *args):
         status = pijuice.config.SetRsocEstimationConfig(self.rsocEst.get())
         self.rsocEstSel.set('')
         if status['error'] == 'NO_ERROR':
@@ -1037,7 +1034,7 @@ class PiJuiceBatteryConfig(object):
 
     def ReadProfileData(self):
         config = pijuice.config.GetBatteryProfile()
-        if config['error'] == 'NO_ERROR':
+        if config['error'] == 'NO_ERROR' and config['data'] != 'INVALID':
             self.config = config['data']
             self.capacity.set(self.config['capacity'])
             self.chgCurrent.set(self.config['chargeCurrent'])
@@ -1067,32 +1064,36 @@ class PiJuiceBatteryConfig(object):
 
     def WriteCustomProfileData(self):
         profile = {}
-        profile['capacity'] = int(self.capacity.get())
-        chc = int(self.chgCurrent.get())
-        if chc < 550:
-            chc = 550
-        elif chc > 2500:
-            chc = 2500
-        profile['chargeCurrent'] = chc
-        tc = int(self.termCurrent.get())
-        if tc < 50:
-            tc = 50
-        elif tc > 400:
-            tc = 400
-        profile['terminationCurrent'] = tc
-        rv = int(self.regVoltage.get())
-        if rv < 3500:
-            rv = 3500
-        elif rv > 4440:
-            rv = 4440
-        profile['regulationVoltage'] = rv
-        profile['cutoffVoltage'] = int(self.cutoffVoltage.get())
-        profile['tempCold'] = int(self.tempCold.get())
-        profile['tempCool'] = int(self.tempCool.get())
-        profile['tempWarm'] = int(self.tempWarm.get())
-        profile['tempHot'] = int(self.tempHot.get())
-        profile['ntcB'] = int(self.ntcB.get())
-        profile['ntcResistance'] = int(self.ntcResistance.get())
+        try:
+            profile['capacity'] = int(self.capacity.get())
+            chc = int(self.chgCurrent.get())
+            if chc < 550:
+                chc = 550
+            elif chc > 2500:
+                chc = 2500
+            profile['chargeCurrent'] = chc
+            tc = int(self.termCurrent.get())
+            if tc < 50:
+                tc = 50
+            elif tc > 400:
+                tc = 400
+            profile['terminationCurrent'] = tc
+            rv = int(self.regVoltage.get())
+            if rv < 3500:
+                rv = 3500
+            elif rv > 4440:
+                rv = 4440
+            profile['regulationVoltage'] = rv
+            profile['cutoffVoltage'] = int(self.cutoffVoltage.get())
+            profile['tempCold'] = int(self.tempCold.get())
+            profile['tempCool'] = int(self.tempCool.get())
+            profile['tempWarm'] = int(self.tempWarm.get())
+            profile['tempHot'] = int(self.tempHot.get())
+            profile['ntcB'] = int(self.ntcB.get())
+            profile['ntcResistance'] = int(self.ntcResistance.get())
+        except:
+            MessageBox.showerror('Error in custom profile', 'Parameters have to be numbers', parent=self.frame)
+            return
         status = pijuice.config.SetCustomBatteryProfile(profile)
         if status['error'] != 'NO_ERROR':
             return
@@ -1110,8 +1111,7 @@ class PiJuiceBatteryConfig(object):
         status = pijuice.config.SetCustomBatteryExtProfile(extprf)
         if status['error'] == 'NO_ERROR':
             time.sleep(0.2)
-            self.ReadProfileData()
-            self.applyBtn.configure(state="disabled")
+            self.Refresh()
         else:
             MessageBox.showerror('Error writing custom profile', 'Reason: ' + status['error'], parent=self.frame)
 
@@ -1179,8 +1179,7 @@ class PiJuiceIoConfig(object):
             self.param1[i].trace("w", lambda name, index, mode, idx=i: self._ParamEdited1(idx))
             self.param2[i].trace("w", lambda name, index, mode, idx=i: self._ParamEdited2(idx))
 
-        self.apply = StringVar()
-        self.applyBtn = Button(self.frame, text='Apply', state="normal", underline=0, command=lambda v=self.apply: self._ApplyNewConfig(v))
+        self.applyBtn = Button(self.frame, text='Apply', state="normal", underline=0, command=self._ApplyNewConfig)
         self.applyBtn.grid(row=8, column=2, padx=(2, 2), pady=(20, 0), sticky=E)
 
     def _ModeSelected(self, event, i):
@@ -1232,7 +1231,7 @@ class PiJuiceIoConfig(object):
             elif self.paramConfig2[i]['type'] == 'float':
                 _ValidateFloatEntry(self.param2[i], min, self.paramConfig2[i]['max'])
 
-    def _ApplyNewConfig(self, v):
+    def _ApplyNewConfig(self):
         for i in range(0, 2):
             newCfg = {
                 'mode':self.mode[i].get(),
@@ -1812,10 +1811,7 @@ class PiJuiceConfigGui(Frame):
         Frame.__init__(self, name=name)
         self.pack(expand=True, fill=BOTH)
         
-        if sys.version_info > (3, 0):
-            self.master.title('PiJuice Settings (Python 3 version)')
-        else:
-            self.master.title('PiJuice Settings')
+        self.master.title('PiJuice Settings')
         self.isapp = isapp
 
         global PiJuiceConfigDataPath
@@ -1900,7 +1896,7 @@ def PiJuiceGuiOnclosing(gui):
 
 def configure_style(style):
     DISABLED_BG_COLOR = 'gray80'
-    DISABLED_FONT_COLOR = 'gray60'
+    DISABLED_FONT_COLOR = 'gray20'
     ENABLED_BG_COLOR = 'white'
     ENABLED_FONT_COLOR = 'black'
     style.map('TCombobox', fieldbackground=[('disabled', DISABLED_BG_COLOR), ('readonly', ENABLED_BG_COLOR)],
