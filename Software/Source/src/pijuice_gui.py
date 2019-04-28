@@ -775,7 +775,7 @@ class PiJuiceBatteryConfig(object):
         self.chemistry = StringVar()
         self.chemistry.trace("w", self._ProfileEdited)
         self.chemistrySel = Combobox(self.frame, textvariable=self.chemistry, state='readonly')
-        self.chemistrySel['values'] = pijuice.config.batteryChemisties
+        self.chemistrySel['values'] = pijuice.config.batteryChemistries
         self.chemistrySel.set('')
         self.chemistrySel.grid(row=2, column=1, sticky = W+E)
 
@@ -1167,6 +1167,7 @@ class PiJuiceIoConfig(object):
                 self.config[i] = ret['data']
                 self.mode[i].set(self.config[i]['mode'])
                 self.pull[i].set(self.config[i]['pull'])
+                print('Init:', self.mode[i].get())
 
             self._ModeSelected(None, i)
 
@@ -1192,16 +1193,28 @@ class PiJuiceIoConfig(object):
                 self.paramEntry1[i] = Combobox(self.frame, textvariable=self.param1[i], state='readonly')
                 self.paramEntry1[i]['values'] = self.paramConfig1[i]['options']
                 if i == 0:
-                    self.param1[i].set(self.paramConfig1[i]['options'][0])
+                    self.param1[i].set('')
                     self.paramEntry1[i].configure(state="disabled")
+                    self.paramName1[i].set('')
+                else:
+                    self.paramName1[i].set(self.paramConfig1[i]['name'])
+                    if self.config[i]['mode'] == self.mode[i].get():
+                        self.param1[i].set(self.config[i][self.paramConfig1[i]['name']])
+                    else:
+                        self.param1[i].set(self.paramConfig1[i]['options'][0])
             else:
                 self.paramEntry1[i] = Entry(self.frame,textvariable=self.param1[i], state="normal")
+                self.paramName1[i].set(self.paramConfig1[i]['name']+
+                                       ((' [' + self.paramConfig1[i]['unit']+']:') if 'unit' in self.paramConfig1[i] else ':'))
+                if self.config[i]['mode'] == self.mode[i].get():
+                    self.param1[i].set(self.config[i][self.paramConfig1[i]['name']])
+                else:
+                    self.param1[i].set(self.paramConfig1[i]['min'])
             self.paramEntry1[i].grid(row=3+i*4, column=1, padx=5, pady=5, sticky=W+E)
-            self.paramName1[i].set(self.paramConfig1[i]['name']+((' [' + self.paramConfig1[i]['unit']+']:') if 'unit' in self.paramConfig1[i] else ':'))
         else:
             self.paramEntry1[i].configure(state="disabled")
             self.paramName1[i].set('')
-        self.param1[i].set('')
+            self.param1[i].set('')
 
         try:
             self.paramConfig2[i] = pijuice.config.ioConfigParams[self.mode[i].get()][1]
@@ -1209,15 +1222,20 @@ class PiJuiceIoConfig(object):
             self.paramConfig2[i] = None
         if self.paramConfig2[i]:
             self.paramEntry2[i].configure(state="normal")
-            self.paramName2[i].set(self.paramConfig2[i]['name']+((' [' + self.paramConfig2[i]['unit']+']:') if 'unit' in self.paramConfig2[i] else ':'))
+            self.paramName2[i].set(self.paramConfig2[i]['name']+
+                                   ((' [' + self.paramConfig2[i]['unit']+']:') if 'unit' in self.paramConfig2[i] else ':'))
+            if self.config[i]['mode'] == self.mode[i].get():
+                self.param2[i].set(self.config[i][self.paramConfig2[i]['name']])
+            else:
+                self.param2[i].set(self.paramConfig2[i]['min'])
         else:
             self.paramEntry2[i].configure(state="disabled")
             self.paramName2[i].set('')
-        self.param2[i].set('')
+            self.param2[i].set('')
 
     def _ParamEdited1(self, i):
         if self.paramConfig1[i] and (self.paramConfig1[i]['type'] == 'int' or  self.paramConfig1[i]['type'] == 'float'):
-            min = 0 if self.paramConfig1[i]['min'] > 0 else self.paramConfig1[i]['min']
+            min = 0 if self.paramConfig1[i]['min'] < 0 else self.paramConfig1[i]['min']
             if self.paramConfig1[i]['type'] == 'int':
                 _ValidateIntEntry(self.param1[i], min, self.paramConfig1[i]['max'])
             elif self.paramConfig1[i]['type'] == 'float':
@@ -1245,6 +1263,8 @@ class PiJuiceIoConfig(object):
             ret = pijuice.config.SetIoConfiguration(i+1, newCfg, True)
             if ret['error'] != 'NO_ERROR':
                 MessageBox.showerror('IO' + str(i+1) + ' Configuration', 'Reason: ' + ret['error'], parent=self.frame)
+            else:
+                self.config[i] = newCfg
 
 
 class PiJuiceHATConfigGui(object):
@@ -1728,11 +1748,14 @@ class PiJuiceHatTab(object):
         self.faultLbl = Label(self.frame,textvariable=self.fault, text='')
         self.faultLbl.grid(row=3, column=1, padx=(2, 2), pady=(20, 0), columnspan=3, sticky = W)
 
-        Label(self.frame, text="System switch:").grid(row=4, column=0, padx=(2, 2), pady=(20, 0), sticky = W)
+        # Put the system switch buttons in their own frame so they do not move when column 1 changes width.
+        self.sysSwFrame = Frame(self.frame)
+        self.sysSwFrame.grid(row=4, column=0, columnspan=4, sticky = W+E)
+        Label(self.sysSwFrame, text="System switch: ").grid(row=1, column=0, padx=(2, 55), pady=(20, 0), sticky = W)
         self.sysSwLimit = IntVar()
-        Radiobutton(self.frame, text="Off", variable=self.sysSwLimit, value=0).grid(row=4, column=1, padx=(2, 2), pady=(20, 0), sticky = W)
-        Radiobutton(self.frame, text="500mA", variable=self.sysSwLimit, value=500).grid(row=4, column=2, padx=(2, 2), pady=(20, 0), sticky = W+E)
-        Radiobutton(self.frame, text="2100mA", variable=self.sysSwLimit, value=2100).grid(row=4, column=3, padx=(2, 2), pady=(20, 0), sticky = W)
+        Radiobutton(self.sysSwFrame, text="Off", variable=self.sysSwLimit, value=0).grid(row=1, column=1, padx=(2, 2), pady=(20, 0), sticky = W)
+        Radiobutton(self.sysSwFrame, text="500mA", variable=self.sysSwLimit, value=500).grid(row=1, column=2, padx=(2, 2), pady=(20, 0), sticky = W+E)
+        Radiobutton(self.sysSwFrame, text="2100mA", variable=self.sysSwLimit, value=2100).grid(row=1, column=3, padx=(2, 2), pady=(20, 0), sticky = W)
         self.sysSwLimit.trace("w", self._SetSysSwitch)
 
         self.hatConfigBtn = Button(self.frame, text='Configure HAT', state="normal", underline=0, command= self._HatConfigCmd)
@@ -1796,6 +1819,7 @@ class PiJuiceHatTab(object):
                 self.sysSwLimit.set(ret['data'])
         except:
             pass
+        #self.frame.after(6000, self._RefreshStatus)
         self.frame.after(6000, self._RefreshStatus)
 
     def _SetSysSwitch(self, *args):

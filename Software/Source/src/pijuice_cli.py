@@ -10,6 +10,7 @@ import subprocess
 import time
 import fcntl
 import json
+import sys
 
 import urwid
 from pijuice import PiJuice, pijuice_hard_functions, pijuice_sys_functions, pijuice_user_functions
@@ -113,9 +114,9 @@ class FloatEdit(NumEdit):
 
         val = ""
         if default is not None and default is not "":
-            if not isinstance(default, (int, str, Decimal)):
+            if not isinstance(default, (int, str, float, Decimal)):
                 raise ValueError("default: Only 'str', 'int', "
-                                 "'long' or Decimal input allowed")
+                                 "'float' or Decimal input allowed")
 
             if isinstance(default, str) and len(default):
                 # check if it is a float, raises a ValueError otherwise
@@ -188,7 +189,10 @@ class StatusTab(object):
 
         voltage = float(pijuice.status.GetBatteryVoltage().get('data', 0))  # mV
         if voltage:
-            general_info += ", %.3fV, %s" % (voltage / 1000, status['battery'])
+            general_info += ", %.3fV" % (voltage / 1000)
+            temp = pijuice.status.GetBatteryTemperature().get('data', -999)
+            if temp != -999:
+                general_info += ", %3d°C, %s" % (temp, status['battery'])
 
         usb_power = status.get('powerInput', 0)
 
@@ -204,7 +208,7 @@ class StatusTab(object):
                 bpi = 'battery profile invalid'
             cti = None
             if ('charging_temperature_fault' in fault_info['data']) and (fault_info['data']['charging_temperature_fault'] != 'NORMAL'):
-                cti = 'charging temperature' + fault_info['data']['charging_temperature_fault']
+                cti = 'charging temperature ' + fault_info['data']['charging_temperature_fault']
             if not (bpi or cti):
                 fault = None
             else:
@@ -219,7 +223,7 @@ class StatusTab(object):
             "gpio": gpio_info,
             "usb": str(usb_power),
             "fault": str(fault),
-            "sys_sw": str(sys_sw_status) + "mA"
+            "sys_sw": (str(sys_sw_status) + "mA") if sys_sw_status != 0 else "Off"
         }
 
     def update_status(self, obj, text):
@@ -229,6 +233,7 @@ class StatusTab(object):
                       "USB Micro power input: {usb}\nFault: {fault}\n"
                       "System switch: {sys_sw}\n".format(**status_args))
         self.alarm_handle = loop.set_alarm_in(1, self.update_status, text)
+        #self.alarm_handle = loop.set_alarm_in(6, self.update_status, text)
 
 
     def main(self, *args):
@@ -803,18 +808,27 @@ class IOTab(object):
             var_config = self.IO_CONFIG_PARAMS[mode][0]
             var_name = var_config.get('name', '')
             var_unit = var_config.get('unit')
-            label = "{} [{}]: ".format(
-                var_name, var_unit) if var_unit else "{} [0/1]: ".format(var_name)
-            var_edit_1 = urwid.Edit(label, edit_text=str(pin_config[var_name]))
-            # Validate int/float
-            urwid.connect_signal(var_edit_1, 'change', lambda x, text: self.current_config[pin_id].update(
-                {self.IO_CONFIG_PARAMS[mode][0]['name']: validate_value(
-                    text,
-                    self.IO_CONFIG_PARAMS[mode][0].get('type', 'str'),
-                    self.IO_CONFIG_PARAMS[mode][0].get('min'),
-                    self.IO_CONFIG_PARAMS[mode][0].get('max'),
-                    pin_config[var_name])}))
-            elements.append(urwid.Padding(attrmap(var_edit_1), width=32))
+            if var_name == 'wakeup' and pin_id == 1:
+                if pin_config['wakeup'] == '':
+                    pin_config['wakeup'] = self.IO_CONFIG_PARAMS['DIGITAL_IN'][0]['options'][0]
+                wakeup_select_btn = urwid.Padding(attrmap(urwid.Button("Wakeup: {}".format(pin_config['wakeup']),
+                                                 on_press=self._select_wakeup, user_data=pin_id)), width=32)
+                elements.append(wakeup_select_btn)
+            elif var_name != 'wakeup':
+                label = "{} [{}]: ".format(
+                    var_name, var_unit) if var_unit else "{} [0/1]: ".format(var_name)
+                if pin_config[var_name] == '':
+                    pin_config[var_name] = self.IO_CONFIG_PARAMS[mode][0].get('min')
+                var_edit_1 = urwid.Edit(label, edit_text=str(pin_config[var_name]))
+                # Validate int/float
+                urwid.connect_signal(var_edit_1, 'change', lambda x, text: self.current_config[pin_id].update(
+                    {self.IO_CONFIG_PARAMS[mode][0]['name']: validate_value(
+                        text,
+                        self.IO_CONFIG_PARAMS[mode][0].get('type', 'str'),
+                        self.IO_CONFIG_PARAMS[mode][0].get('min'),
+                        self.IO_CONFIG_PARAMS[mode][0].get('max'),
+                        pin_config[var_name])}))
+                elements.append(urwid.Padding(attrmap(var_edit_1), width=32))
 
         if len(self.IO_CONFIG_PARAMS.get(mode, [])) > 1:
             var_config = self.IO_CONFIG_PARAMS[mode][1]
@@ -822,6 +836,8 @@ class IOTab(object):
             var_unit = var_config.get('unit')
             label = "{} [{}]: ".format(
                 var_name, var_unit) if var_unit else "{}: ".format(var_name)
+            if pin_config[var_name] == '':
+                pin_config[var_name] = self.IO_CONFIG_PARAMS[mode][1].get('min')
             var_edit_2 = urwid.Edit(label, edit_text=str(pin_config[var_name]))
             # Validate int/float
             urwid.connect_signal(var_edit_2, 'change', lambda x, text: self.current_config[pin_id].update(
@@ -885,6 +901,26 @@ class IOTab(object):
         self.bgroup = []
         self.configure_io(None, pin_id)
 
+    def _select_wakeup(self, button, pin_id):
+        elements = [urwid.Text("Select Wakeup Option"), urwid.Divider()]
+        self.bgroup = []
+        for choice in self.IO_CONFIG_PARAMS['DIGITAL_IN'][0]['options']:
+            elements.append(urwid.Padding(attrmap(urwid.RadioButton(self.bgroup,choice)), width=16))
+        # Toggle the configured state
+        self.bgroup[self.IO_CONFIG_PARAMS['DIGITAL_IN'][0]['options'].index(self.current_config[pin_id]['wakeup'])].toggle_state()
+
+        elements.extend([urwid.Divider(),
+                         urwid.Padding(attrmap(urwid.Button('Back', on_press=self._on_wakeup_selected, user_data=pin_id)),
+                                       width=8)
+                        ])
+        main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(elements))
+
+    def _on_wakeup_selected(self, button, pin_id):
+        states = [c.state for c in self.bgroup]
+        self.current_config[pin_id]['wakeup'] = self.IO_CONFIG_PARAMS['DIGITAL_IN'][0]['options'][states.index(True)]
+        self.bgroup = []
+        self.configure_io(None, pin_id)
+
     def _get_device_config(self, *args):
         config = []
         for i in range(self.IO_PINS_COUNT):
@@ -923,6 +959,8 @@ class BatteryProfileTab(object):
     if pijuice:
         BATTERY_PROFILES = pijuice.config.batteryProfiles + ['CUSTOM', 'DEFAULT']
         TEMP_SENSE_OPTIONS = pijuice.config.batteryTempSenseOptions
+        RSOC_ESTIMATION_OPTIONS = pijuice.config.rsocEstimationOptions
+        CHEMISTRY_OPTIONS = pijuice.config.batteryChemistries 
         EDIT_KEYS = ['capacity', 'chargeCurrent', 'terminationCurrent', 'regulationVoltage', 'cutoffVoltage',
                      'tempCold', 'tempCool', 'tempWarm', 'tempHot', 'ntcB', 'ntcResistance']
 
@@ -941,8 +979,21 @@ class BatteryProfileTab(object):
                     urwid.Padding(attrmap(urwid.CheckBox("Custom", state=self.custom_values,
                                                          on_state_change=self._toggle_custom_values)),
                                   width=32)
-        ]
+                   ]
 
+        if self.profile_data == 'INVALID':
+            elements.extend([urwid.Divider(),
+                             urwid.Padding(attrmap(urwid.Button("Refresh", on_press=self.refresh)), width=18),
+                             urwid.Padding(attrmap(urwid.Button("Apply settings", on_press=self._apply_settings)), width=18),
+                             urwid.Padding(attrmap(urwid.Button("Back", on_press=main_menu)), width=18)
+                             ])
+
+            main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(elements))
+            return
+
+        print(self.ext_profile_data['r10'])
+        print(type(self.ext_profile_data['r10']))
+        time.sleep(5)
         self.param_edits = [
             urwid.IntEdit("Capacity [mAh]:           ", default=self.profile_data['capacity']),
             urwid.IntEdit("Charge current [mA]:      ", default=self.profile_data['chargeCurrent']),
@@ -955,20 +1006,29 @@ class BatteryProfileTab(object):
             urwid.IntEdit("Hot temperature [C]:      ", default=self.profile_data['tempHot']),
             urwid.IntEdit("NTC B constant [1k]:      ", default=self.profile_data['ntcB']),
             urwid.IntEdit("NTC resistance [ohm]:     ", default=self.profile_data['ntcResistance']),
+            urwid.IntEdit("OCV10 [mV]:               ", default=self.ext_profile_data['ocv10']),
+            urwid.IntEdit("OCV50 [mV]:               ", default=self.ext_profile_data['ocv50']),
+            urwid.IntEdit("OCV90 [mV]:               ", default=self.ext_profile_data['ocv90']),
+                FloatEdit("R10 [mOhm]:               ", default=self.ext_profile_data['r10']),
+                FloatEdit("R50 [mOhm]:               ", default=self.ext_profile_data['r50']),
+                FloatEdit("R90 [mOhm]:               ", default=self.ext_profile_data['r90']),
         ]
 
-        for i, edit in enumerate(self.param_edits):
+        for i, edit in enumerate(self.param_edits[0:14]):
+            # FloatEdit does not need the change signal
             urwid.connect_signal(edit, 'change', lambda x, text, idx: self.profile_data.update({self.EDIT_KEYS[idx]: text}), i)
 
-        #for i, edit in enumerate(self.param_edits):
-        #    self.param_edits[i] = urwid.Padding(attrmap(edit), width=32)
-
         if self.custom_values:
-            #elements += self.param_edits
+            elements.extend([urwid.Padding(
+                                 attrmap(urwid.Button("Chemistry:              {}".format(
+                                     self.CHEMISTRY_OPTIONS[self.chemistries_idx]), on_press=self.select_chemistry)),
+                                 width=36),
+                            ])
             for edit in self.param_edits:
-                 elements += [urwid.Padding(attrmap(edit), width=32),]
+                elements += [urwid.Padding(attrmap(edit), width=32),]
         else:
             elements += [
+            urwid.Text("Chemistry:                " + self.ext_profile_data['chemistry']),
             urwid.Text("Capacity [mAh]:           " + str(self.profile_data['capacity'])),
             urwid.Text("Charge current [mA]:      " + str(self.profile_data['chargeCurrent'])),
             urwid.Text("Termination current [mA]: " + str(self.profile_data['terminationCurrent'])),
@@ -980,12 +1040,23 @@ class BatteryProfileTab(object):
             urwid.Text("Hot temperature [C]:      " + str(self.profile_data['tempHot'])),
             urwid.Text("NTC B constant [1k]:      " + str(self.profile_data['ntcB'])),
             urwid.Text("NTC resistance [ohm]:     " + str(self.profile_data['ntcResistance'])),
+            urwid.Text("OCV10 [mV]:               " + str(self.ext_profile_data['ocv10'])),
+            urwid.Text("OCV50 [mV]:               " + str(self.ext_profile_data['ocv50'])),
+            urwid.Text("OCV90 [mV]:               " + str(self.ext_profile_data['ocv90'])),
+            urwid.Text("R10 [mOhm]:               " + str(self.ext_profile_data['r10'])),
+            urwid.Text("R50 [mOhm]:               " + str(self.ext_profile_data['r50'])),
+            urwid.Text("R90 [mOhm]:               " + str(self.ext_profile_data['r90'])),
         ]
 
         elements.extend([urwid.Divider(),
                          urwid.Padding(
                              attrmap(urwid.Button("Temperature sense: {}".format(
                                  self.TEMP_SENSE_OPTIONS[self.temp_sense_profile_idx]), on_press=self.select_sense)),
+                             width=34),
+                         urwid.Divider(),
+                         urwid.Padding(
+                             attrmap(urwid.Button("Rsoc estimation: {}".format(
+                                 self.RSOC_ESTIMATION_OPTIONS[self.rsoc_estimation_profile_idx]), on_press=self.select_rsoc_estimate)),
                              width=34),
                          urwid.Divider(),
                          urwid.Padding(attrmap(urwid.Button("Refresh", on_press=self.refresh)), width=18),
@@ -998,6 +1069,8 @@ class BatteryProfileTab(object):
         self._read_profile_status()
         self._read_profile_data()
         self._read_temp_sense()
+        self._read_rsoc_estimation()
+        self._read_chemistry()
         self.main()
     
     def _read_profile_data(self, *args):
@@ -1006,7 +1079,15 @@ class BatteryProfileTab(object):
             self.profile_data = config['data']
         else:
             confirmation_dialog("Unable to read battery data. Error: {}".format(config['error']), next=main_menu, single_option=True)
-    
+        extconfig = pijuice.config.GetBatteryExtProfile()
+        print(extconfig)
+        time.sleep(5)
+        if extconfig['error'] == 'NO_ERROR':
+            self.ext_profile_data = extconfig['data']
+        else:
+            confirmation_dialog("Unable to read battery data. Error: {}".format(extconfig['error']), next=main_menu, single_option=True)
+
+ 
     def _read_profile_status(self, *args):
         self.profile_name = 'CUSTOM'
         self.status_text = ''
@@ -1018,7 +1099,8 @@ class BatteryProfileTab(object):
                 if self.profile_status['origin'] == 'PREDEFINED':
                     self.profile_name = self.profile_status['profile']
             else:
-                self.status_text = 'Invalid profile'
+                self.status_text = 'Invalid battery profile'
+                return
 
             if self.profile_status['source'] == 'DIP_SWITCH' and self.profile_status['origin'] == 'PREDEFINED' and self.BATTERY_PROFILES.index(self.profile_name) == 1:
                 self.status_text = 'Default profile'
@@ -1028,7 +1110,7 @@ class BatteryProfileTab(object):
         else:
             confirmation_dialog("Unable to read battery data. Error: {}".format(
                 status['error']), next=main_menu, single_option=True)
-    
+
     def _read_temp_sense(self, *args):
         temp_sense_config = pijuice.config.GetBatteryTempSenseConfig()
         if temp_sense_config['error'] == 'NO_ERROR':
@@ -1036,6 +1118,17 @@ class BatteryProfileTab(object):
         else:
             confirmation_dialog("Unable to read battery data. Error: {}".format(
                 temp_sense_config['error']), next=main_menu, single_option=True)
+
+    def _read_rsoc_estimation(self, *args):
+        rsoc_estimation_config = pijuice.config.GetRsocEstimationConfig()
+        if rsoc_estimation_config['error'] == 'NO_ERROR':
+            self.rsoc_estimation_profile_idx = self.RSOC_ESTIMATION_OPTIONS.index(rsoc_estimation_config['data'])
+        else:
+            confirmation_dialog("Unable to read battery data. Error: {}".format(
+                rsoc_estimation_config['error']), next=main_menu, single_option=True)
+
+    def _read_chemistry(self, *args):
+        self.chemistries_idx = self.CHEMISTRY_OPTIONS.index(self.ext_profile_data['chemistry'])
 
     def _clear_text_edits(self, *args):
         for edit in self.param_edits:
@@ -1050,7 +1143,7 @@ class BatteryProfileTab(object):
         self.bgroup = []
         for choice in self.BATTERY_PROFILES:
             button = urwid.RadioButton(self.bgroup, choice)
-            body.append(urwid.Padding(attrmap(button), width=16))
+            body.append(urwid.Padding(attrmap(button), width=18))
         self.bgroup[self.BATTERY_PROFILES.index(self.profile_name)].toggle_state()
         body.extend([urwid.Divider(),
                      urwid.Padding(attrmap(urwid.Button('Back', on_press=self._set_profile)), width=8)])
@@ -1073,9 +1166,43 @@ class BatteryProfileTab(object):
                      urwid.Padding(attrmap(urwid.Button('Back', on_press=self._set_sense)), width=8)])
         main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(body))
 
+    def select_rsoc_estimate(self, *args):
+        body = [urwid.Text("Select Rsoc estimation"), urwid.Divider()]
+        self.bgroup = []
+        for choice in self.RSOC_ESTIMATION_OPTIONS:
+            button = urwid.RadioButton(self.bgroup, choice)
+            body.append(urwid.Padding(attrmap(button), width=18))
+        self.bgroup[self.rsoc_estimation_profile_idx].toggle_state()
+        body.extend([urwid.Divider(),
+                     urwid.Padding(attrmap(urwid.Button('Back', on_press=self._set_rsoc_estimation)), width=8)])
+        main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(body))
+
+    def select_chemistry(self, *args):
+        body = [urwid.Text("Select Chemistry"), urwid.Divider()]
+        self.bgroup = []
+        for choice in self.CHEMISTRY_OPTIONS:
+            button = urwid.RadioButton(self.bgroup, choice)
+            body.append(urwid.Padding(attrmap(button), width=18))
+        self.bgroup[self.chemistries_idx].toggle_state()
+        body.extend([urwid.Divider(),
+                     urwid.Padding(attrmap(urwid.Button('Back', on_press=self._set_chemistry)), width=8)])
+        main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(body))
+
     def _set_sense(self, *args):
         states = [c.state for c in self.bgroup]
         self.temp_sense_profile_idx = states.index(True)
+        self.bgroup = []
+        self.main()
+
+    def _set_rsoc_estimation(self, *args):
+        states = [c.state for c in self.bgroup]
+        self.rsoc_estimation_profile_idx = states.index(True)
+        self.bgroup = []
+        self.main()
+
+    def _set_chemistry(self, *args):
+        states = [c.state for c in self.bgroup]
+        self.chemistries_idx = states.index(True)
         self.bgroup = []
         self.main()
 
@@ -1085,8 +1212,14 @@ class BatteryProfileTab(object):
             confirmation_dialog('Failed to apply temperature sense options. Error: {}'.format(
                 status['error']), next=main_menu, single_option=True)
 
+        status = pijuice.config.SetRsocEstimationConfig(self.RSOC_ESTIMATION_OPTIONS[self.rsoc_estimation_profile_idx])
+        if status['error'] != 'NO_ERROR':
+            confirmation_dialog('Failed to apply rsoc estimation options. Error: {}'.format(
+                status['error']), next=main_menu, single_option=True)
+
         if self.custom_values:
             status = self.write_custom_values()
+            self.custom_values = False
         else:
             status = pijuice.config.SetBatteryProfile(self.profile_name)
 
@@ -1139,7 +1272,20 @@ class BatteryProfileTab(object):
         profile['ntcB'] = int(self.param_edits[9].value())
         profile['ntcResistance'] = int(self.param_edits[10].value())
 
-        return pijuice.config.SetCustomBatteryProfile(profile)
+        status = pijuice.config.SetCustomBatteryProfile(profile)
+        if status['error'] != 'NO_ERROR':
+            return status
+
+        extprf = {}
+        extprf['chemistry'] = self.CHEMISTRY_OPTIONS[self.chemistries_idx]
+        extprf['ocv10'] = int(self.param_edits[11].value())
+        extprf['ocv50'] = int(self.param_edits[12].value())
+        extprf['ocv90'] = int(self.param_edits[13].value())
+        extprf['r10'] = float(self.param_edits[14].edit_text)
+        extprf['r50'] = float(self.param_edits[15].edit_text)
+        extprf['r90'] = float(self.param_edits[16].edit_text)
+
+        return pijuice.config.SetCustomBatteryExtProfile(extprf)
 
     # def _show_current_config(self, *args):
     #     current_config = {

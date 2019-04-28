@@ -128,8 +128,6 @@ class PiJuiceInterface(object):
                 if (data == result['data']):
                     return {'error': 'NO_ERROR'}
                 else:
-                    print('wr', data)
-                    print('rd', result['data'])
                     return {'error': 'WRITE_FAILED'}
 
 
@@ -901,8 +899,6 @@ class PiJuiceRtcAlarm(object):
             if (d == ret['data']):
                 return {'error': 'NO_ERROR'}
             else:
-                #print 'wr', d
-                #print 'rd', ret['data']
                 return {'error': 'WRITE_FAILED'}
 
 
@@ -1032,8 +1028,7 @@ class PiJuiceConfig(object):
             return {'data': {'charging_enabled' :bool(ret['data'][0] & 0x01)},
                     'non_volatile':bool(ret['data'][0]&0x80), 'error':'NO_ERROR'}
 
-    batteryProfiles = ['BP6X_1400', 'BP7X_1820', 'SNN5843_2300', 'PJLIPO_12000', 'PJLIPO_5000', 'PJBP7X_1600',
-                       'PJSNN5843_1300', 'PJZERO_1200', 'PJZERO_1000', 'PJLIPO_600', 'PJLIPO_500']
+    batteryProfiles = ['BP6X_1400', 'BP7X_1820', 'SNN5843_2300', 'PJLIPO_12000', 'PJLIPO_5000', 'PJBP7X_1600', 'PJSNN5843_1300', 'PJZERO_1200', 'PJZERO_1000', 'PJLIPO_600', 'PJLIPO_500']
     def SetBatteryProfile(self, profile):
         id = None
         if profile == 'DEFAULT':
@@ -1111,10 +1106,9 @@ class PiJuiceConfig(object):
             d[13] = (R >> 8) & 0xFF
         except:
             return {'error': 'BAD_ARGUMENT'}
-        print(d)
         return self.interface.WriteDataVerify(self.BATTERY_PROFILE_CMD, d, 0.2)
 
-    batteryChemisties = ['LIPO', 'LIFEPO4']
+    batteryChemistries = ['LIPO', 'LIFEPO4']
     def GetBatteryExtProfile(self):
         ret = self.interface.ReadData(self.BATTERY_EXT_PROFILE_CMD, 17)
         if ret['error'] != 'NO_ERROR':
@@ -1124,8 +1118,8 @@ class PiJuiceConfig(object):
             if all(v == 0 for v in d):
                 return {'data':'INVALID', 'error':'NO_ERROR'}
             profile = {}
-            if d[0] < len(self.batteryChemisties):
-                profile['chemistry'] = self.batteryChemisties[d[0]]
+            if d[0] < len(self.batteryChemistries):
+                profile['chemistry'] = self.batteryChemistries[d[0]]
             else:
                 profile['chemistry'] = 'UNKNOWN'
             profile['ocv10'] = (d[2] << 8) | d[1]
@@ -1139,7 +1133,7 @@ class PiJuiceConfig(object):
     def SetCustomBatteryExtProfile(self, profile):
         d = [0x00] * 17
         try:
-            chid = self.batteryChemisties.index(profile['chemistry'])
+            chid = self.batteryChemistries.index(profile['chemistry'])
             d[0] = chid&0xFF
             v=int(profile['ocv10'])
             d[1] = v&0xFF
