@@ -437,7 +437,6 @@ class PiJuiceHATConfig(object):
                 MessageBox.showinfo('Address update', "Success!", parent=self.frame)
 
     def _RunPinConfigSelected(self, event):
-        print("_RunPinConfigSelected:", event)
         status = pijuice.config.SetRunPinConfig(self.runPinConfig.get())
         if status['error'] != 'NO_ERROR':
             self.runPinConfig.set(status['error'])
@@ -1167,7 +1166,6 @@ class PiJuiceIoConfig(object):
                 self.config[i] = ret['data']
                 self.mode[i].set(self.config[i]['mode'])
                 self.pull[i].set(self.config[i]['pull'])
-                print('Init:', self.mode[i].get())
 
             self._ModeSelected(None, i)
 
@@ -1204,12 +1202,15 @@ class PiJuiceIoConfig(object):
                         self.param1[i].set(self.paramConfig1[i]['options'][0])
             else:
                 self.paramEntry1[i] = Entry(self.frame,textvariable=self.param1[i], state="normal")
-                self.paramName1[i].set(self.paramConfig1[i]['name']+
-                                       ((' [' + self.paramConfig1[i]['unit']+']:') if 'unit' in self.paramConfig1[i] else ':'))
+                vname = self.paramConfig1[i]['name']
+                vmin  = self.paramConfig1[i]['min']
+                vmax  = self.paramConfig1[i]['max']
+                vunit = self.paramConfig1[i]['unit'] if 'unit' in self.paramConfig1[i] else ''
+                self.paramName1[i].set(vname +' [' + str(vmin) +'-' + str(vmax) + ((' ' + vunit) if vunit else '') +']:') 
                 if self.config[i]['mode'] == self.mode[i].get():
-                    self.param1[i].set(self.config[i][self.paramConfig1[i]['name']])
+                    self.param1[i].set(self.config[i][vname])
                 else:
-                    self.param1[i].set(self.paramConfig1[i]['min'])
+                    self.param1[i].set(vmin)
             self.paramEntry1[i].grid(row=3+i*4, column=1, padx=5, pady=5, sticky=W+E)
         else:
             self.paramEntry1[i].configure(state="disabled")
@@ -1222,12 +1223,15 @@ class PiJuiceIoConfig(object):
             self.paramConfig2[i] = None
         if self.paramConfig2[i]:
             self.paramEntry2[i].configure(state="normal")
-            self.paramName2[i].set(self.paramConfig2[i]['name']+
-                                   ((' [' + self.paramConfig2[i]['unit']+']:') if 'unit' in self.paramConfig2[i] else ':'))
+            vname = self.paramConfig2[i]['name']
+            vmin  = self.paramConfig2[i]['min']
+            vmax  = self.paramConfig2[i]['max']
+            vunit = self.paramConfig2[i]['unit'] if 'unit' in self.paramConfig2[i] else ''
+            self.paramName2[i].set(vname +' [' + str(vmin) +'-' + str(vmax) + ((' ' + vunit) if vunit else '') +']:')
             if self.config[i]['mode'] == self.mode[i].get():
-                self.param2[i].set(self.config[i][self.paramConfig2[i]['name']])
+                self.param2[i].set(self.config[i][vname])
             else:
-                self.param2[i].set(self.paramConfig2[i]['min'])
+                self.param2[i].set(vmin)
         else:
             self.paramEntry2[i].configure(state="disabled")
             self.paramName2[i].set('')

@@ -146,7 +146,8 @@ def validate_value(text, type, min, max, old):
         var_type = float
     else:
         return text
-
+    if text == '':
+        text = '0'
     try:
         value = var_type(text)
         if min is not None:
@@ -808,6 +809,9 @@ class IOTab(object):
             var_config = self.IO_CONFIG_PARAMS[mode][0]
             var_name = var_config.get('name', '')
             var_unit = var_config.get('unit')
+            var_type = var_config.get('type', 'str')
+            var_min  = var_config.get('min')
+            var_max  = var_config.get('max')
             if var_name == 'wakeup' and pin_id == 1:
                 if pin_config['wakeup'] == '':
                     pin_config['wakeup'] = self.IO_CONFIG_PARAMS['DIGITAL_IN'][0]['options'][0]
@@ -815,38 +819,31 @@ class IOTab(object):
                                                  on_press=self._select_wakeup, user_data=pin_id)), width=32)
                 elements.append(wakeup_select_btn)
             elif var_name != 'wakeup':
-                label = "{} [{}]: ".format(
-                    var_name, var_unit) if var_unit else "{} [0/1]: ".format(var_name)
+                label = "{} [{}-{} {}]: ".format(var_name, var_min, var_max, var_unit) if var_unit else \
+                        "{} [{}-{}]: ".format(var_name, var_min, var_max)
                 if pin_config[var_name] == '':
-                    pin_config[var_name] = self.IO_CONFIG_PARAMS[mode][0].get('min')
+                    pin_config[var_name] = var_min
                 var_edit_1 = urwid.Edit(label, edit_text=str(pin_config[var_name]))
                 # Validate int/float
-                urwid.connect_signal(var_edit_1, 'change', lambda x, text: self.current_config[pin_id].update(
-                    {self.IO_CONFIG_PARAMS[mode][0]['name']: validate_value(
-                        text,
-                        self.IO_CONFIG_PARAMS[mode][0].get('type', 'str'),
-                        self.IO_CONFIG_PARAMS[mode][0].get('min'),
-                        self.IO_CONFIG_PARAMS[mode][0].get('max'),
-                        pin_config[var_name])}))
+                urwid.connect_signal(var_edit_1, 'change', self.check_value,
+                                     user_args=[pin_id, var_name, var_type, var_min, var_max])
                 elements.append(urwid.Padding(attrmap(var_edit_1), width=32))
 
         if len(self.IO_CONFIG_PARAMS.get(mode, [])) > 1:
             var_config = self.IO_CONFIG_PARAMS[mode][1]
             var_name = var_config.get('name', '')
             var_unit = var_config.get('unit')
-            label = "{} [{}]: ".format(
-                var_name, var_unit) if var_unit else "{}: ".format(var_name)
+            var_type = var_config.get('type', 'str')
+            var_min  = var_config.get('min')
+            var_max  = var_config.get('max')
+            label = "{} [{}-{} {}]: ".format(var_name, var_min, var_max, var_unit) if var_unit else \
+                    "{} [{}-{}]: ".format(var_name, var_min, var_max)
             if pin_config[var_name] == '':
-                pin_config[var_name] = self.IO_CONFIG_PARAMS[mode][1].get('min')
+                pin_config[var_name] = var_min
             var_edit_2 = urwid.Edit(label, edit_text=str(pin_config[var_name]))
             # Validate int/float
-            urwid.connect_signal(var_edit_2, 'change', lambda x, text: self.current_config[pin_id].update(
-                {self.IO_CONFIG_PARAMS[mode][1]['name']: validate_value(
-                    text,
-                    self.IO_CONFIG_PARAMS[mode][1].get('type', 'str'),
-                    self.IO_CONFIG_PARAMS[mode][1].get('min'),
-                    self.IO_CONFIG_PARAMS[mode][1].get('max'),
-                    pin_config[var_name])}))
+            urwid.connect_signal(var_edit_2, 'change', self.check_value,
+                                 user_args=[pin_id, var_name, var_type, var_min, var_max])
             elements.append(urwid.Padding(attrmap(var_edit_2), width=32))
 
         elements += [urwid.Divider(),
@@ -854,6 +851,12 @@ class IOTab(object):
                      urwid.Padding(attrmap(urwid.Button("Back", on_press=self.main)), width=9)]
         main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(elements))
     
+    def check_value(self, pin_id, var_name, type, var_min, var_max, widget, text):
+        newval = validate_value(text, type, var_min, var_max, self.current_config[pin_id][var_name])
+        self.current_config[pin_id].update({var_name : newval})
+        if newval != text:
+            self.configure_io(None, pin_id)
+
     def _select_mode(self, button, pin_id):
         elements = [urwid.Text("Mode for IO{}".format(pin_id + 1)), urwid.Divider()]
         self.bgroup = []
@@ -991,9 +994,6 @@ class BatteryProfileTab(object):
             main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(elements))
             return
 
-        print(self.ext_profile_data['r10'])
-        print(type(self.ext_profile_data['r10']))
-        time.sleep(5)
         self.param_edits = [
             urwid.IntEdit("Capacity [mAh]:           ", default=self.profile_data['capacity']),
             urwid.IntEdit("Charge current [mA]:      ", default=self.profile_data['chargeCurrent']),
@@ -1080,8 +1080,6 @@ class BatteryProfileTab(object):
         else:
             confirmation_dialog("Unable to read battery data. Error: {}".format(config['error']), next=main_menu, single_option=True)
         extconfig = pijuice.config.GetBatteryExtProfile()
-        print(extconfig)
-        time.sleep(5)
         if extconfig['error'] == 'NO_ERROR':
             self.ext_profile_data = extconfig['data']
         else:
