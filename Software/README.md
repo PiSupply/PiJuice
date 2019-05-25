@@ -834,7 +834,7 @@ Usage example:
 #!/usr/bin/python3
 from pijuice import PiJuice # Import pijuice module
 pijuice = PiJuice(1, 0x14) # Instantiate PiJuice interface object
-print pijuice.status.GetStatus() # Read PiJuice status.
+print (pijuice.status.GetStatus()) # Read PiJuice status.
 ```
 Commands are encapsulated with two type of functions, Setters that writes configuration and control data to PiJuice and Getters that reads status or current configuration/control data.
 Every function returns object of dictionary type containing communication error status:
