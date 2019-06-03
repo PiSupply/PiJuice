@@ -42,6 +42,13 @@ USER_FUNCS_TOTAL = 15
 USER_FUNCS_MINI = 8
 pijuiceConfigData = {}
 PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON'
+status = pijuice.config.GetFirmwareVersion()
+if status['error'] == 'NO_ERROR':
+    verStr = status['data']['version']
+    major, minor = verStr.split('.')
+    FWVER = (int(major) << 4) + int(minor)
+else:
+    FWVER = 0xFF
 
 def _ValidateIntEntry(var, min, max):
     new_value = var.get()
@@ -178,6 +185,7 @@ class PiJuiceFirmware(object):
         'EEPROM_ERASE_ERROR', 'INPUT_FILE_READ_ERROR', 'PAGE_WRITE_ERROR', 'PAGE_READ_ERROR', 'PAGE_VERIFY_ERROR', 'CODE_EXECUTE_ERROR']
     
     def _UpdateFirmwareCmd(self):
+        global FWVER
         ret = pijuice.status.GetStatus()
         if ret['error'] == 'NO_ERROR':
             if ret['data']['powerInput'] != 'PRESENT' and ret['data']['powerInput5vIo'] != 'PRESENT':
@@ -233,6 +241,8 @@ class PiJuiceFirmware(object):
                         status = pijuice.config.GetFirmwareVersion()
                         if status['error'] == 'NO_ERROR':
                             version = status['data']['version']
+                            major, minor = version.split('.')
+                            FWVER = (int(major) << 4) + int(minor) 
                     # and hide the "Wait for firmware restart" again
                     self.waitwidgetclass.waitrestart.lower()
 
@@ -240,7 +250,10 @@ class PiJuiceFirmware(object):
                 self.nb.add(self.toplevelpath + '.notebook.hat')
                 self.nb.add(self.toplevelpath + '.notebook.buttons')
                 self.nb.add(self.toplevelpath + '.notebook.led')
-                self.nb.add(self.toplevelpath + '.notebook.battery')
+                # Recreate battery config tab with possibly added/changed parameters
+                self.nb.forget(self.toplevelpath + '.notebook.battery')
+                self.batConfig = PiJuiceBatteryConfig(self.nb)
+                self.nb.insert(3, self.batConfig.frame, text='Battery', underline=0, padding=2)
                 self.nb.add(self.toplevelpath + '.notebook.io')
                 self.nb.add(self.toplevelpath + '.notebook.firmware')
                 self.nb.hide(self.toplevelpath + '.notebook.fwwait')
@@ -742,6 +755,7 @@ class PiJuiceLedConfig(object):
 
 class PiJuiceBatteryConfig(object):
     def __init__(self, master):
+        global FWVER
         self.frame = Frame(master, name='battery')
         self.frame.columnconfigure(0, weight=0, uniform=1)
 
@@ -752,6 +766,7 @@ class PiJuiceBatteryConfig(object):
         # Widgets to be displayed on 'Description' tab
         self.profileId = StringVar()
         self.profileSel = Combobox(self.frame, textvariable=self.profileId, state='readonly')
+        pijuice.config.SelectBatteryProfiles(FWVER)
         vals = copy.deepcopy(pijuice.config.batteryProfiles)
         vals.append('CUSTOM')
         vals.append('DEFAULT')
@@ -770,115 +785,136 @@ class PiJuiceBatteryConfig(object):
         self.applyBtn = Button(self.frame, text='Apply', state="disabled", underline=0, command=self._ApplyNewProfile)
         self.applyBtn.grid(row=20, column=2, pady=(4,2), sticky = E)
 
-        Label(self.frame, text="Chemistry:").grid(row=2, column=0, sticky = W)
-        self.chemistry = StringVar()
-        self.chemistry.trace("w", self._ProfileEdited)
-        self.chemistrySel = Combobox(self.frame, textvariable=self.chemistry, state='readonly')
-        self.chemistrySel['values'] = pijuice.config.batteryChemistries
-        self.chemistrySel.set('')
-        self.chemistrySel.grid(row=2, column=1, sticky = W+E)
+        rownr = 1
+        if FWVER >= 0x13:
+            rownr = rownr + 1
+            Label(self.frame, text="Chemistry:").grid(row=rownr, column=0, sticky = W)
+            self.chemistry = StringVar()
+            self.chemistry.trace("w", self._ProfileEdited)
+            self.chemistrySel = Combobox(self.frame, textvariable=self.chemistry, state='readonly')
+            self.chemistrySel['values'] = pijuice.config.batteryChemistries
+            self.chemistrySel.set('')
+            self.chemistrySel.grid(row=2, column=1, sticky = W+E)
 
-        Label(self.frame, text="Capacity [mAh]:").grid(row=3, column=0, sticky = W)
+        rownr = rownr + 1
+        Label(self.frame, text="Capacity [mAh]:").grid(row=rownr, column=0, sticky = W)
         self.capacity = StringVar()
         self.capacity.trace("w", self._ProfileEdited)
         self.capacityEntry = Entry(self.frame,textvariable=self.capacity)
-        self.capacityEntry.grid(row=3, column=1, sticky = W+E)
+        self.capacityEntry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="Charge current [mA]:").grid(row=4, column=0, sticky = W)
+        rownr = rownr + 1
+        Label(self.frame, text="Charge current [mA]:").grid(row=rownr, column=0, sticky = W)
         self.chgCurrent = StringVar()
         self.chgCurrent.trace("w", self._ProfileEdited)
         self.chgCurrentEntry = Entry(self.frame, textvariable=self.chgCurrent)
-        self.chgCurrentEntry.grid(row=4, column=1, sticky = W+E)
+        self.chgCurrentEntry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="Termination current [mA]:").grid(row=5, column=0, sticky = W)
+        rownr = rownr + 1
+        Label(self.frame, text="Termination current [mA]:").grid(row=rownr, column=0, sticky = W)
         self.termCurrent = StringVar()
         self.termCurrent.trace("w", self._ProfileEdited)
         self.termCurrentEntry = Entry(self.frame, textvariable=self.termCurrent)
-        self.termCurrentEntry.grid(row=5, column=1, sticky = W+E)
+        self.termCurrentEntry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="Regulation voltage [mV]:").grid(row=6, column=0, sticky = W)
+        rownr = rownr + 1
+        Label(self.frame, text="Regulation voltage [mV]:").grid(row=rownr, column=0, sticky = W)
         self.regVoltage = StringVar()
         self.regVoltage.trace("w", self._ProfileEdited)
         self.regVoltageEntry = Entry(self.frame,textvariable=self.regVoltage)
-        self.regVoltageEntry.grid(row=6, column=1, sticky = W+E)
+        self.regVoltageEntry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="Cutoff voltage [mV]:").grid(row=7, column=0, sticky = W)
+        rownr = rownr + 1
+        Label(self.frame, text="Cutoff voltage [mV]:").grid(row=rownr, column=0, sticky = W)
         self.cutoffVoltage = StringVar()
         self.cutoffVoltage.trace("w", self._ProfileEdited)
         self.cutoffVoltageEntry = Entry(self.frame,textvariable=self.cutoffVoltage)
-        self.cutoffVoltageEntry.grid(row=7, column=1, sticky = W+E)
+        self.cutoffVoltageEntry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="Cold temperature [C]:").grid(row=8, column=0, sticky = W)
+        rownr = rownr + 1
+        Label(self.frame, text="Cold temperature [C]:").grid(row=rownr, column=0, sticky = W)
         self.tempCold = StringVar()
         self.tempCold.trace("w", self._ProfileEdited)
         self.tempColdEntry = Entry(self.frame,textvariable=self.tempCold)
-        self.tempColdEntry.grid(row=8, column=1, sticky = W+E)
+        self.tempColdEntry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="Cool temperature [C]:").grid(row=9, column=0, sticky = W)
+        rownr = rownr + 1
+        Label(self.frame, text="Cool temperature [C]:").grid(row=rownr, column=0, sticky = W)
         self.tempCool = StringVar()
         self.tempCool.trace("w", self._ProfileEdited)
         self.tempCoolEntry = Entry(self.frame,textvariable=self.tempCool)
-        self.tempCoolEntry.grid(row=9, column=1, sticky = W+E)
+        self.tempCoolEntry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="Warm temperature [C]:").grid(row=10, column=0, sticky = W)
+        rownr = rownr + 1
+        Label(self.frame, text="Warm temperature [C]:").grid(row=rownr, column=0, sticky = W)
         self.tempWarm = StringVar()
         self.tempWarm.trace("w", self._ProfileEdited)
         self.tempWarmEntry = Entry(self.frame,textvariable=self.tempWarm)
-        self.tempWarmEntry.grid(row=10, column=1, sticky = W+E)
+        self.tempWarmEntry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="Hot temperature [C]:").grid(row=11, column=0, sticky = W)
+        rownr = rownr + 1
+        Label(self.frame, text="Hot temperature [C]:").grid(row=rownr, column=0, sticky = W)
         self.tempHot = StringVar()
         self.tempHot.trace("w", self._ProfileEdited)
         self.tempHotEntry = Entry(self.frame,textvariable=self.tempHot)
-        self.tempHotEntry.grid(row=11, column=1, sticky = W+E)
+        self.tempHotEntry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="NTC B constant [1k]:").grid(row=12, column=0, sticky = W)
+        rownr = rownr + 1
+        Label(self.frame, text="NTC B constant [1k]:").grid(row=rownr, column=0, sticky = W)
         self.ntcB = StringVar()
         self.ntcB.trace("w", self._ProfileEdited)
         self.ntcBEntry = Entry(self.frame,textvariable=self.ntcB)
-        self.ntcBEntry.grid(row=12, column=1, sticky = W+E)
+        self.ntcBEntry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="NTC resistance [ohm]:").grid(row=13, column=0, sticky = W)
+        rownr = rownr + 1
+        Label(self.frame, text="NTC resistance [ohm]:").grid(row=rownr, column=0, sticky = W)
         self.ntcResistance = StringVar()
         self.ntcResistance.trace("w", self._ProfileEdited)
         self.ntcResistanceEntry = Entry(self.frame,textvariable=self.ntcResistance)
-        self.ntcResistanceEntry.grid(row=13, column=1, sticky = W+E)
+        self.ntcResistanceEntry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="OCV10 [mV]:").grid(row=14, column=0, sticky = W)
-        self.ocv10 = StringVar()
-        self.ocv10.trace("w", self._ProfileEdited)
-        self.ocv10Entry = Entry(self.frame,textvariable=self.ocv10)
-        self.ocv10Entry.grid(row=14, column=1, sticky = W+E)
+        if FWVER >= 0x13:
+            rownr = rownr + 1
+            Label(self.frame, text="OCV10 [mV]:").grid(row=rownr, column=0, sticky = W)
+            self.ocv10 = StringVar()
+            self.ocv10.trace("w", self._ProfileEdited)
+            self.ocv10Entry = Entry(self.frame,textvariable=self.ocv10)
+            self.ocv10Entry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="OCV50 [mV]:").grid(row=15, column=0, sticky = W)
-        self.ocv50 = StringVar()
-        self.ocv50.trace("w", self._ProfileEdited)
-        self.ocv50Entry = Entry(self.frame,textvariable=self.ocv50)
-        self.ocv50Entry.grid(row=15, column=1, sticky = W+E)
+            rownr = rownr + 1
+            Label(self.frame, text="OCV50 [mV]:").grid(row=rownr, column=0, sticky = W)
+            self.ocv50 = StringVar()
+            self.ocv50.trace("w", self._ProfileEdited)
+            self.ocv50Entry = Entry(self.frame,textvariable=self.ocv50)
+            self.ocv50Entry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="OCV90 [mV]:").grid(row=16, column=0, sticky = W)
-        self.ocv90 = StringVar()
-        self.ocv90.trace("w", self._ProfileEdited)
-        self.ocv90Entry = Entry(self.frame,textvariable=self.ocv90)
-        self.ocv90Entry.grid(row=16, column=1, sticky = W+E)
+            rownr = rownr + 1
+            Label(self.frame, text="OCV90 [mV]:").grid(row=rownr, column=0, sticky = W)
+            self.ocv90 = StringVar()
+            self.ocv90.trace("w", self._ProfileEdited)
+            self.ocv90Entry = Entry(self.frame,textvariable=self.ocv90)
+            self.ocv90Entry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="R10 [mOhm]:").grid(row=17, column=0, sticky = W)
-        self.r10 = StringVar()
-        self.r10.trace("w", self._ProfileEdited)
-        self.r10Entry = Entry(self.frame,textvariable=self.r10)
-        self.r10Entry.grid(row=17, column=1, sticky = W+E)
+            rownr = rownr + 1
+            Label(self.frame, text="R10 [mOhm]:").grid(row=rownr, column=0, sticky = W)
+            self.r10 = StringVar()
+            self.r10.trace("w", self._ProfileEdited)
+            self.r10Entry = Entry(self.frame,textvariable=self.r10)
+            self.r10Entry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="R50 [mOhm]:").grid(row=18, column=0, sticky = W)
-        self.r50 = StringVar()
-        self.r50.trace("w", self._ProfileEdited)
-        self.r50Entry = Entry(self.frame,textvariable=self.r50)
-        self.r50Entry.grid(row=18, column=1, sticky = W+E)
+            rownr = rownr + 1
+            Label(self.frame, text="R50 [mOhm]:").grid(row=rownr, column=0, sticky = W)
+            self.r50 = StringVar()
+            self.r50.trace("w", self._ProfileEdited)
+            self.r50Entry = Entry(self.frame,textvariable=self.r50)
+            self.r50Entry.grid(row=rownr, column=1, sticky = W+E)
 
-        Label(self.frame, text="R90 [mOhm]:").grid(row=19, column=0, sticky = W)
-        self.r90 = StringVar()
-        self.r90.trace("w", self._ProfileEdited)
-        self.r90Entry = Entry(self.frame,textvariable=self.r90)
-        self.r90Entry.grid(row=19, column=1, sticky = W+E)
+            rownr = rownr + 1
+            Label(self.frame, text="R90 [mOhm]:").grid(row=rownr, column=0, sticky = W)
+            self.r90 = StringVar()
+            self.r90.trace("w", self._ProfileEdited)
+            self.r90Entry = Entry(self.frame,textvariable=self.r90)
+            self.r90Entry.grid(row=rownr, column=1, sticky = W+E)
 
         Label(self.frame, text="Temperature sense:").grid(row=2, column=2, padx=(5, 5), sticky = (W, E))
         self.tempSense = StringVar()
@@ -888,13 +924,14 @@ class PiJuiceBatteryConfig(object):
         self.tempSenseSel.grid(column=2, row=3, padx=(5, 5), pady=(0,2), sticky = W)
         self.tempSenseSel.bind("<<ComboboxSelected>>", self._NewTempSenseConfigSel)
 
-        Label(self.frame, text="RSoC estimation:").grid(row=5, column=2, padx=(5, 5), sticky = (W, E))
-        self.rsocEst = StringVar()
-        self.rsocEstSel = Combobox(self.frame, textvariable=self.rsocEst, state='readonly')
-        self.rsocEstSel['values'] = pijuice.config.rsocEstimationOptions
-        self.rsocEstSel.set('')
-        self.rsocEstSel.grid(column=2, row=6, padx=(5, 5), pady=(0,2), sticky = W)
-        self.rsocEstSel.bind("<<ComboboxSelected>>", self._NewRSocEstConfigSel)
+        if FWVER >= 0x13:
+            Label(self.frame, text="RSoC estimation:").grid(row=5, column=2, padx=(5, 5), sticky = (W, E))
+            self.rsocEst = StringVar()
+            self.rsocEstSel = Combobox(self.frame, textvariable=self.rsocEst, state='readonly')
+            self.rsocEstSel['values'] = pijuice.config.rsocEstimationOptions
+            self.rsocEstSel.set('')
+            self.rsocEstSel.grid(column=2, row=6, padx=(5, 5), pady=(0,2), sticky = W)
+            self.rsocEstSel.bind("<<ComboboxSelected>>", self._NewRSocEstConfigSel)
 
         self.refreshConfigBtn = Button(self.frame, text='Refresh', underline=0, command=self.Refresh)
         self.refreshConfigBtn.grid(row=0, column=2, pady=(4,2), sticky = E)
@@ -902,6 +939,7 @@ class PiJuiceBatteryConfig(object):
         self.Refresh()
 
     def Refresh(self):
+        global FWVER
         self.ReadProfileStatus()
         self.ReadProfileData()
         self._CustomEditEnable(False)
@@ -912,9 +950,10 @@ class PiJuiceBatteryConfig(object):
         tempSenseConfig = pijuice.config.GetBatteryTempSenseConfig()
         if tempSenseConfig['error'] == 'NO_ERROR':
             self.tempSenseSel.current(pijuice.config.batteryTempSenseOptions.index(tempSenseConfig['data']))
-        ret = pijuice.config.GetRsocEstimationConfig()
-        if ret['error'] == 'NO_ERROR':
-            self.rsocEstSel.current(pijuice.config.rsocEstimationOptions.index(ret['data']))
+        if FWVER >= 0x13:
+            ret = pijuice.config.GetRsocEstimationConfig()
+            if ret['error'] == 'NO_ERROR':
+                self.rsocEstSel.current(pijuice.config.rsocEstimationOptions.index(ret['data']))
 
     def _NewProfileSelection(self, event):
         self._ClearProfileEditParams()
@@ -946,15 +985,17 @@ class PiJuiceBatteryConfig(object):
         self.tempHotEntry.configure(state=newState)
         self.ntcBEntry.configure(state=newState)
         self.ntcResistanceEntry.configure(state=newState)
-        self.chemistrySel.configure(state=newState)
-        self.ocv10Entry.configure(state=newState)
-        self.ocv50Entry.configure(state=newState)
-        self.ocv90Entry.configure(state=newState)
-        self.r10Entry.configure(state=newState)
-        self.r50Entry.configure(state=newState)
-        self.r90Entry.configure(state=newState)
+        if FWVER >= 0x13:
+            self.chemistrySel.configure(state=newState)
+            self.ocv10Entry.configure(state=newState)
+            self.ocv50Entry.configure(state=newState)
+            self.ocv90Entry.configure(state=newState)
+            self.r10Entry.configure(state=newState)
+            self.r50Entry.configure(state=newState)
+            self.r90Entry.configure(state=newState)
 
     def _ClearProfileEditParams(self):
+        global FWVER
         self.capacity.set('')
         self.chgCurrent.set('')
         self.termCurrent.set('')
@@ -966,13 +1007,14 @@ class PiJuiceBatteryConfig(object):
         self.tempHot.set('')
         self.ntcB.set('')
         self.ntcResistance.set('')
-        self.chemistry.set('')
-        self.ocv10.set('')
-        self.ocv50.set('')
-        self.ocv90.set('')
-        self.r10.set('')
-        self.r50.set('')
-        self.r90.set('')
+        if FWVER >= 0x13:
+            self.chemistry.set('')
+            self.ocv10.set('')
+            self.ocv50.set('')
+            self.ocv90.set('')
+            self.r10.set('')
+            self.r50.set('')
+            self.r90.set('')
 
     def _ApplyNewProfile(self):
         if self.customCheck.get():
@@ -1032,6 +1074,7 @@ class PiJuiceBatteryConfig(object):
             self.prfStatus.set(status['error'])
 
     def ReadProfileData(self):
+        global FWVER
         config = pijuice.config.GetBatteryProfile()
         if config['error'] == 'NO_ERROR' and config['data'] != 'INVALID':
             self.config = config['data']
@@ -1048,20 +1091,22 @@ class PiJuiceBatteryConfig(object):
             self.ntcResistance.set(self.config['ntcResistance'])
         else:
             self.applyBtn.configure(state="disabled")
-        extconf = pijuice.config.GetBatteryExtProfile()
-        if extconf['error'] == 'NO_ERROR':
-            self.extconf = extconf['data']
-            self.chemistry.set(self.extconf['chemistry'])
-            self.ocv10.set(self.extconf['ocv10'])
-            self.ocv50.set(self.extconf['ocv50'])
-            self.ocv90.set(self.extconf['ocv90'])
-            self.r10.set(self.extconf['r10'])
-            self.r50.set(self.extconf['r50'])
-            self.r90.set(self.extconf['r90'])
-        else:
-            self.applyBtn.configure(state="disabled")
+        if FWVER >= 0x13:
+            extconf = pijuice.config.GetBatteryExtProfile()
+            if extconf['error'] == 'NO_ERROR':
+                self.extconf = extconf['data']
+                self.chemistry.set(self.extconf['chemistry'])
+                self.ocv10.set(self.extconf['ocv10'])
+                self.ocv50.set(self.extconf['ocv50'])
+                self.ocv90.set(self.extconf['ocv90'])
+                self.r10.set(self.extconf['r10'])
+                self.r50.set(self.extconf['r50'])
+                self.r90.set(self.extconf['r90'])
+            else:
+                self.applyBtn.configure(state="disabled")
 
     def WriteCustomProfileData(self):
+        global FWVER
         profile = {}
         try:
             profile['capacity'] = int(self.capacity.get())
@@ -1097,22 +1142,23 @@ class PiJuiceBatteryConfig(object):
         if status['error'] != 'NO_ERROR':
             return
 
-        extprf = {
-            'chemistry': self.chemistry.get(),
-            'ocv10': int(self.ocv10.get()),
-            'ocv50': int(self.ocv50.get()),
-            'ocv90': int(self.ocv90.get()), 
-            'r10': float(self.r10.get()), 
-            'r50': float(self.r50.get()),   
-            'r90': float(self.r90.get())
-        }
-        time.sleep(0.2)
-        status = pijuice.config.SetCustomBatteryExtProfile(extprf)
-        if status['error'] == 'NO_ERROR':
+        if FWVER >= 0x13:
+            extprf = {
+                'chemistry': self.chemistry.get(),
+                'ocv10': int(self.ocv10.get()),
+                'ocv50': int(self.ocv50.get()),
+                'ocv90': int(self.ocv90.get()), 
+                'r10': float(self.r10.get()), 
+                'r50': float(self.r50.get()),   
+                'r90': float(self.r90.get())
+            }
             time.sleep(0.2)
-            self.Refresh()
-        else:
-            MessageBox.showerror('Error writing custom profile', 'Reason: ' + status['error'], parent=self.frame)
+            status = pijuice.config.SetCustomBatteryExtProfile(extprf)
+            if status['error'] == 'NO_ERROR':
+                time.sleep(0.2)
+                self.Refresh()
+            else:
+                MessageBox.showerror('Error writing custom profile', 'Reason: ' + status['error'], parent=self.frame)
 
 
 class PiJuiceIoConfig(object):
