@@ -254,7 +254,10 @@ class PiJuiceFirmware(object):
                 self.nb.forget(self.toplevelpath + '.notebook.battery')
                 self.batConfig = PiJuiceBatteryConfig(self.nb)
                 self.nb.insert(3, self.batConfig.frame, text='Battery', underline=0, padding=2)
-                self.nb.add(self.toplevelpath + '.notebook.io')
+                # Recreate io config tab with possibly added/changed parameters
+                self.nb.forget(self.toplevelpath + '.notebook.io')
+                self.ioConfig = PiJuiceIoConfig(self.nb)
+                self.nb.insert(4, self.ioConfig.frame, text='IO', underline=0, padding=2)
                 self.nb.add(self.toplevelpath + '.notebook.firmware')
                 self.nb.hide(self.toplevelpath + '.notebook.fwwait')
                 self.nb.select(self.toplevelpath + '.notebook.firmware')
@@ -1163,6 +1166,7 @@ class PiJuiceBatteryConfig(object):
 
 class PiJuiceIoConfig(object):
     def __init__(self, master):
+        global FWVER
         self.frame = Frame(master, name='io')
         self.frame.columnconfigure((1, 2), weight=1)
 
@@ -1216,7 +1220,8 @@ class PiJuiceIoConfig(object):
             self._ModeSelected(None, i)
 
             if self.paramConfig1[i]:
-                self.param1[i].set(self.config[i][self.paramConfig1[i]['name']])
+                if self.paramConfig1[i]['type'] != 'enum' or (i == 1 and FWVER >= 0x13):
+                    self.param1[i].set(self.config[i][self.paramConfig1[i]['name']])
             if self.paramConfig2[i]:
                 self.param2[i].set(self.config[i][self.paramConfig2[i]['name']])
 
@@ -1228,19 +1233,21 @@ class PiJuiceIoConfig(object):
         self.applyBtn.grid(row=8, column=2, padx=(2, 2), pady=(20, 0), sticky=E)
 
     def _ModeSelected(self, event, i):
+        global FWVER
         try:
             self.paramConfig1[i] = pijuice.config.ioConfigParams[self.mode[i].get()][0]
         except:
             self.paramConfig1[i] = None
         if self.paramConfig1[i]:
             if self.paramConfig1[i]['type'] == 'enum':
-                self.paramEntry1[i] = Combobox(self.frame, textvariable=self.param1[i], state='readonly')
-                self.paramEntry1[i]['values'] = self.paramConfig1[i]['options']
-                if i == 0:
+                # Wakeup option only on IO2 (i=1) for firmware >= 1.3
+                if i == 0 or FWVER < 0x13:
                     self.param1[i].set('')
                     self.paramEntry1[i].configure(state="disabled")
                     self.paramName1[i].set('')
                 else:
+                    self.paramEntry1[i] = Combobox(self.frame, textvariable=self.param1[i], state='readonly')
+                    self.paramEntry1[i]['values'] = self.paramConfig1[i]['options']
                     self.paramName1[i].set(self.paramConfig1[i]['name'])
                     if self.config[i]['mode'] == self.mode[i].get():
                         self.param1[i].set(self.config[i][self.paramConfig1[i]['name']])
