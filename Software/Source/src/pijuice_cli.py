@@ -138,6 +138,16 @@ def version_to_str(number):
     # Convert int version to str {major}.{minor}
     return "{}.{}".format(number >> 4, number & 15)
 
+def get_current_fw_version():
+    # Returns current version as int (first 4 bits - minor, second 4 bits - major)
+    status = pijuice.config.GetFirmwareVersion()
+
+    if status['error'] == 'NO_ERROR':
+        major, minor = status['data']['version'].split('.')
+    else:
+        major = minor = 0
+    current_version = (int(major) << 4) + int(minor)
+    return current_version
 
 def validate_value(text, type, min, max, old):
     if type == 'int':
@@ -279,17 +289,6 @@ class FirmwareTab(object):
         self.firmware_path = None
         self.show_firmware()
 
-    def get_current_fw_version(self):
-        # Returns current version as int (first 4 bits - minor, second 4 bits - major)
-        status = pijuice.config.GetFirmwareVersion()
-
-        if status['error'] == 'NO_ERROR':
-            major, minor = status['data']['version'].split('.')
-        else:
-            major = minor = 0
-        current_version = (int(major) << 4) + int(minor)
-        return current_version
-
     def check_for_fw_updates(self):
         # Check /usr/share/pijuice/data/firmware/ for new version of firmware.
         # Returns (version, path)
@@ -319,7 +318,8 @@ class FirmwareTab(object):
         return latest_version, firmware_path
 
     def get_fw_status(self):
-        current_version = self.get_current_fw_version()
+        global current_fw_version
+        current_version = current_fw_version
         latest_version, firmware_path = self.check_for_fw_updates()
         new_firmware_path = None
 
@@ -348,18 +348,38 @@ class FirmwareTab(object):
                             nextno=main_menu, single_option=False)
 
     def update_firmware(self, *args):
+        global current_fw_version
         current_addr = pijuice.config.interface.GetAddress()
         error_status = None
         if current_addr:
+            # Set up the 'Wait for update' screen
+            spinner = ['-', '\\', '|', '/']
+            i = 0
+            waittext = urwid.Text("Updating firmware, Wait " + spinner[i], align='center')
             main.original_widget = urwid.Filler(urwid.LineBox(urwid.Pile([
-                                      urwid.Text("Updating firmware, Wait ...", align='center'),
+                                      waittext,
                                       urwid.Divider(),
                                       urwid.Text("Interrupting this process can lead to a non-functional device.", align='center')
-                                                              ])))
+                                      ])))
             loop.draw_screen()
+            # Start the firmware update in a subprocess
             addr = format(current_addr, 'x')
             with open('/dev/null','w') as f:    # Suppress pijuiceboot output
-                result = 256 - subprocess.call(['pijuiceboot', addr, self.firmware_path], stdout=f, stderr=subprocess.STDOUT)
+                p = subprocess.Popen(['pijuiceboot', addr, self.firmware_path], stdout=f, stderr=subprocess.STDOUT)
+            # Show the 'Wait for update' screen  with a rotating spinner
+            finished = False
+            while not finished:
+                try:
+                    finished = True
+                    p.communicate(timeout=0.3)
+                except subprocess.TimeoutExpired:
+                    finished = False
+                if not finished:
+                    i = (i+1)%4
+                    waittext.set_text("Updating firmware, Wait " + spinner[i])
+                    loop.draw_screen()
+            # Check the result
+            result = 256 - p.returncode
             if result != 256:
                 error_status = self.FIRMWARE_UPDATE_ERRORS[result] if result < 11 else 'UNKNOWN'
                 messages = {
@@ -375,11 +395,18 @@ class FirmwareTab(object):
             message = "Firmware update failed.\nReason: " + error_status + '. ' + messages.get(error_status, '')
         else:
             # Wait till firmware has restarted (current_version != 0)
+            main.original_widget = urwid.Filler(urwid.LineBox(urwid.Pile([
+                                      urwid.Divider(),
+                                      urwid.Text("Waiting for firmware restart.", align='center'),
+                                      urwid.Divider(),
+                                      ])))
+            loop.draw_screen()
             current_version = 0
             while current_version == 0:
-                current_version = self.get_current_fw_version()
+                current_version = get_current_fw_version()
                 time.sleep(0.2)
-            message = "Firmware update successful"
+            current_fw_version = current_version
+            message = "Firmware update successful" + ": V" + version_to_str(current_fw_version)
 
         confirmation_dialog(message, single_option=True, next=self.show_firmware)
     
@@ -792,6 +819,7 @@ class IOTab(object):
         main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(elements))
     
     def configure_io(self, button, pin_id):
+        global current_fw_version
         elements = [urwid.Text("IO{}".format(pin_id + 1)), urwid.Divider()]
         pin_config = self.current_config[pin_id]
         mode = pin_config['mode']
@@ -812,7 +840,7 @@ class IOTab(object):
             var_type = var_config.get('type', 'str')
             var_min  = var_config.get('min')
             var_max  = var_config.get('max')
-            if var_name == 'wakeup' and pin_id == 1:
+            if var_name == 'wakeup' and pin_id == 1 and current_fw_version >= 0x13:
                 if pin_config['wakeup'] == '':
                     pin_config['wakeup'] = self.IO_CONFIG_PARAMS['DIGITAL_IN'][0]['options'][0]
                 wakeup_select_btn = urwid.Padding(attrmap(urwid.Button("Wakeup: {}".format(pin_config['wakeup']),
@@ -960,7 +988,6 @@ class IOTab(object):
 
 class BatteryProfileTab(object):
     if pijuice:
-        BATTERY_PROFILES = pijuice.config.batteryProfiles + ['CUSTOM', 'DEFAULT']
         TEMP_SENSE_OPTIONS = pijuice.config.batteryTempSenseOptions
         RSOC_ESTIMATION_OPTIONS = pijuice.config.rsocEstimationOptions
         CHEMISTRY_OPTIONS = pijuice.config.batteryChemistries 
@@ -968,11 +995,15 @@ class BatteryProfileTab(object):
                      'tempCold', 'tempCool', 'tempWarm', 'tempHot', 'ntcB', 'ntcResistance']
 
     def __init__(self, *args):
+        global current_fw_version
         self.status_text = ""
         self.custom_values = False
+        pijuice.config.SelectBatteryProfiles(current_fw_version)
+        self.BATTERY_PROFILES = pijuice.config.batteryProfiles + ['CUSTOM', 'DEFAULT']
         self.refresh()
     
     def main(self, *args):
+        global current_fw_version
         elements = [urwid.Text("Battery settings"),
                     urwid.Divider(),
                     urwid.Text("Status: " +  self.status_text),
@@ -1006,16 +1037,21 @@ class BatteryProfileTab(object):
             urwid.IntEdit("Hot temperature [C]:      ", default=self.profile_data['tempHot']),
             urwid.IntEdit("NTC B constant [1k]:      ", default=self.profile_data['ntcB']),
             urwid.IntEdit("NTC resistance [ohm]:     ", default=self.profile_data['ntcResistance']),
-            urwid.IntEdit("OCV10 [mV]:               ", default=self.ext_profile_data['ocv10']),
-            urwid.IntEdit("OCV50 [mV]:               ", default=self.ext_profile_data['ocv50']),
-            urwid.IntEdit("OCV90 [mV]:               ", default=self.ext_profile_data['ocv90']),
-                FloatEdit("R10 [mOhm]:               ", default=self.ext_profile_data['r10']),
-                FloatEdit("R50 [mOhm]:               ", default=self.ext_profile_data['r50']),
-                FloatEdit("R90 [mOhm]:               ", default=self.ext_profile_data['r90']),
         ]
+        if current_fw_version >= 0x13:
+            self.param_edits += [
+                urwid.IntEdit("OCV10 [mV]:               ", default=self.ext_profile_data['ocv10']),
+                urwid.IntEdit("OCV50 [mV]:               ", default=self.ext_profile_data['ocv50']),
+                urwid.IntEdit("OCV90 [mV]:               ", default=self.ext_profile_data['ocv90']),
+                    FloatEdit("R10 [mOhm]:               ", default=self.ext_profile_data['r10']),
+                    FloatEdit("R50 [mOhm]:               ", default=self.ext_profile_data['r50']),
+                    FloatEdit("R90 [mOhm]:               ", default=self.ext_profile_data['r90']),
+            ]
 
-        for i, edit in enumerate(self.param_edits[0:14]):
+        for i, edit in enumerate(self.param_edits):
             # FloatEdit does not need the change signal
+            if isinstance(edit, FloatEdit):
+                continue
             urwid.connect_signal(edit, 'change', lambda x, text, idx: self.profile_data.update({self.EDIT_KEYS[idx]: text}), i)
 
         if self.custom_values:
@@ -1027,8 +1063,11 @@ class BatteryProfileTab(object):
             for edit in self.param_edits:
                 elements += [urwid.Padding(attrmap(edit), width=32),]
         else:
+            if current_fw_version >= 0x13:
+                elements += [
+                urwid.Text("Chemistry:                " + self.ext_profile_data['chemistry']),
+                ]
             elements += [
-            urwid.Text("Chemistry:                " + self.ext_profile_data['chemistry']),
             urwid.Text("Capacity [mAh]:           " + str(self.profile_data['capacity'])),
             urwid.Text("Charge current [mA]:      " + str(self.profile_data['chargeCurrent'])),
             urwid.Text("Termination current [mA]: " + str(self.profile_data['terminationCurrent'])),
@@ -1040,13 +1079,16 @@ class BatteryProfileTab(object):
             urwid.Text("Hot temperature [C]:      " + str(self.profile_data['tempHot'])),
             urwid.Text("NTC B constant [1k]:      " + str(self.profile_data['ntcB'])),
             urwid.Text("NTC resistance [ohm]:     " + str(self.profile_data['ntcResistance'])),
-            urwid.Text("OCV10 [mV]:               " + str(self.ext_profile_data['ocv10'])),
-            urwid.Text("OCV50 [mV]:               " + str(self.ext_profile_data['ocv50'])),
-            urwid.Text("OCV90 [mV]:               " + str(self.ext_profile_data['ocv90'])),
-            urwid.Text("R10 [mOhm]:               " + str(self.ext_profile_data['r10'])),
-            urwid.Text("R50 [mOhm]:               " + str(self.ext_profile_data['r50'])),
-            urwid.Text("R90 [mOhm]:               " + str(self.ext_profile_data['r90'])),
-        ]
+            ]
+            if current_fw_version >= 0x13:
+                elements += [
+                urwid.Text("OCV10 [mV]:               " + str(self.ext_profile_data['ocv10'])),
+                urwid.Text("OCV50 [mV]:               " + str(self.ext_profile_data['ocv50'])),
+                urwid.Text("OCV90 [mV]:               " + str(self.ext_profile_data['ocv90'])),
+                urwid.Text("R10 [mOhm]:               " + str(self.ext_profile_data['r10'])),
+                urwid.Text("R50 [mOhm]:               " + str(self.ext_profile_data['r50'])),
+                urwid.Text("R90 [mOhm]:               " + str(self.ext_profile_data['r90'])),
+                ]
 
         elements.extend([urwid.Divider(),
                          urwid.Padding(
@@ -1054,36 +1096,46 @@ class BatteryProfileTab(object):
                                  self.TEMP_SENSE_OPTIONS[self.temp_sense_profile_idx]), on_press=self.select_sense)),
                              width=34),
                          urwid.Divider(),
-                         urwid.Padding(
-                             attrmap(urwid.Button("Rsoc estimation: {}".format(
-                                 self.RSOC_ESTIMATION_OPTIONS[self.rsoc_estimation_profile_idx]), on_press=self.select_rsoc_estimate)),
-                             width=34),
-                         urwid.Divider(),
-                         urwid.Padding(attrmap(urwid.Button("Refresh", on_press=self.refresh)), width=18),
-                         urwid.Padding(attrmap(urwid.Button("Apply settings", on_press=self._apply_settings)), width=18),
-                         urwid.Padding(attrmap(urwid.Button("Back", on_press=main_menu)), width=18)
                          ])
+        if current_fw_version >= 0x13:
+            elements.extend([
+                urwid.Padding(
+                attrmap(urwid.Button("Rsoc estimation: {}".format(
+                    self.RSOC_ESTIMATION_OPTIONS[self.rsoc_estimation_profile_idx]), on_press=self.select_rsoc_estimate)),
+                    width=34),
+                urwid.Divider(),
+            ])
+        elements.extend([
+            urwid.Padding(attrmap(urwid.Button("Refresh", on_press=self.refresh)), width=18),
+            urwid.Padding(attrmap(urwid.Button("Apply settings", on_press=self._apply_settings)), width=18),
+            urwid.Padding(attrmap(urwid.Button("Back", on_press=main_menu)), width=18),
+        ])
+
         main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(elements))
     
     def refresh(self, *args):
+        global current_fw_version
         self._read_profile_status()
         self._read_profile_data()
         self._read_temp_sense()
-        self._read_rsoc_estimation()
-        self._read_chemistry()
+        if current_fw_version >= 0x13:
+            self._read_rsoc_estimation()
+            self._read_chemistry()
         self.main()
     
     def _read_profile_data(self, *args):
+        global current_fw_version
         config = pijuice.config.GetBatteryProfile()
         if config['error'] == 'NO_ERROR':
             self.profile_data = config['data']
         else:
             confirmation_dialog("Unable to read battery data. Error: {}".format(config['error']), next=main_menu, single_option=True)
-        extconfig = pijuice.config.GetBatteryExtProfile()
-        if extconfig['error'] == 'NO_ERROR':
-            self.ext_profile_data = extconfig['data']
-        else:
-            confirmation_dialog("Unable to read battery data. Error: {}".format(extconfig['error']), next=main_menu, single_option=True)
+        if current_fw_version >= 0x13:
+            extconfig = pijuice.config.GetBatteryExtProfile()
+            if extconfig['error'] == 'NO_ERROR':
+                self.ext_profile_data = extconfig['data']
+            else:
+                confirmation_dialog("Unable to read battery data. Error: {}".format(extconfig['error']), next=main_menu, single_option=True)
 
  
     def _read_profile_status(self, *args):
@@ -1944,6 +1996,7 @@ elif nolock:
     elements.append(urwid.Padding(attrmap(urwid.Button("OK", on_press=exit_cli)), width=6, align='center'))
     main = urwid.Filler(urwid.Pile(elements))
 else:
+    current_fw_version = get_current_fw_version()
     pijuiceConfigData = None
     main = urwid.Padding(menu("PiJuice HAT Configuration", choices), left=2, right=2)
 
