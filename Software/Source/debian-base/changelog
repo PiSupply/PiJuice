@@ -1,7 +1,5 @@
 pijuice-base (1.5) unstable; urgency=low
 
- -- Ton van Overbeek <tvoverbeek@gmail.com>  Tue, 11 Jun 2019 21:22:00 +0200
-
   * Support for new features in firmware 1.3
     - Alternative method for measuring the charge of the battery by the MCU directly
       in case the fuel gauge IC is not available or is faulty.
