@@ -3,5 +3,5 @@ python3-smbus # raspbian installed
 
 
 # building
-sudo apt-get install python3-stdeb
+sudo pip3 install stdeb3
 sudo apt-get install dh-systemd

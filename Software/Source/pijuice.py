@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import division, print_function
-__version__ = "1.4.1"
+__version__ = "1.5"
 
 import ctypes
 import sys
