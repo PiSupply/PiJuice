@@ -1,0 +1,11 @@
+[Unit]
+Description=Starts NatureJuice
+Requires=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/naturejuice.sh
+WorkingDirectory=/home/pi/NatureJuice
+
+[Install]
+WantedBy=multi-user.target
