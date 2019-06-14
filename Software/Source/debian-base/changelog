@@ -1,3 +1,28 @@
+pijuice-base (1.5) unstable; urgency=low
+
+  * Support for new features in firmware 1.3
+    - Alternative method for measuring the charge of the battery by the MCU directly
+      in case the fuel gauge IC is not available or is faulty.
+    - Extended battery profile with parameters for the alternative method
+    - Added option to force use of the alternative method.
+    - More predefined battery profiles: BP6X_1400, BP7X_1820, SNN5843_2300,
+      PJLIPO_12000, PJLIPO_5000, PJBP7X_1600, PJSNN5843_1300, PJZERO_1200,
+      PJZERO_1000, PJLIPO_600, PJLIPO_500.
+    - Use IO2 digital input as source for wakeup enabling peripheral attached to
+      the P3 header to wake-up Raspberry Pi.
+    - Added alternative wakeup via RPi GPIO3 (used as I2C SCL after boot) if run pin
+      is not connected (no pogo pin) and PiJuice powered via RPi.
+
+  * pijuice.py
+    - Added support for commands for the firmware 1.3 features 
+
+  * pijuice_cli.py
+    - Works with both 1.2 qnd 1.3 firmware. 1.3 firmware features only shown when
+      1.3 firmware is present.
+    - Better feedback during firmware update.
+
+ -- Ton van Overbeek <tvoverbeek@gmail.com>  Wed, 12 Jun 2019 16:30:00 +0200
+
 pijuice-base (1.4) unstable; urgency=low
 
   * General

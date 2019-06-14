@@ -1,0 +1,20 @@
+V1.3
+    - Introduced alternative to fuel gauge ic way of remaining state of charge estimation,
+      together with fixes of fuel gauge estimation.
+        - By default fuel gauge ic is used, and if it is not present or in faulty state,
+	  RSoC estimation is calculated directly by mcu.
+        - Battery profiles are extended with battery parameters used in RSoC estimation
+	  (battery chemistry, open circuit voltage, internal impedance).
+        - Introduced possibility to force direct mcu way of estimation by configuration
+	  command.
+    - Battery temperature measurement fixes.
+    - Added possibility to configure IO2 as digital input wake-up interrupt, enabling
+      peripheral attached to P3 header to wake-up Raspberry Pi.
+    - Added alternative wakeup via Rpi SCL (GPIO3) if run pin is not connected via pogo pin.
+
+V1.3_2019_02_28
+    - Updated list of predefined battery profiles:
+      ['BP6X_1400', 'BP7X_1820', 'SNN5843_2300', 'PJLIPO_12000', 'PJLIPO_5000',
+       'PJBP7X_1600', 'PJSNN5843_1300', 'PJZERO_1200', 'PJZERO_1000', 'PJLIPO_600',
+       'PJLIPO_500']
+    - Fixed reading of extended battery profile data

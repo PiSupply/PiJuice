@@ -1,3 +1,13 @@
+pijuice-gui (1.5) unstable; urgency=low
+
+  * pijuice_gui.py
+    - Support for new features in firmware 1.3 (See pijuice-base changelog).
+    - Works with both firmware 1.2 and 1.3. New features are only shown after
+      firmware 1.3 is loaded.
+    - Improved firmeware update (added progressbar display).
+
+ -- Ton van Overbeek <tvoverbeek@gmail.com>  Wed, 12 Jun 2019 16:35:00 +0200
+
 pijuice-gui (1.4) unstable; urgency=low
 
   * General

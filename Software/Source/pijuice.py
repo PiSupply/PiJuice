@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import division, print_function
-__version__ = "1.4"
+__version__ = "1.5"
 
 import ctypes
 import sys
@@ -128,8 +128,6 @@ class PiJuiceInterface(object):
                 if (data == result['data']):
                     return {'error': 'NO_ERROR'}
                 else:
-                    print('wr', data)
-                    print('rd', result['data'])
                     return {'error': 'WRITE_FAILED'}
 
 
@@ -632,7 +630,7 @@ class PiJuiceRtcAlarm(object):
         if 'daylightsaving' in dt:
             if dt['daylightsaving'] == 'SUB1H':
                 d[8] |= 2
-            elif dt['daylightsaving'] == 'SUB1H':
+            elif dt['daylightsaving'] == 'ADD1H':
                 d[8] |= 1
 
         if 'storeoperation' in dt and dt['storeoperation'] == True:
@@ -901,8 +899,6 @@ class PiJuiceRtcAlarm(object):
             if (d == ret['data']):
                 return {'error': 'NO_ERROR'}
             else:
-                #print 'wr', d
-                #print 'rd', ret['data']
                 return {'error': 'WRITE_FAILED'}
 
 
@@ -986,6 +982,7 @@ class PiJuiceConfig(object):
     CHARGING_CONFIG_CMD = 0x51
     BATTERY_PROFILE_ID_CMD = 0x52
     BATTERY_PROFILE_CMD = 0x53
+    BATTERY_EXT_PROFILE_CMD = 0x54
     BATTERY_TEMP_SENSE_CONFIG_CMD = 0x5D
     POWER_INPUTS_CONFIG_CMD = 0x5E
     RUN_PIN_CONFIG_CMD = 0x5F
@@ -1031,7 +1028,13 @@ class PiJuiceConfig(object):
             return {'data': {'charging_enabled' :bool(ret['data'][0] & 0x01)},
                     'non_volatile':bool(ret['data'][0]&0x80), 'error':'NO_ERROR'}
 
-    batteryProfiles = ['BP6X', 'BP7X', 'SNN5843', 'LIPO8047109']
+    batteryProfiles = ['BP6X_1400', 'BP7X_1820', 'SNN5843_2300', 'PJLIPO_12000', 'PJLIPO_5000', 'PJBP7X_1600', 'PJSNN5843_1300', 'PJZERO_1200', 'PJZERO_1000', 'PJLIPO_600', 'PJLIPO_500']
+    def SelectBatteryProfiles(self, fwver):
+        if fwver >= 0x13:
+            self.batteryProfiles = ['BP6X_1400', 'BP7X_1820', 'SNN5843_2300', 'PJLIPO_12000', 'PJLIPO_5000', 'PJBP7X_1600', 'PJSNN5843_1300', 'PJZERO_1200', 'PJZERO_1000', 'PJLIPO_600', 'PJLIPO_500']
+        else:
+            self.batteryProfiles = ['BP6X', 'BP7X', 'SNN5843', 'LIPO8047109']
+
     def SetBatteryProfile(self, profile):
         id = None
         if profile == 'DEFAULT':
@@ -1109,8 +1112,60 @@ class PiJuiceConfig(object):
             d[13] = (R >> 8) & 0xFF
         except:
             return {'error': 'BAD_ARGUMENT'}
-        print(d)
         return self.interface.WriteDataVerify(self.BATTERY_PROFILE_CMD, d, 0.2)
+
+    batteryChemistries = ['LIPO', 'LIFEPO4']
+    def GetBatteryExtProfile(self):
+        ret = self.interface.ReadData(self.BATTERY_EXT_PROFILE_CMD, 17)
+        if ret['error'] != 'NO_ERROR':
+            return ret
+        else:
+            d = ret['data']
+            if all(v == 0 for v in d):
+                return {'data':'INVALID', 'error':'NO_ERROR'}
+            profile = {}
+            if d[0] < len(self.batteryChemistries):
+                profile['chemistry'] = self.batteryChemistries[d[0]]
+            else:
+                profile['chemistry'] = 'UNKNOWN'
+            profile['ocv10'] = (d[2] << 8) | d[1]
+            profile['ocv50'] = (d[4] << 8) | d[3]
+            profile['ocv90'] = (d[6] << 8) | d[5]
+            profile['r10'] = ((d[8] << 8) | d[7])/100.0
+            profile['r50'] = ((d[10] << 8) | d[9])/100.0
+            profile['r90'] = ((d[12] << 8) | d[11])/100.0
+            return {'data':profile, 'error':'NO_ERROR'}
+
+    def SetCustomBatteryExtProfile(self, profile):
+        d = [0x00] * 17
+        try:
+            chid = self.batteryChemistries.index(profile['chemistry'])
+            d[0] = chid&0xFF
+            v=int(profile['ocv10'])
+            d[1] = v&0xFF
+            d[2] = (v >> 8)&0xFF
+            v=int(profile['ocv50'])
+            d[3] = v&0xFF
+            d[4] = (v >> 8)&0xFF
+            v=int(profile['ocv90'])
+            d[5] = v&0xFF
+            d[6] = (v >> 8)&0xFF
+            v=int(profile['r10']*100)
+            d[7] = v&0xFF
+            d[8] = (v >> 8)&0xFF
+            v=int(profile['r50']*100)
+            d[9] = v&0xFF
+            d[10] = (v >> 8)&0xFF
+            v=int(profile['r90']*100)
+            d[11] = v&0xFF
+            d[12] = (v >> 8)&0xFF
+            d[13] = 0xFF
+            d[14] = 0xFF
+            d[15] = 0xFF
+            d[16] = 0xFF
+        except:
+            return {'error':'BAD_ARGUMENT'}
+        return self.interface.WriteDataVerify(self.BATTERY_EXT_PROFILE_CMD, d, 0.2)
 
     batteryTempSenseOptions = ['NOT_USED', 'NTC', 'ON_BOARD', 'AUTO_DETECT']
     def GetBatteryTempSenseConfig(self):
@@ -1119,16 +1174,41 @@ class PiJuiceConfig(object):
             return result
         else:
             d = result['data']
-            if d[0] < len(self.batteryTempSenseOptions):
-                return {'data': self.batteryTempSenseOptions[d[0]], 'error': 'NO_ERROR'}
+            if (d[0]&0x07) < len(self.batteryTempSenseOptions):
+                return {'data': self.batteryTempSenseOptions[d[0]&0x07], 'error': 'NO_ERROR'}
             else:
                 return {'error': 'UNKNOWN_DATA'}
 
     def SetBatteryTempSenseConfig(self, config):
+        ret = self.interface.ReadData(self.BATTERY_TEMP_SENSE_CONFIG_CMD, 1)
+        if ret['error'] != 'NO_ERROR':
+            return ret
         ind = self.batteryTempSenseOptions.index(config)
         if ind == None:
             return {'error': 'BAD_ARGUMENT'}
-        data = [ind]
+        data = [int(ret['data'][0]&(~0x07) | ind)]
+        return self.interface.WriteDataVerify(self.BATTERY_TEMP_SENSE_CONFIG_CMD, data)
+
+    rsocEstimationOptions = ['AUTO_DETECT', 'DIRECT_BY_MCU']
+    def GetRsocEstimationConfig(self):
+        result = self.interface.ReadData(self.BATTERY_TEMP_SENSE_CONFIG_CMD, 1)
+        if result['error'] != 'NO_ERROR':
+            return result
+        else:
+            d = result['data']
+            if ((d[0]&0x30)>>4) < len(self.rsocEstimationOptions):
+                return {'data':self.rsocEstimationOptions[(d[0]&0x30)>>4], 'error':'NO_ERROR'} 
+            else:
+                return {'error':'UNKNOWN_DATA'}
+
+    def SetRsocEstimationConfig(self, config):
+        ret = self.interface.ReadData(self.BATTERY_TEMP_SENSE_CONFIG_CMD, 1)
+        if ret['error'] != 'NO_ERROR':
+            return ret
+        ind = self.rsocEstimationOptions.index(config)
+        if ind == None:
+            return {'error':'BAD_ARGUMENT'}
+        data = [(int(ret['data'][0])&(~0x30)) | (ind<<4)]
         return self.interface.WriteDataVerify(self.BATTERY_TEMP_SENSE_CONFIG_CMD, data)
 
     powerInputs = ['USB_MICRO', '5V_GPIO']
@@ -1315,6 +1395,7 @@ class PiJuiceConfig(object):
         }
     ioPullOptions = ['NOPULL', 'PULLDOWN', 'PULLUP']
     ioConfigParams = {
+        'DIGITAL_IN': [{'name': 'wakeup', 'type': 'enum', 'options':['NO_WAKEUP', 'FALLING_EDGE', 'RISING_EDGE']}],
         'DIGITAL_OUT_PUSHPULL': [{'name': 'value', 'type': 'int', 'min': 0, 'max': 1}],
         'DIGITAL_IO_OPEN_DRAIN': [{'name': 'value', 'type': 'int', 'min': 0, 'max': 1}],
         'PWM_OUT_PUSHPULL': [{'name': 'period', 'unit': 'us', 'type': 'int', 'min': 2, 'max': 65536 * 2},
@@ -1331,7 +1412,10 @@ class PiJuiceConfig(object):
             nv = 0x80 if non_volatile == True else 0x00
             d[0] = (mode & 0x0F) | ((pull & 0x03) << 4) | nv
 
-            if config['mode'] == 'DIGITAL_OUT_PUSHPULL' or config['mode'] == 'DIGITAL_IO_OPEN_DRAIN':
+            if config['mode'] == 'DIGITAL_IN':
+                wup = config['wakeup'] if config['wakeup'] else 'NO_WAKEUP'
+                d[1] = self.ioConfigParams['DIGITAL_IN'][0]['options'].index(wup) & 0x03
+            elif config['mode'] == 'DIGITAL_OUT_PUSHPULL' or config['mode'] == 'DIGITAL_IO_OPEN_DRAIN':
                 d[1] = int(config['value']) & 0x01  # output value
             elif config['mode'] == 'PWM_OUT_PUSHPULL' or config['mode'] == 'PWM_OUT_OPEN_DRAIN':
                 p = int(config['period'])
@@ -1373,7 +1457,8 @@ class PiJuiceConfig(object):
                 return {'data': {'mode': mode, 'pull': pull, 'period': per, 'duty_cycle': dc},
                         'non_volatile': nv, 'error': 'NO_ERROR'}
             else:
-                return {'data': {'mode': mode, 'pull': pull},
+                wup = self.ioConfigParams['DIGITAL_IN'][0]['options'][d[1]&0x03] if d[1]&0x03 < len(self.ioConfigParams['DIGITAL_IN'][0]['options']) else ''
+                return {'data': {'mode': mode, 'pull': pull, 'wakeup': wup},
                         'non_volatile': nv, 'error': 'NO_ERROR'}
 
     def GetAddress(self, slave):
