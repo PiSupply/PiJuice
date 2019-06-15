@@ -2,7 +2,7 @@
 
 The NatureJuice is a variation of the NatureBytes kit and leverages on the possibilities offered by PiJuice.
 
-There is an assembly guide --add link to MakerZone-- available on the PiSupply MakerZone which shows how to put together the kit and make the necessary connections.
+There is an [assembly guide available on the PiSupply MakerZone](https://learn.pi-supply.com/make/pijuice-naturejuice-project/) which shows how to put together the kit and make the necessary connections.
 
 NatureJuice comes with a sample script which can be installed as a Systemd service and run at startup.
 A modified PIR Motion Sensor is connected to the PiJuice and allows to powerup the Raspberry Pi when motion is detected. This is triggered via a rising edge on IO2.
