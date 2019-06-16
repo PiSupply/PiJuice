@@ -100,7 +100,7 @@ You can also right click on this icon to load the configuration menu, instead of
 
 ### Main software menu
 
-![Main software menu, with battery attached](https://user-images.githubusercontent.com/16068311/35161234-7d125174-fd37-11e7-9383-e2e80044258d.png "Main software menu, with battery attached")
+![Main software menu, with battery attached](https://user-images.githubusercontent.com/1197294/59567282-eaff2180-906b-11e9-8dbf-878ce53342d1.png"Main software menu, with battery attached")
 
 This picture is how the PiJuice Settings software looks when it loads up. This also shows some basic information about the battery charge, battery voltage, and where it is charging from....here is it showing 97% and a high voltage on the battery. You can also see that it is charging from the Pi GPIO (meaning it is plugged in to the Pis microUSB) and it also shows the rail voltages and current draw over the GPIO pins. Below that is the PiJuice microUSB and as you can see in this screenshot that is plugged in. There is a fault checker, a system switch state and also a link to a HAT config menu (more on that later! - see PiJuice HAT Configuration Menu screenshot).
 
@@ -315,7 +315,7 @@ Button events can be configured to trigger predefined or user functions.
 
 ### PiJuice HAT Config LEDs Menu
 
-![PiJuice HAT Config LEDs Menu](https://user-images.githubusercontent.com/16068311/35161232-7cdfe4aa-fd37-11e7-9249-f02f89ea2587.png "PiJuice HAT Config LEDs Menu")
+![PiJuice HAT Config LEDs Menu](https://user-images.githubusercontent.com/1197294/59567285-eaff2180-906b-11e9-98a3-44eeebd8a665.png "PiJuice HAT Config LEDs Menu")
 
 Perhaps our favourite options menu is the LEDs menu - as with the buttons we have made these super versatile. They can have standard functions as displayed above, they can have preset functions or you can define custom ways for them to behave.
 
@@ -332,7 +332,7 @@ Each LED can be assigned to predefined predefined function or configured for use
 
 ### PiJuice HAT Config Battery Menu
 
-![PiJuice HAT Config Battery Menu](https://user-images.githubusercontent.com/16068311/35161226-7c026f30-fd37-11e7-897a-a470e06a4c8b.png "PiJuice HAT Config Battery Menu")
+![PiJuice HAT Config Battery Menu](https://user-images.githubusercontent.com/1197294/59567283-eaff2180-906b-11e9-9685-2ff5ac579ab9.png" PiJuice HAT Config Battery Menu")
 
 The battery menu is a very important one. It basically allows you to set charge profiles for the PiJuice charge chip in order to correctly and efficiently charge the battery, correctly monitor the charge percentages and more. We have got a number of built in presets such as the ones that will come with the PiJuice by default (the BP7X) and all of the other ones we will supply. But as promised, there is also the ability to add your own custom charge profiles and even your own battery temperature sensor in order to increase the safety and efficiency of charging your batteries.
 
@@ -353,7 +353,7 @@ As previously mentioned, some of these are even hard coded into the firmware on 
 More information on the default profiles and how to created additional ones can be found in the [Hardware Section](https://github.com/PiSupply/PiJuice/tree/master/Hardware#battery-profiles)
 
 ### PiJuice HAT Config IO Menu
-![PiJuice HAT Config IO Menu](https://user-images.githubusercontent.com/16068311/35161231-7cc2820c-fd37-11e7-875b-b80b18c3a6ab.png "PiJuice HAT Config IO Menu")
+![PiJuice HAT Config IO Menu](https://user-images.githubusercontent.com/1197294/59567284-eaff2180-906b-11e9-9d85-ed05647dc1a3.png" PiJuice HAT Config IO Menu")
 
 This Tab provides configuration of two pins IO port provided from HAC microcontroller at P3 Header.
 Modes selection box provides to program IO pin to one of predefined modes:
@@ -370,7 +370,7 @@ Click Apply button to save new settings.
 
 ### PiJuice HAT Config Firmware Menu
 
-<img src="https://user-images.githubusercontent.com/1197294/40877060-868a9ff6-667b-11e8-976e-b1d4fcbd03a6.png" width="654">
+<img src="https://user-images.githubusercontent.com/1197294/59567286-eb97b800-906b-11e9-9aed-65877c73817d.png" width="654">
 
 Last but very much not least is the firmware menu. This allows you to update the firmware on the PiJuice MCU chip as and when necessary meaning we can actively improve the firmware and any updates or improvements we make in the future can be retrospectively applied to all PiJuice HATs!
 
