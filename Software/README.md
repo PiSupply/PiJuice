@@ -332,7 +332,7 @@ Each LED can be assigned to predefined predefined function or configured for use
 
 ### PiJuice HAT Config Battery Menu
 
-![PiJuice HAT Config Battery Menu](https://user-images.githubusercontent.com/1197294/59568790-2ad00400-9080-11e9-8769-1aaaf6b44e73.png 'PiJuice HAT Config Battery Menu")
+![PiJuice HAT Config Battery Menu](https://user-images.githubusercontent.com/1197294/59568790-2ad00400-9080-11e9-8769-1aaaf6b44e73.png "PiJuice HAT Config Battery Menu")
 
 The battery menu is a very important one. It basically allows you to set charge profiles for the PiJuice charge chip in order to correctly and efficiently charge the battery, correctly monitor the charge percentages and more. We have got a number of built in presets such as the ones that will come with the PiJuice by default (the BP7X) and all of the other ones we will supply. But as promised, there is also the ability to add your own custom charge profiles and even your own battery temperature sensor in order to increase the safety and efficiency of charging your batteries.
 
