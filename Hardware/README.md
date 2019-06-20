@@ -416,8 +416,8 @@ We have created a label you can stick to your battery to remind you of some of t
 
 ### 3D Design Files
 
-We have had a number of people request 3D design files for the HAT (so they can design their own cases etc) as well as for the surround (so they can modify the surround and/or print their own at home). You can find those files on out GitHub at the following locations:
+We have had a number of people request 3D design files for the HAT and pHAT (so they can design their own cases etc) as well as for the surround (so they can modify the surround and/or print their own at home). You can find those files on out GitHub at the following locations:
 
-* [HAT 3D Files](https://github.com/PiSupply/PiJuice/tree/master/Hardware/3D/HAT)
+* [PiJuice HAT 3D Files](https://github.com/PiSupply/PiJuice/tree/master/Hardware/3D/HAT)
 * [Surround 3D Files](https://github.com/PiSupply/PiJuice/tree/master/Hardware/3D/Surround)
-* [Zero pHAT 3D Files](https://github.com/PiSupply/PiJuice/tree/master/Hardware/3D/pHAT)
+* [PiJuice Zero pHAT 3D Files](https://github.com/PiSupply/PiJuice/tree/master/Hardware/3D/pHAT)
