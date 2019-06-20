@@ -420,3 +420,4 @@ We have had a number of people request 3D design files for the HAT (so they can 
 
 * [HAT 3D Files](https://github.com/PiSupply/PiJuice/tree/master/Hardware/3D/HAT)
 * [Surround 3D Files](https://github.com/PiSupply/PiJuice/tree/master/Hardware/3D/Surround)
+* [Zero pHAT 3D Files](https://github.com/PiSupply/PiJuice/tree/master/Hardware/3D/pHAT)
