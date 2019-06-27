@@ -38,8 +38,8 @@ PiJuice is a fully [CE and FCC tested](https://github.com/PiSupply/PiJuice/tree/
 ## Installing the software
 
 ### Installing on Buster
-The procedure below does not work (yet) for the recent Buster release.
-The current (2019-06-27) 1.4 packages are not available in Buster yet.
+The procedure below does not work for the recent Buster release.
+The current (2019-06-27) 1.4 packages are not available in Buster.
 To install them do the following:
 Edit the file /etc/apt/sources.list.d/raspi.list so it looks as follows:
 ```
@@ -56,9 +56,11 @@ sudo ln -sf /usr/lib/python3.5/dist-packages/pijuice.py /usr/lib/python3/dist-pa
 ```
 Then after a reboot it should work
 
+It is recommended to remove the added line for stretch in /etc/apt/sources.list.d/raspi.list after the installation. This to avoid possible conflicts with other package updates.
+
 Alternatively you can install the 1.5 packages manually. They are available in https://github.com/PiSupply/PiJuice/tree/master/Software/Install. 
 
-When the 1.5 packages will be available in Buster this section will be removed.
+After the 1.5 packages will be available in Buster this section will be removed.
 
 ### Installing on Stretch and Jessie
  
