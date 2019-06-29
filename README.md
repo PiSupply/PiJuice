@@ -37,33 +37,6 @@ PiJuice is a fully [CE and FCC tested](https://github.com/PiSupply/PiJuice/tree/
 
 ## Installing the software
 
-### Installing on Buster
-The procedure below does not work for the recent Buster release.
-The current (2019-06-27) 1.4 packages are not available in Buster.
-To install them do the following:
-Edit the file /etc/apt/sources.list.d/raspi.list so it looks as follows:
-```
-deb http://archive.raspberrypi.org/debian/ buster main
-deb http://archive.raspberrypi.org/debian/ stretch main
-# Uncomment line below then 'apt-get update' to enable 'apt-get source'
-#deb-src http://archive.raspberrypi.org/debian/ buster main
-```
-Note the added line for Stretch. After an `sudo apt-get update` you can install the 1.4 packages, but they still will not work because Buster uses python3.7 while Stretch uses python3.5.
-
-Execute the following command after the installation:
-```
-sudo ln -sf /usr/lib/python3.5/dist-packages/pijuice.py /usr/lib/python3/dist-packages
-```
-Then after a reboot it should work
-
-It is recommended to remove the added line for stretch in /etc/apt/sources.list.d/raspi.list after the installation. This to avoid possible conflicts with other package updates.
-
-Alternatively you can install the 1.5 packages manually. They are available in https://github.com/PiSupply/PiJuice/tree/master/Software/Install. 
-
-After the 1.5 packages will be available in Buster this section will be removed.
-
-### Installing on Stretch and Jessie
- 
 PiJuice will actually work straight out of the box, with no software, to power the Pi and for some other basic functionality. However to get the most out of PiJuice you really need to install the software packages. For PiJuice we have created a Raspbian / Debian Package to make it extra simple to obtain and install the necessary software. At the command line simply type:
 ```bash
 sudo apt-get install pijuice-gui

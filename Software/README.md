@@ -14,7 +14,9 @@ sudo apt-get install pijuice-base
 ```
 This is particularly indicated for Raspbian Lite or an headless installation.
 
-Note: Users using Debian Jessie must install the v1.3.3 .deb package manually from [here](https://github.com/PiSupply/PiJuice/tree/master/Software/Install) however some features may not be available.
+Note: The v1.5 debian packages are available for Buster and Stretch. The latest package for Jessie in the Raspbian is 1.4.
+Jessie users can install the v1.5 .deb packages manually from [here](https://github.com/PiSupply/PiJuice/tree/master/Software/Install) however v1.5 has not been tested under Jessie..
+
 
 ### Manual process
 
@@ -24,11 +26,11 @@ Install the dependency python urwid package:
 
 For the light version:
 
-`sudo dpkg -i ./pijuice-base_1.4_all.deb`
+`sudo dpkg -i ./pijuice-base_1.5_all.deb`
 
 For example for the full version with GUI:
 
-`sudo dpkg -i ./pijuice-gui_1.4_all.deb`
+`sudo dpkg -i ./pijuice-gui_1.5_all.deb`
 
 **Note:** You must install the PiJuice base version prior to installing the GUI.
 
@@ -38,14 +40,10 @@ You will need to reboot at this point so that the system tray app is refreshed.
 
 To remove PiJuice you'll need to run:
 
-`sudo dpkg -r pijuice`
+`sudo dpkg -r pijuice-gui`
 
-#### Build DEB-package manually
+#### Build DEB-packages manually
 `./pckg-pijuice.sh`
-
-or for the light version without GUI:
-
-`./pckg-pijuice.sh --light`
 
 *Note: You will need python-stdeb, dh-systemd and debhelper in order to be able to build.*
 
