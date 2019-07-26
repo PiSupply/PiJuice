@@ -88,8 +88,12 @@ echo '1-1' | sudo tee /sys/bus/usb/drivers/usb/unbind
 
 *This is only applicable to version 1.3 of the Raspberry Pi Camera*
 
-Although this won't have visible repercussions on the battery duration you can disable the camera LED. You might want to do this to limit factors that might scare wildlife especially in the dark.
+Although this won't have visible repercussions on the battery duration you can disable the camera LED. You may want to do this to limit factors that might scare wildlife especially in the dark.
 
+You can do this by adding the following line to /boot/config.txt
+```text
+disable_camera_led=1
+```
 
 #### On-board LEDs and HDMI
 
@@ -208,11 +212,12 @@ It can be invoked from the command line as follows:
 ```bash
 ./naturejuice.py
 ```
-
+```text
 -l                  Overlay NatureJuice logo onto captured image
 -o <outputlocation> Specify output file location
 -v                  Verbose - print log in terminal
 -f                  Force a trigger when launching the script
+```
 
 We have developed a new logo that can be used as a watermark for the pictures. You can add it and a timestamp by using the -l option.
 
