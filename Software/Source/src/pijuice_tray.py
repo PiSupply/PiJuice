@@ -11,6 +11,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk as gtk
 from gi.repository import GObject as gobject
+from gi.repository import GLib as glib
 
 from pijuice import PiJuice, get_versions
 
@@ -29,13 +30,13 @@ class PiJuiceStatusTray(object):
         # Create menu
         self.menu = gtk.Menu()
 
-        i = gtk.MenuItem("Settings")
+        i = gtk.MenuItem(label="Settings")
         self.settings_item = i
         i.show()
         i.connect("activate", self.ConfigurePiJuice)
         self.menu.append(i)
 
-        i = gtk.MenuItem("About...")
+        i = gtk.MenuItem(label="About...")
         i.show()
         i.connect("activate", self.show_about)
         self.menu.append(i)
@@ -48,8 +49,8 @@ class PiJuiceStatusTray(object):
         self.refresh(None)
         self.tray.set_visible(True)
 
-        gobject.timeout_add(REFRESH_INTERVAL, self.refresh, self.tray)
-        gobject.timeout_add(CHECK_SIGNAL_INTERVAL, self.check_signum)
+        glib.timeout_add(REFRESH_INTERVAL, self.refresh, self.tray)
+        glib.timeout_add(CHECK_SIGNAL_INTERVAL, self.check_signum)
 
     def show_menu(self, widget, event_button, event_time):
         self.menu.popup(None, None,
@@ -69,11 +70,11 @@ class PiJuiceStatusTray(object):
             "OS version: %s" % os_version,
         ])
         dialog = gtk.MessageDialog(
-            None,
-            gtk.DialogFlags.MODAL,
-            gtk.MessageType.INFO,
-            gtk.ButtonsType.OK,
-            message
+            parent=None,
+            modal=True
+            message_type=gtk.MessageType.INFO,
+            buttons=gtk.ButtonsType.OK,
+            text=message
         )
         dialog.set_title("About")
         dialog.run()

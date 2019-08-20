@@ -1334,7 +1334,7 @@ class PiJuiceHATConfigGui(object):
         t.protocol("WM_DELETE_WINDOW", lambda x=self.cfg_hat_button, y=t: close_hat_config(x, y))
 
         # Create the notebook
-        nb = Notebook(t, name='notebook', width=640, height=480)
+        nb = Notebook(t, name='notebook')
 
         # Extend bindings to top level window allowing
         #   CTRL+TAB - cycles thru tabs

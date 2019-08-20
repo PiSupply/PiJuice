@@ -1741,7 +1741,7 @@ class SystemTaskTab(object):
     def validate_minchglevel(self, widget, newtext):
         if newtext == "":
             newtext = "0"
-        text = validate_value(newtext, 'int', 1, 100,
+        text = validate_value(newtext, 'int', 0, 100,
                               pijuiceConfigData['system_task']['min_charge']['threshold'])
         pijuiceConfigData['system_task']['min_charge']['threshold'] = text
         if text != newtext:
