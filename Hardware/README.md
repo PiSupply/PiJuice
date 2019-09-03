@@ -31,7 +31,8 @@ The following lists the default function/configuration (these can be easily over
     * Single press to power on (release in less than 800 ms)
     * Long press of at least 10 seconds to halt
     * Long press of at least 20 seconds to cut power
-
+* **J5** when connecting a button it works like SW2 on the HAT
+ 
 Default settings can be overridden in the "Buttons" tab of PiJuice HAT configuration window. Check the [software section](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md) for more information.
 
 #### Special functions
