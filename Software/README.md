@@ -351,17 +351,17 @@ As previously mentioned, some of these are even hard coded into the firmware on 
 More information on the default profiles and how to created additional ones can be found in the [Hardware Section](https://github.com/PiSupply/PiJuice/tree/master/Hardware#battery-profiles)
 
 **Available Battery Profiles:**
-BP6X_1400 -
-BP7X_1820 -
-SNN5843_2300 -
-PjLIPO_12000 - [](https://uk.pi-supply.com/products/pijuice-12000mah-battery)
-PjLIPO_5000 - [](https://uk.pi-supply.com/products/pijuice-5000mah-battery)
-PjBP7X_1600 - [](https://uk.pi-supply.com/products/1600-mah-smartphone-battery-compatible-with-pijuice)
-PjSNN5843_1300 - [](https://uk.pi-supply.com/products/1300-mah-smartphone-battery-compatible-with-pijuice)
-PjZERO_1200 - [](https://uk.pi-supply.com/products/pijuice-zero-1200mah-battery)
-PjZERO_1000 - [](https://uk.pi-supply.com/products/pijuice-zero-1000mah-battery)
-PjLIPO600 - [](https://uk.pi-supply.com/products/pijuice-zero-600mah-battery)
-PjLIPO_500 - [](https://uk.pi-supply.com/products/pijuice-zero-500mah-battery)
+- BP6X_1400 -
+- BP7X_1820 -
+- SNN5843_2300 -
+- [PjLIPO_12000](https://uk.pi-supply.com/products/pijuice-12000mah-battery)
+- [PjLIPO_5000](https://uk.pi-supply.com/products/pijuice-5000mah-battery)
+- [PjBP7X_1600](https://uk.pi-supply.com/products/1600-mah-smartphone-battery-compatible-with-pijuice)
+- [PjSNN5843_1300](https://uk.pi-supply.com/products/1300-mah-smartphone-battery-compatible-with-pijuice)
+- [PjZERO_1200](https://uk.pi-supply.com/products/pijuice-zero-1200mah-battery)
+- [PjZERO_1000](https://uk.pi-supply.com/products/pijuice-zero-1000mah-battery)
+- [PjLIPO600](https://uk.pi-supply.com/products/pijuice-zero-600mah-battery)
+- [PjLIPO_500](https://uk.pi-supply.com/products/pijuice-zero-500mah-battery)
 
 **Note:** Pre-defined battery profile parameters will only be shown when you apply the changes.
 
@@ -381,10 +381,10 @@ Modes selection box provides to program IO pin to one of predefined modes:
 
 Click Apply button to save new settings.
 
-IO2 can be set as a digital wake-up interrupt on the Raspberry Pi from a peripheral device connected to header P3. The wakeup can be set as one of the following:
-* NO_WAKEUP - Wakeup function disabled
-* FALLING_EDGE - High to Low
-* RISING_EDGE - Low to High
+**IO2** can be set as a digital wake-up interrupt on the Raspberry Pi from a peripheral device connected to header P3. The wakeup can be set as one of the following:
+* **NO_WAKEUP** - Wakeup function disabled
+* **FALLING_EDGE** - High to Low
+* **RISING_EDGE** - Low to High
 
 
 ### PiJuice HAT Config Firmware Menu
@@ -501,27 +501,27 @@ In order to program one of the buttons, first select which button you would like
 
 ![pijuice cli buttons options](https://user-images.githubusercontent.com/1878314/64280721-9e7c0180-cf49-11e9-838c-db0d578a378b.png)
 
-**PRESS** - Triggered immediately after button is pressed\
-**RELEASE** - Triggered immediately after button is released\
-**SINGLE PRESS** - Triggered if button is released in time less than configurable timeout after button press\
-**DOUBLE PRESS** - Triggered if button is double pressed in time less than configurable timeout\
-**LONG PRESS 1** - Triggered if button is hold pressed hold for configurable time period 1\
-**LONG PRESS 2** - Triggered if button is hold pressed hold for configurable time period 2
+- **PRESS** - Triggered immediately after button is pressed\
+- **RELEASE** - Triggered immediately after button is released\
+- **SINGLE PRESS** - Triggered if button is released in time less than configurable timeout after button press\
+- **DOUBLE PRESS** - Triggered if button is double pressed in time less than configurable timeout\
+- **LONG PRESS 1** - Triggered if button is hold pressed hold for configurable time period 1\
+- **LONG PRESS 2** - Triggered if button is hold pressed hold for configurable time period 2
 
 In the next menu option if you select one of the above you can change the type of user function that you wish to trigger when the button is pressed.
 
 ![pijuice cli buttons functions](https://user-images.githubusercontent.com/1878314/64280915-fd417b00-cf49-11e9-88e0-785af47a9fc0.png)
 
-**NO_FUNC** - Does nothing\
-**HARD_FUNC_POWER_ON** - Switches on the Raspberry Pi by applying power to the GPIO pins\
-**HARD_FUNC_POWER_OFF** - Switches off power to the Raspberry Pi by cutting the power to the GPIO pins (Not recommend)\
-**HARD_FUNC_RESET** - Resets power to the Raspberry Pi forcing a reboot\
-**SYS_FUNC_HALT** - Halts the system\
-**SYS_FUNC_HALT_POW_OFF** - Halts the system then power off the 5V power regulator and system switch is set to off\
-**SYS_FUNC_SYS_OFF_HALT** - System is halted and system switch is set to off and system halts\
-**SYS_FUNC_REBOOT** - performs a reboot\
-**USER_EVENT** - Runs a custom script that it not processed by system task\
-**USER_FUNC1** - Runs a custom user script
+- **NO_FUNC** - Does nothing\
+- **HARD_FUNC_POWER_ON** - Switches on the Raspberry Pi by applying power to the GPIO pins\
+- **HARD_FUNC_POWER_OFF** - Switches off power to the Raspberry Pi by cutting the power to the GPIO pins (Not recommend)\
+- **HARD_FUNC_RESET** - Resets power to the Raspberry Pi forcing a reboot\
+- **SYS_FUNC_HALT** - Halts the system\
+- **SYS_FUNC_HALT_POW_OFF** - Halts the system then power off the 5V power regulator and system switch is set to off\
+- **SYS_FUNC_SYS_OFF_HALT** - System is halted and system switch is set to off and system halts\
+- **SYS_FUNC_REBOOT** - performs a reboot\
+- **USER_EVENT** - Runs a custom script that it not processed by system task\
+- **USER_FUNC1** - Runs a custom user script
 
 **NOTE: SYS_FUNC_HALT_POW_OFF still provides power to the Raspberry Pi for a further 60 seconds after shutdown**
 
@@ -539,13 +539,13 @@ Just like the buttons, the LEDS are also configurable on the PiJuice and there a
 
 Each LED can be assigned to a predefined function or configured for user software control as User LED. There are two user functions that are available:
 
-**CHARGE STATUS** - LED is configured to signal current charge level of the battery. For level <= 15% red with configurable brightness. For level > 15% and level <=50% mix of red and green with configurable brightness. For level > 50% green with configurable brightness. When battery is charging blinking blue with configurable brightness is added to current charge level color. For full buttery state blue component is steady on. Current D1 LED values:
+- **CHARGE STATUS** - LED is configured to signal current charge level of the battery. For level <= 15% red with configurable brightness. For level > 15% and level <=50% mix of red and green with configurable brightness. For level > 50% green with configurable brightness. When battery is charging blinking blue with configurable brightness is added to current charge level color. For full buttery state blue component is steady on. Current D1 LED values:
 
 R: 60\
 G: 60\
 B: 100
 
-**USER LED** - When LED is configured as User LED it can be directly controlled with User software via command interface. Initial PiJuice power, on User LED state is defined with R, G, and B brightness level parameters.
+- **USER LED** - When LED is configured as User LED it can be directly controlled with User software via command interface. Initial PiJuice power, on User LED state is defined with R, G, and B brightness level parameters.
 
 Example:
 
@@ -596,17 +596,17 @@ There is also an alternative method for measuring the charge of the battery by t
 Any changes made to the battery profile must be saved using the Apply Settings option.
 
 **Available Battery Profiles:**
-BP6X_1400 -
-BP7X_1820 -
-SNN5843_2300 -
-PjLIPO_12000 - [](https://uk.pi-supply.com/products/pijuice-12000mah-battery)
-PjLIPO_5000 - [](https://uk.pi-supply.com/products/pijuice-5000mah-battery)
-PjBP7X_1600 - [](https://uk.pi-supply.com/products/1600-mah-smartphone-battery-compatible-with-pijuice)
-PjSNN5843_1300 - [](https://uk.pi-supply.com/products/1300-mah-smartphone-battery-compatible-with-pijuice)
-PjZERO_1200 - [](https://uk.pi-supply.com/products/pijuice-zero-1200mah-battery)
-PjZERO_1000 - [](https://uk.pi-supply.com/products/pijuice-zero-1000mah-battery)
-PjLIPO600 - [](https://uk.pi-supply.com/products/pijuice-zero-600mah-battery)
-PjLIPO_500 - [](https://uk.pi-supply.com/products/pijuice-zero-500mah-battery)
+- BP6X_1400 -
+- BP7X_1820 -
+- SNN5843_2300 -
+- [PjLIPO_12000](https://uk.pi-supply.com/products/pijuice-12000mah-battery)
+- [PjLIPO_5000](https://uk.pi-supply.com/products/pijuice-5000mah-battery)
+- [PjBP7X_1600](https://uk.pi-supply.com/products/1600-mah-smartphone-battery-compatible-with-pijuice)
+- [PjSNN5843_1300](https://uk.pi-supply.com/products/1300-mah-smartphone-battery-compatible-with-pijuice)
+- [PjZERO_1200](https://uk.pi-supply.com/products/pijuice-zero-1200mah-battery)
+- [PjZERO_1000](https://uk.pi-supply.com/products/pijuice-zero-1000mah-battery)
+- [PjLIPO600](https://uk.pi-supply.com/products/pijuice-zero-600mah-battery)
+- [PjLIPO_500](https://uk.pi-supply.com/products/pijuice-zero-500mah-battery)
 
 **Note:** Pre-defined battery profile parameters will only be shown when you apply the changes.
 
