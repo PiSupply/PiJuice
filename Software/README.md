@@ -350,6 +350,22 @@ As previously mentioned, some of these are even hard coded into the firmware on 
 
 More information on the default profiles and how to created additional ones can be found in the [Hardware Section](https://github.com/PiSupply/PiJuice/tree/master/Hardware#battery-profiles)
 
+**Available Battery Profiles:**
+BP6X_1400 -
+BP7X_1820 -
+SNN5843_2300 -
+PjLIPO_12000 - [](https://uk.pi-supply.com/products/pijuice-12000mah-battery)
+PjLIPO_5000 - [](https://uk.pi-supply.com/products/pijuice-5000mah-battery)
+PjBP7X_1600 - [](https://uk.pi-supply.com/products/1600-mah-smartphone-battery-compatible-with-pijuice)
+PjSNN5843_1300 - [](https://uk.pi-supply.com/products/1300-mah-smartphone-battery-compatible-with-pijuice)
+PjZERO_1200 - [](https://uk.pi-supply.com/products/pijuice-zero-1200mah-battery)
+PjZERO_1000 - [](https://uk.pi-supply.com/products/pijuice-zero-1000mah-battery)
+PjLIPO600 - [](https://uk.pi-supply.com/products/pijuice-zero-600mah-battery)
+PjLIPO_500 - [](https://uk.pi-supply.com/products/pijuice-zero-500mah-battery)
+
+**Note:** Pre-defined battery profile parameters will only be shown when you apply the changes.
+
+
 ### PiJuice HAT Config IO Menu
 ![PiJuice HAT Config IO Menu](https://user-images.githubusercontent.com/1197294/59568816-adf15a00-9080-11e9-842e-4b1c54a0e47a.png "PiJuice HAT Config IO Menu")
 
@@ -357,7 +373,7 @@ This Tab provides configuration of two pins IO port provided from HAC microcontr
 Modes selection box provides to program IO pin to one of predefined modes:
 * **NOT_USED**: Set IO pin in neutral configuration (passive input).
 * **ANALOG_IN**: Set IO pin in analog to digital converter mode. In this mode Value can be read with status function GetIoAnalogInput(). Pull has no effect in this mode.
-* **DIGITAL_IN**: Set IO pin in digital input mode. Pull in this mode cen be set to NO_PULL, PULLDOWN or PULLUP. Use status function SetIoDigitalOutput() to read input value dynamically.
+* **DIGITAL_IN**: Set IO pin in digital input mode. Pull in this mode can be set to NO_PULL, PULLDOWN or PULLUP. Use status function SetIoDigitalOutput() to read input value dynamically.
 * **DIGITAL_OUT_PUSHPULL**: Set IO pin in digital output mode with push-pull driver topology. Pull in this mode should be set to NO_PULL. Initial value can be set to 0 or 1. Use status function SetIoDigitalOutput() to control output value dynamically.
 * **DIGITAL_IO_OPEN_DRAIN**: Set IO pin in digital output mode with open-drain driver topology. Pull in this mode can be set to NO_PULL, PULLDOWN or PULLUP. Initial value can be set to 0 or 1. Use status function SetIoDigitalOutput() to control output value dynamically.
 * **PWM_OUT_PUSHPULL**: Set IO pin to PWM output mode with push-pull driver topology. Pull in this mode should be set to NO_PULL. Period [us] box sets period in microseconds in range [2, 131072] with 2us resolution. Set initial duty_circle in range [0, 100]. Use status function SetIoPWM() to control duty circle dynamically.
@@ -365,10 +381,15 @@ Modes selection box provides to program IO pin to one of predefined modes:
 
 Click Apply button to save new settings.
 
+IO2 can be set as a digital wake-up interrupt on the Raspberry Pi from a peripheral device connected to header P3. The wakeup can be set as one of the following:
+* NO_WAKEUP - Wakeup function disabled
+* FALLING_EDGE - High to Low
+* RISING_EDGE - Low to High
+
 
 ### PiJuice HAT Config Firmware Menu
 
-<img src="https://user-images.githubusercontent.com/1197294/59567286-eb97b800-906b-11e9-9aed-65877c73817d.png" width="654">
+<img src="https://user-images.githubusercontent.com/1878314/64279139-47286200-cf46-11e9-877e-5062b60e8b44.png" width="654">
 
 Last but very much not least is the firmware menu. This allows you to update the firmware on the PiJuice MCU chip as and when necessary meaning we can actively improve the firmware and any updates or improvements we make in the future can be retrospectively applied to all PiJuice HATs!
 
@@ -395,7 +416,7 @@ To launch the PiJuice CLI simply open up the Terminal or from the command line t
 
 **Note:** Previous versions before v1.4 must run `pijuice_cli.py`
 
-![pijuice cli](https://drive.google.com/uc?id=1bSHhI6uIXOhCBUWUfkAwLAHcVTAm7UbD)
+![pijuice cli](https://user-images.githubusercontent.com/1878314/64280401-f23a1b00-cf48-11e9-9a3f-21e7211a72e1.png)
 
 The PiJuice command line interface is an extension of the PiJuice HAT Configuration GUI with the exception that System Task, System Events and User Scripts cannot be configurable from the command line interface. To configure these options you will need to directly modify the JSON file as shown in the next section.
 
@@ -404,7 +425,7 @@ To scroll the menu simply use your arrow keys on your keyboard and press enter t
 ### Status
 This menu shows the current status of the PiJuice including battery levels and charging input method.
 
-![pijuice cli status](https://drive.google.com/uc?id=1vhS2cULuMJNl91DSFq4sGjPAx78uWFKa)
+![pijuice cli status](https://user-images.githubusercontent.com/1878314/64280524-39281080-cf49-11e9-9779-e19f7499e241.png)
 
 **Note: It is recommended to use a power supply with a current rating of 2.5A such as the official Raspberry Pi power supply.**
 
@@ -424,7 +445,7 @@ To get new data from the PiJuice you can select Refresh to update the values.
 
 In the General menu it allows you to configure a lot of the hardware settings for the PiJuice HAT. The only difference with this menu and the GUI is that you cannot change the I2C address for the PiJuice HAT and the built-in RTC.
 
-![pijuice cli general](https://drive.google.com/uc?id=1Q4QfGhPlpLhG2e_xl6LMomzXw4Yz0B0X)
+![pijuice cli general](https://user-images.githubusercontent.com/1878314/64280607-61177400-cf49-11e9-8969-41314e6694c4.png)
 
 **GPIO Input Enabled** enables/disables powering the PiJuice HAT from 5V GPIO Input (Raspberry Pi). Enabled by default.
 
@@ -474,11 +495,11 @@ You can even trigger different events for a press, release, single press, double
 
 ![pijuice buttons](https://drive.google.com/uc?id=1l4-ED-NaKrpxU8fwHwjcotSP9aV9odpM)
 
-![pijuice cli buttons menu](https://drive.google.com/uc?id=10ES3CMU2HTqXaJbrk0jOGkLSYRY7c8HW)
+![pijuice cli buttons menu](https://user-images.githubusercontent.com/1878314/64280672-873d1400-cf49-11e9-9c42-4e93602be8b2.png)
 
 In order to program one of the buttons, first select which button you would like to use to trigger and event. In the next menu you can program the type of button press you would like to use from the following settings:
 
-![pijuice cli buttons options](https://drive.google.com/uc?id=1inpN5y9n1oPbub-25DgAST0rrtve5AEk)
+![pijuice cli buttons options](https://user-images.githubusercontent.com/1878314/64280721-9e7c0180-cf49-11e9-838c-db0d578a378b.png)
 
 **PRESS** - Triggered immediately after button is pressed\
 **RELEASE** - Triggered immediately after button is released\
@@ -489,7 +510,7 @@ In order to program one of the buttons, first select which button you would like
 
 In the next menu option if you select one of the above you can change the type of user function that you wish to trigger when the button is pressed.
 
-![pijuice cli buttons functions](https://drive.google.com/uc?id=1hMF9mAob28p5Ktv5G572rBzOy-322pbc)
+![pijuice cli buttons functions](https://user-images.githubusercontent.com/1878314/64280915-fd417b00-cf49-11e9-88e0-785af47a9fc0.png)
 
 **NO_FUNC** - Does nothing\
 **HARD_FUNC_POWER_ON** - Switches on the Raspberry Pi by applying power to the GPIO pins\
@@ -514,7 +535,7 @@ Just like the buttons, the LEDS are also configurable on the PiJuice and there a
 
 ![pijuice cli leds](https://drive.google.com/uc?id=1hmamZh7EiUqVaxzxvZxj3vv5reivEzo3)
 
-![pijuice cli leds](https://drive.google.com/uc?id=1Wfwi4mkqOpL9jY_IGonuzEGTaRnmTSlo)
+![pijuice cli leds](https://user-images.githubusercontent.com/1878314/64281033-311ca080-cf4a-11e9-876d-4f2dc10336a7.png)
 
 Each LED can be assigned to a predefined function or configured for user software control as User LED. There are two user functions that are available:
 
@@ -530,11 +551,11 @@ Example:
 
 To change the values of LED D2, select D2 from the menu. Then select the USER_LED function and then add your own values to RGB.
 
-![pijuice cli rgb](https://drive.google.com/uc?id=1hHicPkBisva7Bdb2okzkuGvRcezdsbDT)
+![pijuice cli rgb](https://user-images.githubusercontent.com/1878314/64281082-45609d80-cf4a-11e9-97c0-1d7ca7f19ff8.png)
 
 Once finished making the changes go Back and then select Apply Settings for the changes to take effect.
 
-![pijuice cli save changes](https://drive.google.com/uc?id=1blgaqgI3WgEddps6OnhoBrtbDsoWiwKm)
+![pijuice cli save changes](https://user-images.githubusercontent.com/1878314/64281190-80fb6780-cf4a-11e9-859e-c26cf1491755.png)
 
 ### Battery Profile
 
@@ -546,7 +567,7 @@ There are a number of built-in battery profile presets such as the ones that wil
 
 To change the battery profile you will need to select **Profile** option and then select from one of the following battery profiles. If you have connected your own battery to to the PiJuice then you will need to select **Custom** from the profile options.
 
-![pijuice cli battery menu](https://drive.google.com/uc?id=1J49Z8I8kxt2qgesf6DDaPqU7SO7W2xAj)
+![pijuice cli battery menu](https://user-images.githubusercontent.com/1878314/64281292-bb650480-cf4a-11e9-90ff-1ef684971fe8.png)
 
 * **Capacity**. Charge capacity of battery.
 * **Charge current**. [550mA – 2500mA]. Defines constant current that PiJuice battery is charged in current regulation phase of charging process.
@@ -562,19 +583,38 @@ To change the battery profile you will need to select **Profile** option and the
 
 Before you can start changing the values of the battery profile you will need to make sure that you select **Custom** from the **Battery Settings** menu, when it is selected you will see a cross in the box.
 
-![pijuice cli battery profile](https://drive.google.com/uc?id=1rprCTtOCS7vSrpXzTwb-Bv4cMozYks0K)
+![pijuice cli battery profile](https://user-images.githubusercontent.com/1878314/64281387-f1a28400-cf4a-11e9-8b59-2d013bdac583.png)
 
 There is an option at the end of the menu which allows you to set weather your battery had a built-in NTC temperature sensor. An NTC temperature sensor will allow you to monitor the battery temperature for charging and is ultimately there for safety reasons. If your battery does not have an NTC temperature sensor then you can disable this option from the menu **Temperature sense**.
 
-![pijuice cli battery NTC](https://drive.google.com/uc?id=1KCwpTqoB3VJkupocsFzWA0DtNhnO83aC)
+![pijuice cli battery NTC](https://user-images.githubusercontent.com/1878314/64281502-30383e80-cf4b-11e9-9889-2ce61fd3bd66.png)
+
+There is also an alternative method for measuring the charge of the battery by the MCU directly in case the fuel gauge IC is not available or is faulty.
+
+![pijuice cli rsoc](https://user-images.githubusercontent.com/1878314/64281975-498dba80-cf4c-11e9-8d1c-e7c4f6b3d115.png)
 
 Any changes made to the battery profile must be saved using the Apply Settings option.
+
+**Available Battery Profiles:**
+BP6X_1400 -
+BP7X_1820 -
+SNN5843_2300 -
+PjLIPO_12000 - [](https://uk.pi-supply.com/products/pijuice-12000mah-battery)
+PjLIPO_5000 - [](https://uk.pi-supply.com/products/pijuice-5000mah-battery)
+PjBP7X_1600 - [](https://uk.pi-supply.com/products/1600-mah-smartphone-battery-compatible-with-pijuice)
+PjSNN5843_1300 - [](https://uk.pi-supply.com/products/1300-mah-smartphone-battery-compatible-with-pijuice)
+PjZERO_1200 - [](https://uk.pi-supply.com/products/pijuice-zero-1200mah-battery)
+PjZERO_1000 - [](https://uk.pi-supply.com/products/pijuice-zero-1000mah-battery)
+PjLIPO600 - [](https://uk.pi-supply.com/products/pijuice-zero-600mah-battery)
+PjLIPO_500 - [](https://uk.pi-supply.com/products/pijuice-zero-500mah-battery)
+
+**Note:** Pre-defined battery profile parameters will only be shown when you apply the changes.
 
 ### IO
 
 The microcontroller on the PiJuice board had a number of available Input/Output pins that we can use in our projects. These pins are populated on a female header P3, which is next to the battery.
 
-![pijuice cli io menu](https://drive.google.com/uc?id=1cLDQqoKIbfVDVZUbPJeNWeqJP3SYGCkO)
+![pijuice cli io menu](https://user-images.githubusercontent.com/1878314/64285360-8b6e2f00-cf53-11e9-9020-805727918e69.png)
 
 This menu option provides configuration for two IO port pin, IO1 and IO2. You can configure the pins to one of the pre-defined modes below:
 
@@ -589,21 +629,21 @@ PULLDOWN or PULLUP. Use status function SetIoDigitalOutput() to read input value
 
 In the menu you can select from two options, **Mode** and **Pull**.
 
-![pijuice cli io options](https://drive.google.com/uc?id=1APgR0q9YuRMKDPSiP-IlXcy7VuoKpbU0)
+![pijuice cli io options](https://user-images.githubusercontent.com/1878314/64285654-d720d880-cf53-11e9-8aa1-0e967d4d66fd.png)
 
 **Mode** provides a list of modes that you can select as mentioned previously above.
 
-![pijuice cli io modes](https://drive.google.com/uc?id=1ZrJlfLyZ0BygZV3McjEnSLshDiW2FdyS)
+![pijuice cli io modes](https://user-images.githubusercontent.com/1878314/64285704-fc154b80-cf53-11e9-9d8f-271ce1f4eb4b.png)
 
 **Pull**, allows you to select the type of resistor pull for that particular pin. A **PULLUP** configuration will always default to 5V and a **PULLDOWN** will always default to GND.
 
-![pijuice cli io pull](https://drive.google.com/uc?id=1A3n0x8IGOVR-6HirhBuT0MbsO4B4Qgot)
+![pijuice cli io pull](https://user-images.githubusercontent.com/1878314/64285763-1e0ece00-cf54-11e9-910c-e00f8118d91c.png)
 
 ### Wakeup Alarm
 
 In this menu you can set the Raspberry Pi to automatically wakeup according to a schedule. This menu can be particular useful for remote monitoring application where the Raspberry Pi will wakeup, run a script and then go to sleep again until next time.
 
-![pijuice cli wakeup](https://drive.google.com/uc?id=1JEyqpuBVf2yHHUrwn9fHUhoANJJxXUup)
+![pijuice cli wakeup](https://user-images.githubusercontent.com/1878314/64286304-1ef42f80-cf55-11e9-9387-d3dbc271e253.png)
 
 First thing you will need to do it set the system time, which will synchronise and update the internal clock. This is important to make sure you Raspberry Pi will wakeup at the correct time/day set. Simply select the Set system time option.
 
@@ -617,7 +657,84 @@ In the options following this you can set your alarm by entering the Day, Hour, 
 
 From time to time we are constantly improving the software and firmware on the PiJuice HAT board. In this menu you can check if there is an Firmware update available and if there is then you can update to the latest version.
 
-![pijuice cli firmware](https://drive.google.com/uc?id=1CDgqbRn0zeU6Rh_7MsNIuP71x7Nc0L-1)
+![pijuice cli firmware](https://user-images.githubusercontent.com/1878314/64286346-39c6a400-cf55-11e9-97f8-6ea280c434e2.png)
+
+### System Task
+
+![pijuice cli system task](https://user-images.githubusercontent.com/1878314/64286346-39c6a400-cf55-11e9-97f8-6ea280c434e2.png)
+
+Here we have the system task menu tab. This enables you to set the external watchdog timer - useful for remote applications where you can't come and do a hard-reset yourself if the Pi crashes or hangs. The PiJuice essentially monitors for a "heart beat" from the software - if it does not sense it after a defined period of time it automatically resets the Raspberry Pi. You can also set here wakeup on charge levels, minimum battery levels and voltages.
+
+The watchdog timer has a configurable time-out. It defines the time after which it will power cycle if it doesn't receive a heartbeat signal. The time step is in minutes so the minimum time-out period is one minute and the maximum is 65535 minutes. The number can be any whole number between one and 65535. If you set the time to zero the watchdog timer will be disabled.
+
+* **System task enabled** - Check this box to enable one or more of the following options:
+* **Watchdog** - You can set a delay here in minutes (maximum of 65535) as to when to power cycle the Raspberry Pi when a heartbeat signal is not detected anymore. Usually this would occur when the system has crashed.
+* **Wakeup on charge** - Set a percentage battery value when to wakeup the Raspberry Pi whilst on charge. Usually this value would be high, between 90-100%. This is usually used in-conjunction with "Minimum charge".
+* **Minimum charge** - Set a minimum battery percentage level to safely shutdown the Raspberry Pi when the battery is below this value. Low values should be typically between 5-10%. NOTE: The type of system shutdown can be set under "System Events" under "Low charge" menu.
+* **Minimum battery voltage** - Set a minimum battery voltage level to safely shutdown the Raspberry Pi when below the set level. Note: The type of system shutdown can be set under "System Events" under "Low battery voltage" menu.
+* **Software Halt Power Off** - You can set a delay here in seconds (maximum of 65535) as to when to cut power to the Raspberry Pi when a software shutdown has occurred external to a button press. Usually this would occur when a user has run sudo halt, sudo shutdown -h now, or sudo poweroff in the terminal.
+
+**NOTE: Software Halt Power Off** will cut power at the end of the delay period. Provide an above normal amount of time for the OS to complete shutdown or the SD card may be CORRUPTED.  **RECOMMEND 30 or more seconds.**
+
+### System Events Menu
+
+![System Events Menu](https://user-images.githubusercontent.com/1878314/64287275-1ef52f00-cf57-11e9-965c-ade4f0dd6176.png "System Events Menu")
+
+This is the system events menu. It allows you to trigger events for certain scenarios such as low charge, low voltage and more. Each parameter has a couple of preset options to choose from, and also you can select options from the "user scripts" tab which allows you to trigger your own custom scripts when certain system events occur for maximum flexibility.
+
+* **Low charge**. System task monitors charge level and generates this event when charge drops below configurable threshold as set in "System Task"
+* **Low battery voltage**. This event is generated when battery voltage drops below configurable threshold as set in "System Task"
+* **No power**. System task generates this event when power source disappears and system is powered only with energy from battery.
+* **Watchdog reset**. If watchdog reset happened for some reason PiJuice raises watchdog reset fault flag that system task can detect immediately after boot.
+* **Button power off**. This event is raised after boot if there was power off triggered by button press.
+* **Forced power off**. If there was forced power off caused by loss of energy (battery voltage approached cut-off threshold), PiJuice raises forced power off fault flag that system task can detect immediately after boot.
+* **Forced sys power off**. This event is raised if there was forced system switch turn off caused by loss of energy.
+
+#### System Functions
+
+* **NO_FUNC** - Do nothing when system event is triggered.
+* **SYS_FUNC_HALT** - System is halted
+* **SYS_FUNC_HALT_POW_OFF** - System halts and 5V power regulator and system switch are set to off
+* **SYS_FUNC_SYS_OFF_HALT** - System is halted and system switch is set to off and system halts
+* **SYS_FUNC_REBOOT** - System reboots
+* **USER_EVENT** - Script will not be processed by system task
+* **USER_FUNCX** - Run a custom script as set in "User Scripts"
+
+**NOTE:** SYS_FUNC_HALT_POW_OFF still provides power to the Raspberry Pi for a further 60 seconds after shutdown
+
+**NOTE:** When PiJuice is in stand-by mode and 5V power has been removed, total current draw is 0.5mA from the battery
+
+### User Scripts menu
+
+<img width="668" alt="Screen Shot 2019-09-04 at 21 01 50" src="https://user-images.githubusercontent.com/1878314/64287319-3fbd8480-cf57-11e9-9454-011466c9a216.png">
+
+This is the user scripts menu as we mentioned in the above screenshot description where you can add paths to custom scripts that you can trigger on events.
+
+User scripts can be assigned to user functions called by system task when configured event arise. This should be non-blocking callback function that implements customised system functions or event logging.
+
+User functions are 4 digit binary coded and have 15 combinations, code 0 is USER_EVENT meant that it will not be processed by system task, but left to user and python API to manage it. The GUI initially only shows 8. Clicking the "Show more" button will show all 15.
+
+**NOTE:** In order for your user script to run you must make sure that it is executable and that system task is enabled in the **System Task** menu. If you are also assigning a user function to a button then you must also assign the user function under the **Buttons** tab in **PiJuice HAT Configuration**. To make your script executable you can do so from the command line with the following command:
+
+```bash
+chmod +x user_script.py
+```
+**NOTE:** Scripts executed by the pijuice.service will run as the "owner" of the script i.e. pi and must belong to the pijuice user group. By default the pijuice install script adds user `pi` to user group `pijuice`.
+
+Scripts now must determine where the interpreter is located as a shebang line so the pijuice service knows that type of script it is:
+
+```bash
+#!/usr/bin/python
+```
+
+```bash
+#!/usr/bin/python3
+```
+
+```bash
+#!/usr/bin/bash
+```
+
 
 ## PiJuice RTC
 
