@@ -661,7 +661,7 @@ From time to time we are constantly improving the software and firmware on the P
 
 ### System Task
 
-![pijuice cli system task](https://user-images.githubusercontent.com/1197294/65378339-5550df00-dcb7-11e9-925c-13e427ca6745.png)
+![pijuice cli system task](https://user-images.githubusercontent.com/1197294/65378519-bed1ed00-dcb9-11e9-9e9c-54e335f49fe2.png")
 
 Here we have the system task menu tab. This enables you to set the external watchdog timer - useful for remote applications where you can't come and do a hard-reset yourself if the Pi crashes or hangs. The PiJuice essentially monitors for a "heart beat" from the software - if it does not sense it after a defined period of time it automatically resets the Raspberry Pi. You can also set here wakeup on charge levels, minimum battery levels and voltages.
 
