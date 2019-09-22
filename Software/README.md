@@ -639,6 +639,17 @@ In the menu you can select from two options, **Mode** and **Pull**.
 
 ![pijuice cli io pull](https://user-images.githubusercontent.com/1878314/64285763-1e0ece00-cf54-11e9-910c-e00f8118d91c.png)
 
+**IO2** when configured as **DIGITAL_IN** can be set as a digital wake-up interrupt on the Raspberry Pi from a peripheral device connected to header P3. 
+
+![pijuice cli io2 digital in](https://user-images.githubusercontent.com/1197294/65392411-f782cc80-dd74-11e9-90cc-69cfcdfd22d0.png)
+
+The wakeup can be set as one of the following:
+* **NO_WAKEUP** - Wakeup function disabled
+* **FALLING_EDGE** - High to Low
+* **RISING_EDGE** - Low to High
+
+![pijuice cli wakeup options](https://user-images.githubusercontent.com/1197294/65392430-3022a600-dd75-11e9-9be6-001d7610cb58.png)
+
 ### Wakeup Alarm
 
 In this menu you can set the Raspberry Pi to automatically wakeup according to a schedule. This menu can be particular useful for remote monitoring application where the Raspberry Pi will wakeup, run a script and then go to sleep again until next time.
