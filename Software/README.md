@@ -642,6 +642,17 @@ In the menu you can select from two options, **Mode** and **Pull**.
 
 ![pijuice cli io pull](https://user-images.githubusercontent.com/1878314/64285763-1e0ece00-cf54-11e9-910c-e00f8118d91c.png)
 
+**IO2** when configured as **DIGITAL_IN** can be set as a digital wake-up interrupt on the Raspberry Pi from a peripheral device connected to header P3. 
+
+![pijuice cli io2 digital in](https://user-images.githubusercontent.com/1197294/65392411-f782cc80-dd74-11e9-90cc-69cfcdfd22d0.png)
+
+The wakeup can be set as one of the following:
+* **NO_WAKEUP** - Wakeup function disabled
+* **FALLING_EDGE** - High to Low
+* **RISING_EDGE** - Low to High
+
+![pijuice cli wakeup options](https://user-images.githubusercontent.com/1197294/65392430-3022a600-dd75-11e9-9be6-001d7610cb58.png)
+
 ### Wakeup Alarm
 
 In this menu you can set the Raspberry Pi to automatically wakeup according to a schedule. This menu can be particular useful for remote monitoring application where the Raspberry Pi will wakeup, run a script and then go to sleep again until next time.
@@ -664,7 +675,7 @@ From time to time we are constantly improving the software and firmware on the P
 
 ### System Task
 
-![pijuice cli system task](https://user-images.githubusercontent.com/1878314/64286346-39c6a400-cf55-11e9-97f8-6ea280c434e2.png)
+![pijuice cli system task](https://user-images.githubusercontent.com/1197294/65378623-63086380-dcbb-11e9-99f4-226d262dec19.png)
 
 Here we have the system task menu tab. This enables you to set the external watchdog timer - useful for remote applications where you can't come and do a hard-reset yourself if the Pi crashes or hangs. The PiJuice essentially monitors for a "heart beat" from the software - if it does not sense it after a defined period of time it automatically resets the Raspberry Pi. You can also set here wakeup on charge levels, minimum battery levels and voltages.
 
@@ -952,7 +963,7 @@ Usage example:
 #!/usr/bin/python3
 from pijuice import PiJuice # Import pijuice module
 pijuice = PiJuice(1, 0x14) # Instantiate PiJuice interface object
-print (pijuice.status.GetStatus()) # Read PiJuice status.
+print(pijuice.status.GetStatus()) # Read PiJuice status.
 ```
 Commands are encapsulated with two type of functions, Setters that writes configuration and control data to PiJuice and Getters that reads status or current configuration/control data.
 Every function returns object of dictionary type containing communication error status:
@@ -990,7 +1001,7 @@ Where:
 * 5v_power_input_status: is string constant that describes current status of 5V GPIO power input, one of four: 'NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT'.
 Example:
 ```python
-print pijuice.status.GetStatus()
+print(pijuice.status.GetStatus())
 ```
 Returns:
 `{'data': {'battery': 'CHARGING_FROM_5V_IO', 'powerInput5vIo': 'PRESENT', 'isFault': False, 'isButton': False, 'powerInput': 'NOT_PRESENT'}, 'error': 'NO_ERROR'}`
@@ -1003,7 +1014,7 @@ Returns:
 Where charge_level is percentage of charge, [0 - 100]%.
 Example:
 ```python
-print pijuice.status.GetChargeLevel()
+print(pijuice.status.GetChargeLevel())
 ```
 Returns:
 `{'data': 57, 'error': 'NO_ERROR'}`
@@ -1019,7 +1030,7 @@ Returns:
 where event is detected event name for corresponding button and can be one of: 'PRESS', 'RELEASE', 'SINGLE_PRESS', 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2' if event is generated or 'NO_EVENT' if event is absent.
 Example:
 ```python
-print pijuice.status.GetButtonEvents()
+print(pijuice.status.GetButtonEvents())
 ```
 Returns:
 `{'data': {'SW1': 'NO_EVENT', 'SW3': ' SINGLE_PRESS', 'SW2': 'NO_EVENT'}, 'error': 'NO_ERROR'}`
@@ -1030,7 +1041,7 @@ Arguments:
 button: button designator, one of: 'SW1', 'SW2', 'SW3'.
 Example:
 ```python
-print pijuice.status. AcceptButtonEvent ('SW2')
+print(pijuice.status.AcceptButtonEvent('SW2'))
 ```
 
 **SetLedState(led, rgb)**
@@ -1040,7 +1051,7 @@ led: LED designator, one of: 'D1', 'D2'.
 rgb:[r, g, b] - array of brightness levels of LED components, where r, g and b, are in range [0 – 255].
 Example:
 ```python
-print pijuice.status.SetLedState(‘D2’, [127, 0, 200])
+print(pijuice.status.SetLedState(‘D2’, [127, 0, 200]))
 ```
 
 **GetLedState(led)**
@@ -1052,7 +1063,7 @@ Returns:
 where [r, g, b] is array of brightness levels of LED components, where r, g and b, are in range [0 – 255].
 Example:
 ```python
-print pijuice.status.GetLedState('D1')
+print(pijuice.status.GetLedState('D1'))
 ```
 Returns:
 `{'data': [127, 0, 200], 'error': 'NO_ERROR'}`
@@ -1101,7 +1112,7 @@ Returns:
 }
 Example:
 ```python
-print pijuice.status.GetLedBlink('D2')
+print(pijuice.status.GetLedBlink('D2'))
 ```
 Returns:
 `{'data': {'count': 10, 'period2': 500, 'rgb2': [100, 0, 0], 'rgb1': [0, 200, 100], 'period1': 1000}, 'error': 'NO_ERROR'}`
@@ -1115,7 +1126,7 @@ Returns:
 Where input_state is 0 for low input state, 1 for high.
 Example:
 ```python
-print pijuice.status.GetIoDigitalInput(1)
+print(pijuice.status.GetIoDigitalInput(1))
 ```
 Returns:
 `{'data': 0, 'error': 'NO_ERROR'}`
@@ -1127,7 +1138,7 @@ pin: IO pin designator, 1 for IO1, 2 for IO2.
 value: output state to set, 0 for low output state, 1 for high.
 Example:
 ```python
-print pijuice.status.SetIoDigitalOutput(1, 1)
+print(pijuice.status.SetIoDigitalOutput(1, 1))
 ```
 
 **GetIoDigitalOutput(pin)**
@@ -1139,7 +1150,7 @@ Returns:
 Where output_state is 0 for low output state, 1 for high.
 Example:
 ```python
-print pijuice.status.GetIoDigitalOutput(1)
+print(pijuice.status.GetIoDigitalOutput(1))
 ```
 Returns:
 `{'data': 1, 'error': 'NO_ERROR'}`
@@ -1153,7 +1164,7 @@ Returns:
 where analog_value is voltage in millivolts measured at analog input.
 Example:
 ```python
-print pijuice.status.GetIoAnalogInput(1)
+print(pijuice.status.GetIoAnalogInput(1))
 ```
 Returns:
 `{'data': 2222, 'error': 'NO_ERROR'}`
@@ -1165,7 +1176,7 @@ pin: IO pin designator, 1 for IO1, 2 for IO2.
 dutyCircle: pulse width as percentage of period, [0 - 100]%
 Example:
 ```python
-print pijuice.status.SetIoPWM(2, 35.6)
+print(pijuice.status.SetIoPWM(2, 35.6))
 ```
 
 **GetIoPWM(pin)**
@@ -1177,7 +1188,7 @@ Returns:
 where duty_circle is pulse width as percentage of period.
 Example:
 ```python
-print pijuice.status.GetIoPWM(2)
+print(pijuice.status.GetIoPWM(2))
 ```
 Returns:
 `{'data': 35.59984130375072, 'error': 'NO_ERROR'}`
@@ -1191,7 +1202,7 @@ Arguments:
 where state is desired current limit in milliampere (two options available, 500 and 2100), or switch off if 0.
 Example:
 ```python
-print pijuice.power.SetSystemPowerSwitch(500)
+print(pijuice.power.SetSystemPowerSwitch(500))
 ```
 
 **GetSystemPowerSwitch()**
@@ -1201,7 +1212,7 @@ Returns:
 where state is current limit in milliampere or 0 if switch is off.
 Example:
 ```python
-print pijuice.power.GetSystemPowerSwitch()
+print(pijuice.power.GetSystemPowerSwitch())
 ```
 Returns:
 `{'data': 500, 'error': 'NO_ERROR'}`
