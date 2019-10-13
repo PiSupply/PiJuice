@@ -155,6 +155,9 @@ if __name__ == '__main__':
     pid = os.getpid()
     with open(TRAY_PID_FILE, 'w') as f:
         f.write(str(pid))
+    # Allow other user to overwrite this file
+    if oct(os.stat(TRAY_PID_FILE).st_mode & 0o777) != '0o666':
+        os.chmod(TRAY_PID_FILE, 0o666)
 
     # Set up signal handlers.
     # SIGUSR1 to disable the Settings menu item
