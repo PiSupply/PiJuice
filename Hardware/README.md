@@ -24,7 +24,7 @@ The following lists the default function/configuration (these can be easily over
 * **SW3** is user button by default, configured to trigger user scripts:
     * Press will invoke “USER_FUNC3”
     * Release will invoke “USER_FUNC4”
-    
+
 #### Zero
 
 * **SW1** is power button by default:
@@ -32,7 +32,7 @@ The following lists the default function/configuration (these can be easily over
     * Long press of at least 10 seconds to halt
     * Long press of at least 20 seconds to cut power
 * **J5** when connecting a button it works like SW2 on the HAT
- 
+
 Default settings can be overridden in the "Buttons" tab of PiJuice HAT configuration window. Check the [software section](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md) for more information.
 
 #### Special functions
@@ -246,6 +246,8 @@ You may notice that there are several components which have not be installed on 
 
 **Note:** As of Firmware v1.3_2019_01_15 pogo pin is no longer required to wakeup the Raspberry Pi when powering from the Pi micro USB. A single press of SW1 on the PiJuice will wakeup the Pi or a short of GPIO pins 5 & 6 will also wakeup the Pi. This method has been introduced to accommodate the new Raspberry Pi boards and any future boards.
 
+**Note:** If using the pogo pin with Raspberry Pi model 2B and the pogo pin protrudes through the Raspberry Pi then you may need to tin the solder pad or the end of the pogo pin.
+
 * **R20** is place to solder resistor that provides an additional way to configure battery profile without using software configuration additional to DIP switch where the charging current and the charging voltage are encoded with the resistance of the resistor. This approach also allows for a wider choice of battery profiles. You can in fact choose 16 profiles with as many resistor values as opposed to 4 via the dip switch. Please refer to [this document](https://github.com/PiSupply/PiJuice/tree/master/Hardware/Batteries/Pijuice_battery_config.xlsx). In the "Charge settings" you can find how to choose the resistor value for desired charge settings. In the "Profile selection" you can find how to choose the resistor to select one of predefined battery profiles. *Note that R20 should be through hole and with 0.1% tolerance.* It is also possible to override the resistor settings in software. In the Pijuice HAT configuration window on the "Battery" tab check "Custom" and edit battery charging parameters to desired values, then click apply. You can return to resistor settings by choosing "DEFAULT" from the drop-down list.
 
 * **R13, R22, R51 and C31** are hardware configuration options for measuring battery temperature using NTC and an alternative to fuel gauge and these are mostly for development purposes not for end users.
@@ -413,7 +415,7 @@ You can use the optional RF Shield - Harwin S02-20150300 under the following cir
 
 We have created a label you can stick to your battery to remind you of some of the common features of PiJuice. You can [find the sticker under the documentation section of our GitHub](https://github.com/PiSupply/PiJuice/blob/master/Documentation/Battery-Sticker.pdf). As shown below, you need to print it 43mm wide by 40mm wide for it to be the correct size to stick onto your battery.
 
-![image](https://user-images.githubusercontent.com/3359418/37776742-e1fd155c-2ddd-11e8-85a7-460377883496.png)  
+<img width="584" alt="Screen Shot 2019-10-01 at 09 57 00" src="https://user-images.githubusercontent.com/1878314/65952218-7644cd00-e439-11e9-8c9a-381d5ce2d241.png">  
 
 ### 3D Design Files
 

@@ -139,6 +139,8 @@ This feature will only work if you are either plugged in to the PiJuice microUSB
 
 **Note:** As of Firmware v1.3_2019_01_15 pogo/spring pin is no longer required to wakeup the Raspberry Pi when powering from the Pi micro USB.
 
+**NOTE:** Minutes-period is for recurring wakeups. E.g. when set at 5 it will wakeup at 0, 5, 10, 15, ..., 55 past the hour. The largest meaningful value is 30
+
 #### Repeated Wakeup
 
 When setting the Wakeup alarm for a repeated wakeup, after the initial reboot the Wakeup enabled capability is disabled due to the Raspbian RTC clock initialisation resetting the bit in the PiJuice firmware. To overcome this you will need to run a script to re-enable the wakeup-enable capability. The script is located in PiJuice > Software > Test > wakeup_enable.py
@@ -415,6 +417,7 @@ To launch the PiJuice CLI simply open up the Terminal or from the command line t
 `pijuice_cli`
 
 **Note:** Previous versions before v1.4 must run `pijuice_cli.py`
+**Note:** 'pijuice_cli' must be run as user Pi
 
 ![pijuice cli](https://user-images.githubusercontent.com/1878314/64280401-f23a1b00-cf48-11e9-9a3f-21e7211a72e1.png)
 
