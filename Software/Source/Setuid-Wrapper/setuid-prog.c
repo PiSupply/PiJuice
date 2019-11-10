@@ -35,6 +35,7 @@
 #include <pwd.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <grp.h>
 
 /* CONFIGURATION SECTION */
 
@@ -101,13 +102,35 @@ main(int argc, char **argv)
     struct stat statb;
     struct passwd *result;
     char *effective_user;
+    gid_t i2cgid;
+    struct group *grp;
+    gid_t rootlist[] = {0, 0};
 
     gid_t egid = getegid();
     uid_t euid = geteuid();
 
     result = getpwuid(euid);
     effective_user = result->pw_name;
-    //printf("effective user = %s\n", effective_user);    
+
+    /* Get gid of i2c group */
+    if ((grp = getgrnam("i2c")) == NULL ){
+      perror("getgrnam() error");
+      exit(1);
+    } else {
+      i2cgid = grp->gr_gid;
+    }
+
+    /* Add i2c group to roots supplementary groups */
+    if (getuid() == 0) {
+      /* Effective uid has to be root to use setgroups */
+      seteuid(0);
+      rootlist[1] = i2cgid;
+      if (setgroups(2, rootlist) != 0) {
+        perror("setgroups() error");
+        exit(1);
+      }
+      seteuid(euid);
+    }
 
     /*
        Sanity check #1.
