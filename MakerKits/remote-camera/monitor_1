@@ -1,0 +1,7 @@
+#!/usr/bin/python3
+from pijuice import PiJuice
+
+pijuice = PiJuice(1, 0x14)
+charge = pijuice.status.GetChargeLevel()['data']
+
+print("Battery Level=",charge,"%")
