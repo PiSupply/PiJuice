@@ -297,6 +297,7 @@ class FirmwareTab(object):
 
         try:
             files = [f for f in os.listdir(bin_dir) if os.path.isfile(os.path.join(bin_dir, f))]
+            files = sorted(files)
         except:
             files = []
         latest_version = 0
@@ -321,19 +322,17 @@ class FirmwareTab(object):
         global current_fw_version
         current_version = current_fw_version
         latest_version, firmware_path = self.check_for_fw_updates()
-        new_firmware_path = None
 
         if current_version and latest_version:
             if latest_version > current_version:
                 firmware_status = 'New firmware (V' + version_to_str(latest_version) + ') is available'
-                new_firmware_path = firmware_path
             else:
                 firmware_status = 'up to date'
         elif not current_version:
             firmware_status = 'unknown'
         else:
             firmware_status = 'Missing/wrong firmware file'
-        return current_version, latest_version, firmware_status, new_firmware_path
+        return current_version, latest_version, firmware_status, firmware_path
 
     def update_firmware_start(self, *args):
         device_status = pijuice.status.GetStatus()
@@ -413,11 +412,13 @@ class FirmwareTab(object):
     def show_firmware(self, *args):
         current_version, latest_version, firmware_status, firmware_path = self.get_fw_status()
         current_version_txt = urwid.Text("Current version: " + version_to_str(current_version))
+        firmware_path_txt = urwid.Text("Path: " + str(firmware_path))
         status_txt = urwid.Text("Status: " + firmware_status)
-        elements = [urwid.Text("Firmware"), urwid.Divider(), current_version_txt, status_txt, urwid.Divider()]
+        elements = [urwid.Text("Firmware"), urwid.Divider(), current_version_txt, status_txt, firmware_path_txt, urwid.Divider()]
         if latest_version > current_version:
             self.firmware_path = firmware_path
-            elements.append(urwid.Padding(attrmap(urwid.Button('Update', on_press=self.update_firmware_start)),width=10))
+            elements.extend([urwid.Padding(attrmap(urwid.Button('Update', on_press=self.update_firmware_start)),width=10),
+                             urwid.Divider()])
         elements.append(urwid.Padding(attrmap(urwid.Button('Back', on_press=main_menu)),width=10))
         main.original_widget = urwid.Filler(urwid.Pile(elements), valign='top')
 
@@ -442,7 +443,7 @@ class GeneralTab(object):
         config = {}
         config['run_pin'] = self.RUN_PIN_VALUES.index(pijuice.config.GetRunPinConfig().get('data'))
         config['i2c_addr'] = int(pijuice.config.GetAddress(1).get('data'))
-        config['i2c_addr_rtc'] = int(pijuice.config.GetAddress(2).get('data'))
+        config['i2c_addr_rtc'] = pijuice.config.GetAddress(2).get('data')
         config['eeprom_addr'] = self.EEPROM_ADDRESSES.index(pijuice.config.GetIdEepromAddress().get('data'))
         config['eeprom_write_unprotected'] = not pijuice.config.GetIdEepromWriteProtect().get('data', False)
         result = pijuice.config.GetPowerInputsConfig()
@@ -561,6 +562,8 @@ class GeneralTab(object):
         if 'charging_enabled' in changed:
             pijuice.config.SetChargingConfig({'charging_enabled': self.current_config['charging_enabled']}, True)
         
+        # Give PiJuice MCU sufficient time to change the settings before reading them back
+        time.sleep(0.2)
         self.current_config = self._get_device_config()
         confirmation_dialog("Settings successfully updated", single_option=True, next=self.main)
 
@@ -1439,16 +1442,16 @@ class WakeupAlarmTab(object):
     def _set_alarm(self, *args):
         loop.remove_alarm(self.alarm_handle)
         alarm = {}
-        if self.current_config['second'].get('value'):
+        if self.current_config['second'].get('value') != None:
             alarm['second'] = self.current_config['second']['value']
 
-        if self.current_config['minute'].get('value'):
+        if self.current_config['minute'].get('value') != None:
             if self.current_config['minute']['type'] == 0:
                 alarm['minute'] = self.current_config['minute']['value']
             elif self.current_config['minute']['type'] == 1:
                 alarm['minute_period'] = self.current_config['minute']['value']
 
-        if self.current_config['hour'].get('value') or self.current_config['hour']['every_hour']:
+        if self.current_config['hour'].get('value') != None or self.current_config['hour']['every_hour']:
             alarm['hour'] = 'EVERY_HOUR' if self.current_config['hour']['every_hour'] else self.current_config['hour']['value']
 
         if self.current_config['day'].get('value') or self.current_config['day']['every_day']:
