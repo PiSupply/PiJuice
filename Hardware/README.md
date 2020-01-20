@@ -1,7 +1,7 @@
 # Hardware
 ![PiJuice_Overview](https://user-images.githubusercontent.com/16068311/53577635-47e6d280-3b76-11e9-8b91-c8111b53da4c.png "PiJuice Overview")
 
-![PiJuice_Zero](https://drive.google.com/uc?id=1l1uLXDp_rf0GQmAKm7W06QNgxjKIoULq)
+![PiJuice_Zero](https://user-images.githubusercontent.com/3359418/72735262-5cb7c480-3b93-11ea-8a51-a9f4ccec81ce.png "PiJuice Zero Overview")
 
 The above images of the PiJuice PCB are used in the following descriptions to highlight some of the inputs / outputs and other useful hardware information.
 
