@@ -249,7 +249,7 @@ Scripts now must determine where the interpreter is located as a shebang line so
 ```
 
 ```bash
-#!/usr/bin/bash
+#!/usr/bin/env bash
 ```
 
 
@@ -748,7 +748,7 @@ Scripts now must determine where the interpreter is located as a shebang line so
 ```
 
 ```bash
-#!/usr/bin/bash
+#!/usr/bin/env bash
 ```
 
 
