@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-__version__ = "1.5.1"
+__version__ = "1.6"
 
 import ctypes
 import sys
@@ -1008,6 +1008,8 @@ class PiJuiceConfig(object):
     def SetChargingConfig(self, config, non_volatile = False):
         try:
             nv = 0x80 if non_volatile == True else 0x00
+            if config == True or config == False:
+                config = {'charging_enabled': config}
             if config['charging_enabled'] == True:
                 chEn = 0x01
             elif config['charging_enabled'] == False:
@@ -1017,8 +1019,13 @@ class PiJuiceConfig(object):
         except:
             return {'error': 'BAD_ARGUMENT'}
         d = [nv | chEn]
-        return self.interface.WriteDataVerify(self.CHARGING_CONFIG_CMD, d)
-    
+        ret = self.interface.WriteDataVerify(self.CHARGING_CONFIG_CMD, d)
+        if non_volatile == False and ret['error'] == 'WRITE_FAILED':
+            # 'WRITE_FAILED' error when config corresponds to what is stored in EEPROM
+            #  and non_volatile argument is False
+            ret['error'] = 'NO_ERROR'
+        return ret
+ 
     def GetChargingConfig(self):  
         ret = self.interface.ReadData(self.CHARGING_CONFIG_CMD, 1)
         if ret['error'] != 'NO_ERROR':
