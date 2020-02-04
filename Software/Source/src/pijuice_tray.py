@@ -71,7 +71,7 @@ class PiJuiceStatusTray(object):
         ])
         dialog = gtk.MessageDialog(
             parent=None,
-            modal=True
+            modal=True,
             message_type=gtk.MessageType.INFO,
             buttons=gtk.ButtonsType.OK,
             text=message
