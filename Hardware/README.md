@@ -227,7 +227,7 @@ J7
 
 ![Main ICs](https://user-images.githubusercontent.com/16068311/33900058-345d3218-df65-11e7-9335-7973c1a7a599.png "Main ICs")
 
-![PiJuice Zero ICs](https://drive.google.com/uc?id=1ElkbDf5VM5ce5g07ztZ3CUCaMfaSJwVZ)
+![PiJuice Zero ICs](https://user-images.githubusercontent.com/3359418/73993024-eebc1d00-4948-11ea-89c2-9a959b8b9708.png "PiJuice Zero ICs")
 
 The images above highlight the main ICs used on PiJuice. Links to the various datasheets have been provided in line with the description.
 
