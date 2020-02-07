@@ -21,5 +21,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable motioneye
 sudo systemctl start motioneye
 
+wget https://raw.githubusercontent.com/PiSupply/PiJuice/master/MakerKits/remote-camera/monitor_1
+sudo mv monitor_1 /etc/motioneye/
 sudo apt-get install pijuice-base -y
 sudo reboot
