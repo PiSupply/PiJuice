@@ -1,6 +1,5 @@
-#!/usr/bin/env python
-from __future__ import division, print_function
-__version__ = "1.5"
+#!/usr/bin/env python3
+__version__ = "1.6"
 
 import ctypes
 import sys
@@ -1009,6 +1008,8 @@ class PiJuiceConfig(object):
     def SetChargingConfig(self, config, non_volatile = False):
         try:
             nv = 0x80 if non_volatile == True else 0x00
+            if config == True or config == False:
+                config = {'charging_enabled': config}
             if config['charging_enabled'] == True:
                 chEn = 0x01
             elif config['charging_enabled'] == False:
@@ -1018,8 +1019,13 @@ class PiJuiceConfig(object):
         except:
             return {'error': 'BAD_ARGUMENT'}
         d = [nv | chEn]
-        return self.interface.WriteDataVerify(self.CHARGING_CONFIG_CMD, d)
-    
+        ret = self.interface.WriteDataVerify(self.CHARGING_CONFIG_CMD, d)
+        if non_volatile == False and ret['error'] == 'WRITE_FAILED':
+            # 'WRITE_FAILED' error when config corresponds to what is stored in EEPROM
+            #  and non_volatile argument is False
+            ret['error'] = 'NO_ERROR'
+        return ret
+ 
     def GetChargingConfig(self):  
         ret = self.interface.ReadData(self.CHARGING_CONFIG_CMD, 1)
         if ret['error'] != 'NO_ERROR':
@@ -1028,9 +1034,11 @@ class PiJuiceConfig(object):
             return {'data': {'charging_enabled' :bool(ret['data'][0] & 0x01)},
                     'non_volatile':bool(ret['data'][0]&0x80), 'error':'NO_ERROR'}
 
-    batteryProfiles = ['BP6X_1400', 'BP7X_1820', 'SNN5843_2300', 'PJLIPO_12000', 'PJLIPO_5000', 'PJBP7X_1600', 'PJSNN5843_1300', 'PJZERO_1200', 'PJZERO_1000', 'PJLIPO_600', 'PJLIPO_500']
+    batteryProfiles = ['PJZERO_1000', 'BP7X_1820', 'SNN5843_2300', 'PJLIPO_12000', 'PJLIPO_5000', 'PJBP7X_1600', 'PJSNN5843_1300', 'PJZERO_1200', 'BP6X_1400', 'PJLIPO_600', 'PJLIPO_500']
     def SelectBatteryProfiles(self, fwver):
-        if fwver >= 0x13:
+        if fwver >= 0x14:
+            self.batteryProfiles = ['PJZERO_1000', 'BP7X_1820', 'SNN5843_2300', 'PJLIPO_12000', 'PJLIPO_5000', 'PJBP7X_1600', 'PJSNN5843_1300', 'PJZERO_1200', 'BP6X_1400', 'PJLIPO_600', 'PJLIPO_500']
+        elif fwver == 0x13:
             self.batteryProfiles = ['BP6X_1400', 'BP7X_1820', 'SNN5843_2300', 'PJLIPO_12000', 'PJLIPO_5000', 'PJBP7X_1600', 'PJSNN5843_1300', 'PJZERO_1200', 'PJZERO_1000', 'PJLIPO_600', 'PJLIPO_500']
         else:
             self.batteryProfiles = ['BP6X', 'BP7X', 'SNN5843', 'LIPO8047109']
