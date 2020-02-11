@@ -4,12 +4,12 @@ This project uses the PiJuice HAT and official Raspberry Pi camera module to cre
 
 ## What you will need
 
-- Raspberry Pi Board
-- Pijuice HAT
-- Official Raspberry Pi camera board
-- PoE HAT (optional)
-- micro SD card (16GB min)
-- Power supply
+- [Raspberry Pi Board](https://uk.pi-supply.com/products/raspberry-pi-3-model-b-plus)
+- [PiJuice HAT](https://uk.pi-supply.com/products/pijuice-standard)
+- [Official Raspberry Pi camera board](https://uk.pi-supply.com/products/raspberry-pi-camera-board-v2-1-8mp-1080p)
+- [PoE HAT (optional)](https://uk.pi-supply.com/products/pi-poe-switch-hat-power-over-ethernet-for-raspberry-pi)
+- [micro SD card (16GB min)](https://uk.pi-supply.com/products/8gb-micro-sd-samsung-pre-loaded-noobs-official-card-adapter)
+- [Power supply](https://uk.pi-supply.com/products/official-raspberry-pi-power-supply-newest-version)
 
 ## Installing the Software
 This project runs on the latest version of [Raspbian Lite OS](https://www.raspberrypi.org/downloads/) for the Raspberry Pi. You will need to run the following commands in the terminal window to install the libraries for the weather sensors.
@@ -67,6 +67,12 @@ sudo systemctl start motioneye
 Install `PiJuice` Base:
 ```bash
 sudo apt-get install pijuice-base
+```
+
+Get battery status to overlay on camera 1:
+```bash
+wget https://raw.githubusercontent.com/PiSupply/PiJuice/master/MakerKits/remote-camera/monitor_1
+sudo mv monitor_1 /etc/motioneye/
 ```
 
 Finally reboot your device:
