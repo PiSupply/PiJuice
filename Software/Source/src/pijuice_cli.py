@@ -442,7 +442,7 @@ class GeneralTab(object):
     def _get_device_config(self):
         config = {}
         config['run_pin'] = self.RUN_PIN_VALUES.index(pijuice.config.GetRunPinConfig().get('data'))
-        config['i2c_addr'] = int(pijuice.config.GetAddress(1).get('data'))
+        config['i2c_addr'] = pijuice.config.GetAddress(1).get('data')
         config['i2c_addr_rtc'] = pijuice.config.GetAddress(2).get('data')
         config['eeprom_addr'] = self.EEPROM_ADDRESSES.index(pijuice.config.GetIdEepromAddress().get('data'))
         config['eeprom_write_unprotected'] = not pijuice.config.GetIdEepromWriteProtect().get('data', False)
@@ -528,19 +528,22 @@ class GeneralTab(object):
         device_config = self._get_device_config()
         changed = [key for key in self.current_config.keys() if self.current_config[key] != device_config[key]]
 
-        if 'run_pin' in changed:
-            pijuice.config.SetRunPinConfig(self.RUN_PIN_VALUES[self.current_config['run_pin']])
-
         for i, addr in enumerate(['i2c_addr', 'i2c_addr_rtc']):
             if addr in changed:
                 value = device_config[addr]
                 try:
                     new_value = int(str(self.current_config[addr]), 16)
-                    if new_value <= 0x7F:
+                    if new_value >= 8 and new_value <= 0x77:
                         value = self.current_config[addr]
+                    else:
+                        self.current_config[addr] = value
+                        return confirmation_dialog("I2C address has to be between 0x08 and 0x77", next=self.main)
                 except:
                     pass
                 pijuice.config.SetAddress(i + 1, value)
+
+        if 'run_pin' in changed:
+            pijuice.config.SetRunPinConfig(self.RUN_PIN_VALUES[self.current_config['run_pin']])
 
         if 'eeprom_addr' in changed:
             pijuice.config.SetIdEepromAddress(self.EEPROM_ADDRESSES[self.current_config['eeprom_addr']])

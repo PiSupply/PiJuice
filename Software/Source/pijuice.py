@@ -94,7 +94,14 @@ class PiJuiceInterface(object):
 
         d = self.d
         if self._GetChecksum(d[0:-1]) != d[-1]:
-            return {'error': 'DATA_CORRUPTED'}
+            # With n+1 byte data (n data bytes and 1 checksum byte) sometimes the
+            # MSbit of the first received data byte is 0 while it should be 1. So we
+            # repeat the checksum test with the MSbit of the first data byte set to 1.
+            d[0] |= 0x80
+            if self._GetChecksum(d[0:-1]) == d[-1]:
+                del d[-1]
+                return {'data': d, 'error': 'NO_ERROR'} 
+            return {'error': 'DATA_CORRUPTED'} 
         del d[-1]
         return {'data': d, 'error': 'NO_ERROR'}
 

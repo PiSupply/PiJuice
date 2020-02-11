@@ -1,3 +1,15 @@
+pijuice-gui (1.6) unstable; urgency=low
+
+  * pijuice_gui.py
+    - Automatically size the HAT config notebook window ( soo all tabs
+      are 100% visible under Buster)
+    - Check for valid 7-bit I2C addresses and redisplay last correct
+      address if check fails.
+
+  * pijuice_tray.py
+    - Make tray icon visisble for other users (non pi)r. Issue #390.
+    - Eliminate some gtk deprecation warnings under Buster.
+
 pijuice-gui (1.5) unstable; urgency=low
 
   * pijuice_gui.py

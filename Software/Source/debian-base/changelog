@@ -1,3 +1,29 @@
+pijuice-base (1.6) unstable; urgency=low
+
+  * Firmware V1.4_2020_01_17
+    - Reworked I2C code, so using i2c-bcm2708 is not neeed any more for Pi 4.
+    - Fixed fluctuating temperature readings.
+    - Changed order of battery profiles. PjZero 1000mAh is now profile 0
+      (= default on PiJuice-Zero)
+    - Delayed power off will be cancelled if RPi 5V power is restored before
+      the timer runs out (Issue #356).
+    - Fixed missing clearing wake-up flags for the GPIO3 wakeup case.
+
+  * pijuice.py
+    - Battery profiles order changed in 1.4 firmware.
+    - Also accept True or False as first argument of pj.config.SetChargingConfig.
+    - Work-around for some 'DATA_CORRUPTION' cases when retrieving data from
+      the PiJuice.
+
+  * pijuice_cli.py
+    - Support changed battery profiles order in the 1.4 firmware.
+    - Wakeup-on-charge allow lower bound of 0 instead of 1.
+    - Show firmware path on the firmware tab (as in the gui).
+    - Check for valid 7-bit I2C addresses.
+    - Bug fixes.
+
+ -- Ton van Overbeek <tvoverbeek@gmail.com>  Tue, 11 Feb 2020 21:35:00 +0100
+
 pijuice-base (1.5) unstable; urgency=low
 
   * Support for new features in firmware 1.3

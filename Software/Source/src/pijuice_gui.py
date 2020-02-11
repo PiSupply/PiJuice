@@ -19,7 +19,7 @@ from signal import SIGUSR1, SIGUSR2
 
 from tkinter import Button as tkButton
 from tkinter import (Tk, BooleanVar, DoubleVar, IntVar, StringVar, Toplevel,
-                     N, W, S, E, X, Y, BOTH, RIGHT, HORIZONTAL)
+                     N, W, S, E, X, Y, BOTH, RIGHT, HORIZONTAL, END)
 from tkinter.ttk import (Button, Checkbutton, Combobox, Entry, Frame, Label,
                          Notebook, Progressbar, Radiobutton, Style)
 from tkinter.colorchooser import askcolor
@@ -443,6 +443,15 @@ class PiJuiceHATConfig(object):
                 MessageBox.showerror('Reset to default configuration', status['error'], parent=self.frame)
 
     def _WriteSlaveAddress(self, id):
+        adr = int(self.slaveAddr[id].get(), 16)
+        if adr < 8 or adr > 0x77:
+            # Illegal 7-bit I2C address
+            MessageBox.showerror('I2C Address', 'I2C address has to be\nbetween 0x08 and 0x77', parent=self.frame)
+            # Restore original address
+            self.slaveAddrEntry[id].delete(0,END)
+            self.slaveAddrEntry[id].insert(END, self.slaveAddrconfig[id].get('data'))
+            return
+
         q = MessageBox.askquestion('Address update','Are you sure you want to change address?', parent=self.frame)
         if q == 'yes':
             status = pijuice.config.SetAddress(id+1, self.slaveAddr[id].get())
@@ -450,7 +459,13 @@ class PiJuiceHATConfig(object):
                 #self.slaveAddr[id].set(status['error'])
                 MessageBox.showerror('Address update', status['error'], parent=self.frame)
             else:
+                # Update changed address
                 MessageBox.showinfo('Address update', "Success!", parent=self.frame)
+                self.slaveAddrconfig[id]['data'] = self.slaveAddr[id].get()
+        else:
+            # Restore original address
+            self.slaveAddrEntry[id].delete(0,END)
+            self.slaveAddrEntry[id].insert(END, self.slaveAddrconfig[id].get('data'))
 
     def _RunPinConfigSelected(self, event):
         status = pijuice.config.SetRunPinConfig(self.runPinConfig.get())
