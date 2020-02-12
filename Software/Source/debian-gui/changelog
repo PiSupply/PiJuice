@@ -10,6 +10,8 @@ pijuice-gui (1.6) unstable; urgency=low
     - Make tray icon visisble for other users (non pi)r. Issue #390.
     - Eliminate some gtk deprecation warnings under Buster.
 
+ -- Ton van Overbeek <tvoverbeek@gmail.com>  Wed, 12 Feb 2020 20:55:00 +0100
+
 pijuice-gui (1.5) unstable; urgency=low
 
   * pijuice_gui.py
