@@ -1,5 +1,11 @@
 #!/bin/bash
 
+is_pifour() {
+   grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]11[0-9a-fA-F]$" /proc/cpuinfo
+   return $?
+}
+
+
 # Create user pijuice if it does not exist
 if id -u pijuice > /dev/null 2>&1; then
 	echo "User pijuice already exists"
@@ -27,7 +33,7 @@ else
 fi
 
 # Create symbolic link in /usr/lib/python3/dist-packages so the pijuice module is found by python 3.x (x > 5)
-ln -sf /usr/lib/python3.5/dist-packages/pijuice.py /usr/lib/python3/dist-packages
+ln -sf /usr/lib/python3.7/dist-packages/pijuice.py /usr/lib/python3/dist-packages
 
 echo "Setting ownership and permissions"
 chown -R pijuice.pijuice /var/lib/pijuice
@@ -86,6 +92,20 @@ if [ -f /sys/class/i2c-dev/i2c-1/dev ]; then
 	systemctl unmask pijuice.service
 	systemctl enable pijuice.service
 	systemctl restart pijuice.service
+fi
+
+if is_pifour; then
+    if [ "$1" = "configure" ]; then
+        echo "*************************************************************"
+        echo "Until you update the firmware to V1.4 you still need the"
+        echo "'dtoverlay=i2c-bcm2708' work around in /boot/config.txt."
+        echo "After the firmware update to V1.4 the 'dtoverlay=i2c-bcm2708'"
+        echo "can be removed from /boot/config.txt"
+        echo "*************************************************************"
+        echo ""
+        read -n 1 -rsp "Press any key to continue"
+        echo ""
+    fi
 fi
 
 exit 0
