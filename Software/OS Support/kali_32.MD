@@ -22,7 +22,7 @@ Add:
 
 6. Install pijuice-base:
 `cd PiJuice/Software/Install`
-`dpkg -i pijuice-base_1.5_all.deb`
+`dpkg -i pijuice-base_1.6_all.deb`
 
 Fix broken packages:
 `sudo apt --fix-broken install`
@@ -33,7 +33,7 @@ Once rebooted run:
 `pijuice_cli`
 
 8. Once pijuice-base has been installed you can now install the GUI by running:
-`dpkg -i pijuice-gui_1.5_all.deb`
+`dpkg -i pijuice-gui_1.6_all.deb`
 Fix broken packages:
 `sudo apt --fix-broken install`
 
