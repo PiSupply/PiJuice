@@ -355,9 +355,9 @@ As previously mentioned, some of these are even hard coded into the firmware on 
 More information on the default profiles and how to created additional ones can be found in the [Hardware Section](https://github.com/PiSupply/PiJuice/tree/master/Hardware#battery-profiles)
 
 **Available Battery Profiles:**
-- BP6X_1400 -
-- BP7X_1820 -
-- SNN5843_2300 -
+- BP6X_1400
+- BP7X_1820
+- SNN5843_2300
 - [PjLIPO_12000](https://uk.pi-supply.com/products/pijuice-12000mah-battery)
 - [PjLIPO_5000](https://uk.pi-supply.com/products/pijuice-5000mah-battery)
 - [PjBP7X_1600](https://uk.pi-supply.com/products/1600-mah-smartphone-battery-compatible-with-pijuice)
@@ -498,7 +498,7 @@ The buttons also have some special functions, which help when debugging the PiJu
 
 You can even trigger different events for a press, release, single press, double press and two lengths of long press - you can even configure the length of time these long presses would take before triggering the event. As you can see the first button is already configured for system power functionality and we would highly recommend that at least one of the buttons is configured to these settings or you may have issues turning your PiJuice on and off.
 
-![pijuice buttons](https://drive.google.com/uc?id=1l4-ED-NaKrpxU8fwHwjcotSP9aV9odpM)
+![pijuice buttons](https://user-images.githubusercontent.com/3359418/75063866-b8040c00-54dd-11ea-8d0f-73f234b81831.jpg)
 
 ![pijuice cli buttons menu](https://user-images.githubusercontent.com/1878314/64280672-873d1400-cf49-11e9-9c42-4e93602be8b2.png)
 
@@ -538,7 +538,7 @@ To set the Parameter of the button press simply enter its value in milliseconds 
 
 Just like the buttons, the LEDS are also configurable on the PiJuice and there are two of them in total. The LEDs are surface mount RGB LEDs and can be configured in a number of different colours aside from the preset primary colours in use.
 
-![pijuice cli leds](https://drive.google.com/uc?id=1hmamZh7EiUqVaxzxvZxj3vv5reivEzo3)
+![pijuice cli leds](https://user-images.githubusercontent.com/3359418/75063935-d9fd8e80-54dd-11ea-8fdf-8addb6aac532.jpg)
 
 ![pijuice cli leds](https://user-images.githubusercontent.com/1878314/64281033-311ca080-cf4a-11e9-876d-4f2dc10336a7.png)
 
@@ -601,9 +601,9 @@ There is also an alternative method for measuring the charge of the battery by t
 Any changes made to the battery profile must be saved using the Apply Settings option.
 
 **Available Battery Profiles:**
-- BP6X_1400 -
-- BP7X_1820 -
-- SNN5843_2300 -
+- BP6X_1400
+- BP7X_1820
+- SNN5843_2300
 - [PjLIPO_12000](https://uk.pi-supply.com/products/pijuice-12000mah-battery)
 - [PjLIPO_5000](https://uk.pi-supply.com/products/pijuice-5000mah-battery)
 - [PjBP7X_1600](https://uk.pi-supply.com/products/1600-mah-smartphone-battery-compatible-with-pijuice)
