@@ -16,4 +16,4 @@ else
         sed -i "s/start_x=0/start_x=1/g" /boot/config.txt
 fi
 cd Media-Center-HAT/Software/
-sudo bash media-center.sh 270
+sudo bash install.sh

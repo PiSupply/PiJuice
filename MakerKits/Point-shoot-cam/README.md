@@ -2,7 +2,7 @@
 
 The Point and Shoot Camera Kit uses a combination of the PiJuice HAT, Media Center HAT and Raspberry Pi camera board to create a touch screen standalone camera. This project is designed to highlight the features of the PiJuice HAT as well as the new Media Center HAT.
 
-This Point and Shoot Camera project is based on the Adafruit "DIY WiFi Raspberry Pi Touchscreen Camera" by Phil Burgess with some additional changes, including a battery level indicator for the PiJuice so you will know when your battery gets low.
+This Point and Shoot Camera project is based on the Adafruit "DIY WiFi Raspberry Pi Touchscreen Camera" by Phil Burgess ~~with some additional changes, including a battery level indicator for the PiJuice so you will know when your battery gets low.~~
 
 ## What you will need
 
@@ -78,12 +78,12 @@ git clone https://github.com/PiSupply/Media-Center-HAT.git
 
 ```bash
 cd Media-Center-HAT/Software/
-sudo bash media-center.sh 90
+sudo bash install.sh
 ```
 
 ## Usage
 
-To launch the point and shoot camera software, simply double tab on the desktop icon.
+To launch the point and shoot camera software, simply double tab on the desktop icon and execute.
 
 ### Configure DropBox
 

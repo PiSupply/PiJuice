@@ -1,4 +1,4 @@
-# Installing PiJuice Software on Ubuntu Server 32-bit
+# Installing PiJuice Software on Ubuntu Server 64-bit
 
 
 https://ubuntu.com/download/raspberry-pi
@@ -7,15 +7,7 @@ https://ubuntu.com/download/raspberry-pi
 `sudo apt-get update`
 
 2. Install the dependancies:
-`sudo apt install i2c-tools lua5.3`
-
-3. Add user `ubuntu` to I2C user group:
-`sudo usermod -aG i2c ubuntu`
-
-4. Add user `ubuntu` to pijuice user group:
-`sudo visudo`
-Add:
-`ubuntu ALL=(pijuice) ALL`
+`sudo apt install i2c-tools lua5.3 build-essential`
 
 5. Clone the PiJuice repository from GitHub:
 `git clone https://github.com/PiSupply/PiJuice.git`
@@ -26,6 +18,8 @@ Add:
 
 Fix broken packages:
 `sudo apt --fix-broken install`
+
+
 
 7. Reboot and run PiJuice CLI:
 `sudo reboot`
