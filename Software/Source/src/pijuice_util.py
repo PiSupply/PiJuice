@@ -3,7 +3,7 @@
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 from pprint import pprint
 import json
-import fileinput
+import sys
 
 def getDataOrError(d):
     rv = d.get('data', d['error'])
@@ -116,9 +116,9 @@ if __name__ == '__main__':
 
     if args.load:
         encoded_settings = ''
-        for line in fileinput.input():
+        for line in sys.stdin:
             encoded_settings = encoded_settings + line.rstrip()
-        ns = json.decode(encoded_settings)
+        ns = json.loads(encoded_settings)
 
         # Address has to be set first
         for i, addr in enumerate(['i2c_addr', 'i2c_addr_rtc']):
@@ -136,14 +136,12 @@ if __name__ == '__main__':
             pj.config.SetRunPinConfig(RUN_PIN_VALUES[ns['general']['run_pin']])
         if config['general']['eeprom_addr'] != ns['general']['eeprom_addr']:
             pj.config.SetIdEepromAddress(EEPROM_ADDRESSES[ns['general']['eeprom_addr']])
-        if config['general']['eeprom_write_protected'] != ns['general']['eeprom_write_protected']:
-            pj.config.SetIdEepromWriteProtect(not ns['general']['eeprom_write_protected'])
         power_config = {
             'precedence': INPUTS_PRECEDENCE[ns['general']['precedence']],
             'gpio_in_enabled': ns['general']['gpio_in_enabled'],
             'no_battery_turn_on': ns['general']['no_battery_turn_on'],
             'usb_micro_current_limit': USB_CURRENT_LIMITS[ns['general']['usb_micro_current_limit']],
-            'usb_micro_dpm': USB_MICRO_IN_DPMS[ns['usb_micro_dpm']],
+            'usb_micro_dpm': USB_MICRO_IN_DPMS[ns['general']['usb_micro_dpm']],
         }
         pj.config.SetPowerInputsConfig(power_config, True);
         if config['general']['power_reg_mode'] != ns['general']['power_reg_mode']:
