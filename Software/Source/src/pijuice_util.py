@@ -161,7 +161,7 @@ if __name__ == '__main__':
             pj.config.SetLedConfiguration(LED_NAMES[i], led_config)
 
         for button in BUTTONS:
-            pj.config.SetButtonConfiguration(button, ns['button'])
+            pj.config.SetButtonConfiguration(button, ns['button'][button])
 
     # primitives
 
