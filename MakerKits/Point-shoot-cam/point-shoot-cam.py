@@ -24,10 +24,10 @@ import yuv2rgb
 from pygame.locals import *
 from subprocess import call
 from time import sleep
-from pijuice import PiJuice
+#from pijuice import PiJuice
 from threading import Timer
 
-pijuice = PiJuice(1, 0x14)
+#pijuice = PiJuice(1, 0x14)
 
 
 # UI classes ---------------------------------------------------------------
@@ -161,7 +161,7 @@ def printit():
         # Screen mode 3 is viewfinder / snapshot
         [Button((0, 188, 156, 52), bg='gear', cb=viewCallback, value=0),
         Button((164, 188, 156, 52), bg='play', cb=viewCallback, value=1),
-        Button((270, 0, 50, 30), bg=batt, value=3),
+        #Button((270, 0, 50, 30), bg=batt, value=3),
         Button((0, 0, 320, 240), cb=viewCallback, value=2),
         Button((88, 51, 157, 102)),  # 'Working' label (when enabled)
         Button((148, 110, 22, 22))],  # Spinner (when enabled)
@@ -630,7 +630,7 @@ for file in os.listdir(iconPath):
         icons.append(Icon(file.split('.')[0]))
 
 # Assign Icons to Buttons, now that they're loaded
-batt = battRefresh()
+#batt = battRefresh()
 buttons = printit()
 loadSettings()  # Must come last; fiddles with Button/Icon states
 
@@ -643,7 +643,7 @@ while (True):
 
     # Process touchscreen input
     while True:
-        batt = battRefresh()
+        #batt = battRefresh()
         for s in buttons:  # For each screenful of buttons...
             for b in s:  # For each button on screen...
                 for i in icons:  # For each icon...
