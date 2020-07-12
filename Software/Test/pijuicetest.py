@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import time
 import datetime
 import calendar
@@ -6,46 +8,60 @@ from pijuice import PiJuice
 
 pijuice = PiJuice(1,0x14)
 
-status = pijuice.status.GetStatus()
-status = status['data'] if status['error'] == 'NO_ERROR' else status['error']
+def checkValue(val):
+    val = val['data'] if val['error'] == 'NO_ERROR' else val['error']
+    return val
+
+status = checkValue(pijuice.status.GetStatus())
 print('Status = ', status) 
 	
-fault =  pijuice.status.GetFaultStatus() 
-fault = fault['data'] if fault['error'] == 'NO_ERROR' else fault['error']
+fault =  checkValue(pijuice.status.GetFaultStatus())
 print('Fault = ', fault)
 
-charge = pijuice.status.GetChargeLevel()		
-charge = charge['data'] if charge['error'] == 'NO_ERROR' else charge['error']
-fault =  pijuice.status.GetFaultStatus() 
-fault = fault['data'] if fault['error'] == 'NO_ERROR' else fault['error']
-temp =  pijuice.status.GetBatteryTemperature()
-temp = temp['data'] if temp['error'] == 'NO_ERROR' else temp['error']
-vbat = pijuice.status.GetBatteryVoltage()	        
-vbat = vbat['data'] if vbat['error'] == 'NO_ERROR' else vbat['error'] 
-ibat = pijuice.status.GetBatteryCurrent()
-ibat = ibat['data'] if ibat['error'] == 'NO_ERROR' else ibat['error']
-vio =  pijuice.status.GetIoVoltage()
-vio = vio['data'] if vio['error'] == 'NO_ERROR' else vio['error']
-iio = pijuice.status.GetIoCurrent()
-iio = iio['data'] if iio['error'] == 'NO_ERROR' else iio['error'] 
-print(charge,'%,', 'T=', temp, ', Vbat=',vbat, ', Ibat=',ibat, ', Vio=',vio, ', Iio=',iio)
+charge = checkValue(pijuice.status.GetChargeLevel())
+fault =  checkValue(pijuice.status.GetFaultStatus())
+temp = checkValue( pijuice.status.GetBatteryTemperature())
+vbat = checkValue(pijuice.status.GetBatteryVoltage())
+ibat = checkValue(pijuice.status.GetBatteryCurrent())
+vio =  checkValue(pijuice.status.GetIoVoltage())
+iio = checkValue(pijuice.status.GetIoCurrent())
+print('Charge =',charge,'%,', 'T =', temp, ', Vbat =',vbat, ', Ibat =',ibat, ', Vio =',vio, ', Iio =',iio)
 
-print(pijuice.config.GetPowerRegulatorMode())
-print(pijuice.config.GetRunPinConfig())
+regmode = checkValue(pijuice.config.GetPowerRegulatorMode())
+print('RegulatorMode =', regmode)
+runpin = checkValue((pijuice.config.GetRunPinConfig()))
+print('RunPin =', runpin)
+sysswitch = checkValue(pijuice.power.GetSystemPowerSwitch())
+print('SystemPowerSwitch =', sysswitch)
 
-print(pijuice.power.GetSystemPowerSwitch() )
-print(pijuice.config.GetLedConfiguration('D1'))
-print(pijuice.status.SetLedState('D2', [150, 0,100]))
-print(pijuice.status.GetLedBlink('D2'))
+ledconfig = checkValue(pijuice.config.GetLedConfiguration('D1'))
+print('LedConfigD1 =', ledconfig)
+ledblink = checkValue(pijuice.status.GetLedBlink('D2'))
+print('LedBlinkD2 =', ledblink)
 
-print('button SW3 =', pijuice.config.GetButtonConfiguration('SW3'))
-print(pijuice.power.GetWakeUpOnCharge())
-print(pijuice.power.GetWatchdog() )
-print(pijuice.status.GetButtonEvents())
-print(pijuice.config.GetBatteryProfileStatus())
-print(pijuice.config.GetBatteryProfile())
-print(pijuice.config.GetAddress(1))
-print(pijuice.config.GetIdEepromWriteProtect())
-print(pijuice.config.GetIdEepromAddress())
-print(pijuice.config.GetFirmwareVersion())
-print(pijuice.GetBatteryTempSenseConfig())
+but3 = checkValue(pijuice.config.GetButtonConfiguration('SW3'))
+print('ButtonSW3 =', but3)
+wakeuponch = checkValue(pijuice.power.GetWakeUpOnCharge())
+print('WakeUpOnCharge =', wakeuponch, '(127 = disabled)')
+watchdog = checkValue(pijuice.power.GetWatchdog())
+print('Watchdog =', watchdog)
+buttonevents = checkValue(pijuice.status.GetButtonEvents())
+print('ButtonEvents =', buttonevents)
+batprofilestat = checkValue(pijuice.config.GetBatteryProfileStatus())
+print('BatteryProfileStatus =', batprofilestat)
+batprofile = checkValue(pijuice.config.GetBatteryProfile())
+print('BatteryProfile =', batprofile)
+batextprofile = checkValue(pijuice.config.GetBatteryExtProfile())
+print('Extended BatteryProfile =', batextprofile)
+tempsense = checkValue(pijuice.config.GetBatteryTempSenseConfig())
+print('Battery temperature sense =', tempsense)
+
+pjaddr = checkValue(pijuice.config.GetAddress(1))
+print('PiJuice I2C address =', pjaddr, '(hex)')
+eepromwrprot = checkValue(pijuice.config.GetIdEepromWriteProtect())
+print('HAT eeprom write protect =', eepromwrprot)
+eepromaddr = checkValue(pijuice.config.GetIdEepromAddress())
+print('HAT eeprom address =', eepromaddr, '(hex)')
+fwver = checkValue(pijuice.config.GetFirmwareVersion())
+print('Firmware Version =', fwver)
+
