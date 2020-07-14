@@ -7,11 +7,13 @@
    products from Adafruit, thanks!
 
    Written by Phil Burgess / Paint Your Dragon for Adafruit Industries.
+   Adapted for Python3: Ton van Overbeek, July 2020
+
    BSD license, all text above must be included in any redistribution. */
 
-#include <python2.7/Python.h>
+#include <python3.7/Python.h>
 
-static PyObject *convert(PyObject *self, PyObject *args) {
+static PyObject *method_convert(PyObject *self, PyObject *args) {
 	Py_buffer      inBuf, outBuf;
 	short          row, col, r, g, b, w, h, rd, gd, bd;
 	unsigned char *rgbPtr, *yPtr, y;
@@ -68,11 +70,18 @@ static PyObject *convert(PyObject *self, PyObject *args) {
 }
 
 static PyMethodDef yuv2rgb_methods[] = {
-	{"convert", convert, METH_VARARGS},
-	{NULL,NULL}
+	{"convert", method_convert, METH_VARARGS, "Convert image data from yuv to rgb"},
+	{NULL, NULL, 0, NULL}
 };
 
-PyMODINIT_FUNC inityuv2rgb(void) {
-	(void)Py_InitModule("yuv2rgb", yuv2rgb_methods);
-}
+static struct PyModuleDef yuv2rgbmodule = {
+	PyModuleDef_HEAD_INIT,
+	"yuv2rgb",
+	"Python interface for yuv to rgb conversion routine",
+	-1,
+	yuv2rgb_methods
+};
 
+PyMODINIT_FUNC PyInit_yuv2rgb(void) {
+	return PyModule_Create(&yuv2rgbmodule);
+}

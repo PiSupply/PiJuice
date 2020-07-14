@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Point-and-shoot camera for Raspberry Pi w/camera and Media Centre HAT.
 #
 # Prerequisite tutorials: aside from the basic Raspbian setup and
@@ -9,7 +9,7 @@
 # BSD license, all text above must be included in any redistribution.
 
 import atexit
-import cPickle as pickle
+import pickle
 import errno
 import fnmatch
 import io
@@ -23,12 +23,9 @@ import time
 import yuv2rgb
 from pygame.locals import *
 from subprocess import call
-from time import sleep
-#from pijuice import PiJuice
-from threading import Timer
+from pijuice import PiJuice
 
-#pijuice = PiJuice(1, 0x14)
-
+pijuice = PiJuice(1, 0x14)
 
 # UI classes ---------------------------------------------------------------
 
@@ -49,7 +46,6 @@ class Icon:
             self.bitmap = pygame.image.load(iconPath + '/' + name + '.png')
         except:
             pass
-
 
 # Button is a simple tappable screen region.  Each has:
 #  - bounding rect ((X,Y,W,H) in pixels)
@@ -78,7 +74,7 @@ class Button:
         self.fg = None  # Foreground Icon name
         self.callback = None  # Callback function
         self.value = None  # Value passed to callback
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             if key == 'color':
                 self.color = value
             elif key == 'bg':
@@ -133,17 +129,14 @@ class Button:
 
 def printit():
     global buttons
-    t = threading.Timer(30.0, printit)
-    t.daemon = True
-    t.start()
 
     buttons = [
     # Screen mode 0 is photo playback
         [Button((0, 188, 320, 52), bg='done', cb=doneCallback),
         Button((0, 0, 80, 52), bg='prev', cb=imageCallback, value=-1),
         Button((240, 0, 80, 52), bg='next', cb=imageCallback, value=1),
-        Button((88, 70, 157, 102)),  # 'Working' label (when enabled)
-        Button((148, 129, 22, 22)),  # Spinner (when enabled)
+        Button((81, 60, 157, 120)),  # 'Working' label (when enabled)
+        Button((110, 96, 84, 84)),  # Spinner (when enabled)
         Button((121, 0, 78, 52), bg='trash', cb=imageCallback, value=0)],
 
         # Screen mode 1 is delete confirmation
@@ -161,10 +154,10 @@ def printit():
         # Screen mode 3 is viewfinder / snapshot
         [Button((0, 188, 156, 52), bg='gear', cb=viewCallback, value=0),
         Button((164, 188, 156, 52), bg='play', cb=viewCallback, value=1),
-        #Button((270, 0, 50, 30), bg=batt, value=3),
         Button((0, 0, 320, 240), cb=viewCallback, value=2),
-        Button((88, 51, 157, 102)),  # 'Working' label (when enabled)
-        Button((148, 110, 22, 22))],  # Spinner (when enabled)
+        Button((81, 60, 157, 120)),  # 'Working' label (when enabled)
+        Button((110, 96, 84, 84)),  # Spinner (when enabled)
+        Button((270, 0, 50, 30), bg=batt, value=3)],
 
         # Remaining screens are settings modes
 
@@ -222,29 +215,24 @@ def printit():
 
     return buttons
 
-
-
-
-
 def battRefresh():
     global batt
     value = pijuice.status.GetChargeLevel()["data"]
     if value > 80 and value <= 100:
         batt = '5'
-    elif value > 60 and value < 80:
+    elif value > 60 and value <= 80:
         batt = '4'
-    elif value < 60 and value > 40:
+    elif value <= 60 and value > 40:
         batt = '3'
-    elif value < 40 and value > 20:
+    elif value <= 40 and value > 20:
         batt = '2'
-    elif value < 20 and value >= 0:
+    elif value <= 20 and value >= 0:
         batt = '1'
     return batt
 
 def isoCallback(n):  # Pass 1 (next ISO) or -1 (prev ISO)
     global isoMode
     setIsoMode((isoMode + n) % len(isoData))
-
 
 def settingCallback(n):  # Pass 1 (next setting) or -1 (prev setting)
     global screenMode
@@ -254,16 +242,13 @@ def settingCallback(n):  # Pass 1 (next setting) or -1 (prev setting)
     elif screenMode >= len(buttons):
         screenMode = 4
 
-
 def fxCallback(n):  # Pass 1 (next effect) or -1 (prev effect)
     global fxMode
     setFxMode((fxMode + n) % len(fxData))
 
-
 def quitCallback():  # Quit confirmation button
     saveSettings()
     raise SystemExit
-
 
 def viewCallback(n):  # Viewfinder buttons
     global loadIdx, scaled, screenMode, screenModePrior, settingMode, storeMode
@@ -284,7 +269,6 @@ def viewCallback(n):  # Viewfinder buttons
     else:  # Rest of screen = shutter
         takePicture()
 
-
 def doneCallback():  # Exit settings
     global screenMode, settingMode
     if screenMode > 3:
@@ -292,14 +276,12 @@ def doneCallback():  # Exit settings
         saveSettings()
     screenMode = 3  # Switch back to viewfinder mode
 
-
 def imageCallback(n):  # Pass 1 (next image), -1 (prev image) or 0 (delete)
     global screenMode
     if n is 0:
         screenMode = 1  # Delete confirmation
     else:
         showNextImage(n)
-
 
 def deleteCallback(n):  # Delete confirmation
     global loadIdx, scaled, screenMode, storeMode
@@ -316,13 +298,11 @@ def deleteCallback(n):  # Delete confirmation
             scaled = None
             loadIdx = -1
 
-
 def storeModeCallback(n):  # Radio buttons on storage settings screen
     global storeMode
     buttons[4][storeMode + 3].setBg('radio3-0')
     storeMode = n
     buttons[4][storeMode + 3].setBg('radio3-1')
-
 
 def sizeModeCallback(n):  # Radio buttons on size settings screen
     global sizeMode
@@ -330,10 +310,6 @@ def sizeModeCallback(n):  # Radio buttons on size settings screen
     sizeMode = n
     buttons[5][sizeMode + 3].setBg('radio3-1')
     camera.resolution = sizeData[sizeMode][1]
-
-
-#	camera.crop       = sizeData[sizeMode][2]
-
 
 # Global stuff -------------------------------------------------------------
 
@@ -395,8 +371,6 @@ icons = []  # This list gets populated at startup
 # set); trying to reuse those few elements just made for an ugly
 # tangle of code elsewhere.
 
-
-
 # Assorted utility functions -----------------------------------------------
 
 def setFxMode(n):
@@ -405,7 +379,6 @@ def setFxMode(n):
     camera.image_effect = fxData[fxMode]
     buttons[6][5].setBg('fx-' + fxData[fxMode])
 
-
 def setIsoMode(n):
     global isoMode
     isoMode = n
@@ -413,7 +386,6 @@ def setIsoMode(n):
     buttons[7][5].setBg('iso-' + str(isoData[isoMode][0]))
     buttons[7][7].rect = ((isoData[isoMode][1] - 10,) +
                           buttons[7][7].rect[1:])
-
 
 def saveSettings():
     try:
@@ -429,19 +401,30 @@ def saveSettings():
     except:
         pass
 
-
 def loadSettings():
+    global buttons
+    global sizeMode
+    global fxMode
+    global storeMode
     try:
         infile = open('cam.pkl', 'rb')
         d = pickle.load(infile)
         infile.close()
-        if 'fx' in d: setFxMode(d['fx'])
+        if 'fx' in d:
+            fxMode = d['fx']
+            camera.image_effect = fxData[fxMode]
+            buttons[6][5].bg = 'fx-'+fxData[fxMode]
         if 'iso' in d: setIsoMode(d['iso'])
-        if 'size' in d: sizeModeCallback(d['size'])
-        if 'store' in d: storeModeCallback(d['store'])
+        if 'size' in d: 
+            sizeMode = d['size']
+            buttons[5][3].bg = 'radio3-0'
+            buttons[5][sizeMode+3].bg = 'radio3-1'
+        if 'store' in d:
+            storeMode = d['store']
+            buttons[4][3].bg = 'radio3-0'
+            buttons[4][storeMode+3].bg = 'radio3-1'
     except:
         pass
-
 
 # Scan files in a directory, locating JPEGs with names matching the
 # software's convention (IMG_XXXX.JPG), returning a tuple with the
@@ -457,7 +440,6 @@ def imgRange(path):
                 if (i > max): max = i
     finally:
         return None if min > max else (min, max)
-
 
 # Busy indicator.  To use, run in separate thread, set global 'busy'
 # to False when done.
@@ -481,7 +463,6 @@ def spinner():
     buttons[screenMode][4].setBg(None)
     screenModePrior = -1  # Force refresh
 
-
 def takePicture():
     global busy, gid, loadIdx, saveIdx, scaled, sizeMode, storeMode, storeModePrior, uid
 
@@ -496,7 +477,7 @@ def takePicture():
                      stat.S_IROTH | stat.S_IXOTH)
         except OSError as e:
             # errno = 2 if can't create folder
-            print errno.errorcode[e.errno]
+            print(errno.errorcode[e.errno])
             return
 
     # If this is the first time accessing this directory,
@@ -551,18 +532,14 @@ def takePicture():
         if scaled.get_height() < 240:  # Letterbox
             screen.fill(0)
         screen.blit(scaled,
-                    ((320 - scaled.get_width()) / 2,
-                     (240 - scaled.get_height()) / 2))
+                    ((320 - scaled.get_width()) // 2,
+                     (240 - scaled.get_height()) // 2))
         pygame.display.update()
         time.sleep(2.5)
         loadIdx = saveIdx
 
-
 def showNextImage(direction):
     global busy, loadIdx
-
-    t = threading.Thread(target=spinner)
-    t.start()
 
     n = loadIdx
     while True:
@@ -574,10 +551,6 @@ def showNextImage(direction):
         if os.path.exists(pathData[storeMode] + '/IMG_' + '%04d' % n + '.JPG'):
             showImage(n)
             break
-
-    busy = False
-    t.join()
-
 
 def showImage(n):
     global busy, loadIdx, scaled, screenMode, screenModePrior, sizeMode, storeMode
@@ -596,7 +569,6 @@ def showImage(n):
     screenMode = 0  # Photo playback
     screenModePrior = -1  # Force screen refresh
 
-
 # Initialization -----------------------------------------------------------
 
 # Get user & group IDs for file & folder creation
@@ -608,7 +580,7 @@ gid = int(s) if s else os.getgid()
 
 # Buffers for viewfinder data
 rgb = bytearray(320 * 240 * 3)
-yuv = bytearray(320 * 240 * 3 / 2)
+yuv = bytearray(320 * 240 * 3 // 2)
 
 # Init pygame and screen
 pygame.init()
@@ -620,7 +592,6 @@ screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 camera = picamera.PiCamera()
 atexit.register(camera.close)
 camera.resolution = sizeData[sizeMode][1]
-# camera.crop       = sizeData[sizeMode][2]
 camera.crop = (0.0, 0.0, 1.0, 1.0)
 # Leave raw format at default YUV, don't touch, don't set to RGB!
 
@@ -630,20 +601,17 @@ for file in os.listdir(iconPath):
         icons.append(Icon(file.split('.')[0]))
 
 # Assign Icons to Buttons, now that they're loaded
-#batt = battRefresh()
+batt = battRefresh()
 buttons = printit()
 loadSettings()  # Must come last; fiddles with Button/Icon states
 
-
-#democaller()
 # Main loop ----------------------------------------------------------------
 
 while (True):
 
-
     # Process touchscreen input
     while True:
-        #batt = battRefresh()
+        batt = battRefresh()
         for s in buttons:  # For each screenful of buttons...
             for b in s:  # For each button on screen...
                 for i in icons:  # For each icon...
@@ -654,24 +622,17 @@ while (True):
                         b.iconFg = i
                         b.fg = None
 
-
         for event in pygame.event.get():
             if (event.type is MOUSEBUTTONDOWN):
                 pos = pygame.mouse.get_pos()
-                print pos
                 for b in buttons[screenMode]:
                     if b.selected(pos): break
+
         # If in viewfinder or settings modes, stop processing touchscreen
         # and refresh the display to show the live preview.  In other modes
         # (image playback, etc.), stop and refresh the screen only when
         # screenMode changes.
         if screenMode >= 3 or screenMode != screenModePrior: break
-
-
-
-
-
-
 
     # Refresh display
     if screenMode >= 3:  # Viewfinder or settings modes
@@ -694,8 +655,8 @@ while (True):
         screen.fill(0)
     if img:
         screen.blit(img,
-                    ((320 - img.get_width()) / 2,
-                     (240 - img.get_height()) / 2))
+                    ((320 - img.get_width()) // 2,
+                     (240 - img.get_height()) // 2))
 
     # Overlay buttons on display and update
     for i, b in enumerate(buttons[screenMode]):

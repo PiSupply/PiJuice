@@ -4,7 +4,9 @@ sudo apt-get update -y
 sudo apt-get install pijuice-base -y
 sudo git clone https://github.com/PiSupply/PiJuice.git
 cd PiJuice/MakerKits/Point-shoot-cam
-sudo make
+# Build yuv2rgb extension module and install in current directory.
+python3 setup.py install --instal-platlib=.
+rm -fr build # delete temporary build directory
 cp Point-Shoot.desktop /home/pi/Desktop/
 cd ~
 grep "start_x=1" /boot/config.txt
