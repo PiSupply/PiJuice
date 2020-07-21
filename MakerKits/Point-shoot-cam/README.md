@@ -61,7 +61,7 @@ git clone https://github.com/PiSupply/PiJuice.git
 
 ```bash
 cd PiJuice/MakerKits/Point-shoot-cam
-sudo make
+python3 setup.py install --install-platlib=.
 cp Point-Shoot.desktop /home/pi/Desktop/
 cd ~
 ```
