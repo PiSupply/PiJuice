@@ -45,34 +45,18 @@ Default settings can be overridden in the "Buttons" tab of PiJuice HAT configura
 
 * Shorting J5 while powering up PiJuice HAT will initiate the bootloader. This is used only in cases when ordinary initiation through I2C does not work because of damaged firmware.
 
-### DIP Switch
+### DIP Switches (HAT only)
 
-The DIP switch is preset for the BP7X battery that we supply with every PiJuice HAT.
+The DIP switches are preset for the BP7X battery that we supply with every PiJuice HAT.
 
-You can set the DIP Switch for four predefined battery profiles.
-
-![PiJuice DIP Switch Settings](https://user-images.githubusercontent.com/16068311/34769251-25c7c3b6-f5f5-11e7-971f-e93f5d4d3cc0.jpg "PiJuice DIP Switch Settings")
+You can set the DIP Switches for four predefined battery profiles.  
+As of firmware version 1.4 these are:
 
 ```text
-BP6X
--ON---CTS-
-[OFF][OFF]
---1----2--
-
-SNN5843
--ON---CTS-
-[OFF][ON ]
---1----2--
-
-BP7X (Default)
--ON---CTS-
-[ON ][OFF]
---1----2--
-
-LIP08047109
--ON---CTS-
-[ON ][ON ]
---1----2--
+PJZERO_1000     SNN5843_2300     BP7X_1820 (Default)    PJLIPO_12000
+-ON---CTS-      -ON---CTS-       -ON---CTS-             -ON---CTS-
+[OFF][OFF]      [OFF][ON ]       [ON ][OFF]             [ON ][ON ]
+--1----2--      --1----2--       --1----2--             --1----2--
 ```
 
 We have also provided [this document](https://github.com/PiSupply/PiJuice/tree/master/Hardware/Batteries/Pijuice_battery_config.xlsx) that should help you to select desired battery profile via the DIP switch.
@@ -246,7 +230,7 @@ You may notice that there are several components which have not be installed on 
     - TP2 - Pi Zero
     - TP3 - Pi B+ and 2B
 
-**Note:** As of Firmware v1.3_2019_01_15 pogo pin is no longer required to wakeup the Raspberry Pi when powering from the Pi micro USB. A single press of SW1 on the PiJuice will wakeup the Pi or a short of GPIO pins 5 & 6 will also wakeup the Pi. This method has been introduced to accommodate the new Raspberry Pi boards and any future boards.
+**Note:** As of Firmware v1.3_2019_01_15 the pogo pin is no longer required to wakeup the Raspberry Pi when powering from the Pi micro USB. A single press of SW1 on the PiJuice will wakeup the Pi or a short of GPIO pins 5 & 6 will also wakeup the Pi. This method has been introduced to accommodate the new Raspberry Pi boards and any future boards.
 
 **Note:** If using the pogo pin with Raspberry Pi model 2B and the pogo pin protrudes through the Raspberry Pi then you may need to tin the solder pad or the end of the pogo pin.
 
@@ -285,7 +269,6 @@ PiJuice can be configured to automatically wake-up system in several ways: on ch
 PiJuice allows for multiple ways of providing power to its battery and to the Raspberry Pi. When deciding whether to use the Pi's micro USB or the PiJuice micro USB you need to take into consideration the following:
 * **Powering from the Pi's micro USB**
     - Powering from the Pi's input is more efficient, this is usually an advantage in UPS applications, but the maximum charger input from the GPIO pins is 1.5A.
-    - Requires installation of the spring / pogo pin to do timed wake ups of the Pi and to use SW1 to wake the Pi
 * **Powering from the PiJuice's micro USB**
     - Powering via the PiJuice micro USB offers a wider input voltage range.
     - Additionally the maximum current from HAT USB micro is 2.5A, but it needs to go through two regulators to power the Raspberry Pi and is hence less efficient. This input should be used in most battery powered applications and harvesting sources like solar panels.
@@ -324,21 +307,23 @@ Battery profile defines charging, discharging parameters for PiJuice Battery. Al
 
 #### Predefined Profiles
 
-PiJuice has set of predefined profiles for set of tested compatible batteries that can be selected if one of batteries is used.
-* (0) BP6X
-  - Capacity: 1400 mAh,
-  - Charge current: 850 mA,
+The PiJuice firmware has a set of predefined profiles that can be selected if one of these batteries is used.
+The set below is for firmware 1.4 and later.
+
+* (0) PJZERO_1000
+  - Capacity: 1000 mAh,
+  - Charge current: 625 mA,
   - Termination current: 50 mA,
   - Regulation voltage: 4180 mV,
   - Cut-off voltage: 3000 mV,
-  - Cold temperature: 1 °C,
-  - Cool temperature: 10 °C,
-  - Warm temperature: 45 °C,
-  - Hot temperature: 59 °C,
-  - NTC  B constant: 3380 K,
+  - Cold temperature: 0 °C,
+  - Cool temperature: 2 °C,
+  - Warm temperature: 49 °C,
+  - Hot temperature: 65 °C,
+  - NTC  B constant: 3450 K,
   - NTC resistance 10000 Ω.
 
-* (1) BP7X
+* (1) BP7X_1820
   - Capacity: 1820 mAh,
   - Charge current: 925 mA,
   - Termination current: 50 mA,
@@ -351,7 +336,7 @@ PiJuice has set of predefined profiles for set of tested compatible batteries th
   - NTC  B constant: 3380 K,
   - NTC resistance 10000 Ω.
 
-* (2) SNN5843
+* (2) SNN5843_2300
   - Capacity: 2300 mAh,
   - Charge current: 1150 mA,
   - Termination current: 100 mA,
@@ -361,20 +346,111 @@ PiJuice has set of predefined profiles for set of tested compatible batteries th
   - Cool temperature: 10 °C,
   - Warm temperature: 45 °C,
   - Hot temperature: 59 °C,
+  - NTC  B constant: 3450 K,
+  - NTC resistance 10000 Ω.
+
+* (3) PJLIPO_12000
+  - Capacity: 12000 mAh,
+  - Charge current: 2500 mA,
+  - Termination current: 250 mA,
+  - Regulation voltage: 4180 mV,
+  - Cut-off voltage: 3000 mV,
+  - Cold temperature: 0 °C,
+  - Cool temperature: 2 °C,
+  - Warm temperature: 49 °C,
+  - Hot temperature: 65 °C,
+  - NTC  B constant: 3450 K,
+  - NTC resistance 10000 Ω.
+
+* (4) PJLIPO_5000
+  - Capacity: 5000 mAh,
+  - Charge current: 2500 mA,
+  - Termination current: 250 mA,
+  - Regulation voltage: 4180 mV,
+  - Cut-off voltage: 3000 mV,
+  - Cold temperature: 0 °C,
+  - Cool temperature: 2 °C,
+  - Warm temperature: 49 °C,
+  - Hot temperature: 65 °C,
+  - NTC  B constant: 3450 K,
+  - NTC resistance 10000 Ω.
+
+* (5) PJBP7X_1600
+  - Capacity: 1600 mAh,
+  - Charge current: 925 mA,
+  - Termination current: 50 mA,
+  - Regulation voltage: 4180 mV,
+  - Cut-off voltage: 3000 mV,
+  - Cold temperature: 0 °C,
+  - Cool temperature: 2 °C,
+  - Warm temperature: 50 °C,
+  - Hot temperature: 70 °C,
   - NTC  B constant: 3380 K,
   - NTC resistance 10000 Ω.
 
-* (3) LIPO8047109
-  - Capacity: 5000 mAh,
-  - Charge current: 2500 mA,
-  - Termination current: 100 mA,
+* (6) PJSNN5843_1300
+  - Capacity: 1300 mAh,
+  - Charge current: 775 mA,
+  - Termination current: 50 mA,
+  - Regulation voltage: 4180 mV,
+  - Cut-off voltage: 3000 mV,
+  - Cold temperature: 0 °C,
+  - Cool temperature: 2 °C,
+  - Warm temperature: 50 °C,
+  - Hot temperature: 70 °C,
+  - NTC  B constant: 3380 K,
+  - NTC resistance 10000 Ω.
+
+* (7) PJZERO_1200
+  - Capacity: 1200 mAh,
+  - Charge current: 700 mA,
+  - Termination current: 50 mA,
+  - Regulation voltage: 4180 mV,
+  - Cut-off voltage: 3000 mV,
+  - Cold temperature: 0 °C,
+  - Cool temperature: 2 °C,
+  - Warm temperature: 49 °C,
+  - Hot temperature: 65 °C,
+  - NTC  B constant: 3450 K,
+  - NTC resistance 10000 Ω.
+
+* (8) BP6X_1400
+  - Capacity: 1400 mAh,
+  - Charge current: 850 mA,
+  - Termination current: 50 mA,
   - Regulation voltage: 4180 mV,
   - Cut-off voltage: 3000 mV,
   - Cold temperature: 1 °C,
-  - Cool temperature: 2 °C,
+  - Cool temperature: 10 °C,
   - Warm temperature: 45 °C,
-  - Hot temperature: 50 °C,
+  - Hot temperature: 59 °C,
   - NTC  B constant: 3380 K,
+  - NTC resistance 10000 Ω.
+
+* (9) PJLIPO_600
+  - Capacity: 600 mAh,
+  - Charge current: 550 mA,
+  - Termination current: 50 mA,
+  - Regulation voltage: 4180 mV,
+  - Cut-off voltage: 3000 mV,
+  - Cold temperature: 0 °C,
+  - Cool temperature: 2 °C,
+  - Warm temperature: 49 °C,
+  - Hot temperature: 65 °C,
+  - NTC  B constant: 3450 K,
+  - NTC resistance 10000 Ω.
+
+* (10) PJLIPO_500
+  - Capacity: 500 mAh,
+  - Charge current: 550 mA,
+  - Termination current: 50 mA,
+  - Regulation voltage: 4180 mV,
+  - Cut-off voltage: 3000 mV,
+  - Cold temperature: 0 °C,
+  - Cool temperature: 2 °C,
+  - Warm temperature: 49 °C,
+  - Hot temperature: 65 °C,
+  - NTC  B constant: 3450 K,
   - NTC resistance 10000 Ω.
 
 ### Battery charge/discharge
