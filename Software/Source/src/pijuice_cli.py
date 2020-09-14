@@ -999,6 +999,7 @@ class BatteryProfileTab(object):
         CHEMISTRY_OPTIONS = pijuice.config.batteryChemistries 
         EDIT_KEYS = ['capacity', 'chargeCurrent', 'terminationCurrent', 'regulationVoltage', 'cutoffVoltage',
                      'tempCold', 'tempCool', 'tempWarm', 'tempHot', 'ntcB', 'ntcResistance']
+        EDIT_EXTKEYS = ['ocv10', 'ocv50', 'ocv90', 'r10', 'r50', 'r90']
 
     def __init__(self, *args):
         global current_fw_version
@@ -1055,10 +1056,15 @@ class BatteryProfileTab(object):
             ]
 
         for i, edit in enumerate(self.param_edits):
-            # FloatEdit does not need the change signal
-            if isinstance(edit, FloatEdit):
-                continue
-            urwid.connect_signal(edit, 'change', lambda x, text, idx: self.profile_data.update({self.EDIT_KEYS[idx]: text}), i)
+            if i < 11:
+                urwid.connect_signal(edit, 'change',
+                          lambda x, text, idx: self.profile_data.update({self.EDIT_KEYS[idx]: text}), i)
+            else:
+                # FloatEdit does not need the change signal
+                if isinstance(edit, FloatEdit):
+                    continue
+                urwid.connect_signal(edit, 'change',
+                          lambda x, text, idx: self.ext_profile_data.update({self.EDIT_EXTKEYS[idx]: text}), i - 11)
 
         if self.custom_values:
             elements.extend([urwid.Padding(
