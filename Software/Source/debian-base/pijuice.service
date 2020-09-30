@@ -1,6 +1,6 @@
 [Unit]
 Description=PiJuice status service
-After=network.target
+After=syslog.target
 
 [Service]
 Type=idle
