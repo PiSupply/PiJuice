@@ -947,7 +947,7 @@ class PiJuicePower(object):
             return ret
         else:
             d = ret['data'][0]
-            if d == 0xFF:
+            if d == 0x7F:
                 return {'data': 'DISABLED', 'error': 'NO_ERROR'}
             else:
                 return {'data': d, 'error': 'NO_ERROR'}
