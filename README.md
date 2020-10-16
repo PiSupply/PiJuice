@@ -173,3 +173,5 @@ It is safe to say we have an awesome and growing community of people using PiJui
 * Build a wildlife camera using a Raspberry Pi and PiJuice [by Electromaker](https://www.electromaker.io/blog/article/build-a-wildlife-camera-using-a-raspberry-pi-and-pijuice)
 * CarPi - a Raspberry Pi, PiJuice and a HifiBerry all living neatly in a dashboard running Android Auto! [by Rick Tonoli](http://www.ricktonoli.com/2018/06/13/car-pi-hardware/)
 * PiJuice on Windows IoT Core! You can find the [code here](https://github.com/tresoft/PiJuice-Uwp)
+* [PiJuice](https://github.com/networkupstools/nut/blob/master/docs/man/pijuice.txt) is now supported by [Network UPS Tools](
+https://github.com/networkupstools/nut/)!
