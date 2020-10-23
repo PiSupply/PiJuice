@@ -116,12 +116,12 @@ This picture is how the PiJuice Settings software looks when it loads up. This a
   - GPIO Input Status (Powered from Raspberry Pi)
     - **NOT_PRESENT** - No power supply connected to GPIO pins (i.e Raspberry Pi)
     - **BAD** - GPIO power is bad, find an alternative power supply with a higher rating
-    - **WEAK** - GPIO power is weak i.e. power supply cannot charge the PiJuice and provide power to the Raspberry Pi. DPM is active, see - [https://github.com/PiSupply/PiJuice/tree/master/Hardware#usb-micro-input(https://github.com/PiSupply/PiJuice/tree/master/Hardware#usb-micro-input)]
+    - **WEAK** - GPIO power is weak i.e. power supply cannot charge the PiJuice and provide power to the Raspberry Pi. DPM is active, see - [https://github.com/PiSupply/PiJuice/tree/master/Hardware#usb-micro-input](https://github.com/PiSupply/PiJuice/tree/master/Hardware#usb-micro-input)
     - **PRESENT** - GPIO power is good
 - **USB Micro power input:** - PiJuice Micro USB input status
   - **NOT_PRESENT** - Power supply is not connected to the PiJuice micro USB connector
   - **BAD** - Power supply is connected but is not providing enough power
-  - **WEAK** - Power supply is connected but is weak i.e. power supply cannot charge the PiJuice and provide power to the Raspberry Pi. DPM is active, see - [https://github.com/PiSupply/PiJuice/tree/master/Hardware#usb-micro-input(https://github.com/PiSupply/PiJuice/tree/master/Hardware#usb-micro-input)]
+  - **WEAK** - Power supply is connected but is weak i.e. power supply cannot charge the PiJuice and provide power to the Raspberry Pi. DPM is active, see - [https://github.com/PiSupply/PiJuice/tree/master/Hardware#usb-micro-input](https://github.com/PiSupply/PiJuice/tree/master/Hardware#usb-micro-input)
   - **PRESENT** - Power supply is connected and is providing good power to the PiJuice
   - **FAULT:** - Displays any faults
 - **System Switch:** for use with VSYS on J3 to provide power to external devices
