@@ -6,7 +6,7 @@
 The above images of the PiJuice PCB are used in the following descriptions to highlight some of the inputs / outputs and other useful hardware information.
 
 ## Switches
-On board the PiJuice, highlighted in green in the above overview images, there are momentary switches and one DIP switch(PiJuice HAT). Please note that SW1 and J5 have the same function...J5 has been provided so that a separate tactile pushbutton can be used for ease of use for example on a custom case (similar to a reset or power button on a normal computer).
+On board the PiJuice, highlighted in green in the above overview images, there are momentary switches and one DIP switch (PiJuice HAT only). Please note that SW1 and J5 on the PiJuice HAT have the same function. On PiJuice Zero J5 is equivalent to SW2 on the PiJuice HAT rather than being connected to same circuit as SW1. J5 has been provided so that a separate tactile pushbutton (normally open NO) can be added for ease of use for example on a custom case (similar to a reset or power button on a normal computer). When adding a button to J5 on either the PiJuice HAT or PiJuice Zero you can either use a 2 pin header to attach wires or you can simply solder wires directly to the PCB. With a SPST momentary push button that is normally open (NO) there is no directionality so it doesn't matter which way round it is. You also do not need to use a resistor in line with the switch.
 
 The following lists the default function/configuration (these can be easily overwritten in the software GUI/JSON file - see below):
 
@@ -225,12 +225,12 @@ The images above highlight the main ICs used on PiJuice. Links to the various da
 
 You may notice that there are several components which have not be installed on your board. This section aims to explain what they are and which are for user customisation.
 
-* **TP1, 2 and 3** should be used to install the pogo / spring pin (Mill-Max 0929-7-15-20-75-14-11-0 or 0929-7-15-20-77-14-11-0) for the wake on function. Each is located with respect to the "Run" pad on the various Raspberry Pi layouts:
+* **TP1, 2 and 3** should be used to install the pogo / spring pin (Mill-Max 0929-7-15-20-75-14-11-0 or 0929-7-15-20-77-14-11-0) for the wake up function. Each is located with respect to the "Run" pad on the various Raspberry Pi layouts:
     - TP1 - Pi 3B
     - TP2 - Pi Zero
     - TP3 - Pi B+ and 2B
 
-**Note:** As of Firmware v1.3_2019_01_15 the pogo pin is no longer required to wakeup the Raspberry Pi when powering from the Pi micro USB. A single press of SW1 on the PiJuice will wakeup the Pi or a short of GPIO pins 5 & 6 will also wakeup the Pi. This method has been introduced to accommodate the new Raspberry Pi boards and any future boards.
+**Note:** As of Firmware v1.3_2019_01_15 the pogo pin is no longer required to wakeup the Raspberry Pi when powering from the Pi micro USB. A single press of SW1 on the PiJuice will wakeup the Pi or a short of GPIO pins 5 & 6 will also wakeup the Pi. This method has been introduced to accommodate the new Raspberry Pi boards and any future boards so that hardware modifications are not needed to accommodate new run pin locations. Pin 6 is ground and pin 5 is GPIO3. When the Pi is shut down (in low power state) a falling edge on GPIO3 (e.g. shorting pins 5 and 6) will make the GPU firmware boot the Pi. Note: this implies the Pi still has 5V power. Since the ARM is not active yet it does not interfere with I2C which is configured during the ARM boot. So there is nothing to do to check if things are properly configured. The watchdog reset uses the same sequence as the other wakeups (interrupt 5V when powered via the PiJuice, otherwise use run pin and finally if no run pin use the GPIO3 method).
 
 **Note:** If using the pogo pin with Raspberry Pi model 2B and the pogo pin protrudes through the Raspberry Pi then you may need to tin the solder pad or the end of the pogo pin.
 
