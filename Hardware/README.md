@@ -6,7 +6,7 @@
 The above images of the PiJuice PCB are used in the following descriptions to highlight some of the inputs / outputs and other useful hardware information.
 
 ## Switches
-On board the PiJuice, highlighted in green in the above overview images, there are momentary switches and one DIP switch(PiJuice HAT). Please note that SW1 and J5 have the same function...J5 has been provided so that a separate tactile pushbutton can be used for ease of use for example on a custom case (similar to a reset or power button on a normal computer).
+On board the PiJuice, highlighted in green in the above overview images, there are momentary switches and one DIP switch (PiJuice HAT only). Please note that SW1 and J5 on the PiJuice HAT have the same function. On PiJuice Zero J5 is equivalent to SW2 on the PiJuice HAT rather than being connected to same circuit as SW1. J5 has been provided so that a separate tactile pushbutton (normally open NO) can be added for ease of use for example on a custom case (similar to a reset or power button on a normal computer). When adding a button to J5 on either the PiJuice HAT or PiJuice Zero you can either use a 2 pin header to attach wires or you can simply solder wires directly to the PCB. With a SPST momentary push button that is normally open (NO) there is no directionality so it doesn't matter which way round it is. You also do not need to use a resistor in line with the switch.
 
 The following lists the default function/configuration (these can be easily overwritten in the software GUI/JSON file - see below):
 
