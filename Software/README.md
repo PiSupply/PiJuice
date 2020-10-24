@@ -112,7 +112,7 @@ This picture is how the PiJuice Settings software looks when it loads up. This a
     - **NORMAL** - Battery is present but not charging
 - **GPIO power input:**
   - Voltage provided/received from the GPIO pins
-  - Amperage provided/received from the GPIO pins
+  - Amperage provided/received from the GPIO pins. Negative current is from Raspberry Pi to PiJuice. Positive current is from PiJuice to Raspberry Pi.
   - GPIO Input Status (Powered from Raspberry Pi)
     - **NOT_PRESENT** - No power supply connected to GPIO pins (i.e Raspberry Pi)
     - **BAD** - GPIO power is bad, find an alternative power supply with a higher rating
@@ -436,7 +436,10 @@ This menu shows the current status of the PiJuice including battery levels and c
 
 **Battery** - This section displays the current battery level as a percentage from 0-100% as well as the battery voltage. Next to this is the current charging status of the battery; NOT_PRESENT battery is not installed, CHARGING_FROM_IN battery is charging from the PiJuice micro USB connector, CHARGING_FROM_5V_IO battery is charging from the GPIO pins via the micro USB connector on the Raspberry Pi, NORMAL battery is not charging but is operating as normal.
 
-**GPIO power input** - This section displays the power state of the GPIO pins as the PiJuice can provide power to the Raspberry Pi through the GPIO pins as well as receive power from the Raspberry Pi if powered through the Raspberry Pi’s micro USB connector. This section display the GPIO voltage(V) and current (A) that the battery either provides to the Pi or receives from the Pi as well as the input status; NOT_PRESENT no power supply is connected to the Raspberry Pi, BAD power supply is connected to the Raspberry Pi but is not providing enough power to the Raspberry Pi and PiJuice, WEAK power is connected to the Raspberry Pi but not enough to power the Raspberry Pi and charge the PiJuice, PRESENT power supply is connected to the Raspberry Pi and is stable.
+**GPIO power input** - This section displays the power state of the GPIO pins as the PiJuice can provide power to the Raspberry Pi through the GPIO pins as well as receive power from the Raspberry Pi if powered through the Raspberry Pi’s micro USB connector.
+This section displays the GPIO voltage(V) and current (A) that the battery either provides to the Pi or receives from the Pi as well as the input status;
+Negative current is from the Raspberry Pi to PiJuice. Positive current is from the PiJuice to the Raspberry Pi.
+Input status NOT_PRESENT no power supply is connected to the Raspberry Pi, BAD power supply is connected to the Raspberry Pi but is not providing enough power to the Raspberry Pi and PiJuice, WEAK power is connected to the Raspberry Pi but not enough to power the Raspberry Pi and charge the PiJuice, PRESENT power supply is connected to the Raspberry Pi and is stable.
 
 **USB Micro power input** - This section displays the status of the PiJuice micro USB power supply. NOT_PRESENT no power supply is connected to the PiJuice, BAD power supply is connected but cannot charge the PiJuice or power the Raspberry Pi, WEAK power supply is connected but not providing enough power, PRESENT power supply is connected and is stable.
 
