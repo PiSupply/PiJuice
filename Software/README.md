@@ -14,7 +14,7 @@ sudo apt-get install pijuice-base
 ```
 This is particularly indicated for Raspbian Lite or an headless installation.
 
-Note: The v1.6 debian packages are available for Buster and Stretch. The latest package for Jessie in the Raspbian is 1.4.
+Note: The v1.6 debian packages are available for Buster and Stretch. The latest packages in the repo for Jessie are v1.4.
 Jessie users can install the v1.6 .deb packages manually from [here](https://github.com/PiSupply/PiJuice/tree/master/Software/Install) however v1.6 has not been tested under Jessie..
 
 
