@@ -14,8 +14,8 @@ sudo apt-get install pijuice-base
 ```
 This is particularly indicated for Raspbian Lite or an headless installation.
 
-Note: The v1.5 debian packages are available for Buster and Stretch. The latest package for Jessie in the Raspbian is 1.4.
-Jessie users can install the v1.5 .deb packages manually from [here](https://github.com/PiSupply/PiJuice/tree/master/Software/Install) however v1.5 has not been tested under Jessie..
+Note: The v1.6 debian packages are available for Buster and Stretch. The latest package for Jessie in the Raspbian is 1.4.
+Jessie users can install the v1.6 .deb packages manually from [here](https://github.com/PiSupply/PiJuice/tree/master/Software/Install) however v1.6 has not been tested under Jessie..
 
 
 ### Manual process
@@ -26,11 +26,11 @@ Install the dependency python urwid package:
 
 For the light version:
 
-`sudo dpkg -i ./pijuice-base_1.5_all.deb`
+`sudo dpkg -i ./pijuice-base_1.6_all.deb`
 
 For example for the full version with GUI:
 
-`sudo dpkg -i ./pijuice-gui_1.5_all.deb`
+`sudo dpkg -i ./pijuice-gui_1.6_all.deb`
 
 **Note:** You must install the PiJuice base version prior to installing the GUI.
 
