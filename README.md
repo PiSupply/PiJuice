@@ -1,29 +1,20 @@
 ![PiJuice Logo](https://user-images.githubusercontent.com/1878314/73881793-e1c00080-4858-11ea-8ce8-e5bd4cc6f9b6.png)
 # PiJuice
-Resources for the [PiJuice range](https://www.pi-supply.com/?s=pijuice&post_type=product&tags=1&limit=5&ixwps=1) (complete with our revolutionary [PiAnywhere](https://www.pi-supply.com/product-tag/pianywhere/) technology – the best way to take your Pi off the grid!). Originally funded on [Kickstarter](https://www.kickstarter.com/projects/pijuice/pijuice-a-portable-project-platform-for-every-rasp/).
+Resources for the [PiJuice range](https://uk.pi-supply.com/search?type=product&q=PiJuice) (complete with our revolutionary [PiAnywhere](https://uk.pi-supply.com/search?type=product&q=PiAnywhere) technology – the best way to take your Pi off the grid!). Originally funded on [Kickstarter](https://www.kickstarter.com/projects/pijuice/pijuice-a-portable-project-platform-for-every-rasp/).
 
 #### Where to buy a PiJuice?
 
-Below a (incomplete) list of outlets that sell PiJuice HATs, solar panels and cases.
+Below you can find a list of our PiJuice range of products:
 
-- [Pi Supply (UK)](https://www.pi-supply.com/product/pijuice-standard/)
-- [ModMyPi (UK)](https://www.modmypi.com/raspberry-pi/power-1051/ups-boards-1051/pijuice-standard)
-- [Raspberry Pi Denmark](https://raspberrypi.dk/produkt/pijuice-stroem-platform-hat-batteri/)
-- [Pi Shop Switzerland](https://www.pi-shop.ch/pi-supply-pijuice)
-- [Allied Elec (USA)](https://www.alliedelec.com/pi-supply-pis-0212/71079304/)
-- [Arrow](https://www.arrow.com/en/products/pis-0212/pi-supply)
-- [Newark](http://www.newark.com/pi-supply/pi-juice/pijuice-pi-ups-hat/dp/31AC3820)
-- [Farnell](http://uk.farnell.com/pi-supply/pi-juice/power-supply-board-raspberry-pi/dp/2671595)
-- [KUBII (France/Spain)](https://www.kubii.fr/es/cargadores-fuentes-raspberry-pi/2019-pijuice-hat-3272496008793.html)
-- [Ameridroid (USA)](https://ameridroid.com/product/pijuice-hat-1)
-- [S.O.S Solutions (Netherlands)](https://www.sossolutions.nl/catalogsearch/result/?q=pijuice)
-- [BuyAPi9 (Canada)](https://www.buyapi.ca/?s=pijuice&product_cat=0&post_type=product)
-- [Melopero (Italy)](https://www.melopero.com/?s=pijuice&post_type=product)
-- [Botland (Poland)](https://botland.com.pl/szukaj?controller=search&orderby=position&orderway=desc&search_query=pijuice&submit_search=)
-- [Chicago Electronics Distributorsi (USA)](https://chicagodist.com/search?q=pijuice)
-- [Elmwood Electronici (Canada)](https://elmwoodelectronics.ca/search?q=pijuice)
-- [RPiShop.cz (Czechia)](http://rpishop.cz/vyhledavani?controller=search&orderby=position&orderway=desc&search_query=pijuice&submit_search=Hledat)
-- [Eckstein GmbH (Germany)](https://eckstein-shop.de/navi.php?qs=pijuice)
+- [PiJuice HAT](https://uk.pi-supply.com/products/pijuice-standard)
+- [PiJuice Zero](https://uk.pi-supply.com/products/pijuice-zero)
+- [PiJuice Additional / Replacement Batteries](https://uk.pi-supply.com/search?type=product&q=PiJuice+Battery)
+- [PiJuice Cases](https://uk.pi-supply.com/search?type=product&q=PiJuice+Case)
+- [PiJuice Solar Panels](https://uk.pi-supply.com/search?type=product&q=PiJuice+Solar+Panel)
+- [PiJuice Kits](https://uk.pi-supply.com/search?type=product&q=PiJuice+Kit)
+- [Other PiJuice Accessories](https://uk.pi-supply.com/search?type=product&q=PiJuice)
+
+We also have a variety of resellers and distributors that stock our PiJuice range. You can often find them by just typing in the product SKU (shown on each product page above the title with format PIS-0000) or product title into Google in your country, however we also have a [list of distributors](https://uk.pi-supply.com/pages/distributors) on our website for your reference. If you are struggling to find stock of any particular products, feel free to send us an email to [sales@pi-supply.com](mailto:sales@pi-supply.com) and we will do our best to help you find what you need.
 
 ## Board overview
 
