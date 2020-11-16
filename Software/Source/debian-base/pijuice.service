@@ -1,13 +1,12 @@
 [Unit]
-Description=PiJuice status service
+Description=PiJuice system daemon
 After=network.target
 
 [Service]
 Type=idle
 User=pijuice
 WorkingDirectory=/var/lib/pijuice/
-ExecStart=/usr/bin/pijuice_sys.py
-ExecStopPost=/usr/bin/pijuice_sys.py stop
+ExecStart=/usr/bin/pijuice_sys daemon
 Restart=always
 
 [Install]

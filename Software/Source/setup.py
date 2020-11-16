@@ -34,19 +34,24 @@ if build_base:
     setup(
         name="pijuice-base",
         description="Software package for PiJuice",
-        install_requires=["smbus", "urwid"],
+        install_requires=["smbus", "urwid", "marshmallow"],
         py_modules=['pijuice'],
         packages=setuptools.find_packages(),
+        include_package_data=True,
         data_files=[
             ('share/pijuice/data/firmware', glob.glob('data/firmware/*')),
             ('/etc/sudoers.d', ['data/020_pijuice-nopasswd']),
             ('bin', ['bin/pijuiceboot']),
             ('bin', ['bin/pijuice_cli']),
         ],
-        scripts = ['src/pijuice_sys.py', 'src/pijuice_cli.py'],
+        scripts = ['src/pijuice_cli.py'],
+        package_data={
+            "pijuice_sys.scripts": ["*.sh"],
+        },
         entry_points={
             'console_scripts': [
                 "pijuice_cmd=pijuice_cmd.__main__:main",
+                "pijuice_sys=pijuice_sys.__main__:main",
             ]
         },
     )

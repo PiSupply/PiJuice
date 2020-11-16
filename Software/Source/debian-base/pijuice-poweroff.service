@@ -1,0 +1,13 @@
+[Unit]
+Description=PiJuice poweroff
+Before=poweroff.target halt.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+User=pijuice
+WorkingDirectory=/var/lib/pijuice/
+ExecStart=/usr/bin/pijuice_sys poweroff
+
+[Install]
+WantedBy=poweroff.target halt.target
