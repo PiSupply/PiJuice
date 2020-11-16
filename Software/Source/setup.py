@@ -36,6 +36,7 @@ if build_base:
         description="Software package for PiJuice",
         install_requires=["smbus", "urwid"],
         py_modules=['pijuice'],
+        packages=setuptools.find_packages(),
         data_files=[
             ('share/pijuice/data/firmware', glob.glob('data/firmware/*')),
             ('/etc/sudoers.d', ['data/020_pijuice-nopasswd']),
@@ -43,6 +44,11 @@ if build_base:
             ('bin', ['bin/pijuice_cli']),
         ],
         scripts = ['src/pijuice_sys.py', 'src/pijuice_cli.py'],
+        entry_points={
+            'console_scripts': [
+                "pijuice_cmd=pijuice_cmd.__main__:main",
+            ]
+        },
     )
 
 else:
