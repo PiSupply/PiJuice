@@ -6,7 +6,7 @@ import os
 import os.path
 import sys
 from signal import signal, SIGUSR1, SIGUSR2
-
+import json
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk as gtk
@@ -15,11 +15,13 @@ from gi.repository import GLib as glib
 
 from pijuice import PiJuice, get_versions
 
+I2C_ADDRESS_DEFAULT = 0x14
+I2C_BUS_DEFAULT = 1
 REFRESH_INTERVAL = 5000
 CHECK_SIGNAL_INTERVAL = 200
 ICON_DIR = '/usr/share/pijuice/data/images'
 TRAY_PID_FILE = '/tmp/pijuice_tray.pid'
-
+configPath = '/var/lib/pijuice/pijuice_config.JSON'
 
 class PiJuiceStatusTray(object):
 
@@ -43,8 +45,8 @@ class PiJuiceStatusTray(object):
 
         self.tray.connect('popup-menu', self.show_menu)
 
-        self.pijuice = PiJuice(1, 0x14)
-
+        self.init_pijuice_interface()
+        
         # Initalise and start battery display
         self.refresh(None)
         self.tray.set_visible(True)
@@ -52,6 +54,26 @@ class PiJuiceStatusTray(object):
         glib.timeout_add(REFRESH_INTERVAL, self.refresh, self.tray)
         glib.timeout_add(CHECK_SIGNAL_INTERVAL, self.check_signum)
 
+    def init_pijuice_interface(self):
+        try:
+            addr = I2C_ADDRESS_DEFAULT
+            bus = I2C_BUS_DEFAULT
+
+            configData = {}
+            with open(configPath, 'r') as outputConfig:
+                config_dict = json.load(outputConfig)
+                configData.update(config_dict)
+                
+            if 'board' in configData and 'general' in configData['board']:
+                if 'i2c_addr' in configData['board']['general']:
+                    addr = int(configData['board']['general']['i2c_addr'], 16)
+                if 'i2c_bus' in configData['board']['general']:
+                    bus = configData['board']['general']['i2c_bus']
+
+            self.pijuice = PiJuice(bus, addr)
+        except:
+            sys.exit(0)
+            
     def show_menu(self, widget, event_button, event_time):
         self.menu.popup(None, None,
         self.tray.position_menu,

@@ -30,11 +30,8 @@ from queue import Queue, Empty
 from pijuice import (PiJuice, pijuice_hard_functions, pijuice_sys_functions,
                      pijuice_user_functions)
 
-try:
-    pijuice = PiJuice(1, 0x14)
-except:
-    pijuice = None
-
+I2C_ADDRESS_DEFAULT = 0x14
+I2C_BUS_DEFAULT = 1
 PID_FILE = '/tmp/pijuice_sys.pid'
 TRAY_PID_FILE = '/tmp/pijuice_tray.pid'
 LOCK_FILE = '/tmp/pijuice_gui.lock'
@@ -42,13 +39,28 @@ USER_FUNCS_TOTAL = 15
 USER_FUNCS_MINI = 8
 pijuiceConfigData = {}
 PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON'
-status = pijuice.config.GetFirmwareVersion()
-if status['error'] == 'NO_ERROR':
-    verStr = status['data']['version']
-    major, minor = verStr.split('.')
-    FWVER = (int(major) << 4) + int(minor)
-else:
-    FWVER = 0xFF
+FWVER = 0xFF
+
+pijuice = None
+
+def _InitPiJuiceInterface():
+    global pijuice
+    global root
+    try:
+        addr = I2C_ADDRESS_DEFAULT
+        bus = I2C_BUS_DEFAULT
+        global pijuiceConfigData
+        if 'board' in pijuiceConfigData and 'general' in pijuiceConfigData['board']:
+            if 'i2c_addr' in pijuiceConfigData['board']['general']:
+                addr = int(pijuiceConfigData['board']['general']['i2c_addr'], 16)
+            if 'i2c_bus' in pijuiceConfigData['board']['general']:
+                bus = pijuiceConfigData['board']['general']['i2c_bus']
+        pijuice = PiJuice(bus, addr)
+    except:
+        pijuice = None
+        root.withdraw()
+        MessageBox.showerror('PiJuice Settings', 'Failed to use I2C bus. Check if I2C is enabled', parent=root)
+        sys.exit()
 
 def _ValidateIntEntry(var, min, max):
     new_value = var.get()
@@ -462,6 +474,8 @@ class PiJuiceHATConfig(object):
                 # Update changed address
                 MessageBox.showinfo('Address update', "Success!", parent=self.frame)
                 self.slaveAddrconfig[id]['data'] = self.slaveAddr[id].get()
+                pijuiceConfigData.setdefault('board', {}).setdefault('general', {})['i2c_addr'+['','_rtc'][id]] = self.slaveAddrconfig[id]['data']
+                if (id==0): _InitPiJuiceInterface()
         else:
             # Restore original address
             self.slaveAddrEntry[id].delete(0,END)
@@ -1636,7 +1650,9 @@ class PiJuiceSysEventConfig(object):
         {'id':'watchdog_reset', 'name':'Watchdog reset', 'funcList':(['NO_FUNC']+pijuice_user_functions)},
         {'id':'button_power_off', 'name':'Button power off', 'funcList':(['NO_FUNC']+pijuice_user_functions)},
         {'id':'forced_power_off', 'name':'Forced power off', 'funcList':(['NO_FUNC']+pijuice_user_functions)},
-        {'id':'forced_sys_power_off', 'name':'Forced sys power off', 'funcList':(['NO_FUNC']+pijuice_user_functions)}
+        {'id':'forced_sys_power_off', 'name':'Forced sys power off', 'funcList':(['NO_FUNC']+pijuice_user_functions)},
+        {'id':'sys_start', 'name':'System start', 'funcList':(['NO_FUNC']+pijuice_user_functions)},
+        {'id':'sys_stop', 'name':'System stop', 'funcList':(['NO_FUNC']+pijuice_user_functions)}
         ]
         global pijuiceConfigData
         self.sysEventEnable = []
@@ -1697,7 +1713,7 @@ class PiJuiceSysEventConfig(object):
 
 
 class PiJuiceConfigParamEdit(object):
-    def __init__(self, master, r, config, name, paramDes, id, paramId, type, min, max):
+    def __init__(self, master, r, config, name, paramDes, id, paramId, type, min, max, restore = {}):
         self.frame = master
         self.config = config
         self.id = id
@@ -1705,6 +1721,7 @@ class PiJuiceConfigParamEdit(object):
         self.min = min
         self.max = max
         self.type = type
+        self.restore = restore
         Label(self.frame, text=paramDes).grid(row=r, column=1, padx=(2, 2), pady=(8, 0), sticky = W)
         self.paramEnable = IntVar()
         self.paramEnableCheck = Checkbutton(self.frame, text = name, variable = self.paramEnable).grid(row=r+1, column=0, sticky = W, padx=(2, 2), pady=(2, 0))
@@ -1712,6 +1729,11 @@ class PiJuiceConfigParamEdit(object):
         self.paramEntry = Entry(self.frame,textvariable=self.param)
         self.paramEntry.bind("<Return>", self._WriteParam)
         self.paramEntry.grid(row=r+1, column=1, sticky = W+E, padx=(2, 2), pady=(2, 0))
+        if restore:
+            self.paramRestore = IntVar()
+            self.paramRestoreCheck = Checkbutton(self.frame, text = "Restore", variable = self.paramRestore).grid(row=r+1, column=2, sticky = E, padx=(2, 2), pady=(2, 0))
+            self.paramRestore.set(restore['init'])
+            self.paramRestore.trace("w", self._ParamRestoreChecked)
 
         if id in config:
             if paramId in config[id]:
@@ -1737,9 +1759,21 @@ class PiJuiceConfigParamEdit(object):
         if self.paramEnable.get():
             self.config[self.id]['enabled'] = True
             self.paramEntry.configure(state="normal")
+            #if self.restore and self.restore['disable']: self.paramRestoreCheck.config(state=DISABLED)
         else:
             self.config[self.id]['enabled'] = False
-            self.paramEntry.configure(state="disabled")
+            if self.restore and not self.restore['disable']:
+                self.paramEntry.configure(state="normal")
+            else:
+                self.paramEntry.configure(state="disabled")
+            #if self.restore and self.restore['disable']: self.paramRestoreCheck.config(state=DISABLED)
+
+    def _ParamRestoreChecked(self, *args):
+        if self.paramRestore.get()==1 and self.config[self.id]['enabled'] == False and self.restore['disable'] == True and self.param.get():
+            self.paramRestore.set(0)
+            MessageBox.showinfo('Restore', 'Setting Restore requires to enable '+self.id+'!', parent=self.frame)
+        #else:
+        #    self.restore["callback"](self.paramRestore.get(), self.param.get())
 
     def _ParamEdited(self, *args):
         if self.type == 'int':
@@ -1751,6 +1785,7 @@ class PiJuiceConfigParamEdit(object):
         if not (self.id in self.config):
             self.config[self.id] = {}
         self.config[self.id][self.paramId] = self.param.get()
+        if self.restore: self.restore["callback"](self.paramRestore.get(), self.param.get(), self.paramEnable.get())
 
 
 class PiJuiceSysTaskTab(object):
@@ -1760,7 +1795,7 @@ class PiJuiceSysTaskTab(object):
         self.frame.rowconfigure(12, weight=1)
         self.frame.columnconfigure(0, weight=0, minsize=190)
         self.frame.columnconfigure(1, weight=10, uniform=1)
-        self.frame.columnconfigure(2, weight=1, uniform=1)
+        self.frame.columnconfigure(2, weight=1, minsize=80)
 
         if not ('system_task' in pijuiceConfigData):
             pijuiceConfigData['system_task'] = {}
@@ -1768,8 +1803,16 @@ class PiJuiceSysTaskTab(object):
         self.sysTaskEnable = IntVar()
         self.sysTaskEnableCheck = Checkbutton(self.frame, text = "System task enabled", variable = self.sysTaskEnable).grid(row=1, column=0, sticky = W, padx=(2, 2), pady=(20, 0))
 
-        self.watchdogParam = PiJuiceConfigParamEdit(self.frame, 2, pijuiceConfigData['system_task'], "Watchdog", "Expire period [minutes]:", 'watchdog', 'period', 'int', 1, 65535)
-        self.wakeupChargeParam = PiJuiceConfigParamEdit(self.frame, 4, pijuiceConfigData['system_task'], "Wakeup on charge", "Trigger level [%]:", 'wakeup_on_charge', 'trigger_level', 'int', 0, 100)
+        ret = pijuice.power.GetWatchdog()
+        watchdogRestoreInit = False
+        if ret['error'] == 'NO_ERROR': watchdogRestoreInit = ret['non_volatile']
+
+        ret = pijuice.power.GetWakeUpOnCharge()
+        wakeUpOnChargeRestoreInit = False
+        if ret['error'] == 'NO_ERROR': wakeUpOnChargeRestoreInit = ret['non_volatile']
+
+        self.watchdogParam = PiJuiceConfigParamEdit(self.frame, 2, pijuiceConfigData['system_task'], "Watchdog", "Expire period [minutes]:", 'watchdog', 'period', 'int', 1, 65535, restore = {"callback":self._SysTaskWatchdogRestoreChecked, "init":watchdogRestoreInit, "disable":True})
+        self.wakeupChargeParam = PiJuiceConfigParamEdit(self.frame, 4, pijuiceConfigData['system_task'], "Wakeup on charge", "Trigger level [%]:", 'wakeup_on_charge', 'trigger_level', 'int', 0, 100, restore = {"callback":self._SysTaskWakeupChRestoreChecked, "init":wakeUpOnChargeRestoreInit, "disable":False})
         self.minChargeParam = PiJuiceConfigParamEdit(self.frame, 6, pijuiceConfigData['system_task'], "Minimum charge", "Threshold [%]:", 'min_charge', 'threshold', 'int', 0, 100)
         self.minVoltageParam = PiJuiceConfigParamEdit(self.frame, 8, pijuiceConfigData['system_task'], "Minimum battery voltage", "Threshold [V]:", 'min_bat_voltage', 'threshold', 'float', 0, 10)
         self.extHaltParam = PiJuiceConfigParamEdit(self.frame, 10, pijuiceConfigData['system_task'], "Software Halt Power Off", "Delay period [seconds]:", 'ext_halt_power_off', 'period', 'int', 20, 65535)
@@ -1789,6 +1832,55 @@ class PiJuiceSysTaskTab(object):
         else:
             pijuiceConfigData['system_task']['enabled'] = False
 
+    def _SysTaskWakeupChRestoreChecked(self, state, param, enabled):
+        if state:
+            ret = pijuice.power.SetWakeUpOnCharge(param, True)
+            #if ret['error'] != 'NO_ERROR':
+            #    MessageBox.showerror('WakeupOnCharge Restore failed', ret['error'], parent=self.frame)
+            #    return
+            #ret = pijuice.power.GetWakeUpOnCharge()
+            #if ret['error'] != 'NO_ERROR':
+            #    MessageBox.showerror('WakeupOnCharge Restore failed', ret['error'], parent=self.frame)
+            #    return
+            #if ret['data'] != int(param) or ret['restore'] != True:
+            #    MessageBox.showerror('WakeupOnCharge Restore failed', 'Try resetting this config.', parent=self.frame)
+        else:
+            ret = pijuice.power.SetWakeUpOnCharge('DISABLED', True)
+            #if ret['error'] != 'NO_ERROR':
+            #    MessageBox.showerror('WakeupOnCharge Restore failed', ret['error'], parent=self.frame)
+            #    return
+            #ret = pijuice.power.GetWakeUpOnCharge()
+            #if ret['error'] != 'NO_ERROR':
+            #    MessageBox.showerror('WakeupOnCharge Restore failed', ret['error'], parent=self.frame)
+            #    return
+            #if ret['data'] != 'DISABLED' or ret['restore'] != False:
+            #    MessageBox.showerror('WakeupOnCharge Restore failed', 'Try resetting this config.', parent=self.frame)
+
+    def _SysTaskWatchdogRestoreChecked(self, state, param, enabled):
+        if state:
+            if enabled:
+                ret = pijuice.power.SetWatchdog(param, True)
+                ret = pijuice.power.GetWatchdog()
+            #if ret['error'] != 'NO_ERROR':
+            #    MessageBox.showerror('Watchdog Restore failed', ret['error'], parent=self.frame)
+            #    return
+            #ret = pijuice.power.GetWatchdog()
+            #if ret['error'] != 'NO_ERROR':
+            #    MessageBox.showerror('Watchdog Restore failed', ret['error'], parent=self.frame)
+            #    return
+            #if ret['data'] != int(param) or ret['restore'] != True:
+            #    MessageBox.showerror('Watchdog Restore failed', 'Try resetting this config.', parent=self.frame)
+        else:
+            ret = pijuice.power.SetWatchdog(0, True)
+            #if ret['error'] != 'NO_ERROR':
+            #    MessageBox.showerror('Watchdog Restore failed', ret['error'], parent=self.frame)
+            #    return
+            #ret = pijuice.power.GetWatchdog()
+            #if ret['error'] != 'NO_ERROR':
+            #    MessageBox.showerror('Watchdog Restore failed', ret['error'], parent=self.frame)
+            #    return
+            #if ret['data'] != 0 or ret['restore'] != False:
+            #    MessageBox.showerror('Watchdog Restore failed', 'Try resetting this config.', parent=self.frame)
 
 class PiJuiceHatTab(object):
     def __init__(self, master):
@@ -1910,15 +2002,6 @@ class PiJuiceConfigGui(Frame):
         self.master.title('PiJuice Settings')
         self.isapp = isapp
 
-        global PiJuiceConfigDataPath
-        global pijuiceConfigData
-
-        try:
-            with open(PiJuiceConfigDataPath, 'r') as outputConfig:
-                pijuiceConfigData = json.load(outputConfig)
-        except:
-            pijuiceConfigData = {}
-
         # Create the notebook
         nb = Notebook(self, name='notebook')
 
@@ -2011,10 +2094,6 @@ def start_app():
     if theme_name in s.theme_names():
         s.theme_use(theme_name)
         configure_style(s)
-    if pijuice is None:
-        root.withdraw()
-        MessageBox.showerror('PiJuice Settings', 'Failed to use I2C bus. Check if I2C is enabled', parent=root)
-        sys.exit()
 
     # Acquire lock on lock file
     lock_file = open(LOCK_FILE, 'w')
@@ -2038,7 +2117,26 @@ def start_app():
             os.system("sudo kill -SIGUSR1 " + str(pid))
         except:
             pass
+            
+    global PiJuiceConfigDataPath
+    global pijuiceConfigData
 
+    try:
+        with open(PiJuiceConfigDataPath, 'r') as outputConfig:
+            pijuiceConfigData = json.load(outputConfig)
+    except:
+        pijuiceConfigData = {}
+            
+    global pijuice
+    
+    _InitPiJuiceInterface()
+        
+    status = pijuice.config.GetFirmwareVersion()
+    if status['error'] == 'NO_ERROR':
+        verStr = status['data']['version']
+        major, minor = verStr.split('.')
+        FWVER = (int(major) << 4) + int(minor)
+    
     root.update()
     root.minsize(400, 400)
     gui = PiJuiceConfigGui()

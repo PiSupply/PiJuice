@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-__version__ = "1.6"
+__version__ = "1.7"
 
 import ctypes
 import sys
@@ -931,15 +931,16 @@ class PiJuicePower(object):
     def GetPowerOff(self):
         return self.interface.ReadData(self.POWER_OFF_CMD, 1)
 
-    def SetWakeUpOnCharge(self, arg):
+    def SetWakeUpOnCharge(self, arg, non_volatile = False):
         try:
+            nv = 0x80 if non_volatile == True else 0x00
             if arg == 'DISABLED':
-                d = 0x7F
+                d = nv | 0x7F
             elif int(arg) >= 0 and int(arg) <= 100:
-                d = int(arg)
+                d = nv | int(arg)
         except:
             return {'error': 'BAD_ARGUMENT'}
-        return self.interface.WriteDataVerify(self.WAKEUP_ON_CHARGE_CMD, [d])
+        return self.interface.WriteData(self.WAKEUP_ON_CHARGE_CMD, [d])
 
     def GetWakeUpOnCharge(self):
         ret = self.interface.ReadData(self.WAKEUP_ON_CHARGE_CMD, 1)
@@ -947,15 +948,18 @@ class PiJuicePower(object):
             return ret
         else:
             d = ret['data'][0]
-            if d == 0x7F:
-                return {'data': 'DISABLED', 'error': 'NO_ERROR'}
+            if d&0x7F == 0x7F:
+                return {'data': 'DISABLED', 'non_volatile': bool(d & 0x80), 'error': 'NO_ERROR'}
             else:
-                return {'data': d, 'error': 'NO_ERROR'}
+                return {'data': d&0x7F, 'non_volatile': bool(d & 0x80), 'error': 'NO_ERROR'}
 
     # input argument 1 - 65535 minutes activates watchdog, 0 disables watchdog
-    def SetWatchdog(self, minutes):
+    def SetWatchdog(self, minutes, non_volatile = False):
         try:
+            nv = 0x8000 if non_volatile == True else 0x0000
             d = int(minutes) & 0xFFFF
+            if d >= 0x4000: d = (d >> 2) | 0x4000 #correct resolution
+            d = d | nv
         except:
             return {'error': 'BAD_ARGUMENT'}
         return self.interface.WriteData(self.WATCHDOG_ACTIVATION_CMD, [d & 0xFF, (d >> 8) & 0xFF])
@@ -966,7 +970,10 @@ class PiJuicePower(object):
             return ret
         else:
             d = ret['data']
-            return {'data': (d[1] << 8) | d[0], 'error': 'NO_ERROR'}
+        cfg = (d[1] << 8) | d[0]
+        minutes = cfg & 0x3FFF
+        minutes = minutes << ((cfg&0x4000) >> 13) #correct resolution for range 16384-65536
+        return {'data': minutes, 'non_volatile': bool(cfg & 0x8000), 'error': 'NO_ERROR'}
 
     def SetSystemPowerSwitch(self, state):
         try:
@@ -1041,9 +1048,11 @@ class PiJuiceConfig(object):
             return {'data': {'charging_enabled' :bool(ret['data'][0] & 0x01)},
                     'non_volatile':bool(ret['data'][0]&0x80), 'error':'NO_ERROR'}
 
-    batteryProfiles = ['PJZERO_1000', 'BP7X_1820', 'SNN5843_2300', 'PJLIPO_12000', 'PJLIPO_5000', 'PJBP7X_1600', 'PJSNN5843_1300', 'PJZERO_1200', 'BP6X_1400', 'PJLIPO_600', 'PJLIPO_500']
+    batteryProfiles = ['PJZERO_1000', 'BP7X_1820', 'SNN5843_2300', 'PJLIPO_12000', 'PJLIPO_5000', 'PJBP7X_1600', 'PJSNN5843_1300', 'PJZERO_1200', 'BP6X_1400', 'PJLIPO_600', 'PJLIPO_500', 'PJLIPO_2500']
     def SelectBatteryProfiles(self, fwver):
-        if fwver >= 0x14:
+        if fwver >= 0x15:
+            self.batteryProfiles = self.batteryProfiles
+        elif fwver >= 0x14:
             self.batteryProfiles = ['PJZERO_1000', 'BP7X_1820', 'SNN5843_2300', 'PJLIPO_12000', 'PJLIPO_5000', 'PJBP7X_1600', 'PJSNN5843_1300', 'PJZERO_1200', 'BP6X_1400', 'PJLIPO_600', 'PJLIPO_500']
         elif fwver == 0x13:
             self.batteryProfiles = ['BP6X_1400', 'BP7X_1820', 'SNN5843_2300', 'PJLIPO_12000', 'PJLIPO_5000', 'PJBP7X_1600', 'PJSNN5843_1300', 'PJZERO_1200', 'PJZERO_1000', 'PJLIPO_600', 'PJLIPO_500']
@@ -1092,7 +1101,8 @@ class PiJuiceConfig(object):
             if all(v == 0 for v in d):
                 return {'data': 'INVALID', 'error': 'NO_ERROR'}
             profile = {}
-            profile['capacity'] = (d[1] << 8) | d[0]
+            packed_u16 = (d[1] << 8) | d[0]
+            profile['capacity'] = 0xFFFFFFFF if (packed_u16==0xFFFF) else (packed_u16&0x7FFF) << (((packed_u16&0x8000) >> 15)*7)
             profile['chargeCurrent'] = d[2] * 75 + 550
             profile['terminationCurrent'] = d[3] * 50 + 50
             profile['regulationVoltage'] = d[4] * 20 + 3500
@@ -1108,9 +1118,14 @@ class PiJuiceConfig(object):
     def SetCustomBatteryProfile(self, profile):
         d = [0x00] * 14
         try:
-            c = profile['capacity']
-            d[0] = c & 0xFF
-            d[1] = (c >> 8) & 0xFF
+            cap = profile['capacity']
+            if (cap==0xFFFFFFFF):
+                packed_u16 = 0xFFFF
+            else:
+                c = 4194175 if (cap > 4194175) else cap
+                packed_u16 = (c >> (int(c>=0x8000)*7)) | int(c>=0x8000)*0x8000 # correction for large capacities over 32767
+            d[0] = packed_u16 & 0xFF
+            d[1] = (packed_u16 >> 8) & 0xFF
             d[2] = int(round((profile['chargeCurrent'] - 550) // 75))
             d[3] = int(round((profile['terminationCurrent'] - 50) // 50))
             d[4] = int(round((profile['regulationVoltage'] - 3500) // 20))

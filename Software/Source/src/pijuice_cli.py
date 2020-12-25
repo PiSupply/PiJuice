@@ -20,10 +20,10 @@ ADDRESS = 0x14
 PID_FILE = '/tmp/pijuice_sys.pid'
 LOCK_FILE = '/tmp/pijuice_gui.lock'
 
-try:
-    pijuice = PiJuice(BUS, ADDRESS)
-except:
-    pijuice = None
+#try:
+#    pijuice = PiJuice(BUS, ADDRESS)
+#except:
+pijuice = None
 
 pijuiceConfigData = {}
 PiJuiceConfigDataPath = '/var/lib/pijuice/pijuice_config.JSON'
@@ -54,6 +54,24 @@ from urwid import Edit
 from decimal import Decimal
 #import re
 
+def _InitPiJuiceInterface():
+    try:
+        addr = ADDRESS
+        bus = BUS
+        global pijuiceConfigData
+        if pijuiceConfigData == None:
+            pijuiceConfigData = loadPiJuiceConfig()
+        if 'board' in pijuiceConfigData and 'general' in pijuiceConfigData['board']:
+            if 'i2c_addr' in pijuiceConfigData['board']['general']:
+                addr = int(pijuiceConfigData['board']['general']['i2c_addr'], 16)
+            if 'i2c_bus' in pijuiceConfigData['board']['general']:
+                bus = pijuiceConfigData['board']['general']['i2c_bus']
+        global pijuice
+        pijuice = PiJuice(bus, addr)
+        global current_fw_version
+        current_fw_version = get_current_fw_version()
+    except:
+        pijuice = None
 
 class NumEdit(Edit):
     """NumEdit - edit numerical types
@@ -424,6 +442,7 @@ class FirmwareTab(object):
 
 
 class GeneralTab(object):
+    if pijuice==None: _InitPiJuiceInterface()
     if pijuice:
         RUN_PIN_VALUES = pijuice.config.runPinConfigs
         EEPROM_ADDRESSES = pijuice.config.idEepromAddresses
@@ -460,6 +479,7 @@ class GeneralTab(object):
         return config
 
     def main(self, *args):
+        global pijuiceConfigData
         elements = [urwid.Text("General settings"), urwid.Divider()]
 
         options_with_lists = [
@@ -506,7 +526,7 @@ class GeneralTab(object):
                          urwid.Padding(attrmap(urwid.Button('Back', on_press=main_menu)), width=20)
                          ])
         main.original_widget = urwid.Padding(urwid.ListBox(urwid.SimpleFocusListWalker(elements)), width=48)
-    
+        
     def _list_options(self, button, data):
         body = [urwid.Text(data['title']), urwid.Divider()]
         self.bgroup = []
@@ -541,6 +561,10 @@ class GeneralTab(object):
                 except:
                     pass
                 pijuice.config.SetAddress(i + 1, value)
+                global pijuiceConfigData
+                pijuiceConfigData.setdefault('board', {}).setdefault('general', {})['i2c_addr'+['','_rtc'][i]] = value
+                savePiJuiceConfig()
+                _InitPiJuiceInterface()
 
         if 'run_pin' in changed:
             pijuice.config.SetRunPinConfig(self.RUN_PIN_VALUES[self.current_config['run_pin']])
@@ -679,6 +703,7 @@ class LEDTab(object):
     
 
 class ButtonsTab(object):
+    if pijuice == None: _InitPiJuiceInterface()
     if pijuice:
         FUNCTIONS = ['NO_FUNC'] + pijuice_hard_functions + pijuice_sys_functions + pijuice_user_functions
         BUTTONS = pijuice.config.buttons
@@ -1603,6 +1628,9 @@ class SystemTaskTab(object):
         self.wdenabled = pijuiceConfigData['system_task']['watchdog']['enabled']
         if not('period' in pijuiceConfigData['system_task']['watchdog']):
             pijuiceConfigData['system_task']['watchdog']['period'] = 4
+        ret = pijuice.power.GetWatchdog()
+        self.watchdogRestoreEn = False
+        if ret['error'] == 'NO_ERROR': self.watchdogRestoreEn = ret['non_volatile']
         wdCheckBox = attrmap(urwid.CheckBox('Watchdog', state=self.wdenabled,
                              on_state_change=self._toggle_wdenabled))
         wdperiodEdit = urwid.IntEdit("Expire period [minutes]: ", default = pijuiceConfigData['system_task']['watchdog']['period']) 
@@ -1610,10 +1638,10 @@ class SystemTaskTab(object):
         wdperiodEditItem = attrmap(wdperiodEdit)
         wdperiodTextItem = attrmap(urwid.Text("Expire period [minutes]: " + str(pijuiceConfigData['system_task']['watchdog']['period'])))
         wdperiodItem = wdperiodEditItem if self.wdenabled else wdperiodTextItem 
-        wdperiodRow = urwid.Columns([urwid.Padding(wdCheckBox, width = 24), urwid.Padding(wdperiodItem, width=37)])
-        elements.extend([wdperiodRow,
-                        urwid.Divider()])
-
+        wdRestoreCheckBox = attrmap(urwid.CheckBox('Restore', state=self.watchdogRestoreEn, on_state_change=self._toggle_wdrestore))
+        wdperiodRow = urwid.Columns([urwid.Padding(wdCheckBox, width = 20), urwid.Padding(wdperiodItem, width=15), urwid.Padding(wdRestoreCheckBox, width=12)])
+        elements.extend([wdperiodRow, urwid.Divider()])
+       
         ## Wakeup on charge ##
         if not('wakeup_on_charge' in pijuiceConfigData['system_task']):
             pijuiceConfigData['system_task']['wakeup_on_charge'] = {}
@@ -1622,6 +1650,9 @@ class SystemTaskTab(object):
         self.wkupenabled = pijuiceConfigData['system_task']['wakeup_on_charge']['enabled']
         if not('trigger_level' in pijuiceConfigData['system_task']['wakeup_on_charge']):
             pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'] = 50
+        ret = pijuice.power.GetWakeUpOnCharge()
+        self.wakeupRestoreEn = False
+        if ret['error'] == 'NO_ERROR': self.wakeupRestoreEn = ret['non_volatile']
         wkupCheckBox = attrmap(urwid.CheckBox('Wakeup on charge', state=self.wkupenabled,
                           on_state_change=self._toggle_wkupenabled))
         wkuplevelEdit = urwid.IntEdit("Trigger level [%]: ", default = pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'])
@@ -1629,7 +1660,8 @@ class SystemTaskTab(object):
         wkuplevelEditItem = attrmap(wkuplevelEdit)
         wkuplevelTextItem = attrmap(urwid.Text("Trigger level [%]: " + str(pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'])))
         wkuplevelItem = wkuplevelEditItem if self.wkupenabled else wkuplevelTextItem
-        wkuplevelRow = urwid.Columns([urwid.Padding(wkupCheckBox, width = 24), urwid.Padding(wkuplevelItem, width=37)])
+        wkupRestoreCheckBox = attrmap(urwid.CheckBox('Restore', state=self.wakeupRestoreEn, on_state_change=self._toggle_wkuprestore))
+        wkuplevelRow = urwid.Columns([urwid.Padding(wkupCheckBox, width = 20), urwid.Padding(wkuplevelItem, width=15), urwid.Padding(wkupRestoreCheckBox, width=12)])
         elements.extend([wkuplevelRow,
                          urwid.Divider()])
 
@@ -1708,10 +1740,30 @@ class SystemTaskTab(object):
         pijuiceConfigData['system_task']['watchdog']['enabled'] = self.wdenabled
         self.main()
 
+    def _toggle_wdrestore(self, *args):
+        global pijuiceConfigData
+        if self.watchdogRestoreEn:
+            ret = pijuice.power.SetWatchdog(0, True)
+            if ret['error'] == 'NO_ERROR': self.watchdogRestoreEn = False
+        elif pijuiceConfigData['system_task']['watchdog']['enabled']:
+            ret = pijuice.power.SetWatchdog(pijuiceConfigData['system_task']['watchdog']['period'], True)
+            if ret['error'] == 'NO_ERROR': self.watchdogRestoreEn = True
+        self.main()
+        
     def _toggle_wkupenabled(self, *args):
         global pijuiceConfigData
         self.wkupenabled ^= True
         pijuiceConfigData['system_task']['wakeup_on_charge']['enabled'] = self.wkupenabled
+        self.main()
+        
+    def _toggle_wkuprestore(self, *args):
+        global pijuiceConfigData
+        if self.wakeupRestoreEn:
+            ret = pijuice.power.SetWakeUpOnCharge('DISABLED', True)
+            if ret['error'] == 'NO_ERROR': self.wakeupRestoreEn = False
+        else:
+            ret = pijuice.power.SetWakeUpOnCharge(pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'], True)
+            if ret['error'] == 'NO_ERROR': self.wakeupRestoreEn = True
         self.main()
 
     def _toggle_minchgenabled(self, *args):
@@ -1780,9 +1832,9 @@ class SystemTaskTab(object):
 
 class SystemEventsTab(object):
     EVENTS = ['low_charge', 'low_battery_voltage', 'no_power', 'watchdog_reset', 'button_power_off', 'forced_power_off',
-              'forced_sys_power_off']
+              'forced_sys_power_off', 'sys_start', 'sys_stop']
     EVTTXT = ['Low charge', 'Low battery voltage', 'No power', 'Watchdog reset', 'Button power off', 'Forced power off',
-              'Forced sys power off']
+              'Forced sys power off', 'System start', 'System stop']
     FUNCTIONS = ['NO_FUNC'] + pijuice_sys_functions + pijuice_user_functions
 
     def __init__(self, *args):
@@ -1901,6 +1953,7 @@ class UserScriptsTab(object):
         self.main()
 
 def menu(title, choices):
+    _InitPiJuiceInterface()
     body = [urwid.Text(title), urwid.Divider()]
     for c in choices:
         if c != "":
@@ -1995,7 +2048,7 @@ except IOError:
 def exit_cli(*args):
     raise urwid.ExitMainLoop()
 
-if pijuice is None:
+if 0:#pijuice is None:
     elements = [urwid.Padding(urwid.Text('No PiJuice found or Failed to use I2C bus.\nCheck if I2C is enabled',
                                          align='center')),
                 urwid.Divider()]
@@ -2008,7 +2061,7 @@ elif nolock:
     elements.append(urwid.Padding(attrmap(urwid.Button("OK", on_press=exit_cli)), width=6, align='center'))
     main = urwid.Filler(urwid.Pile(elements))
 else:
-    current_fw_version = get_current_fw_version()
+    #current_fw_version = get_current_fw_version()
     pijuiceConfigData = None
     main = urwid.Padding(menu("PiJuice HAT Configuration", choices), left=2, right=2)
 
