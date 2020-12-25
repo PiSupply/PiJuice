@@ -1,3 +1,61 @@
+pijuice-base (1.7) unstable; urgency=low
+
+  * Firmware V1.5_2020_12_24
+    - Wake-up on charge restore. Update that makes possible to save wake-up on 
+    charge configuration to the mcu flash, and restore it after power reset. Also 
+    if restore is enabled, wake-up on charge will be automatically activated when 
+    charging stops after power source is removed. This improves wake-up reliability 
+    if system fails to properly configure wake-up when it halts.
+    - Watchdog restore. Introduced possibility to save watchdog configuration to 
+    the mcu flash. If restore is enabled, watchdog configuration will be restored 
+    after power reset and watchdog will be automatically activated after wake-up 
+    trigger (wake-up on charge, rtc wake-up or io wake-up). So if wake-up process 
+    fails, no response from host (for example boot process stuckes), watchdog will 
+    trigger reset. This feature should be used together with software polling over 
+    i2c or system task enabled. Software or system task should deactivate watchdog 
+    on system halt.
+    - Extended maximum possible value range for battery capacity configuration to 
+    [0-4194175mAh].
+    - Added new profile for PiJuice 2500mAh battey.
+    - Introduced experimental FreeRTOS as part of migration process to RTOS or other 
+    mcu. It is not enabled by default in this release,but can be configured by 
+    setting project wide macro: RTOS_FREERTOS.
+
+  * pijuice.py
+    - Updated interface functions: SetWakeUpOnCharge and GetWakeUpOnCharge to support 
+    wake-up restore configuration introduced in firmware V1.5.
+    - Updated interface functions: SetWakeUpOnCharge and GetWakeUpOnCharge to support 
+    watchdog restore configuration introduced in firmware V1.5.
+    - Updated interface functions: SetCustomBatteryProfile and GetBatteryProfile to 
+    support extended maximum possible value range for battery capacity introduced in 
+    firmware V1.5.
+    - Updated batteryProfiles list with new PJLIPO_2500.
+
+  * pijuice_sys.py
+    - Fixed undesired behavior of system task missing to halt system if input power 
+    is lost during system boot. noPowCnt initialized to 0 instead of 100 so 
+    _EvalPowerInputs function triggers function execution if there is "no power input"
+    at startup.
+    - Fixed undesired behavior of system task triggering low charge or low battery 
+    events when battery is missing or is bad immediately after startup. This false 
+    triggers were noticeable when "no battery turn on" config is enabled and system 
+    halt on "low battery voltage" or "low charge" events are configured, so it halts
+    immediately after startup. _EvalBatVoltage, _EvalCharge and _EvalPowerInputs are
+    updated to detect this case and avoid undesired triggers.
+    - Introduced two additional system events: "sys_start" triggers at system task 
+    startup and "sys_stop" triggers at system task stop. These events can be used
+    to run custom user scripts like automated PiJuice board configuration.
+    - Update to restore PiJuice I2C Address from configuration file.
+    - Fixed double watchdog activation at startup.
+
+  * pijuice_cli.py
+    - Update for wake-up on charge restore configuration.
+    - Update for watchdog restore configuration.
+    - Added "sys_start" and "sys_stop" events to SystemEventsTab.
+    - Update to restore PiJuice I2C Address from configuration file.
+
+ -- Milan Neskovic <milan@pi-supply.com>  Mon, 24 Dec 2020 00:00:00 +0000
+
 pijuice-base (1.6) unstable; urgency=low
 
   * Firmware V1.4_2020_01_17

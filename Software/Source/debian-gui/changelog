@@ -1,3 +1,16 @@
+pijuice-base (1.7) unstable; urgency=low
+
+  * pijuice_gui.py
+    - Update for wake-up on charge restore configuration.
+    - Update for watchdog restore configuration.
+    - Added "sys_start" and "sys_stop" events to SystemEventsTab.
+    - Update to restore PiJuice I2C Address from configuration file.
+    
+  * pijuice_tray.py
+    - Update to read PiJuice I2C Address from configuration file.
+    
+ -- Milan Neskovic <milan@pi-supply.com>  Mon, 24 Dec 2020 00:00:00 +0000
+
 pijuice-gui (1.6) unstable; urgency=low
 
   * pijuice_gui.py
