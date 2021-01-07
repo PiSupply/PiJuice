@@ -1628,9 +1628,10 @@ class SystemTaskTab(object):
         self.wdenabled = pijuiceConfigData['system_task']['watchdog']['enabled']
         if not('period' in pijuiceConfigData['system_task']['watchdog']):
             pijuiceConfigData['system_task']['watchdog']['period'] = 4
-        ret = pijuice.power.GetWatchdog()
-        self.watchdogRestoreEn = False
-        if ret['error'] == 'NO_ERROR': self.watchdogRestoreEn = ret['non_volatile']
+        if current_fw_version >= 0x15:
+            ret = pijuice.power.GetWatchdog()
+            self.watchdogRestoreEn = False
+            if ret['error'] == 'NO_ERROR': self.watchdogRestoreEn = ret['non_volatile']
         wdCheckBox = attrmap(urwid.CheckBox('Watchdog', state=self.wdenabled,
                              on_state_change=self._toggle_wdenabled))
         wdperiodEdit = urwid.IntEdit("Expire period [minutes]: ", default = pijuiceConfigData['system_task']['watchdog']['period']) 
@@ -1638,8 +1639,11 @@ class SystemTaskTab(object):
         wdperiodEditItem = attrmap(wdperiodEdit)
         wdperiodTextItem = attrmap(urwid.Text("Expire period [minutes]: " + str(pijuiceConfigData['system_task']['watchdog']['period'])))
         wdperiodItem = wdperiodEditItem if self.wdenabled else wdperiodTextItem 
-        wdRestoreCheckBox = attrmap(urwid.CheckBox('Restore', state=self.watchdogRestoreEn, on_state_change=self._toggle_wdrestore))
-        wdperiodRow = urwid.Columns([urwid.Padding(wdCheckBox, width = 20), urwid.Padding(wdperiodItem, width=15), urwid.Padding(wdRestoreCheckBox, width=12)])
+        if current_fw_version >= 0x15:
+            wdRestoreCheckBox = attrmap(urwid.CheckBox('Restore', state=self.watchdogRestoreEn, on_state_change=self._toggle_wdrestore))
+            wdperiodRow = urwid.Columns([(24,wdCheckBox), (23,wdperiodItem), (11,wdRestoreCheckBox)])
+        else:
+            wdperiodRow = urwid.Columns([(24,wdCheckBox), (34,wdperiodItem)])
         elements.extend([wdperiodRow, urwid.Divider()])
        
         ## Wakeup on charge ##
@@ -1650,9 +1654,10 @@ class SystemTaskTab(object):
         self.wkupenabled = pijuiceConfigData['system_task']['wakeup_on_charge']['enabled']
         if not('trigger_level' in pijuiceConfigData['system_task']['wakeup_on_charge']):
             pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'] = 50
-        ret = pijuice.power.GetWakeUpOnCharge()
-        self.wakeupRestoreEn = False
-        if ret['error'] == 'NO_ERROR': self.wakeupRestoreEn = ret['non_volatile']
+        if current_fw_version >= 0x15:
+            ret = pijuice.power.GetWakeUpOnCharge()
+            self.wakeupRestoreEn = False
+            if ret['error'] == 'NO_ERROR': self.wakeupRestoreEn = ret['non_volatile']
         wkupCheckBox = attrmap(urwid.CheckBox('Wakeup on charge', state=self.wkupenabled,
                           on_state_change=self._toggle_wkupenabled))
         wkuplevelEdit = urwid.IntEdit("Trigger level [%]: ", default = pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'])
@@ -1660,8 +1665,12 @@ class SystemTaskTab(object):
         wkuplevelEditItem = attrmap(wkuplevelEdit)
         wkuplevelTextItem = attrmap(urwid.Text("Trigger level [%]: " + str(pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'])))
         wkuplevelItem = wkuplevelEditItem if self.wkupenabled else wkuplevelTextItem
-        wkupRestoreCheckBox = attrmap(urwid.CheckBox('Restore', state=self.wakeupRestoreEn, on_state_change=self._toggle_wkuprestore))
-        wkuplevelRow = urwid.Columns([urwid.Padding(wkupCheckBox, width = 20), urwid.Padding(wkuplevelItem, width=15), urwid.Padding(wkupRestoreCheckBox, width=12)])
+        if current_fw_version >= 0x15:
+            wkupRestoreCheckBox = attrmap(urwid.CheckBox('Restore', state=self.wakeupRestoreEn, on_state_change=self._toggle_wkuprestore))
+            wkuplevelRow = urwid.Columns([(24,wkupCheckBox), (23,wkuplevelItem), (11,wkupRestoreCheckBox)])
+        else:
+            wkuplevelRow = urwid.Columns([(24,wkupCheckBox), (34,wkuplevelItem)])
+
         elements.extend([wkuplevelRow,
                          urwid.Divider()])
 
@@ -1680,7 +1689,7 @@ class SystemTaskTab(object):
         thresholdEditItem = attrmap(thresholdEdit)
         thresholdTextItem = attrmap(urwid.Text("Threshold [%]: " + str(pijuiceConfigData['system_task']['min_charge']['threshold'])))
         thresholdItem = thresholdEditItem if self.minchgenabled else thresholdTextItem
-        thresholdRow = urwid.Columns([urwid.Padding(minchgCheckBox, width = 24), urwid.Padding(thresholdItem, width=37)])
+        thresholdRow = urwid.Columns([(24,minchgCheckBox), (34,thresholdItem)])
         elements.extend([thresholdRow,
                          urwid.Divider()])
 
@@ -1699,7 +1708,7 @@ class SystemTaskTab(object):
         vthresholdEditItem = attrmap(vthresholdEdit)
         vthresholdTextItem = attrmap(urwid.Text(str(pijuiceConfigData['system_task']['min_bat_voltage']['threshold'])))
         vthresholdItem = vthresholdEditItem if self.minbatvenabled else vthresholdTextItem
-        vthresholdRow = urwid.Columns([urwid.Padding(minbatvCheckBox, width = 24), urwid.Padding(vthresholdItem, width=37)])
+        vthresholdRow = urwid.Columns([(24,minbatvCheckBox), (34,vthresholdItem)])
         elements.extend([vthresholdRow,
                          urwid.Divider()])
 
@@ -1718,7 +1727,7 @@ class SystemTaskTab(object):
         periodEditItem = attrmap(periodEdit)
         periodTextItem = attrmap(urwid.Text("Delay period [seconds]: " + str(pijuiceConfigData['system_task']['ext_halt_power_off']['period'])))
         periodItem = periodEditItem if self.exthaltenabled else periodTextItem
-        periodRow = urwid.Columns([urwid.Padding(exthaltCheckBox, width = 24), urwid.Padding(periodItem, width=37)])
+        periodRow = urwid.Columns([(24,exthaltCheckBox), (34,periodItem)])
         elements.extend([periodRow,
                          urwid.Divider()])
 
@@ -2048,20 +2057,13 @@ except IOError:
 def exit_cli(*args):
     raise urwid.ExitMainLoop()
 
-if 0:#pijuice is None:
-    elements = [urwid.Padding(urwid.Text('No PiJuice found or Failed to use I2C bus.\nCheck if I2C is enabled',
-                                         align='center')),
-                urwid.Divider()]
-    elements.append(urwid.Padding(attrmap(urwid.Button("OK", on_press=exit_cli)), width=6, align='center'))
-    main = urwid.Filler(urwid.Pile(elements))
-elif nolock:
+if nolock:
     elements = [urwid.Padding(urwid.Text('Another instance of PiJuice Settings is already running',
                                          align='center')),
                 urwid.Divider()]
     elements.append(urwid.Padding(attrmap(urwid.Button("OK", on_press=exit_cli)), width=6, align='center'))
     main = urwid.Filler(urwid.Pile(elements))
 else:
-    #current_fw_version = get_current_fw_version()
     pijuiceConfigData = None
     main = urwid.Padding(menu("PiJuice HAT Configuration", choices), left=2, right=2)
 
