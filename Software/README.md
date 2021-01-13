@@ -1319,7 +1319,7 @@ Removes power from the PiJuice to the GPIO pins i.e Raspberry Pi. Delay is used 
 **GetPowerOff()**
 
 
-**SetWakeupOnCharge(percentage)**
+**SetWakeUpOnCharge(percentage)**
 Used to wakeup the Raspberry Pi when the battery charge level reaches a certain percentage as set in the passed argument. Value should set as 0 - 100 percentile.
 
 **GetWakeUpOnCharge()**
