@@ -21,6 +21,10 @@ pijuice-base (1.7) unstable; urgency=low
     mcu. It is not enabled by default in this release,but can be configured by 
     setting project wide macro: RTOS_FREERTOS.
 
+  * Firmware V1.5_2021_01_18
+    -Fixed issue with false marking GPIO input power as BAD when power supply voltage
+    is close to threshold. DPM voltage is changed from 4.76V to 4.68V.
+
   * pijuice.py
     - Updated interface functions: SetWakeUpOnCharge and GetWakeUpOnCharge to support 
     wake-up restore configuration introduced in firmware V1.5.
@@ -48,17 +52,13 @@ pijuice-base (1.7) unstable; urgency=low
     - Update to restore PiJuice I2C Address from configuration file.
     - Fixed double watchdog activation at startup.
 
-  * Firmware V1.5_2020_12_24
-    -Fixed issue with false marking GPIO input power as BAD when power supply voltage 
-    is close to threshold. DPM voltage is changed from 4.76V to 4.68V.
-    
   * pijuice_cli.py
     - Update for wake-up on charge restore configuration.
     - Update for watchdog restore configuration.
     - Added "sys_start" and "sys_stop" events to SystemEventsTab.
     - Update to restore PiJuice I2C Address from configuration file.
 
- -- Milan Neskovic <milan@pi-supply.com>  Mon, 24 Dec 2020 00:00:00 +0000
+ -- Milan Neskovic <milan@pi-supply.com>  Mon, 18 Jan 2020 00:00:00 +0000
 
 pijuice-base (1.6) unstable; urgency=low
 
