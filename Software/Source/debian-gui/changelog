@@ -1,4 +1,4 @@
-pijuice-base (1.7) unstable; urgency=low
+pijuice-gui (1.7) unstable; urgency=low
 
   * pijuice_gui.py
     - Update for wake-up on charge restore configuration.

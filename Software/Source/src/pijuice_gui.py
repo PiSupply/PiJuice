@@ -1790,6 +1790,7 @@ class PiJuiceConfigParamEdit(object):
 
 class PiJuiceSysTaskTab(object):
     def __init__(self, master):
+        global FWVER
         self.frame = Frame(master, name='sys_task')
         self.frame.grid(row=0, column=0, sticky=W)
         self.frame.rowconfigure(12, weight=1)
@@ -1811,8 +1812,8 @@ class PiJuiceSysTaskTab(object):
         wakeUpOnChargeRestoreInit = False
         if ret['error'] == 'NO_ERROR': wakeUpOnChargeRestoreInit = ret['non_volatile']
 
-        self.watchdogParam = PiJuiceConfigParamEdit(self.frame, 2, pijuiceConfigData['system_task'], "Watchdog", "Expire period [minutes]:", 'watchdog', 'period', 'int', 1, 65535, restore = {"callback":self._SysTaskWatchdogRestoreChecked, "init":watchdogRestoreInit, "disable":True})
-        self.wakeupChargeParam = PiJuiceConfigParamEdit(self.frame, 4, pijuiceConfigData['system_task'], "Wakeup on charge", "Trigger level [%]:", 'wakeup_on_charge', 'trigger_level', 'int', 0, 100, restore = {"callback":self._SysTaskWakeupChRestoreChecked, "init":wakeUpOnChargeRestoreInit, "disable":False})
+        self.watchdogParam = PiJuiceConfigParamEdit(self.frame, 2, pijuiceConfigData['system_task'], "Watchdog", "Expire period [minutes]:", 'watchdog', 'period', 'int', 1, 65535, restore = {"callback":self._SysTaskWatchdogRestoreChecked, "init":watchdogRestoreInit, "disable":True} if FWVER >= 0x15 else {})
+        self.wakeupChargeParam = PiJuiceConfigParamEdit(self.frame, 4, pijuiceConfigData['system_task'], "Wakeup on charge", "Trigger level [%]:", 'wakeup_on_charge', 'trigger_level', 'int', 0, 100, restore = {"callback":self._SysTaskWakeupChRestoreChecked, "init":wakeUpOnChargeRestoreInit, "disable":False} if FWVER >= 0x15 else {})
         self.minChargeParam = PiJuiceConfigParamEdit(self.frame, 6, pijuiceConfigData['system_task'], "Minimum charge", "Threshold [%]:", 'min_charge', 'threshold', 'int', 0, 100)
         self.minVoltageParam = PiJuiceConfigParamEdit(self.frame, 8, pijuiceConfigData['system_task'], "Minimum battery voltage", "Threshold [V]:", 'min_bat_voltage', 'threshold', 'float', 0, 10)
         self.extHaltParam = PiJuiceConfigParamEdit(self.frame, 10, pijuiceConfigData['system_task'], "Software Halt Power Off", "Delay period [seconds]:", 'ext_halt_power_off', 'period', 'int', 20, 65535)
@@ -2087,7 +2088,7 @@ def configure_style(style):
 
 
 def start_app():
-    global root, pid
+    global root, pid, FWVER
     root = Tk()
     s = Style()
     theme_name = 'clam'
