@@ -48,6 +48,10 @@ pijuice-base (1.7) unstable; urgency=low
     - Update to restore PiJuice I2C Address from configuration file.
     - Fixed double watchdog activation at startup.
 
+  * Firmware V1.5_2020_12_24
+    -Fixed issue with false marking GPIO input power as BAD when power supply voltage 
+    is close to threshold. DPM voltage is changed from 4.76V to 4.68V.
+    
   * pijuice_cli.py
     - Update for wake-up on charge restore configuration.
     - Update for watchdog restore configuration.
