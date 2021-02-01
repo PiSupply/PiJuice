@@ -16,15 +16,15 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Command line utility for a PiJiuce')
     g = parser.add_mutually_exclusive_group()
-    g.add_argument('--enable-wakeup', action='store_true', help='enable the wakeup flag')
-    g.add_argument('--get-time', action='store_true', help='print(the RTC time')
-    g.add_argument('--get-alarm', action='store_true', help='print(the RTC alarm')
-    g.add_argument('--get-status', action='store_true', help='print(the pijiuce status')
-    g.add_argument('--get-config', action='store_true', help='print(the pijiuce config')
-    g.add_argument('--get-battery', action='store_true', help='print(the pijiuce battery status')
-    g.add_argument('--get-input', action='store_true', help='print(the pijiuce input status')
-    g.add_argument('--dump', action='store_true', help='print(all settings)')
-    g.add_argument('--load', action='store_true', help='print(all settings)')
+    g.add_argument('--enable-wakeup', action='store_true', help='enable the RTC alarm wakeup flag')
+    g.add_argument('--get-time', action='store_true', help='print the RTC time (UTC time)')
+    g.add_argument('--get-alarm', action='store_true', help='print the RTC alarm settings')
+    g.add_argument('--get-status', action='store_true', help='print the pijuice status')
+    g.add_argument('--get-config', action='store_true', help='print the pijuice charging config, battery profile and firmware version')
+    g.add_argument('--get-battery', action='store_true', help='print the pijuice battery status')
+    g.add_argument('--get-input', action='store_true', help='print the pijuice input status')
+    g.add_argument('--dump', action='store_true', help='print settings in JSON format to stdout')
+    g.add_argument('--load', action='store_true', help='load settings in JSON format from stdin')
 
     parser.add_argument('--verbose', action='count', help='crank up logging')
 
@@ -52,10 +52,8 @@ if __name__ == '__main__':
         rtc.SetWakeupEnabled(True)
         logging.debug ('wakeup enabled')
 
-        ctr = rtc.GetControlStatus()
-        # TODO do we need the str() call?
-        print(str(ctr))
-        logging.info ('control status is now %s', str(ctr))
+        ctr = getDataOrError(rtc.GetControlStatus())
+        print(ctr)
 
     if args.dump or args.load:
         RUN_PIN_VALUES = pj.config.runPinConfigs
@@ -170,7 +168,7 @@ if __name__ == '__main__':
 
     if args.get_time:
         rtc = pj.rtcAlarm
-        print(rtc.GetTime())
+        print(getDataOrError(rtc.GetTime()))
 
     # composites
 
@@ -181,17 +179,17 @@ if __name__ == '__main__':
         rv['chargingConfig'] = getDataOrError(config.GetChargingConfig())
         rv['batteryProfile'] = getDataOrError(config.GetBatteryProfile())
         rv['firmwareVersion'] = getDataOrError(config.GetFirmwareVersion())
-        print('ChargingConfig: ' + str(rv['chargingConfig']))
-        print('Battery Profile: ' + str(rv['batteryProfile']))
-        print('Firmware Veriosn: ' + str(rv['firmwareVersion']))
+        print('ChargingConfig: ', rv['chargingConfig'])
+        print('Battery Profile: ', rv['batteryProfile'])
+        print('Firmware Version: ', rv['firmwareVersion'])
 
     if args.get_alarm:
         rtc = pj.rtcAlarm
         rv = {}
-        # TODO either clean this up (making it like get_battery), else break it into several actions
-        rv['alarm'] = rtc.GetAlarm()
-        rv['controlStatus'] = rtc.GetControlStatus()
-        print(rv)
+        rv['alarm'] = getDataOrError(rtc.GetAlarm())
+        rv['controlStatus'] = getDataOrError(rtc.GetControlStatus())
+        print('Alarm: ', rv['alarm'])
+        print('Controlstatus: ', rv['controlStatus'])
 
     if args.get_battery:
         v = {}
