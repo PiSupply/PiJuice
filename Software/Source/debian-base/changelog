@@ -25,6 +25,19 @@ pijuice-base (1.7) unstable; urgency=low
     -Fixed issue with false marking GPIO input power as BAD when power supply voltage
     is close to threshold. DPM voltage is changed from 4.76V to 4.68V.
 
+  * Firmware V1.5_2021_02_04
+    - 5V Regulator turn-on overload fault issue patch. DCDC 5V regulator goes to 
+    fault state when turning on with high load current and large capacitance at GPIO 
+    rail. turn-on procedure updated with 3 retires in short intervals ~1ms.
+    - Fixed I2C stucking in case of transfer error, when tx buffer is left empty and
+    indefinitely fires interrupts until watchdog reset.
+    - Button event automatic removal update. Event is cleared on next button action 
+    and timeout of 30 seconds. This solves problems of unresponsive Button presses 
+    after it failes to clear event by I2C command.
+    - Battery temperature measurement updated for NTC resistance other than 10K. Now
+    temperature measured by fuel gauge is recalculated based on NTC resistance value
+    from battery profile that can be customized.
+    
   * pijuice.py
     - Updated interface functions: SetWakeUpOnCharge and GetWakeUpOnCharge to support 
     wake-up restore configuration introduced in firmware V1.5.
@@ -34,6 +47,7 @@ pijuice-base (1.7) unstable; urgency=low
     support extended maximum possible value range for battery capacity introduced in 
     firmware V1.5.
     - Updated batteryProfiles list with new PJLIPO_2500.
+    - Fixed Bad signed conversion in function GetBatteryTemperature.
 
   * pijuice_sys.py
     - Fixed undesired behavior of system task missing to halt system if input power 
@@ -58,7 +72,7 @@ pijuice-base (1.7) unstable; urgency=low
     - Added "sys_start" and "sys_stop" events to SystemEventsTab.
     - Update to restore PiJuice I2C Address from configuration file.
 
- -- Milan Neskovic <milan@pi-supply.com>  Mon, 18 Jan 2020 00:00:00 +0000
+ -- Milan Neskovic <milan@pi-supply.com>  Tue, 04 Feb 2020 00:00:00 +0000
 
 pijuice-base (1.6) unstable; urgency=low
 

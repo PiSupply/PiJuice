@@ -261,9 +261,9 @@ class PiJuiceStatus(object):
             return result
         else:
             d = result['data']
-            temp = d[1]
-            temp = temp << 8
-            temp = temp | d[0]
+            temp = d[0]
+            if (d[0] & (1 << 7)):
+                temp = temp - (1 << 8)
             return {'data': temp, 'error': 'NO_ERROR'}
 
     def GetBatteryVoltage(self):
