@@ -38,6 +38,10 @@ pijuice-base (1.7) unstable; urgency=low
     temperature measured by fuel gauge is recalculated based on NTC resistance value
     from battery profile that can be customized.
     
+  * V1.5_2021_02_06
+    - Fixed RTC Alarm problem, when it misses to trigger wake-up in mcu run mode.  
+    Patched by polling Alarm flag instead of waiting for interrupt.
+    
   * pijuice.py
     - Updated interface functions: SetWakeUpOnCharge and GetWakeUpOnCharge to support 
     wake-up restore configuration introduced in firmware V1.5.
@@ -72,7 +76,7 @@ pijuice-base (1.7) unstable; urgency=low
     - Added "sys_start" and "sys_stop" events to SystemEventsTab.
     - Update to restore PiJuice I2C Address from configuration file.
 
- -- Milan Neskovic <milan@pi-supply.com>  Tue, 04 Feb 2020 00:00:00 +0000
+ -- Milan Neskovic <milan@pi-supply.com>  Sat, 06 Feb 2020 00:00:00 +0000
 
 pijuice-base (1.6) unstable; urgency=low
 
