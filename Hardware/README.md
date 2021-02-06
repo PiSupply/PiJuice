@@ -77,7 +77,7 @@ When the Pi is on or in halt state the LED will be a steady colour with exceptio
     * ![#FF0000](http://via.placeholder.com/15x15/FF0000/000000?text=+) Red: Low battery - level < 15% or battery absent
 * **LED2** (D2) is the user LED by default.
 
-You can look at the [demo script](https://github.com/PiSupply/PiJuice/blob/master/Software/Test/pijuicetest.py) provided in the code base to see how to use it in Python.
+You can look at the SetLedBlink function in the [Software README](https://github.com/PiSupply/PiJuice/tree/master/Software#pijuice-status) to see how to use it in Python.
 
 Default settings can be overridden in the "LEDs" tab of PiJuice HAT configuration window. Check the [software section ](https://github.com/PiSupply/PiJuice/blob/master/Software/README.md) for more information.
 
