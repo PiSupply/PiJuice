@@ -68,7 +68,7 @@ class PiJuiceInterface(object):
             self.errTime = time.time()
 
     def _DoTransfer(self, oper):
-        if (self.t != None and self.t.isAlive()) or (self.comError and (time.time()-self.errTime) < 4):
+        if (self.t != None and self.t.is_alive()) or (self.comError and (time.time()-self.errTime) < 4):
             return False
 
         self.t = threading.Thread(target=oper, args=())
@@ -76,10 +76,10 @@ class PiJuiceInterface(object):
 
         # wait for transfer to finish or timeout
         n = 0
-        while self.t.isAlive() and n < 2:
+        while self.t.is_alive() and n < 2:
             time.sleep(0.05)
             n = n + 1
-        if self.comError or self.t.isAlive():
+        if self.comError or self.t.is_alive():
             return False
 
         return True
