@@ -27,6 +27,7 @@ if int(os.environ.get('PIJUICE_BUILD_BASE', 0)) > 0:
     name = "pijuice-base"
     data_files = [
         ('share/pijuice/data/firmware', glob.glob('data/firmware/*')),
+        ('/etc/udev/rules.d', ['data/99-i2c.rules']),
         ('/etc/sudoers.d', ['data/020_pijuice-nopasswd']),
         ('bin', ['bin/pijuiceboot']),
         ('bin', ['bin/pijuice_cli']),

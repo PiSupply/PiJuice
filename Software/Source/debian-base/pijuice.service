@@ -1,6 +1,7 @@
 [Unit]
 Description=PiJuice status service
-After=network.target
+Requires=dev-i2c\x2d1.device
+After=dev-i2c\x2d1.device
 
 [Service]
 Type=idle
