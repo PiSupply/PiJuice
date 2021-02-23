@@ -472,10 +472,12 @@ class PiJuiceHATConfig(object):
                 MessageBox.showerror('Address update', status['error'], parent=self.frame)
             else:
                 # Update changed address
-                MessageBox.showinfo('Address update', "Success!", parent=self.frame)
                 self.slaveAddrconfig[id]['data'] = self.slaveAddr[id].get()
                 pijuiceConfigData.setdefault('board', {}).setdefault('general', {})['i2c_addr'+['','_rtc'][id]] = self.slaveAddrconfig[id]['data']
-                if (id==0): _InitPiJuiceInterface()
+                if (id==0):
+                    _InitPiJuiceInterface()
+                    save_config()  # which also notifies the service about the changed address
+                MessageBox.showinfo('Address update', "Success!", parent=self.frame)
         else:
             # Restore original address
             self.slaveAddrEntry[id].delete(0,END)

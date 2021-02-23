@@ -127,7 +127,7 @@ class PiJuiceStatusTray(object):
                 b_level = charge['data']
                 print('{}%'.format(b_level))
             else:
-                print(charge)
+                self.init_pijuice_interface()
 
             b_file = ICON_DIR + '/battery_near_full.png'
 
