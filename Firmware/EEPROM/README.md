@@ -15,10 +15,8 @@ You can use these commands:
 # Clone Raspberry Pi HATs repo:
 git clone https://github.com/raspberrypi/hats.git
 
-# Fetch dtc tools and install
-wget -c https://raw.githubusercontent.com/RobertCNelson/tools/master/pkgs/dtc.sh
-chmod +x dtc.sh
-./dtc.sh
+# Install the device tree compiler.
+sudo apt install device-tree-compiler
 
 # Enter eepromutils directory
 cd hat/eepromutils
@@ -29,15 +27,15 @@ make && sudo make install
 # Create a blank eeprom file
 dd if=/dev/zero ibs=1k count=4 of=blank.eep
 
-# Compile the DT
-wget -c https://github.com/PiSupply/PiJuice/blob/master/Firmware/EEPROM/pijuice.dts
+# Compile the device tree fragment
+wget -c https://raw.githubusercontent.com/PiSupply/PiJuice/master/Firmware/EEPROM/pijuice.dts
 sudo dtc -@ -I dts -O dtb -o pijuice.dtb pijuice.dts ; sudo chown pi:pi pijuice.dtb
 
 # Get the settings file and make the .eep file
-wget -c https://github.com/PiSupply/PiJuice/blob/master/Firmware/EEPROM/settings.txt
-./eepmake settings.txt pijuice.eep pijuice.dtb
+wget -c https://raw.githubusercontent.com/PiSupply/PiJuice/master/Firmware/EEPROM/settings.txt
+eepmake settings.txt pijuice.eep pijuice.dtb
 
 # Blank the EEPROM and then flash it
-sudo ./eepflash -w -f=blank.eep -t=24c32
-sudo ./eepflash -w -f=pijuice.eep -t=24c32
+sudo eepflash.sh -w -f=blank.eep -t=24c32
+sudo eepflash.sh -w -f=pijuice.eep -t=24c32
 ```
