@@ -1,0 +1,25 @@
+{
+'profile':{
+    'capacity': 12000, 
+    'chargeCurrent': 2500, 
+    'terminationCurrent': 350, 
+    'regulationVoltage': 4180, 
+    'cutoffVoltage': 3100, 
+    'tempCold': 0, 
+    'tempCool': 2, 
+    'tempWarm': 49, 
+    'tempHot': 65, 
+    'ntcB': 5200, 
+    'ntcResistance': 42000
+},
+'extended':{
+    'chemistry': 'LIPO', 
+    'ocv10': 3643, 
+    'ocv50': 3897, 
+    'ocv90': 4059, 
+    'r10': 279.5, 
+    'r50': 284.0, 
+    'r90': 284.0
+}
+}
+    
