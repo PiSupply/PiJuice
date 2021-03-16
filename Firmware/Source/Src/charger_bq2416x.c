@@ -6,14 +6,30 @@
 #include "fuel_gauge_lc709203f.h"
 #include "stddef.h"
 #include "power_source.h"
+#include "analog.h"
+
+#if defined(RTOS_FREERTOS)
+#include "cmsis_os.h"
+
+static void ChargerTask(void *argument);
+
+static osThreadId_t chargerTaskHandle;
+
+static const osThreadAttr_t chargerTask_attributes = {
+	.name = "chargerTask",
+	.priority = (osPriority_t) osPriorityNormal,
+	.stack_size = 512
+};
+#endif
 
 #define CHG_READ_PERIOD_MS 	90  // ms
 #define WD_RESET_TRSH_MS 	(30000 / 3)
 
 #define BQ2416X_OTG_LOCK_BIT	0X08
+#define BQ2416X_NOBATOP_BIT		0X01
 
 //#define CHARGER_VIN_DPM_IN		0X00
-#define CHARGER_VIN_DPM_USB		0X07
+#define CHARGER_VIN_DPM_USB		6//0X07
 
 extern uint8_t resetStatus;
 
@@ -48,6 +64,8 @@ uint8_t chargerInDpm __attribute__((section("no_init")));
 uint8_t chargingConfig __attribute__((section("no_init")));
 
 uint8_t chargingEnabled __attribute__((section("no_init")));
+
+uint8_t powerSourcePresent __attribute__((section("no_init")));
 
 uint8_t noBatteryOperationEnabled = 0;
 
@@ -256,7 +274,7 @@ int8_t ChargerUpdateVinDPM() {
 int8_t ChargerUpdateTempRegulationControlStatus() {
 	static int8_t status;
 
-	regsw[7] = 0xC0; // Timer slowed by 2x when in thermal regulation, 10 – 9 hour fast charge, TS function disabled
+	regsw[7] = 0xC0; // Timer slowed by 2x when in thermal regulation, 10 ï¿½ 9 hour fast charge, TS function disabled
 	if (currentBatProfile!=NULL) {
 		if (batteryTemp < currentBatProfile->tCool && tempSensorConfig != BAT_TEMP_SENSE_CONFIG_NOT_USED) {
 			// charge current reduced to half
@@ -303,6 +321,7 @@ int8_t ChargerUpdateControlStatus() {
 			// enable charging
 			regsw[2] &= ~0x02;
 			regsw[2] &= ~0x01; // clear high impedance mode
+			regsw[2] |= 0x04; // Enable charge current termination
 		}
 	} else {
 		// disable charging
@@ -402,33 +421,21 @@ void ChargerInit() {
 	MS_TIME_COUNTER_INIT(readTimeCounter);
 	MS_TIME_COUNTER_INIT(wdTimeCounter);
 
-	chReg = regsw[2] | 0x82; // Reset all registers to default values and set high impedance mode
-	HAL_I2C_Mem_Write(&hi2c2, 0xD6, 2, 1, &chReg, 1, 1);
-	//I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x02, 1, &chReg, 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-	//while (HAL_I2C_GetState(&hi2c2) != HAL_I2C_STATE_READY);
-
-	/*regsw[0] = 0x88; // USB has precedence when both supplies are connected
-	ChargerRegWrite(0x00);*/
-	//I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x00, 1, &chReg, 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-
-    // Lockout USB input for charging
-	regsw[1] |= 0x08;
+	regsw[1] |= 0x08; // lockout usbin
 	HAL_I2C_Mem_Write(&hi2c2, 0xD6, 1, 1, &regsw[1], 1, 1);
-	//I2C_SlaveRegsWrite(&hi2c2, 0xD6, 1, 1, &chReg, 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-	//while (HAL_I2C_GetState(&hi2c2) != HAL_I2C_STATE_READY);
 
-	// set control register, high impedance, disable charging initially
 	// NOTE: do not place in high impedance mode, it will disable VSys mosfet, and no power to mcu
-	regsw[2] |= 0x02;
+	regsw[2] |= 0x02; // set control register, disable charging initially
+	//regsw[2] &= ~0x04; // disable termination
+	regsw[2] |= 0x20; // Set USB limit 500mA
 	HAL_I2C_Mem_Write(&hi2c2, 0xD6, 2, 1, &regsw[2], 1, 1);
 
 	// reset timer
-	regsw[0] = chargerInputsPrecedence << 3;
-	chReg = regsw[0] | 0x80;
-	HAL_I2C_Mem_Write(&hi2c2, 0xD6, 0, 1, &chReg, 1, 1);
+	//regsw[0] = chargerInputsPrecedence << 3;
+	//chReg = regsw[0] | 0x80;
+	//HAL_I2C_Mem_Write(&hi2c2, 0xD6, 0, 1, &chReg, 1, 1);
 
-	chReg = 0x0C; // Set USB limit 500mA
-	HAL_I2C_Mem_Write(&hi2c2, 0xD6, 0x02, 1, &chReg, 1, 1000);
+	DelayUs(500);
 
 	// read states
 	HAL_I2C_Mem_Read(&hi2c2, 0xD6, 0, 1, regs, 8, 1000);
@@ -441,6 +448,92 @@ void ChargerInit() {
 
 	//faultStatus = CHARGER_FAULT_STATUS();
 	chargerStatus = (regs[0] >> 4) & 0x07;
+
+	powerSourcePresent = CHARGER_IS_INPUT_PRESENT();
+
+#if defined(RTOS_FREERTOS)
+	chargerTaskHandle = osThreadNew(ChargerTask, (void*)NULL, &chargerTask_attributes);
+#endif
+}
+
+#if defined(RTOS_FREERTOS)
+static int8_t currRegAdr;
+
+static void ChargerTask(void *argument) {
+	for(;;)
+	{
+		chargerNeedPoll = 0;
+		if (ChargerUpdateUSBInLockout() != 0) {
+			chargerNeedPoll = 1;
+			continue;//return;
+		}
+
+		if (chargerInterruptFlag) {
+			// update status on interrupt
+			ChargerRegRead(0);
+			chargerInterruptFlag = 0;
+			chargerNeedPoll = 1;
+		}
+
+		if (ChargerUpdateControlStatus() != 0) {
+			chargerNeedPoll = 1;
+			continue;//return;
+		}
+
+		if (ChargerUpdateRegulationVoltage() != 0) {
+			chargerNeedPoll = 1;
+			continue;//return;
+		}
+
+		if (ChargerUpdateTempRegulationControlStatus() != 0) {
+			chargerNeedPoll = 1;
+			continue;//return;
+		}
+
+		if (ChargerUpdateChgCurrentAndTermCurrent() != 0) {
+			chargerNeedPoll = 1;
+			continue;//return;
+		}
+
+		if (ChargerUpdateVinDPM() != 0) {
+			chargerNeedPoll = 1;
+			continue;//return;
+		}
+
+		if (MS_TIME_COUNT(wdTimeCounter) > WD_RESET_TRSH_MS) {
+			// reset timer
+			// NOTE: reset bit must be 0 in write register image to prevent resets for other write access
+			regsw[0] = chargerInputsPrecedence << 3;
+			uint8_t resetVal = regsw[0] | 0x80;
+			if ( HAL_I2C_Mem_Write(&hi2c2, 0xD6, 0, 1, &resetVal, 1, 1) == HAL_OK )  {
+				MS_TIME_COUNTER_INIT(wdTimeCounter);
+			}
+			//while (HAL_I2C_GetState(&hi2c2) != HAL_I2C_STATE_READY);
+		}
+
+		// Periodically read register states from charger
+		if (MS_TIME_COUNT(readTimeCounter) >= CHG_READ_PERIOD_MS) {
+
+			if (ChargerRegRead(currRegAdr) == HAL_OK) {
+				currRegAdr ++;
+				currRegAdr &= 0x07; // 8 registers to read in circle
+			}
+
+			//faultStatus = regs[0] & 0x07;
+			chargerStatus = (regs[0] >> 4) & 0x07;
+
+			MS_TIME_COUNTER_INIT(readTimeCounter);
+
+		}
+
+		if (!chargerNeedPoll)
+			osDelay(20);
+	}
+}
+#else
+
+__weak void InputSourcePresenceChangeCb(uint8_t event) {
+	UNUSED(event);
 }
 
 void ChargerTask(void) {
@@ -505,6 +598,13 @@ void ChargerTask(void) {
 		//faultStatus = regs[0] & 0x07;
 		chargerStatus = (regs[0] >> 4) & 0x07;
 
+		if (currRegAdr == 0) {
+			if (powerSourcePresent != CHARGER_IS_INPUT_PRESENT()) {
+				InputSourcePresenceChangeCb(CHARGER_IS_INPUT_PRESENT() > powerSourcePresent);
+				powerSourcePresent = CHARGER_IS_INPUT_PRESENT();
+			}
+		}
+
 		/*if (faultStatus) {
 			// clear fault by setting to high impedance
 			// set high impedance mode first
@@ -554,170 +654,8 @@ void ChargerTask(void) {
 		}*/
 	}
 
-		//HAL_Delay(2);
-		//HAL_I2C_Mem_Read_DMA(&hi2c2, 0xD6, 0, 1, regs, 8);
-		//uint32_t timeout = HAL_GetTick() + 10;
-		//while (HAL_I2C_GetState(&hi2c2) != HAL_I2C_STATE_READY && timeout > HAL_GetTick());
-		//HAL_Delay(2);
-
-/*
-		const BatteryProfile_T *bProfile = BatteryGetProfile();
-		if (bProfile != NULL) {
-			if ( (batteryTemp > bProfile->tHot || batteryTemp < bProfile->tCold) ) {
-				// disable charging
-				if (!(regs[2] & 0x02)) {
-					regsw[2] |= 0x02;
-					I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x02, 1, &regsw[2], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-					//HAL_Delay(1);
-				}
-			} else if (batteryTemp > bProfile->tWarm) {
-				// reduce battery regulation voltage
-				int16_t newRegVol = (int16_t)(bProfile->regulationVoltage) - (140/20);
-				newRegVol = newRegVol < 0 ? 0 : newRegVol;
-				regsw[3] &= 0x03;
-				regsw[3] |= newRegVol << 2;
-				if (regs[3] != regsw[3]) {
-					regsw[2] |= 0x01;
-					I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x02, 1, &regsw[2], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US); // set high impedance mode first
-					//HAL_Delay(1);
-					I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x03, 1, &regsw[3], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-					regsw[2] &= ~0x01;
-					//HAL_Delay(1);
-					I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x02, 1, &regsw[2], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US); // set not high impedance mode
-					//HAL_Delay(1);
-				}
-				// enable charging if disabled
-				if (regs[2] & 0x02) {
-					regsw[2] &= ~0x02;
-					I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x02, 1, &regsw[2], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-					//HAL_Delay(1);
-				}
-			} else if (batteryTemp < bProfile->tCool) {
-				// reduce charge current to half
-				if (!(regs[7] & 0x01)) {
-					regsw[7] |= 0x01;
-					I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x07, 1, &regsw[7], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-					//HAL_Delay(1);
-				}
-				// enable charging if disabled
-				if (regs[2] & 0x02) {
-					regsw[2] &= ~0x02;
-					I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x02, 1, &regsw[2], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-					//HAL_Delay(1);
-				}
-			} else {
-				// set normal regulation voltage
-				if ( bProfile->regulationVoltage != (regs[3] >> 2)) {
-					regsw[3] &= 0x03;
-					regsw[3] |= bProfile->regulationVoltage << 2;
-					regsw[2] |= 0x01;
-					I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x02, 1, &regsw[2], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US); // set high impedance mode first
-					//HAL_Delay(1);
-					I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x03, 1, &regsw[3], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-					regsw[2] &= ~0x01;
-					//HAL_Delay(1);
-					I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x02, 1, &regsw[2], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US); // set not high impedance mode
-					//HAL_Delay(1);
-				}
-				// verify charge current settings
-				if (regsw[5] != regs[5] ) {
-					regsw[5] = ((bProfile->chargeCurrent&0x1F) << 3) | (bProfile->terminationCurr&0x07);
-					I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x05, 1, &regsw[5], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-					//HAL_Delay(1);
-				}
-				// set normal charge current
-				if (regs[7] & 0x01) {
-					regsw[7] &= ~0x01;
-					I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x07, 1, &regsw[7], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-					//HAL_Delay(1);
-				}
-				// enable charging if disabled
-				if (regs[2] & 0x02) {
-					regsw[2] &= ~0x02;
-					I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x02, 1, &regsw[2], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-					//HAL_Delay(1);
-				}
-			}
-		} else {
-			// disable charging if profile is invalid
-			if (!(regs[2] & 0x02)) {
-				regsw[2] |= 0x02;
-				I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x02, 1, &regsw[2], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-				//HAL_Delay(1);
-			}
-		}
-	}*/
-
-	/*if ( chargeCurrentReq >= 0 ) {
-		regsw[5] &= 0x07;
-		regsw[5] |= ((chargeCurrentReq * 10 - 550) / 75) << 3;
-		HAL_I2C_Mem_Write(&hi2c2, 0xD6, 0x05, 1, &regsw[5], 1, 10);
-		//while (HAL_I2C_GetState(&hi2c2) != HAL_I2C_STATE_READY);
-		regs[5] = regsw[5];
-		//EE_WriteVariable(CHARGE_CURRENT_NV_ADDR, chargeCurrentReq);
-		chargeCurrentReq = -1;
-	}
-
-	if ( chargeTerminationCurrentReq >= 0 ) {
-		regsw[5] = (regsw[5] & 0xF8) | ((chargeTerminationCurrentReq * 10 - 50) / 50);
-		HAL_I2C_Mem_Write(&hi2c2, 0xD6, 0x05, 1, &regsw[5], 1, 10);
-		//while (HAL_I2C_GetState(&hi2c2) != HAL_I2C_STATE_READY);
-		regs[5] = regsw[5];
-		//EE_WriteVariable(CHARGE_TERM_CURRENT_NV_ADDR, chargeTerminationCurrentReq); // it should be after readback verification
-		chargeTerminationCurrentReq = -1;
-	}
-
-	if ( batRegVoltageReq >= 0 ) {
-		regsw[3] &= 0x03;
-		regsw[3] |= batRegVoltageReq << 2;
-		HAL_I2C_Mem_Write(&hi2c2, 0xD6, 0x03, 1, &regsw[3], 1, 10);
-		//while (HAL_I2C_GetState(&hi2c2) != HAL_I2C_STATE_READY);
-		regs[3] = regsw[3];
-		//EE_WriteVariable(BAT_REG_VOLTAGE_NV_ADDR, batRegVoltageReq);
-		batRegVoltageReq = -1;
-	}*/
-	/*if (chargerSetProfileDataReq) {
-		chargerSetProfileDataReq = 0;
-		if (currentBatProfile == NULL) {
-			// disable charging if profile is invalid
-			if (!(regs[2] & 0x02)) {
-				regsw[2] |= 0x02;
-				I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x02, 1, &regsw[2], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-				//HAL_Delay(1);
-			}
-			regs[2] = regsw[2];
-		} else {
-			regsw[5] = ((currentBatProfile->chargeCurrent&0x1F) << 3) | (currentBatProfile->terminationCurr&0x07);
-			I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x05, 1, &regsw[5], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-			//HAL_Delay(1);
-			regs[5] = regsw[5];
-
-			regsw[3] &= 0x03;
-			regsw[3] |= currentBatProfile->regulationVoltage << 2;
-			I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x02, 1, &regsw[2], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US); // set high impedance mode first
-			//HAL_Delay(1);
-			I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x03, 1, &regsw[3], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-			regsw[2] &= ~0x01;
-			//HAL_Delay(1);
-			I2C_SlaveRegsWrite(&hi2c2, 0xD6, 0x02, 1, &regsw[2], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US); // set not high impedance mode
-			//HAL_Delay(1);
-			regs[3] = regsw[3];
-		}
-
-	}*/
-
-	/*static uint8_t curReg = 0;
-	static uint32_t tick;
-	if (HAL_GetTick() > tick) {
-		curReg = (curReg + 1) & 0x3;
-		HAL_I2C_Mem_Read(&hi2c2, 0xD6, curReg, 1, &regs[curReg], 1, 2);
-		if ( (regs[curReg]&regswMask[curReg]) != (regsw[curReg]&regswMask[curReg]) ) {
-			HAL_I2C_Mem_Write(&hi2c2, 0xD6, curReg, 1, &regsw[curReg], 1, 2);
-		}
-		tick = HAL_GetTick() + 90;
-	}*/
-
 }
+#endif
 
 void ChargerTriggerNTCMonitor(NTC_MonitorTemperature_T temp) {
 	switch (temp) {

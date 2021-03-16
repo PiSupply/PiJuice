@@ -2,38 +2,20 @@
   ******************************************************************************
   * @file    stm32f0xx_hal_dma_ex.h
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    27-May-2016
   * @brief   Header file of DMA HAL Extension module.
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2016 STMicroelectronics</center></h2>
+  * <h2><center>&copy; Copyright (c) 2016 STMicroelectronics.
+  * All rights reserved.</center></h2>
   *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  * This software component is licensed by ST under BSD 3-Clause license,
+  * the "License"; You may not use this file except in compliance with the
+  * License. You may obtain a copy of the License at:
+  *                        opensource.org/licenses/BSD-3-Clause
   *
   ******************************************************************************
-  */ 
+  */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __STM32F0xx_HAL_DMA_EX_H
@@ -523,7 +505,7 @@
 #if defined(STM32F071xB) || defined(STM32F072xB) || defined(STM32F078xx)
 /**
   * @brief  Returns the current DMA Channel transfer complete flag.
-  * @param  __HANDLE__: DMA handle
+  * @param  __HANDLE__ DMA handle
   * @retval The specified transfer complete flag index.
   */      
 #define __HAL_DMA_GET_TC_FLAG_INDEX(__HANDLE__) \
@@ -537,7 +519,7 @@
 
 /**
   * @brief  Returns the current DMA Channel half transfer complete flag.
-  * @param  __HANDLE__: DMA handle
+  * @param  __HANDLE__ DMA handle
   * @retval The specified half transfer complete flag index.
   */      
 #define __HAL_DMA_GET_HT_FLAG_INDEX(__HANDLE__)\
@@ -551,7 +533,7 @@
 
 /**
   * @brief  Returns the current DMA Channel transfer error flag.
-  * @param  __HANDLE__: DMA handle
+  * @param  __HANDLE__ DMA handle
   * @retval The specified transfer error flag index.
   */
 #define __HAL_DMA_GET_TE_FLAG_INDEX(__HANDLE__)\
@@ -565,7 +547,7 @@
 
 /**
   * @brief  Return the current DMA Channel Global interrupt flag.
-  * @param  __HANDLE__: DMA handle
+  * @param  __HANDLE__ DMA handle
   * @retval The specified transfer error flag index.
   */
 #define __HAL_DMA_GET_GI_FLAG_INDEX(__HANDLE__)\
@@ -579,8 +561,8 @@
 
 /**
   * @brief  Get the DMA Channel pending flags.
-  * @param  __HANDLE__: DMA handle
-  * @param  __FLAG__: Get the specified flag.
+  * @param  __HANDLE__ DMA handle
+  * @param  __FLAG__ Get the specified flag.
   *          This parameter can be any combination of the following values:
   *            @arg DMA_FLAG_TCx:  Transfer complete flag
   *            @arg DMA_FLAG_HTx:  Half transfer complete flag
@@ -593,8 +575,8 @@
 
 /**
   * @brief  Clears the DMA Channel pending flags.
-  * @param  __HANDLE__: DMA handle
-  * @param  __FLAG__: specifies the flag to clear.
+  * @param  __HANDLE__ DMA handle
+  * @param  __FLAG__ specifies the flag to clear.
   *          This parameter can be any combination of the following values:
   *            @arg DMA_FLAG_TCx:  Transfer complete flag
   *            @arg DMA_FLAG_HTx:  Half transfer complete flag
@@ -607,7 +589,7 @@
 #elif defined(STM32F091xC) || defined(STM32F098xx)
 /**
   * @brief  Returns the current DMA Channel transfer complete flag.
-  * @param  __HANDLE__: DMA handle
+  * @param  __HANDLE__ DMA handle
   * @retval The specified transfer complete flag index.
   */      
 #define __HAL_DMA_GET_TC_FLAG_INDEX(__HANDLE__) \
@@ -626,7 +608,7 @@
 
 /**
   * @brief  Returns the current DMA Channel half transfer complete flag.
-  * @param  __HANDLE__: DMA handle
+  * @param  __HANDLE__ DMA handle
   * @retval The specified half transfer complete flag index.
   */      
 #define __HAL_DMA_GET_HT_FLAG_INDEX(__HANDLE__)\
@@ -645,7 +627,7 @@
 
 /**
   * @brief  Returns the current DMA Channel transfer error flag.
-  * @param  __HANDLE__: DMA handle
+  * @param  __HANDLE__ DMA handle
   * @retval The specified transfer error flag index.
   */
 #define __HAL_DMA_GET_TE_FLAG_INDEX(__HANDLE__)\
@@ -664,7 +646,7 @@
 
 /**
   * @brief  Return the current DMA Channel Global interrupt flag.
-  * @param  __HANDLE__: DMA handle
+  * @param  __HANDLE__ DMA handle
   * @retval The specified transfer error flag index.
   */
 #define __HAL_DMA_GET_GI_FLAG_INDEX(__HANDLE__)\
@@ -683,8 +665,8 @@
 
 /**
   * @brief  Get the DMA Channel pending flags.
-  * @param  __HANDLE__: DMA handle
-  * @param  __FLAG__: Get the specified flag.
+  * @param  __HANDLE__ DMA handle
+  * @param  __FLAG__ Get the specified flag.
   *          This parameter can be any combination of the following values:
   *            @arg DMA_FLAG_TCx:  Transfer complete flag
   *            @arg DMA_FLAG_HTx:  Half transfer complete flag
@@ -699,8 +681,8 @@
 
 /**
   * @brief  Clears the DMA Channel pending flags.
-  * @param  __HANDLE__: DMA handle
-  * @param  __FLAG__: specifies the flag to clear.
+  * @param  __HANDLE__ DMA handle
+  * @param  __FLAG__ specifies the flag to clear.
   *          This parameter can be any combination of the following values:
   *            @arg DMA_FLAG_TCx:  Transfer complete flag
   *            @arg DMA_FLAG_HTx:  Half transfer complete flag
@@ -715,7 +697,7 @@
 #else /* STM32F030x8_STM32F030xC_STM32F031x6_STM32F038xx_STM32F051x8_STM32F058xx_STM32F070x6_STM32F070xB Product devices */
 /**
   * @brief  Returns the current DMA Channel transfer complete flag.
-  * @param  __HANDLE__: DMA handle
+  * @param  __HANDLE__ DMA handle
   * @retval The specified transfer complete flag index.
   */      
 #define __HAL_DMA_GET_TC_FLAG_INDEX(__HANDLE__) \
@@ -727,7 +709,7 @@
 
 /**
   * @brief  Returns the current DMA Channel half transfer complete flag.
-  * @param  __HANDLE__: DMA handle
+  * @param  __HANDLE__ DMA handle
   * @retval The specified half transfer complete flag index.
   */      
 #define __HAL_DMA_GET_HT_FLAG_INDEX(__HANDLE__)\
@@ -739,7 +721,7 @@
 
 /**
   * @brief  Returns the current DMA Channel transfer error flag.
-  * @param  __HANDLE__: DMA handle
+  * @param  __HANDLE__ DMA handle
   * @retval The specified transfer error flag index.
   */
 #define __HAL_DMA_GET_TE_FLAG_INDEX(__HANDLE__)\
@@ -751,7 +733,7 @@
 
 /**
   * @brief  Return the current DMA Channel Global interrupt flag.
-  * @param  __HANDLE__: DMA handle
+  * @param  __HANDLE__ DMA handle
   * @retval The specified transfer error flag index.
   */
 #define __HAL_DMA_GET_GI_FLAG_INDEX(__HANDLE__)\
@@ -763,8 +745,8 @@
 
 /**
   * @brief  Get the DMA Channel pending flags.
-  * @param  __HANDLE__: DMA handle
-  * @param  __FLAG__: Get the specified flag.
+  * @param  __HANDLE__ DMA handle
+  * @param  __FLAG__ Get the specified flag.
   *          This parameter can be any combination of the following values:
   *            @arg DMA_FLAG_TCx:  Transfer complete flag
   *            @arg DMA_FLAG_HTx:  Half transfer complete flag
@@ -777,8 +759,8 @@
 
 /**
   * @brief  Clears the DMA Channel pending flags.
-  * @param  __HANDLE__: DMA handle
-  * @param  __FLAG__: specifies the flag to clear.
+  * @param  __HANDLE__ DMA handle
+  * @param  __FLAG__ specifies the flag to clear.
   *          This parameter can be any combination of the following values:
   *            @arg DMA_FLAG_TCx:  Transfer complete flag
   *            @arg DMA_FLAG_HTx:  Half transfer complete flag
@@ -794,15 +776,15 @@
 #if defined(STM32F091xC) || defined(STM32F098xx) || defined(STM32F030xC)
 #define __HAL_DMA1_REMAP(__REQUEST__)                                                              \
          do { assert_param(IS_HAL_DMA1_REMAP(__REQUEST__));                                             \
-              DMA1->CSELR &= ~((uint32_t)0x0F << (uint32_t)(((__REQUEST__) >> 28) * 4)); \
-              DMA1->CSELR |= (uint32_t)((__REQUEST__) & 0x0FFFFFFF);                                     \
+              DMA1->CSELR &= ~(0x0FU << (uint32_t)(((__REQUEST__) >> 28U) * 4U)); \
+              DMA1->CSELR |= (uint32_t)((__REQUEST__) & 0x0FFFFFFFU);                                     \
   }while(0)
 
 #if defined(STM32F091xC) || defined(STM32F098xx)
 #define __HAL_DMA2_REMAP(__REQUEST__)                                                              \
          do { assert_param(IS_HAL_DMA2_REMAP(__REQUEST__));                                             \
-              DMA2->CSELR &= ~((uint32_t)0x0F << (uint32_t)(((__REQUEST__) >> 28) * 4)); \
-              DMA2->CSELR |= (uint32_t)((__REQUEST__) & 0x0FFFFFFF);                                     \
+              DMA2->CSELR &= ~(0x0FU << (uint32_t)(((__REQUEST__) >> 28U) * 4U)); \
+              DMA2->CSELR |= (uint32_t)((__REQUEST__) & 0x0FFFFFFFU);                                     \
          }while(0)
 #endif /* STM32F091xC || STM32F098xx */
 

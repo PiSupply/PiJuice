@@ -79,7 +79,9 @@ extern uint8_t chargerI2cErrorCounter;
 extern uint8_t chargerInterruptFlag;
 
 void ChargerInit();
+#if !defined(RTOS_FREERTOS)
 void ChargerTask(void);
+#endif
 void ChargerTriggerNTCMonitor(NTC_MonitorTemperature_T temp);
 void ChargerSetUSBLockout(ChargerUSBInLockoutStatus_T status);
 void SetChargeCurrentReq(uint8_t current);

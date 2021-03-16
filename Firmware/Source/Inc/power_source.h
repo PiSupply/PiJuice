@@ -13,10 +13,16 @@
 #define POW_5V_IN_DETECTION_STATUS_UNKNOWN		0
 #define POW_5V_IN_DETECTION_STATUS_NOT_PRESENT	1
 #define POW_5V_IN_DETECTION_STATUS_PRESENT	2
+#define POW_5V_TURN_ON_TIMEOUT	40
 
 #define POW_5V_BOOST_EN_STATUS()	 	(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10) == GPIO_PIN_SET)
-#define POW_SOURCE_NEED_POLL() 	(pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_PRESENT)
+#define POW_SOURCE_NEED_POLL() 	(pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_PRESENT || MS_TIME_COUNT(pow5vOnTimeout) <= POW_5V_TURN_ON_TIMEOUT)
 #define POW_VSYS_OUTPUT_EN_STATUS()	 	(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_12) == GPIO_PIN_RESET)
+
+#define REGULATOR_5V_SWITCHING_STATUS_SUCCESS		0
+#define REGULATOR_5V_SWITCHING_STATUS_NO_ENERGY		1
+
+extern uint32_t pow5vOnTimeout;
 
 typedef enum PowerSourceStatus_T {
 	POW_SOURCE_NOT_PRESENT = 0,
@@ -40,10 +46,12 @@ extern uint8_t forcedPowerOffFlag;
 extern uint8_t forcedVSysOutputOffFlag;
 
 void PowerSourceInit(void);
+#if !defined(RTOS_FREERTOS)
 void PowerSourceTask(void);
+void PowerSource5vIoDetectionTask(void);
+#endif
 void PowerSourceExitLowPower(void);
 void PowerSourceEnterLowPower(void);
-void PowerSource5vIoDetectionTask(void);
 void PowerSourceSetBatProfile(const BatteryProfile_T* batProfile);
 void PowerSourceSetVSysSwitchState(uint8_t state);
 uint8_t PowerSourceGetVSysSwitchState();

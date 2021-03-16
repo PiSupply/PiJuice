@@ -13,6 +13,8 @@
 typedef void (*RtcCommand_T)(uint8_t dir, uint8_t *pData, uint16_t *dataLen);
 
 void RtcDs1339ProcessRequest(uint8_t dir, uint8_t command, uint8_t *pData, uint16_t *dataLen);
+uint8_t RtcGetPointer();
+uint8_t RtcSetPointer(uint8_t val);
 
 void RtcInit(void);
 void EvaluateAlarm(void);

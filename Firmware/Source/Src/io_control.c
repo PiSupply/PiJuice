@@ -163,9 +163,15 @@ void IoConfigure(uint8_t pin) {
 	    HAL_GPIO_Init(GPIOA, &gpioInitStruct);
 	    break;
 	case 2:
-		// digital input, no pull
+		// digital input
 		//HAL_TIM_PWM_Stop(htim, TIM_CHANNEL_1);
-		gpioInitStruct.Mode = GPIO_MODE_INPUT;
+		if ((pin==2) && (ioParam1[pin-1]&0x03) == 1) {
+			gpioInitStruct.Mode = GPIO_MODE_IT_FALLING; // on IO1 enable wakeup on falling edge
+		} else if ((pin==2) && (ioParam1[pin-1]&0x03) == 2) {
+			gpioInitStruct.Mode = GPIO_MODE_IT_RISING; // on IO1 enable wakeup on rising edge
+		} else {
+			gpioInitStruct.Mode = GPIO_MODE_INPUT;
+		}
 		HAL_GPIO_Init(GPIOA, &gpioInitStruct);
 		break;
 	case 3:
@@ -319,7 +325,7 @@ void IoRead(uint8_t pin, uint8_t data[], uint16_t *len)
 
 	switch (ioConfig[pin-1]&0x0F) {
 		case 1:
-			val = GetSampleVoltage(4);
+			val = GetSampleVoltage(ADC_IO1_CHN);
 			data[0] = val&0xFF;
 			data[1] = (val >> 8) & 0xFF;
 			break;

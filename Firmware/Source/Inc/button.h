@@ -36,7 +36,9 @@ typedef enum ButtonEvent_T {
 typedef void (*ButtonEventCb_T)(uint8_t b, ButtonEvent_T event);
 
 void ButtonInit(void);
+#if !defined(RTOS_FREERTOS)
 void ButtonTask(void);
+#endif
 ButtonEvent_T GetButtonEvent(uint8_t b);
 void ButtonRemoveEvent(uint8_t b);
 uint8_t IsButtonEvent(void);

@@ -43,15 +43,15 @@ extern void SysTickCb();
 extern ADC_HandleTypeDef hadc;
 extern I2C_HandleTypeDef hi2c1;
 extern I2C_HandleTypeDef hi2c2;
-extern SMBUS_HandleTypeDef hsmbus;
+//extern SMBUS_HandleTypeDef hsmbus;
 extern void I2C_EV_IRQHandler(I2C_HandleTypeDef *hi2c);
 
 extern RTC_HandleTypeDef hrtc;
 extern ADC_HandleTypeDef hadc;
 //extern WWDG_HandleTypeDef hwwdg;
-
+extern TIM_HandleTypeDef htim6;
 /******************************************************************************/
-/*            Cortex-M0 Processor Interruption and Exception Handlers         */ 
+/*            Cortex-M0 Processor Interruption and Exception Handlers         */
 /******************************************************************************/
 
 /**
@@ -82,10 +82,26 @@ void HardFault_Handler(void)
 
   /* USER CODE END HardFault_IRQn 1 */
 }
+#if defined(RTOS_FREERTOS)
+/**
+  * @brief This function handles TIM6 global interrupt.
+  */
+void TIM6_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM6_IRQn 0 */
 
+  /* USER CODE END TIM6_IRQn 0 */
+  HAL_IncTick();
+  HAL_TIM_IRQHandler(&htim6);
+  /* USER CODE BEGIN TIM6_IRQn 1 */
+
+  /* USER CODE END TIM6_IRQn 1 */
+}
+#else
 /**
 * @brief This function handles System service call via SWI instruction.
 */
+
 void SVC_Handler(void)
 {
   /* USER CODE BEGIN SVC_IRQn 0 */
@@ -124,6 +140,7 @@ void SysTick_Handler(void)
   /* USER CODE END SysTick_IRQn 1 */
 }
 
+#endif
 /******************************************************************************/
 /* STM32F0xx Peripheral Interrupt Handlers                                    */
 /* Add here the Interrupt Handlers for the used peripherals.                  */
@@ -145,36 +162,39 @@ void I2C1_IRQHandler(void)
 	HAL_SMBUS_Slave_Receive_IT(&hsmbus, (uint8_t *)i2cTrfBuffer, 255, SMBUS_FIRST_AND_LAST_FRAME_NO_PEC);
 	newSmbusTransferFlag = 0;
   }*/
-  HAL_SMBUS_EV_IRQHandler(&hsmbus);
-  HAL_SMBUS_ER_IRQHandler(&hsmbus);
+  //HAL_SMBUS_EV_IRQHandler(&hsmbus);
+  //HAL_SMBUS_ER_IRQHandler(&hsmbus);
   //I2C_EV_IRQHandler(&hi2c1);
-  //HAL_I2C_EV_IRQHandler(&hi2c1);
-  //HAL_I2C_ER_IRQHandler(&hi2c1);
+  HAL_I2C_EV_IRQHandler(&hi2c1);
+  HAL_I2C_ER_IRQHandler(&hi2c1);
+  //hi2c1.Instance->ICR = (uint32_t)0xFFFDF;//0x3FD0F;
+  //hi2c1.Instance->CR1 &= (uint32_t)0x7F;//0x3FD0F;
+ // if (hi2c1.Instance->ISR & 0x02) hi2c1.Instance->TXDR = 1;
 }
 
 void I2C2_IRQHandler(void)
 {
   HAL_I2C_EV_IRQHandler(&hi2c2);
-  HAL_I2C_ER_IRQHandler(&hi2c2);  
+  HAL_I2C_ER_IRQHandler(&hi2c2);
 }
 
 /**
-  * @brief  This function handles DMA interrupt request.  
+  * @brief  This function handles DMA interrupt request.
   * @param  None
   * @retval None
-  * @Note   This function is redefined in "main.h" and related to DMA Channel 
-  *         used for I2C data transmission     
+  * @Note   This function is redefined in "main.h" and related to DMA Channel
+  *         used for I2C data transmission
   */
 void DMA1_Channel2_3_IRQHandler(void)
 {
   HAL_DMA_IRQHandler(hi2c1.hdmarx);
-  HAL_DMA_IRQHandler(hi2c1.hdmatx);  
+  HAL_DMA_IRQHandler(hi2c1.hdmatx);
 }
 
 void DMA1_Channel4_5_IRQHandler(void)
 {
   HAL_DMA_IRQHandler(hi2c2.hdmarx);
-  HAL_DMA_IRQHandler(hi2c2.hdmatx);  
+  HAL_DMA_IRQHandler(hi2c2.hdmatx);
 }
 
 /**
@@ -213,6 +233,7 @@ void EXTI4_15_IRQHandler(void)
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_7);
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_12);
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_8); // IO2
 }
 
 void EXTI0_1_IRQHandler(void)

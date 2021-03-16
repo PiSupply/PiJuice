@@ -11,11 +11,14 @@
 #include "stdint.h"
 #include "stm32f0xx_hal.h"
 
-#define ADC_SCAN_CHANNELS		7
+#define ADC_SCAN_CHANNELS		8
 #define ADC_BUFFER_LENGTH		((uint16_t)512*ADC_SCAN_CHANNELS)
-#define POW_DET_SENS_CHN	3
-#define POW_VBAT_SENS_CHN	2
-#define ADC_VREF_BUFF_CHN	6
+#define POW_DET_SENS_CHN	4
+#define ADC_VBAT_SENS_CHN	2
+#define ADC_NTC_CHN	3
+#define ADC_IO1_CHN	5
+#define ADC_TEMP_SENS_CHN	6
+#define ADC_VREF_BUFF_CHN	7
 #define ADC_CONT_MODE_NORMAL	0
 #define ADC_CONT_MODE_LOW_VOLTAGE 	1 // In this mode one channel in scan group is internal reference
 #define ADC_GET_BUFFER_SAMPLE(i)	(analogIn[(i)])
@@ -33,7 +36,9 @@ extern ADC_AnalogWDGConfTypeDef analogWDGConfig;
 //extern uint32_t analogBufferTicks;
 
 void AnalogInit(void);
+#if !defined(RTOS_FREERTOS)
 void AnalogTask(void);
+#endif
 int16_t Get5vIoVoltage();
 void AnalogStop(void);
 void AnalogStart(void);
@@ -43,6 +48,7 @@ void AnalogAdcWDGEnable(uint8_t enable);
 uint8_t AnalogSamplesReady();
 HAL_StatusTypeDef AnalogAdcWDGConfig(uint8_t channel, uint16_t voltThresh_mV);
 uint16_t GetSampleVoltage(uint8_t channel);
+uint16_t GetAverageBatteryVoltage(uint8_t channel);
 
 __STATIC_INLINE uint16_t GetSample(uint8_t channel) {
     int32_t pos =  __HAL_DMA_GET_COUNTER(hadc.DMA_Handle);

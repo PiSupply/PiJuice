@@ -62,11 +62,17 @@
 								|| alarmEventFlag ))
 
 /* Private variables ---------------------------------------------------------*/
+#if defined(RTOS_FREERTOS)
+#include "cmsis_os.h"
+#include "task.h"
+#include "portmacro.h"
+osThreadId_t defaultTaskHandle;
+#endif
 ADC_HandleTypeDef hadc;
 
 I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
-SMBUS_HandleTypeDef hsmbus;
+//SMBUS_HandleTypeDef hsmbus;
 
 RTC_HandleTypeDef hrtc;
 
@@ -82,7 +88,7 @@ uint8_t resetStatus = 0;
 /* Private variables ---------------------------------------------------------*/
 
 /* Buffer used for I2C transfer */
-  uint8_t i2cTrfBuffer[256];
+  //uint8_t i2cTrfBuffer[256];
 
 static uint8_t commandReceivedFlag = 0;
 
@@ -110,7 +116,7 @@ static void MX_RTC_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM15_Init(void);
 static void MX_TIM17_Init(void);
-static void MX_SMBUS_Init(void);
+//static void MX_SMBUS_Init(void);
 static void MX_IWDG_Init(void);
 //static void MX_WWDG_Init(void);
 
@@ -148,6 +154,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
   {
 	  // I2C SDA
 	  extiFlag = 2;
+  } else if (GPIO_Pin == GPIO_PIN_8) {
+	  extiFlag = 4;
+	  ioWakeupEvent = 1;
   } else {
 	  // SW1, SW2, SW3
 	  extiFlag = 3;
@@ -158,144 +167,269 @@ static uint16_t i2cAddrMatchCode = 0;
 volatile static uint8_t i2cTransferDirection = 0;
 static int16_t readCmdCode = 0;
 uint32_t mainPollMsCounter;
-volatile uint8_t newSmbusTransferFlag = 3;
-//volatile uint8_t testLen = 0;
-//volatile uint8_t testCmd = 0;
+static uint8_t       aSlaveReceiveBuffer[256]  = {0};
+uint8_t      slaveTransmitBuffer[256]      = {0};
+__IO static uint8_t  ubSlaveReceiveIndex       = 0;
+uint32_t      uwTransferDirection       = 0;
+//__IO uint32_t uwTransferInitiated       = 0;
+//__IO uint32_t uwTransferEnded           = 0;
+volatile uint8_t tstFlagi2c=0;
+uint16_t dataLen;
 
-void HAL_SMBUS_ErrorCallback(SMBUS_HandleTypeDef *hsmbus) {
-}
-
-void HAL_SMBUS_SlaveTxCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
-	//HAL_SMBUS_EnableListen_IT( hsmbus );
-	newSmbusTransferFlag  = 3;
-}
-
-static uint8_t rcvLength = 0;
-void HAL_SMBUS_SlaveRxCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
-	i2cTransferDirection = SMBUS_GET_DIR(hsmbus);
-	/*if (newSmbusTransferFlag > 0) {
-			newSmbusTransferFlag = 0;
-		}*/
-	newSmbusTransferFlag = 1;
-	if (i2cTransferDirection == I2C_DIRECTION_TRANSMIT) {
-		readCmdCode = i2cTrfBuffer[0];
-
-		  /* If a pending TXIS flag is set */
-		  /* Write a dummy data in TXDR to clear it */
-		  if(__HAL_I2C_GET_FLAG(hsmbus, I2C_FLAG_TXIS) != RESET)
-		  {
-			  hsmbus->Instance->TXDR = 0x00U;
-		  }
-
-		  // Flush TX register if not empty
-		  if(__HAL_I2C_GET_FLAG(hsmbus, I2C_FLAG_TXE) == RESET)
-		  {
-		    __HAL_I2C_CLEAR_FLAG(hsmbus, I2C_FLAG_TXE);
-		  }
-
-		  DelayUs(17);
-		  if (SMBUS_CHECK_FLAG(hsmbus->Instance->ISR, SMBUS_FLAG_STOPF) != RESET) return;
-
-	    DelayUs(83);
-		// if after command received there is no new receive start or stop, this is smbus write, start to receive all data
-		if ( ((SMBUS_CHECK_FLAG(hsmbus->Instance->ISR, SMBUS_FLAG_ADDR) == RESET) && (SMBUS_CHECK_FLAG(hsmbus->Instance->ISR, SMBUS_FLAG_STOPF) == RESET)) ) {
-			rcvLength = I2C_MAX_RECEIVE_SIZE;
-			HAL_SMBUS_Slave_Receive_IT(hsmbus, (uint8_t *)&i2cTrfBuffer[1], I2C_MAX_RECEIVE_SIZE, SMBUS_FIRST_AND_LAST_FRAME_NO_PEC);
-		} else if ( SMBUS_CHECK_FLAG(hsmbus->Instance->ISR, SMBUS_FLAG_RXNE) != RESET /*&& newSmbusTransferFlag == 0*/) {
-			rcvLength = 0;
-			//HAL_SMBUS_Slave_Receive_IT(hsmbus, (uint8_t *)&i2cTrfBuffer[1], 1, SMBUS_FIRST_AND_LAST_FRAME_NO_PEC);
-			/* Read data from RXDR */
-			      (*hsmbus->pBuffPtr++) = hsmbus->Instance->RXDR;
-			      //hsmbus->XferSize--;
-			      //hsmbus->XferCount--;
-		}
+void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+	tstFlagi2c=9;
+	dataLen = 1;
+	if (i2cAddrMatchCode == hi2c->Init.OwnAddress2) {
+		uint8_t cmd = RtcGetPointer();
+		RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, cmd, slaveTransmitBuffer, &dataLen);
+		RtcSetPointer(cmd + 1);
+		HAL_I2C_Slave_Seq_Transmit_IT(hi2c, (uint8_t *)slaveTransmitBuffer, 1, I2C_NEXT_FRAME);
+	} else {
+		slaveTransmitBuffer[0] = 0;
+		HAL_I2C_Slave_Seq_Transmit_IT(hi2c, (uint8_t *)slaveTransmitBuffer, 1, I2C_NEXT_FRAME);
 	}
 }
 
-void HAL_SMBUS_ListenCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
-	i2cTransferDirection = SMBUS_GET_DIR(hsmbus);
-	if (i2cTransferDirection == I2C_DIRECTION_TRANSMIT) {
-		uint16_t dataLen = hsmbus->pBuffPtr - i2cTrfBuffer;//rcvLength - hsmbus->XferSize + 1;
-		/*if (newSmbusTransferFlag > 1){
-			newSmbusTransferFlag = 0;
-		}*/
-		newSmbusTransferFlag = 2;
+void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c1)
+{
+    ubSlaveReceiveIndex++;
+	tstFlagi2c=1;
+    if(HAL_I2C_Slave_Seq_Receive_IT(hi2c1, (uint8_t *)&aSlaveReceiveBuffer[ubSlaveReceiveIndex], 1, I2C_NEXT_FRAME) != HAL_OK) {
+      Error_Handler();
+    }
+    tstFlagi2c=2;
+}
+
+void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, uint16_t AddrMatchCode)
+{
+	i2cAddrMatchCode = AddrMatchCode;
+    //uwTransferInitiated = 1;
+    uwTransferDirection = TransferDirection;
+
+    // First of all, check the transfer direction to call the correct Slave Interface
+    if(uwTransferDirection == I2C_DIRECTION_TRANSMIT) {
+    	tstFlagi2c=3;
+      if(HAL_I2C_Slave_Seq_Receive_IT(hi2c, (uint8_t *)&aSlaveReceiveBuffer[ubSlaveReceiveIndex], 1, I2C_FIRST_FRAME) != HAL_OK) {
+        Error_Handler();
+      }
+      tstFlagi2c=4;
+    }
+    else {
+		dataLen = 1;
+		readCmdCode=aSlaveReceiveBuffer[0];
+		slaveTransmitBuffer[0]=readCmdCode;
+
+		if (AddrMatchCode == hi2c->Init.OwnAddress1 ) {
+			if (readCmdCode >= 0x80 && readCmdCode <= 0x8F) {
+				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode - 0x80, slaveTransmitBuffer, &dataLen);
+				RtcSetPointer(readCmdCode - 0x80 + dataLen);
+			} else {
+				CmdServerProcessRequest(MASTER_CMD_DIR_READ, slaveTransmitBuffer, &dataLen);
+			}
+			tstFlagi2c=11;
+		} else {
+			if ( readCmdCode <= 0x0F ) {
+				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode, slaveTransmitBuffer, &dataLen);
+				RtcSetPointer(readCmdCode + dataLen);
+			} else {
+				CmdServerProcessRequest(MASTER_CMD_DIR_READ, slaveTransmitBuffer, &dataLen);
+			}
+			tstFlagi2c=12;
+		}
+		if(HAL_I2C_Slave_Seq_Transmit_IT(hi2c, (uint8_t *)slaveTransmitBuffer, dataLen, I2C_FIRST_AND_NEXT_FRAME) != HAL_OK) {
+			Error_Handler();
+		}
+    }
+
+	PowerMngmtHostPollEvent();
+	MS_TIME_COUNTER_INIT(lastHostCommandTimer);
+}
+
+void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+	tstFlagi2c=7;
+	//uwTransferEnded = 1;
+	//uwTransferDirection = I2C_GET_DIR(hi2c);
+	if (uwTransferDirection == I2C_DIRECTION_TRANSMIT) {
+		dataLen = ubSlaveReceiveIndex;
+		readCmdCode = aSlaveReceiveBuffer[0];
 		if ( dataLen > 1) {
-			//readCmdCode = i2cTrfBuffer[0];
-			if (i2cAddrMatchCode == (hsmbus->Init.OwnAddress1 >>1)) {
+			if (i2cAddrMatchCode == (hi2c->Init.OwnAddress1 >>1)) {
 				if (readCmdCode >= 0x80 && readCmdCode <= 0x8F) {
 					dataLen -= 1; // first is command
-					RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode - 0x80, i2cTrfBuffer + 1, &dataLen);
+					RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode - 0x80, aSlaveReceiveBuffer + 1, &dataLen);
 				} else {
-					CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, i2cTrfBuffer, &dataLen);
+					CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, aSlaveReceiveBuffer, &dataLen);
 					commandReceivedFlag = 1;
 				}
 			} else {
 				if ( readCmdCode <= 0x0F ) {
 					// rtc emulation range
 					dataLen -= 1; // first is command
-					RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode, i2cTrfBuffer + 1, &dataLen);
+					RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode, aSlaveReceiveBuffer + 1, &dataLen);
 				} else {
-					CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, i2cTrfBuffer, &dataLen);
+					CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, aSlaveReceiveBuffer, &dataLen);
 					commandReceivedFlag = 1;
 				}
 			}
 		}
- 	}
+	}
 
-	HAL_SMBUS_EnableListen_IT( hsmbus );
+	ubSlaveReceiveIndex=0;
+	HAL_I2C_EnableListen_IT(hi2c);
+	tstFlagi2c=8;
 }
 
-void HAL_SMBUS_AddrCallback(SMBUS_HandleTypeDef *hsmbus, uint8_t TransferDirection, uint16_t AddrMatchCode)
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 {
-    i2cTransferDirection = TransferDirection;
-	i2cAddrMatchCode = AddrMatchCode;
-
-	/*if (newSmbusTransferFlag == 0)
-		HAL_SMBUS_EnableListen_IT( hsmbus );//hsmbus->State = HAL_SMBUS_STATE_LISTEN;
-
-	newSmbusTransferFlag = 0;*/
-	//DelayUs(20);
-	TransferDirection = SMBUS_GET_DIR(hsmbus);
-	if (TransferDirection == I2C_DIRECTION_TRANSMIT) {
-		//hsmbus->State = HAL_SMBUS_STATE_LISTEN;
-		//hsmbus->XferCount = 0;
-		//hsmbus->XferSize = 0;
-		HAL_SMBUS_Slave_Receive_IT(hsmbus, (uint8_t *)i2cTrfBuffer, 1, SMBUS_FIRST_FRAME);
-	}
-	else {
-		uint16_t dataLen = 1;
-		i2cTrfBuffer[0] = readCmdCode;
-		if (AddrMatchCode == (hsmbus->Init.OwnAddress1 >> 1) )
-			if (readCmdCode >= 0x80 && readCmdCode <= 0x8F) {
-				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode - 0x80, i2cTrfBuffer, &dataLen);
-			} else {
-				CmdServerProcessRequest(MASTER_CMD_DIR_READ, i2cTrfBuffer, &dataLen);
-			}
-		else
-			if ( readCmdCode <= 0x0F ) {
-				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode, i2cTrfBuffer, &dataLen);
-			} else {
-				CmdServerProcessRequest(MASTER_CMD_DIR_READ, i2cTrfBuffer, &dataLen);
-			}
-		/*if (readCmdCode == 64){
-			testLen = dataLen;
-			testCmd = readCmdCode;
-		}*/
-
-		//HAL_SMBUS_Slave_Receive_IT(hsmbus, (uint8_t *)i2cTrfBuffer, 0, SMBUS_FIRST_AND_LAST_FRAME_NO_PEC);
-		HAL_SMBUS_Slave_Transmit_IT(hsmbus, i2cTrfBuffer, dataLen, SMBUS_FIRST_AND_LAST_FRAME_NO_PEC);
-		if (newSmbusTransferFlag == 0)
-			HAL_SMBUS_EnableListen_IT( hsmbus );
-	}
-	newSmbusTransferFlag = 0;
-	PowerMngmtHostPollEvent();
-	MS_TIME_COUNTER_INIT(lastHostCommandTimer);
+	// Error_Handler() function is called when error occurs.
+	// 1- When Slave don't acknowledge it's address, Master restarts communication.
+	// 2- When Master don't acknowledge the last data transferred, Slave don't care in this example.
+	/*if (HAL_I2C_GetError(hi2c) != HAL_I2C_ERROR_AF)
+	{
+		Error_Handler();
+	}*/
+	// Clear OVR flag
+	__HAL_I2C_CLEAR_FLAG(hi2c, I2C_FLAG_AF);
+	/*ubSlaveReceiveIndex=0;
+	HAL_I2C_EnableListen_IT(hi2c1);*/
+	//hi2c1->Instance->ICR=0xFFFF;
+	/*uint32_t cr=hi2c1->Instance->CR1;
+	cr &= 0xFFFFFFFE;
+	hi2c1->Instance->CR1=cr;
+	DelayUs(1);
+	cr = 0xFFFFFFFF;
+	hi2c1->Instance->CR1=cr;*/
 }
 
 static uint32_t lowPowerDealyTimer;
 static GPIO_InitTypeDef i2c_GPIO_InitStruct;
 
+#if defined(RTOS_FREERTOS)
+/* First define the portSUPPRESS_TICKS_AND_SLEEP() macro.  The parameter is the
+time, in ticks, until the kernel next needs to execute. */
+//#define vPortSuppressTicksAndSleep( xIdleTime ) vApplicationSleep( xIdleTime )
+volatile int secPass,subPass;
+/* Define the function that is called by portSUPPRESS_TICKS_AND_SLEEP(). */
+void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime )
+{
+unsigned long ulLowPowerTimeBeforeSleep, ulLowPowerTimeAfterSleep;
+eSleepModeStatus eSleepStatus;
+
+	commandReceivedFlag = 0;
+    /* Read the current time from a time source that will remain operational
+    while the microcontroller is in a low power state. */
+    //ulLowPowerTimeBeforeSleep = ulGetExternalTime();
+
+    /* Stop the timer that is generating the tick interrupt. */
+	//HAL_SuspendTick(); //prvStopTickInterruptTimer();
+	//LedSetRGB(1, 0, 0, 0);
+    /* Enter a critical section that will not effect interrupts bringing the MCU
+    out of sleep mode. */
+	//portDISABLE_INTERRUPTS(); //disable_interrupts();
+
+    /* Ensure it is still ok to enter the sleep mode. */
+    eSleepStatus = eTaskConfirmSleepModeStatus();
+
+    if( eSleepStatus == eAbortSleep )
+    {
+        /* A task has been moved out of the Blocked state since this macro was
+        executed, or a context siwth is being held pending.  Do not enter a
+        sleep state.  Restart the tick and exit the critical section. */
+    	HAL_ResumeTick(); //prvStartTickInterruptTimer();
+        //portENABLE_INTERRUPTS(); //enable_interrupts();
+    }
+    else
+    {
+
+        if (0) //( eSleepStatus == eNoTasksWaitingTimeout )
+        {
+            /* It is not necessary to configure an interrupt to bring the
+            microcontroller out of its low power state at a fixed time in the
+            future. */
+            //prvSleep();
+        }
+        else
+        {
+            /* Configure an interrupt to bring the microcontroller out of its low
+            power state at the time the kernel next needs to execute.  The
+            interrupt must be generated from a source that remains operational
+            when the microcontroller is in a low power state. */
+            //vSetWakeTimeInterrupt( xExpectedIdleTime );
+#if 1
+            /* Enter the low power state. */
+            //prvSleep();
+    		AnalogStop();
+
+    		static RTC_TimeTypeDef start;
+    		HAL_RTC_GetTime(&hrtc, &start, RTC_FORMAT_BIN);
+
+    		LedStop();
+    		if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 8000, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
+    		{
+    			Error_Handler();
+    		}
+    		LedSetRGB(LED2, 0, 0, 0);
+    		i2c_GPIO_InitStruct.Pin = GPIO_PIN_7;
+    		i2c_GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+    		i2c_GPIO_InitStruct.Pull = GPIO_NOPULL;
+    	    HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
+    	    __disable_irq(); //portENTER_CRITICAL(); // __disable_irq()
+    	    HAL_SuspendTick();
+    	    __HAL_RCC_GPIOA_CLK_DISABLE(); __HAL_RCC_GPIOB_CLK_DISABLE(); __HAL_RCC_GPIOF_CLK_DISABLE();
+    	    portDISABLE_INTERRUPTS();
+    		//HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
+    		HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+
+    		__HAL_RCC_GPIOA_CLK_ENABLE(); __HAL_RCC_GPIOB_CLK_ENABLE(); __HAL_RCC_GPIOF_CLK_ENABLE();
+    		i2c_GPIO_InitStruct.Pin       = GPIO_PIN_7;
+    		i2c_GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
+    		i2c_GPIO_InitStruct.Pull      = GPIO_NOPULL;//GPIO_PULLUP;
+    		i2c_GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
+    		i2c_GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
+    		HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
+    		//DelayUs(1000);
+    		HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
+
+    		static RTC_TimeTypeDef end;
+    		HAL_RTC_GetTime(&hrtc, &end, RTC_FORMAT_BIN);
+    		secPass = end.Seconds-start.Seconds;
+    		subPass = end.SubSeconds-start.SubSeconds;
+
+    		//PowerSourceExitLowPower();
+    		AnalogStart();
+    		DelayUs(150);
+    		TimeTickCb(4000);
+    		LedStart();
+#else
+    		vApplicationIdleHook();
+#endif
+            /* Determine how long the microcontroller was actually in a low power
+            state for, which will be less than xExpectedIdleTime if the
+            microcontroller was brought out of low power mode by an interrupt
+            other than that configured by the vSetWakeTimeInterrupt() call.
+            Note that the scheduler is suspended before
+            portSUPPRESS_TICKS_AND_SLEEP() is called, and resumed when
+            portSUPPRESS_TICKS_AND_SLEEP() returns.  Therefore no other tasks will
+            execute until this function completes. */
+             //ulLowPowerTimeAfterSleep = ulGetExternalTime();
+
+            /* Correct the kernels tick count to account for the time the
+            microcontroller spent in its low power state. */
+            vTaskStepTick( 4000 ); // vTaskStepTick( ulLowPowerTimeAfterSleep - ulLowPowerTimeBeforeSleep );
+            LedSetRGB(LED2, 0, 0, 50);
+        }
+
+        /* Exit the critical section - it might be possible to do this immediately
+        after the prvSleep() calls. */
+        __enable_irq();//portEXIT_CRITICAL();//portENABLE_INTERRUPTS(); //enable_interrupts();
+        //LedSetRGB(1, 0, 0, 255);
+        /* Restart the timer that is generating the tick interrupt. */
+        HAL_ResumeTick(); //prvStartTickInterruptTimer();
+    }
+}
+#endif
 void WaitInterrupt() {
 
 	commandReceivedFlag = 0;
@@ -320,7 +454,7 @@ void WaitInterrupt() {
 
 		i2c_GPIO_InitStruct.Pin       = GPIO_PIN_7;
 		i2c_GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
-		i2c_GPIO_InitStruct.Pull      = GPIO_PULLUP;
+		i2c_GPIO_InitStruct.Pull      = GPIO_NOPULL;//GPIO_PULLUP;
 		i2c_GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
 		i2c_GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
 		HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
@@ -343,9 +477,104 @@ void WaitInterrupt() {
 	}
 }
 
+#if defined(RTOS_FREERTOS)
+int ledflag = 2;
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+
+
+	  // Do not disturb i2c transfer if this is i2c interrupt wakeup
+	  if ( MS_TIME_COUNT(mainPollMsCounter) >= TICK_PERIOD_MS || NEED_EVENT_POLL() ) {
+
+		//PowerSource5vIoDetectionTask();
+		//AnalogTask();
+		//ChargerTask();
+		//FuelGaugeTask();
+		//BatteryTask();
+		//PowerSourceTask();
+		if (alarmEventFlag) {
+			EvaluateAlarm();
+			alarmEventFlag = 0;
+		}
+		//LedTask();
+		//if (MS_TIME_COUNT(mainPollMsCounter) > 98) {
+			//ButtonTask();
+			//LoadCurrentSenseTask();
+			//PowerManagementTask();
+
+		//}
+		if ( (hi2c2.ErrorCode&(HAL_I2C_ERROR_TIMEOUT | HAL_I2C_ERROR_BERR | HAL_I2C_ERROR_ARLO)) || hi2c2.State != HAL_I2C_STATE_READY || hi2c2.XferCount) {
+			HAL_I2C_DeInit(&hi2c2);
+			MX_I2C2_Init();
+			chargerI2cErrorCounter = 1;
+		}
+		if (chargerI2cErrorCounter > 10) {
+			HAL_I2C_DeInit(&hi2c2);
+			MX_I2C2_Init();
+			chargerI2cErrorCounter = 1;
+		}
+
+		if ( NEED_EVENT_POLL() ) {
+			state = STATE_RUN;
+		} else if ( ((GetLoadCurrent() <= 50 ) || (Get5vIoVoltage() < 4600 && !POW_VSYS_OUTPUT_EN_STATUS()) )
+				&& MS_TIME_COUNT(lastHostCommandTimer) > 5000
+				&& MS_TIME_COUNT(lowPowerDealyTimer) >= 22
+				&& MS_TIME_COUNT(lastWakeupTimer) > 20000
+				&& chargerStatus == CHG_NO_VALID_SOURCE
+				&& !IsButtonActive()
+				) {
+			state = STATE_LOWPOWER;
+		} else {
+			state = STATE_NORMAL;
+		}
+
+		if ( extiFlag == 2 ) {
+			MS_TIME_COUNTER_INIT(lastHostCommandTimer);
+		}
+		extiFlag = 0;
+
+	    // Refresh IWDG: reload counter
+	   /* if (HAL_IWDG_Refresh(&hiwdg) != HAL_OK)
+	    {
+	      Error_Handler(); // Refresh Error
+	    }*/
+	    //__HAL_IWDG_RELOAD_COUNTER(&hiwdg); // use for testing
+
+		MS_TIME_COUNTER_INIT(mainPollMsCounter);
+		osDelay(20);
+	  } else if (state == STATE_LOWPOWER) {
+		  osDelay(4100);//vApplicationIdleHook(); //WaitInterrupt();
+		  osDelay(10);
+	  }
+
+	  /*if (ledflag) {
+		  osDelay(500);
+		uint8_t ledBlink[] = {5, 100, 0, 80, 5, 0, 80, 0, 3};
+		//LedCmdSetBlink(LED1, ledBlink, 9);
+		LedCmdSetBlink(LED2, ledBlink, 9);
+		//ledflag = 0;
+	  }*/
+  }
+  /* USER CODE END 5 */
+}
+#endif
+
 int main(void)
 {
-	//
+	//HAL_Init();
+	if (executionState != EXECUTION_STATE_NORMAL && executionState != EXECUTION_STATE_UPDATE && executionState != EXECUTION_STATE_CONFIG_RESET) {
+		if (__HAL_RCC_GET_FLAG(RCC_FLAG_PORRST)) {
+			executionState = EXECUTION_STATE_POWER_RESET;
+		} else {//if (__HAL_RCC_GET_FLAG(RCC_FLAG_SFTRST)){
+			// updating from old firmware without executionState defined
+			executionState = EXECUTION_STATE_UPDATE;
+		} // else if (__HAL_RCC_GET_FLAG(RCC_FLAG_IWDGRST) {
+	}
+	__HAL_RCC_CLEAR_RESET_FLAGS();
 
 	if ( executionState == EXECUTION_STATE_NORMAL ) {
 		resetStatus = 1;
@@ -354,91 +583,107 @@ int main(void)
 		resetStatus = 0;
 	}
 
-	// Reset of all peripherals, Initializes the Flash interface and the Systick.
-	//HAL_Init();
 	__HAL_FLASH_PREFETCH_BUFFER_ENABLE();
 
 	HAL_MspInit();
 
 	NvInit();
 
-  // Configure the system clock
-  SystemClock_Config();
+	// Configure the system clock
+	SystemClock_Config();
 
-  // Initialize all configured peripherals
-  MX_GPIO_Init();
-  MX_ADC_Init();
-  //MX_WWDG_Init();
-  MX_SMBUS_Init();//MX_I2C1_Init();//  // NOTE: need 48KHz clock to work on 400KHz
-  MX_I2C2_Init();
-  MX_RTC_Init();
-  MX_TIM3_Init();
-  MX_TIM15_Init();
-  MX_TIM17_Init();
-  MX_TIM1_Init();
-  MX_TIM14_Init();
+	// Initialize all configured peripherals
+	MX_GPIO_Init();
+	if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10) == GPIO_PIN_RESET && executionState == EXECUTION_STATE_POWER_RESET) {
+		executionState = EXECUTION_STATE_POWER_ON;
+	}
+	MX_ADC_Init();
+	//MX_WWDG_Init();
+	MX_I2C1_Init();//MX_SMBUS_Init();//  // NOTE: need 48KHz clock to work on 400KHz
+	MX_I2C2_Init();
+	MX_RTC_Init();
+	MX_TIM3_Init();
+	MX_TIM15_Init();
+	MX_TIM17_Init();
+	MX_TIM1_Init();
+	MX_TIM14_Init();
 
-  HAL_InitTick(TICK_INT_PRIORITY);
+	HAL_InitTick(TICK_INT_PRIORITY);
 
-  //##-1- Check if the system has resumed from IWDG reset ####################
-  if (__HAL_RCC_GET_FLAG(RCC_FLAG_IWDGRST) != RESET)
-  {
-    //LedSetRGB(LED1, 50, 50, 100);// IWDGRST flag set: Turn LED3 on
-    // Clear reset flags
-    __HAL_RCC_CLEAR_RESET_FLAGS();
-  }
-  else
-  {
-   // BSP_LED_Off(LED3); // IWDGRST flag is not set: Turn LED3 off
-  }
+	if (!resetStatus) MS_TIME_COUNTER_INIT(lastHostCommandTimer);
 
-  if (!resetStatus) MS_TIME_COUNTER_INIT(lastHostCommandTimer);
+	MS_TIME_COUNTER_INIT(mainPollMsCounter);
+	MS_TIME_COUNTER_INIT(lowPowerDealyTimer);
 
-  MS_TIME_COUNTER_INIT(mainPollMsCounter);
-  MS_TIME_COUNTER_INIT(lowPowerDealyTimer);
+	MX_IWDG_Init();
 
-  MX_IWDG_Init();
+#if defined(RTOS_FREERTOS)
+	osKernelInitialize();
+	/* Create the thread(s) */
+	/* definition and creation of defaultTask */
+	const osThreadAttr_t defaultTask_attributes = {
+	.name = "defaultTask",
+	.priority = (osPriority_t) osPriorityNormal,
+	.stack_size = 128
+	};
+	/* add threads, ... */
+	defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+#endif
 
- AnalogInit();
- LoadCurrentSenseInit();
- BatteryInit();
- ChargerInit();
- FuelGaugeInit();
- PowerSourceInit();
- PowerManagementInit();
- LedInit();
- ButtonInit();
- RtcInit();
- IoControlInit();
+	AnalogInit();
+	LoadCurrentSenseInit();
+	BatteryInit();
+	if (executionState == EXECUTION_STATE_POWER_ON) {
+		HAL_Delay(100);  // after power-on, charger and fuel gauge requires initialization time
+		FuelGaugeIcPreInit();
+	}
+	ChargerInit();
+	PowerSourceInit();
+	FuelGaugeInit();
+	PowerManagementInit();
+	LedInit();
+	ButtonInit();
+	RtcInit();
+	IoControlInit();
 
- NvSetDataInitialized();
+	NvSetDataInitialized();
 
-	if ( executionState == EXECUTION_STATE_CONFIG_RESET ) {
+	/*if ( executionState == EXECUTION_STATE_CONFIG_RESET ) {
 		LedSetRGB(1, 0, 255, 0);
-	} else if (executionState == EXECUTION_STATE_NORMAL) {
+	} else if (executionState == EXECUTION_STATE_POWER_RESET) {
 		LedSetRGB(1, 255, 0, 0);
 	} else if (executionState == EXECUTION_STATE_UPDATE) {
 		LedSetRGB(1, 0, 0, 255);
+	} else {
+		LedSetRGB(1, 0, 0, 0);
+	}*/
+
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET); // ee write protect
+	uint16_t var = 0;
+	EE_ReadVariable(ID_EEPROM_ADR_NV_ADDR, &var);
+	if ( (((~var)&0xFF) == (var>>8)) ) {
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, (var&0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+	} else {
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); // default ee Adr
 	}
 
- HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET); // ee write protect
- uint16_t var = 0;
- EE_ReadVariable(ID_EEPROM_ADR_NV_ADDR, &var);
- if ( (((~var)&0xFF) == (var>>8)) ) {
-	 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, (var&0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
- } else {
-	 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); // default ee Adr
- }
+	state = STATE_NORMAL;
 
- state = STATE_NORMAL;
+	HAL_I2C_EnableListen_IT(&hi2c1);
 
- HAL_SMBUS_EnableListen_IT( &hsmbus );
+	executionState = EXECUTION_STATE_NORMAL; // after initialization indicate it for future wd resets
 
- executionState = EXECUTION_STATE_NORMAL; // after initialization indicate it for future wd resets
+#if defined(RTOS_FREERTOS)
+	/* Start scheduler */
+	osKernelStart();
 
-  /* Infinite loop */
-  while (1)
-  {
+	while (1)
+	{
+	}
+#else
+	/* Infinite loop */
+	while (1)
+	{
 	  // Do not disturb i2c transfer if this is i2c interrupt wakeup
 	  if ( MS_TIME_COUNT(mainPollMsCounter) >= TICK_PERIOD_MS || NEED_EVENT_POLL() ) {
 
@@ -448,9 +693,10 @@ int main(void)
 		FuelGaugeTask();
 		BatteryTask();
 		PowerSourceTask();
-		if (alarmEventFlag) {
+		if (alarmEventFlag || __HAL_RTC_ALARM_GET_FLAG(&hrtc, RTC_FLAG_ALRAF) != RESET) {
 			EvaluateAlarm();
 			alarmEventFlag = 0;
+			__HAL_RTC_ALARM_CLEAR_FLAG(&hrtc, RTC_FLAG_ALRAF);
 		}
 		LedTask();
 		//if (MS_TIME_COUNT(mainPollMsCounter) > 98) {
@@ -499,8 +745,8 @@ int main(void)
 		MS_TIME_COUNTER_INIT(mainPollMsCounter);
 	  }
 	  WaitInterrupt();
-  }
-
+	}
+#endif
 }
 
 /** System Clock Configuration
@@ -512,7 +758,7 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
   RCC_PeriphCLKInitTypeDef PeriphClkInit;
 
-    /**Initializes the CPU, AHB and APB busses clocks 
+    /**Initializes the CPU, AHB and APB busses clocks
     */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSI14
                               |RCC_OSCILLATORTYPE_LSE;
@@ -531,7 +777,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-    /**Initializes the CPU, AHB and APB busses clocks 
+    /**Initializes the CPU, AHB and APB busses clocks
     */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1;
@@ -551,24 +797,25 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-
-    /**Configure the Systick interrupt time 
+#if !defined(RTOS_FREERTOS)
+    /**Configure the Systick interrupt time
     */
   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/10);
 
-    /**Configure the Systick 
+    /**Configure the Systick
     */
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
   /* SysTick_IRQn interrupt configuration */
   //HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+#endif
 }
 
 /* ADC init function */
 static void MX_ADC_Init(void)
 {
 
-    /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion) 
+    /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
     */
   hadc.Instance = ADC1;
   hadc.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
@@ -601,20 +848,39 @@ static void MX_I2C1_Init(void)
 {
 
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x00900000;//0x2000090E;
-  hi2c1.Init.OwnAddress1 = 0x28;
+  hi2c1.Init.Timing = 0x00FF0000;//0x00C4092A;//0x00300000;//0x00900000 for 48000 i2c clock
+	uint16_t var = 0;
+	EE_ReadVariable(OWN_ADDRESS1_NV_ADDR, &var);
+	if ( (((~var)&0xFF) == (var>>8)) ) {
+		// Use NV address
+		hi2c1.Init.OwnAddress1 = var&0xFF;
+	} else {
+		// Use default address
+		hi2c1.Init.OwnAddress1 = OWN1_I2C_ADDRESS << 1;
+	}
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_ENABLE;//I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0xD0;
+	EE_ReadVariable(OWN_ADDRESS2_NV_ADDR, &var);
+	if ( (((~var)&0xFF) == (var>>8)) ) {
+		// Use NV address
+		hi2c1.Init.OwnAddress2 = var&0xFF;
+	} else {
+		// Use default address
+		hi2c1.Init.OwnAddress2 = OWN2_I2C_ADDRESS << 1;
+	}
   hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
   hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+
   if (HAL_I2C_Init(&hi2c1) != HAL_OK)
   {
     Error_Handler();
   }
 
-    /**Configure Analogue filter 
+  //I2C_Disable_IRQ(&hi2c1, (0x00000011U)/*I2C_XFER_ERROR_IT*/);
+  //__HAL_I2C_DISABLE_IT(&hi2c1, I2C_IT_ERRI | I2C_IT_NACKI);
+
+    /**Configure Analogue filter
     */
   /*if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
   {
@@ -622,7 +888,7 @@ static void MX_I2C1_Init(void)
   }*/
 
 }
-
+#if 0
 static void MX_SMBUS_Init(void) {
 	hsmbus.Instance = I2C1;
 	hsmbus.Init.Timing = 0x00300000;//0x00900000 for 48000 i2c clock
@@ -663,7 +929,7 @@ static void MX_SMBUS_Init(void) {
 	  Error_Handler();
 	}*/
 }
-
+#endif
 /* I2C2 init function */
 static void MX_I2C2_Init(void)
 {
@@ -682,7 +948,7 @@ static void MX_I2C2_Init(void)
     Error_Handler();
   }
 
-    /**Configure Analogue filter 
+    /**Configure Analogue filter
     */
   /*if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
   {
@@ -699,7 +965,7 @@ static void MX_RTC_Init(void)
   RTC_DateTypeDef sDate;
   RTC_AlarmTypeDef sAlarm;
 
-    /**Initialize RTC Only 
+    /**Initialize RTC Only
     */
   hrtc.Instance = RTC;
   hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
@@ -739,7 +1005,7 @@ static void MX_RTC_Init(void)
     Error_Handler();
   }*/
 
-    /**Enable the Alarm A 
+    /**Enable the Alarm A
     */
   /*sAlarm.Alarm = RTC_ALARM_A;
   sAlarm.AlarmDateWeekDay = RTC_WEEKDAY_MONDAY;
@@ -939,7 +1205,7 @@ static void MX_IWDG_Init(void)
     // Initialization Error
     Error_Handler();
   }
-
+/*
   IWDG->KR = 0x0000CCCC; // (1)
   DelayUs(100);
   IWDG->KR = 0x00005555; // (2)
@@ -956,16 +1222,16 @@ static void MX_IWDG_Init(void)
   //DelayUs(100);
 
   //##-4- Start the IWDG #####################################################
-  if (HAL_IWDG_Start(&hiwdg) != HAL_OK)
+  if (__HAL_IWDG_START(&hiwdg) != HAL_OK)
   {
     Error_Handler();
   }
-
+*/
 }
 
-/** Configure pins as 
-        * Analog 
-        * Input 
+/** Configure pins as
+        * Analog
+        * Input
         * Output
         * EVENT_OUT
         * EXTI
@@ -1063,10 +1329,10 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler */
   /* User can add his own implementation to report the HAL error return state */
-  while(1) 
+  while(1)
   {
   }
-  /* USER CODE END Error_Handler */ 
+  /* USER CODE END Error_Handler */
 }
 
 #ifdef USE_FULL_ASSERT
@@ -1091,10 +1357,10 @@ void assert_failed(uint8_t* file, uint32_t line)
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}
-*/ 
+*/
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

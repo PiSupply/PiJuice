@@ -15,6 +15,7 @@ extern RTC_HandleTypeDef hrtc;
 RTC_AlarmTypeDef sAlarm;
 
 static uint8_t rtc_buffer[RTC_REGISTERS_NUM] __attribute__((section("no_init")));//= {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x07, 0, 0}; // rtc_bufferisters used for i2c master access
+static uint8_t rtc_buffer_ptr __attribute__((section("no_init")));
 //volatile uint8_t testRegAdr[50] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 //volatile uint8_t testRegAdrW = 0xFF;
 //volatile uint8_t testRegAdrI = 0;
@@ -151,11 +152,11 @@ void RtcDs1339ProcessRequest(uint8_t dir, uint8_t command, uint8_t *pData, uint1
 		if ( dir == I2C_DIRECTION_RECEIVE ) {
 			RtcReadAlarm1(&rtc_buffer[7], 0);
 			i = 9;
-			while (--i) pData[i] = rtc_buffer[i + 7];
+			while (i--) pData[i] = rtc_buffer[i + 7];
 			*dataLen = 9;
 		} else {
 				i = *dataLen;
-				while (--i)
+				while (i--)
 					if (i<9) rtc_buffer[i + 7] = pData[i];
 					/*else if (i==8) {
 						rtc_buffer[i + 7] &= pData[i] | 0xFC;
@@ -193,7 +194,19 @@ void RtcDs1339ProcessRequest(uint8_t dir, uint8_t command, uint8_t *pData, uint1
 			pData[0] = rtc_buffer[command];
 			*dataLen = 1;
 		}
+	} else {
+		return;
 	}
+	rtc_buffer_ptr = command;
+}
+
+uint8_t RtcGetPointer() {
+	return rtc_buffer_ptr;
+}
+
+uint8_t RtcSetPointer(uint8_t val) {
+	if (val <= 0x0F)
+		rtc_buffer_ptr = val;
 }
 
 void RtcWriteTime(uint8_t *buffer, uint8_t extended) {
