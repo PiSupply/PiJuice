@@ -8,6 +8,8 @@
 #ifndef POWER_MANAGEMENT_H_
 #define POWER_MANAGEMENT_H_
 
+#define WAKEUP_ONCHARGE_DISABLED_VAL	0xFFFFu
+
 typedef enum RunPinInstallationStatus_T {
 	RUN_PIN_NOT_INSTALLED = 0,
 	RUN_PIN_INSTALLED,
@@ -30,5 +32,7 @@ void PowerMngmtConfigureWatchdogCmd(uint8_t data[], uint16_t len);
 void PowerMngmtGetWatchdogConfigurationCmd(uint8_t data[], uint16_t *len);
 void PowerMngmtHostPollEvent(void);
 //int8_t WakeUpHost(void);
+void PowerMngmtSetWakeupOnChargeCmd(uint8_t data[], uint16_t len);
+void PowerMngmtGetWakeupOnChargeCmd(uint8_t data[], uint16_t *len);
 
 #endif /* POWER_MANAGEMENT_H_ */

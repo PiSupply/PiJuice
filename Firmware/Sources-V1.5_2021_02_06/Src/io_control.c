@@ -4,10 +4,12 @@
  *  Created on: 23.10.2017.
  *      Author: milan
  */
-
+#include "main.h"
 #include "stm32f0xx_hal.h"
 #include "analog.h"
 #include "nv.h"
+
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim);
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim14;

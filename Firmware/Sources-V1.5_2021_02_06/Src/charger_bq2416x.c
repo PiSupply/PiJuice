@@ -384,7 +384,7 @@ int8_t ChargerUpdateUSBInLockout() {
 }
 
 void ChargerInit() {
-	uint8_t chReg = 0;
+	//uint8_t chReg = 0;
 	uint16_t var = 0;
 	//const BatteryProfile_T* batProfile = BatteryGetProfile();
 

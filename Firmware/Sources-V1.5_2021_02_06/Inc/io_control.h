@@ -9,6 +9,7 @@
 #define IO_CONTROL_H_
 
 void MX_TIM1_Init(void);
+void MX_TIM14_Init(void);
 
 void IoControlInit();
 

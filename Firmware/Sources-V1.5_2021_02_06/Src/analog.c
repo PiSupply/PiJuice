@@ -5,6 +5,8 @@
  *      Author: milan
  */
 
+#include "main.h"
+
 #include "analog.h"
 #include "stm32f0xx_hal.h"
 #include "nv.h"

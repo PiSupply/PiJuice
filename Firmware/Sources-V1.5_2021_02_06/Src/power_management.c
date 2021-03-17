@@ -61,43 +61,43 @@ extern uint8_t resetStatus;
 extern uint8_t noBatteryTurnOn;
 
 void PowerManagementInit(void) {
-	uint16_t var = 0;
+	uint16_t var = 0u;
 	EE_ReadVariable(NV_RUN_PIN_CONFIG, &var);
-	if (((~var)&0xFF) == (var>>8)) {
-		runPinInstallationStatus = var&0xFF;
+	if (((~var)&0xFFu) == (var>>8u)) {
+		runPinInstallationStatus = (RunPinInstallationStatus_T)(var&0xFFu);
 	}
 
 	if (!resetStatus) { // on mcu power up
 
-		wakeupOnCharge = 0xFFFF;
-		wakeupOnChargeConfig = 0x7F;
+		wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
+		wakeupOnChargeConfig = 0x7Fu;
 		if (NvReadVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (uint8_t*)&wakeupOnChargeConfig) == NV_READ_VARIABLE_SUCCESS) {
-			if (wakeupOnChargeConfig<=100) {
-				wakeupOnChargeConfig |= 0x80;
+			if (wakeupOnChargeConfig<=100u) {
+				wakeupOnChargeConfig |= 0x80u;
 			}
 		}
 
 		if (CHARGER_IS_INPUT_PRESENT()) {
-			delayedTurnOnFlag = (noBatteryTurnOn == 1);
+			delayedTurnOnFlag = (noBatteryTurnOn == 1u);
 		} else {
-			delayedTurnOnFlag = 0;
-			if (wakeupOnChargeConfig&0x80)
-				wakeupOnCharge = (wakeupOnChargeConfig&0x7F) <= 100 ? (wakeupOnChargeConfig&0x7F) * 10 : 0xFFFF;
+			delayedTurnOnFlag = 0u;
+			if (wakeupOnChargeConfig&0x80u)
+				wakeupOnCharge = (wakeupOnChargeConfig&0x7Fu) <= 100u ? (wakeupOnChargeConfig&0x7Fu) * 10u : WAKEUP_ONCHARGE_DISABLED_VAL;
 		}
 
 		if (	   NvReadVariableU8(WATCHDOG_CONFIGL_NV_ADDR, (uint8_t*)&watchdogConfig) != NV_READ_VARIABLE_SUCCESS
 				|| NvReadVariableU8(WATCHDOG_CONFIGH_NV_ADDR, (uint8_t*)&watchdogConfig+1) != NV_READ_VARIABLE_SUCCESS
 		 	 ) {
-			watchdogConfig  = 0;
+			watchdogConfig  = 0u;
 		}
 
-		delayedPowerOffCounter = 0;
-		watchdogExpirePeriod = 0;
-		watchdogTimer = 0;
-		watchdogExpiredFlag = 0;
-		rtcWakeupEventFlag = 0;
-		ioWakeupEvent = 0;
-		powerOffBtnEventFlag = 0;
+		delayedPowerOffCounter = 0u;
+		watchdogExpirePeriod = 0u;
+		watchdogTimer = 0u;
+		watchdogExpiredFlag = 0u;
+		rtcWakeupEventFlag = 0u;
+		ioWakeupEvent = 0u;
+		powerOffBtnEventFlag = 0u;
 	}
 
 	MS_TIME_COUNTER_INIT(powerMngmtTaskMsCounter);
@@ -126,7 +126,7 @@ int8_t ResetHost(void) {
 			MS_TIME_COUNTER_INIT(lastWakeupTimer);
 			return 0;
 		} else {
-			int ret = Turn5vBoost(1);
+			/*int ret = */Turn5vBoost(1);
 			MS_TIME_COUNTER_INIT(lastWakeupTimer);
 			return 0;
 		}
@@ -170,7 +170,7 @@ void PowerOnButtonEventCb(uint8_t b, ButtonEvent_T event) {
 				|| (MS_TIME_COUNT(lastWakeupTimer) > 12000/*15000*/ && MS_TIME_COUNT(lastHostCommandTimer) > 11000)  ) {
 
 			if (ResetHost() == 0) {//if (ResetHost() == 0) {
-				wakeupOnCharge = 0xFFFF;
+				wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 				rtcWakeupEventFlag = 0;
 				ioWakeupEvent = 0;
 				delayedPowerOffCounter = 0;
@@ -193,7 +193,7 @@ void PowerOffButtonEventCb(uint8_t b, ButtonEvent_T event) {
 
 void ButtonEventFuncPowerResetCb(uint8_t b, ButtonEvent_T event) {
 	if (ResetHost() == 0) {
-		wakeupOnCharge = 0xFFFF;
+		wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 		rtcWakeupEventFlag = 0;
 		ioWakeupEvent = 0;
 		delayedPowerOffCounter = 0;
@@ -219,7 +219,7 @@ static void PowerManagementTask(void *argument) {
 				&& MS_TIME_COUNT(lastHostCommandTimer) > 15000
 				&& MS_TIME_COUNT(lastWakeupTimer) > 30000 ) {
 			if ( WakeUpHost() == 0 ) {
-				wakeupOnCharge = 0xFFFF;
+				wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 				rtcWakeupEventFlag = 0;
 				delayedPowerOffCounter = 0;
 				ioWakeupEvent = 0;
@@ -228,7 +228,7 @@ static void PowerManagementTask(void *argument) {
 
 		if (watchdogExpirePeriod && MS_TIME_COUNT(lastHostCommandTimer) > watchdogTimer) {
 			if ( WakeUpHost() == 0 ) {
-				wakeupOnCharge = 0xFFFF;
+				wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 				watchdogExpiredFlag = 1;
 				rtcWakeupEventFlag = 0;
 				ioWakeupEvent = 0;
@@ -267,7 +267,7 @@ void PowerManagementTask(void) {
 						//|| (!POW_5V_BOOST_EN_STATUS() && power5vIoStatus == POW_SOURCE_NOT_PRESENT) //  Host is non powered
 		   ) ) {
 			if ( ResetHost() == 0 ) { //if ( WakeUpHost() == 0 ) {
-				wakeupOnCharge = 0xFFFF;
+				wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 				rtcWakeupEventFlag = 0;
 				ioWakeupEvent = 0;
 				delayedPowerOffCounter = 0;
@@ -282,7 +282,7 @@ void PowerManagementTask(void) {
 
 		if (watchdogExpirePeriod && MS_TIME_COUNT(lastHostCommandTimer) > watchdogTimer) {
 			if ( ResetHost() == 0 ) {
-				wakeupOnCharge = 0xFFFF;
+				wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 				watchdogExpiredFlag = 1;
 				rtcWakeupEventFlag = 0;
 				ioWakeupEvent = 0;
@@ -305,9 +305,9 @@ void PowerManagementTask(void) {
 		delayedPowerOffCounter = 0;
 	}
 
-	if ( wakeupOnCharge == 0xFFFF && !CHARGER_IS_INPUT_PRESENT() && (wakeupOnChargeConfig&0x80)) {
+	if ( wakeupOnCharge == WAKEUP_ONCHARGE_DISABLED_VAL && !CHARGER_IS_INPUT_PRESENT() && (wakeupOnChargeConfig&0x80)) {
 		// setup wake-up on charge if charging stopped, power source removed
-		wakeupOnCharge = (wakeupOnChargeConfig&0x7F) <= 100 ? (wakeupOnChargeConfig&0x7F) * 10 : 0xFFFF;
+		wakeupOnCharge = (wakeupOnChargeConfig&0x7F) <= 100 ? (wakeupOnChargeConfig&0x7F) * 10 : WAKEUP_ONCHARGE_DISABLED_VAL;
 	}
 }
 #endif
@@ -415,10 +415,10 @@ void PowerMngmtSetWakeupOnChargeCmd(uint8_t data[], uint16_t len) {
 		}
 
 		if (wakeupOnChargeConfig == 0x7F) {
-			wakeupOnCharge = 0xFFFF;
+			wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 		}
 	} else {
-		wakeupOnCharge = (data[0]&0x7F) <= 100 ? (data[0]&0x7F) * 10 : 0xFFFF;
+		wakeupOnCharge = (data[0]&0x7F) <= 100 ? (data[0]&0x7F) * 10 : WAKEUP_ONCHARGE_DISABLED_VAL;
 	}
 }
 
