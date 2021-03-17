@@ -408,10 +408,11 @@ uint8_t CalcFcs(uint8_t *msg, int size)
 }
 
 void CommandServerInit(void) {
+
 	// init memory map
 	uint16_t size = REGISTERS_NUM;
-	while((size--) > 0) {
-		reg[size] = 0;
+	while(size-- > 0u) {
+		reg[size] = 0u;
 	}
 }
 

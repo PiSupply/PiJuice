@@ -9,6 +9,8 @@
 #define POWER_MANAGEMENT_H_
 
 #define WAKEUP_ONCHARGE_DISABLED_VAL	0xFFFFu
+#define RPI_ACTLED_IO_PIN				1u
+#define GPIO_POWERCONTROL				1u
 
 typedef enum RunPinInstallationStatus_T {
 	RUN_PIN_NOT_INSTALLED = 0,

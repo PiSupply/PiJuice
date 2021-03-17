@@ -5,6 +5,8 @@
  *      Author: milan
  */
 
+#include <stdbool.h>
+
 #include "nv.h"
 #include "power_management.h"
 #include "charger_bq2416x.h"
@@ -12,7 +14,8 @@
 #include "time_count.h"
 #include "power_source.h"
 #include "button.h"
-//#include "led.h"
+#include "io_control.h"
+#include "led.h"
 
 #if defined(RTOS_FREERTOS)
 #include "cmsis_os.h"
@@ -28,6 +31,8 @@ static const osThreadAttr_t powManTask_attributes = {
 };
 #endif
 
+#define WAKEUPONCHARGE_NV_INITIALISED	(0u != (wakeupOnChargeConfig & 0x80u))
+
 RunPinInstallationStatus_T runPinInstallationStatus = RUN_PIN_NOT_INSTALLED;
 
 static uint32_t powerMngmtTaskMsCounter;
@@ -35,6 +40,7 @@ static uint32_t powerMngmtTaskMsCounter;
 //extern PowerState_T state;
 
 uint8_t wakeupOnChargeConfig __attribute__((section("no_init")));
+
 uint16_t wakeupOnCharge __attribute__((section("no_init"))); // 0 - 1000, 0xFFFF - disabled
 
 extern uint32_t lastHostCommandTimer;
@@ -60,6 +66,9 @@ extern uint8_t resetStatus;
 
 extern uint8_t noBatteryTurnOn;
 
+static bool m_gpioPowerControl;
+static bool m_rpiActive;
+
 void PowerManagementInit(void) {
 	uint16_t var = 0u;
 	EE_ReadVariable(NV_RUN_PIN_CONFIG, &var);
@@ -73,15 +82,16 @@ void PowerManagementInit(void) {
 		wakeupOnChargeConfig = 0x7Fu;
 		if (NvReadVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (uint8_t*)&wakeupOnChargeConfig) == NV_READ_VARIABLE_SUCCESS) {
 			if (wakeupOnChargeConfig<=100u) {
+				/* Set last bit in config value to show EE is not just blank. */
 				wakeupOnChargeConfig |= 0x80u;
 			}
 		}
 
-		if (CHARGER_IS_INPUT_PRESENT()) {
+		if (CHARGER_IS_INPUT_PRESENT()) {	/* Charger is connected */
 			delayedTurnOnFlag = (noBatteryTurnOn == 1u);
-		} else {
+		} else {							/* Charger is not connected */
 			delayedTurnOnFlag = 0u;
-			if (wakeupOnChargeConfig&0x80u)
+			if (WAKEUPONCHARGE_NV_INITIALISED)
 				wakeupOnCharge = (wakeupOnChargeConfig&0x7Fu) <= 100u ? (wakeupOnChargeConfig&0x7Fu) * 10u : WAKEUP_ONCHARGE_DISABLED_VAL;
 		}
 
@@ -101,6 +111,9 @@ void PowerManagementInit(void) {
 	}
 
 	MS_TIME_COUNTER_INIT(powerMngmtTaskMsCounter);
+
+	m_gpioPowerControl = true;
+	m_rpiActive = false;
 
 #if defined(RTOS_FREERTOS)
 	powManTaskHandle = osThreadNew(PowerManagementTask, (void*)NULL, &powManTask_attributes);
@@ -256,10 +269,13 @@ static void PowerManagementTask(void *argument) {
 #else
 void PowerManagementTask(void) {
 
+	const bool chargerPresent = CHARGER_IS_INPUT_PRESENT();
+	const uint32_t sysTime = HAL_GetTick();
+
 	if (MS_TIME_COUNT(powerMngmtTaskMsCounter) >= 500) {
 		MS_TIME_COUNTER_INIT(powerMngmtTaskMsCounter);
 
-		volatile int isWakeupOnCharge = batteryRsoc >= wakeupOnCharge && CHARGER_IS_INPUT_PRESENT() && CHARGER_IS_BATTERY_PRESENT();
+		volatile int isWakeupOnCharge = batteryRsoc >= wakeupOnCharge && chargerPresent && CHARGER_IS_BATTERY_PRESENT();
 		if ( 		( isWakeupOnCharge || rtcWakeupEventFlag || ioWakeupEvent) // there is wake-up trigger
 				&& 	!delayedPowerOffCounter // deny wake-up during shutdown
 				&& 	!delayedTurnOnFlag
@@ -298,14 +314,46 @@ void PowerManagementTask(void) {
 		MS_TIME_COUNTER_INIT(lastWakeupTimer);
 	}
 
-	if ( delayedPowerOffCounter && delayedPowerOffCounter <= HAL_GetTick() ) {
+	if ( delayedPowerOffCounter && delayedPowerOffCounter <= sysTime ) {
 		if (POW_5V_BOOST_EN_STATUS() && (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_PRESENT)) {
 			Turn5vBoost(0);
 		}
-		delayedPowerOffCounter = 0;
+		delayedPowerOffCounter = 0u;
+		LedSetRGB(LED2, 0u, 0u, 0u);
 	}
 
-	if ( wakeupOnCharge == WAKEUP_ONCHARGE_DISABLED_VAL && !CHARGER_IS_INPUT_PRESENT() && (wakeupOnChargeConfig&0x80)) {
+	if ( true == m_rpiActive )
+	{
+		if ( (true == m_gpioPowerControl) && (delayedPowerOffCounter > 5u) )
+		{
+			uint8_t pinData[2u];
+			uint16_t len;
+
+			IoRead(RPI_ACTLED_IO_PIN, pinData, &len);
+
+			if (0u == pinData[0u])
+			{
+				LedSetRGB(LED2, 100u, 0u, 0u);
+
+				delayedPowerOffCounter = 5u;
+			}
+		}
+	}
+	else
+	{
+		uint8_t pinData[2u];
+		uint16_t len;
+
+		IoRead(RPI_ACTLED_IO_PIN, pinData, &len);
+
+		if (0u != pinData[0u])
+		{
+			m_rpiActive = true;
+			LedSetRGB(LED2, 0u, 100u, 0u);
+		}
+	}
+
+	if ( (false == chargerPresent) && (WAKEUP_ONCHARGE_DISABLED_VAL == wakeupOnCharge) && (WAKEUPONCHARGE_NV_INITIALISED) ) {
 		// setup wake-up on charge if charging stopped, power source removed
 		wakeupOnCharge = (wakeupOnChargeConfig&0x7F) <= 100 ? (wakeupOnChargeConfig&0x7F) * 10 : WAKEUP_ONCHARGE_DISABLED_VAL;
 	}
@@ -407,23 +455,28 @@ void PowerMngmtGetWatchdogConfigurationCmd(uint8_t data[], uint16_t *len) {
 
 void PowerMngmtSetWakeupOnChargeCmd(uint8_t data[], uint16_t len) {
 
-	if (data[0]&0x80) {
-		wakeupOnChargeConfig = (data[0]&0x7F) <= 100 ? data[0] : 0x7F;
-		NvWriteVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, wakeupOnChargeConfig);
-		if (NvReadVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (uint8_t*)&wakeupOnChargeConfig) != NV_READ_VARIABLE_SUCCESS ) {
-			wakeupOnChargeConfig = 0x7F;
-		}
+	uint16_t newWakeupVal = (data[0u]&0x7Fu) * 10u;
 
-		if (wakeupOnChargeConfig == 0x7F) {
-			wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
-		}
-	} else {
-		wakeupOnCharge = (data[0]&0x7F) <= 100 ? (data[0]&0x7F) * 10 : WAKEUP_ONCHARGE_DISABLED_VAL;
+	if (newWakeupVal > 1000u) {	/* Check out of range and set disabled */
+		newWakeupVal = WAKEUP_ONCHARGE_DISABLED_VAL;
 	}
+
+	if (data[0u]&0x80u) {		/* Host wants to commit this value to NV */
+		NvWriteVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (data[0u]&0x7Fu) <= 100u ? data[0u] : 0x7Fu);
+		if (NvReadVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, &wakeupOnChargeConfig) != NV_READ_VARIABLE_SUCCESS ) {
+			/* If writing to NV failed then disable wakeup on charge */
+			wakeupOnChargeConfig = 0x7Fu;
+			newWakeupVal = WAKEUP_ONCHARGE_DISABLED_VAL;
+		} else {
+			wakeupOnChargeConfig |= 0x80u;
+		}
+	}
+
+	wakeupOnCharge = newWakeupVal;
 }
 
 void PowerMngmtGetWakeupOnChargeCmd(uint8_t data[], uint16_t *len)  {
-	if (wakeupOnChargeConfig&0x80)
+	if (WAKEUPONCHARGE_NV_INITIALISED)
 		data[0] = wakeupOnChargeConfig;
 	else
 		data[0] = wakeupOnCharge <= 1000 ? wakeupOnCharge / 10 : 0x7F;
