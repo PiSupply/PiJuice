@@ -8,6 +8,8 @@
 #ifndef POWER_MANAGEMENT_H_
 #define POWER_MANAGEMENT_H_
 
+#define WAKEUP_ONCHARGE_DISABLED_VAL	0xFFFFu
+
 typedef enum RunPinInstallationStatus_T {
 	RUN_PIN_NOT_INSTALLED = 0,
 	RUN_PIN_INSTALLED,
