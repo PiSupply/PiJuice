@@ -19,7 +19,7 @@
 #define CHARGER_USBSTAT()	((regs[1] >> 4) & 0x03)
 #define CHARGER_IS_DPM_MODE_ACTIVE() 	(regs[6]&0x40)
 #define CHARGER_IS_USBIN_LOCKED() 	(regs[1]&0x08)
-#define CHRGER_TS_FAULT_STATUS() 	(regs[7]&0x06>>1)
+#define CHRGER_TS_FAULT_STATUS() 	((regs[7u]&0x06u)>>1u)
 #define CHARGER_IS_INPUT_PRESENT() ((regs[0]&0x70)&&((regs[0]&0x70)<(6*16)))
 #define CHARGER_FAULT_STATUS() (regs[0]&0x07)
 
