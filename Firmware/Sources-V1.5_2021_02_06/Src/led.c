@@ -203,11 +203,11 @@ void LedInit(void) {
 	if (((~var)&0xFF) == (var>>8)) {
 		leds[1].paramB = var&0xFF;
 	}
-	if (leds[1].func == LED_USER_LED) {
-		LedSetRGB(LED2, leds[1].paramR, leds[1].paramG, leds[1].paramB);
-	}else {
-		LedSetRGB(LED2, 0, 0, 0);
-	}
+//	if (leds[1].func == LED_USER_LED) {
+//		LedSetRGB(LED2, leds[1].paramR, leds[1].paramG, leds[1].paramB);
+//	}else {
+//		LedSetRGB(LED2, 0, 0, 0);
+//	}
 #if defined(RTOS_FREERTOS)
 	taskLed1 = LED1;
 	ledTaskHandle[0] = osThreadNew(StartLedTask, &taskLed1, &ledTask_attributes);

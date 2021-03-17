@@ -14,7 +14,8 @@
 #include "time_count.h"
 #include "power_source.h"
 #include "button.h"
-//#include "led.h"
+#include "io_control.h"
+#include "led.h"
 
 #if defined(RTOS_FREERTOS)
 #include "cmsis_os.h"
@@ -65,6 +66,9 @@ extern uint8_t resetStatus;
 
 extern uint8_t noBatteryTurnOn;
 
+static bool m_gpioPowerControl;
+static bool m_rpiActive;
+
 void PowerManagementInit(void) {
 	uint16_t var = 0u;
 	EE_ReadVariable(NV_RUN_PIN_CONFIG, &var);
@@ -107,6 +111,9 @@ void PowerManagementInit(void) {
 	}
 
 	MS_TIME_COUNTER_INIT(powerMngmtTaskMsCounter);
+
+	m_gpioPowerControl = true;
+	m_rpiActive = false;
 
 #if defined(RTOS_FREERTOS)
 	powManTaskHandle = osThreadNew(PowerManagementTask, (void*)NULL, &powManTask_attributes);
@@ -263,6 +270,7 @@ static void PowerManagementTask(void *argument) {
 void PowerManagementTask(void) {
 
 	const bool chargerPresent = CHARGER_IS_INPUT_PRESENT();
+	const uint32_t sysTime = HAL_GetTick();
 
 	if (MS_TIME_COUNT(powerMngmtTaskMsCounter) >= 500) {
 		MS_TIME_COUNTER_INIT(powerMngmtTaskMsCounter);
@@ -306,11 +314,43 @@ void PowerManagementTask(void) {
 		MS_TIME_COUNTER_INIT(lastWakeupTimer);
 	}
 
-	if ( delayedPowerOffCounter && delayedPowerOffCounter <= HAL_GetTick() ) {
+	if ( delayedPowerOffCounter && delayedPowerOffCounter <= sysTime ) {
 		if (POW_5V_BOOST_EN_STATUS() && (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_PRESENT)) {
 			Turn5vBoost(0);
 		}
-		delayedPowerOffCounter = 0;
+		delayedPowerOffCounter = 0u;
+		LedSetRGB(LED2, 0u, 0u, 0u);
+	}
+
+	if ( true == m_rpiActive )
+	{
+		if ( (true == m_gpioPowerControl) && (delayedPowerOffCounter > 5u) )
+		{
+			uint8_t pinData[2u];
+			uint16_t len;
+
+			IoRead(RPI_ACTLED_IO_PIN, pinData, &len);
+
+			if (0u == pinData[0u])
+			{
+				LedSetRGB(LED2, 100u, 0u, 0u);
+
+				delayedPowerOffCounter = 5u;
+			}
+		}
+	}
+	else
+	{
+		uint8_t pinData[2u];
+		uint16_t len;
+
+		IoRead(RPI_ACTLED_IO_PIN, pinData, &len);
+
+		if (0u != pinData[0u])
+		{
+			m_rpiActive = true;
+			LedSetRGB(LED2, 0u, 100u, 0u);
+		}
 	}
 
 	if ( (false == chargerPresent) && (WAKEUP_ONCHARGE_DISABLED_VAL == wakeupOnCharge) && (WAKEUPONCHARGE_NV_INITIALISED) ) {
@@ -423,7 +463,7 @@ void PowerMngmtSetWakeupOnChargeCmd(uint8_t data[], uint16_t len) {
 
 	if (data[0u]&0x80u) {		/* Host wants to commit this value to NV */
 		NvWriteVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (data[0u]&0x7Fu) <= 100u ? data[0u] : 0x7Fu);
-		if (NvReadVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (uint8_t*)&wakeupOnChargeConfig) != NV_READ_VARIABLE_SUCCESS ) {
+		if (NvReadVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, &wakeupOnChargeConfig) != NV_READ_VARIABLE_SUCCESS ) {
 			/* If writing to NV failed then disable wakeup on charge */
 			wakeupOnChargeConfig = 0x7Fu;
 			newWakeupVal = WAKEUP_ONCHARGE_DISABLED_VAL;
