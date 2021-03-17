@@ -408,10 +408,11 @@ uint8_t CalcFcs(uint8_t *msg, int size)
 }
 
 void CommandServerInit(void) {
-
 	// init memory map
 	uint16_t size = REGISTERS_NUM;
-	while((--size) > 0) reg[size] = 0;
+	while((size--) > 0) {
+		reg[size] = 0;
+	}
 }
 
 int8_t CmdServerProcessRequest(uint8_t dir, uint8_t pData[], uint16_t *dataLen) {
