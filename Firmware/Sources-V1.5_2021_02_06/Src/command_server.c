@@ -456,12 +456,13 @@ void CmdServerDefaultReadWrite(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 
 static uint8_t IsEventFault(void) {
 	uint8_t ev = 0;
-	ev = ev | powerOffBtnEventFlag;
-	ev = ev | forcedPowerOffFlag;
-	ev = ev | forcedVSysOutputOffFlag;
-	ev = ev | watchdogExpiredFlag;
-	ev = ev | ((currentBatProfile == NULL) ? 0x20 : 0);
-	ev = ev | CHRGER_TS_FAULT_STATUS();
+	ev |= (0u != powerOffBtnEventFlag);
+	ev |= (0u != forcedPowerOffFlag);
+	ev |= (0u != forcedVSysOutputOffFlag);
+	ev |= (0u != watchdogExpiredFlag);
+	/* Not sure of intention of this one, 0x20 slots into read status so will leave it. */
+	ev |= (currentBatProfile == NULL) ? (1<<5u) : 0u;
+	ev |= (0u != CHRGER_TS_FAULT_STATUS());
 	return ev;
 }
 
