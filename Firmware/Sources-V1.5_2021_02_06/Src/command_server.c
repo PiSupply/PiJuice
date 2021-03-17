@@ -411,7 +411,9 @@ void CommandServerInit(void) {
 
 	// init memory map
 	uint16_t size = REGISTERS_NUM;
-	while((--size) > 0) reg[size] = 0;
+	while(size-- > 0u) {
+		reg[size] = 0u;
+	}
 }
 
 int8_t CmdServerProcessRequest(uint8_t dir, uint8_t pData[], uint16_t *dataLen) {
