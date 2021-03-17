@@ -11,6 +11,7 @@
 #include "charger_bq2416x.h"
 #include "config_switch_resistor.h"
 #include "fuel_gauge_lc709203f.h"
+#include "power_source.h"
 #include "time_count.h"
 #include "led.h"
 
@@ -635,7 +636,8 @@ void BatteryTask(void) {
 		if ( ((var&0xFF) != BATTERY_CUSTOM_PROFILE_ID) || (((var^0xFF)&0xFF) != (var>>8)) ) {
 			BatReadExtendedEEprofileData();
 			uint16_t var;
-			EE_WriteVariable(BAT_PROFILE_NV_ADDR, BATTERY_CUSTOM_PROFILE_ID | ((uint16_t)~BATTERY_CUSTOM_PROFILE_ID<<8));
+			EE_WriteVariable(BAT_PROFILE_NV_ADDR, BATTERY_CUSTOM_PROFILE_ID | (uint16_t)((~BATTERY_CUSTOM_PROFILE_ID)<<8));
+			//EE_WriteVariable(BAT_PROFILE_NV_ADDR, BATTERY_CUSTOM_PROFILE_ID | ((uint16_t)(0x0F)<< 8));
 			EE_ReadVariable(BAT_PROFILE_NV_ADDR, &var);
 			if (((var^0xFF)&0xFF) == (var>>8) && (var&0xFF) == BATTERY_CUSTOM_PROFILE_ID) {  // upper byte should be complement if data are valid
 				if (currentBatProfile != NULL)

@@ -4,7 +4,7 @@
  *  Created on: 06.12.2016.
  *      Author: milan
  */
-
+#include "main.h"
 #include "led.h"
 #include "stm32f0xx_hal.h"
 #include "nv.h"
@@ -226,13 +226,17 @@ uint8_t LedGetParamR(uint8_t func) {
 		return leds[0].paramR;
 	} else if (leds[1].func == func) {
 		return leds[1].paramR;
+	} else {
+		return 0u;
 	}
 }
-uint8_t LedGetParamG(uint8_t func) {
+uint8_t LedGetParamG(const uint8_t func) {
 	if (leds[0].func == func) {
 		return leds[0].paramG;
 	} else if (leds[1].func == func) {
 		return leds[1].paramG;
+	} else {
+		return 0u;
 	}
 }
 uint8_t LedGetParamB(uint8_t func) {
@@ -240,6 +244,8 @@ uint8_t LedGetParamB(uint8_t func) {
 		return leds[0].paramB;
 	} else if (leds[1].func == func) {
 		return leds[1].paramB;
+	} else {
+		return 0u;
 	}
 }
 
