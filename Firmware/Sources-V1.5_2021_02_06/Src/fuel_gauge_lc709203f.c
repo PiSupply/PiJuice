@@ -489,7 +489,7 @@ void FuelGaugeTask(void) {
 	if ( dt > 125 ) {
 
 		MS_TIME_COUNTER_INIT(fuelGaugeTaskTimer);
-		uint16_t batVolt = GetAverageBatteryVoltage(ADC_VBAT_SENS_CHN);
+		uint16_t batVolt = GetAverageBatteryVoltage();
 
 		if (CHARGER_IS_BATTERY_PRESENT() && batVolt > 2550) {
 			if (!prevBatPresent) {

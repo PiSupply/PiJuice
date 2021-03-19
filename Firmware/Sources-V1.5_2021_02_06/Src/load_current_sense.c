@@ -61,6 +61,8 @@ int16_t pow5vIoPMOSLoadCurrent = 0;
 int16_t pow5vIoResLoadCurrent = 0;
 
 static float GetRefLoadCurrent() {
+	const uint16_t aVdd = GetAVDD();
+
 	int32_t vdg = 4790 - ((GetSample(POW_DET_SENS_CHN)*aVdd)>>11);//ANALOG_GET_VDG_AVG();
 	//vdg *= vdgCalibCoeff * mcuTemperature;
 	//vdg >>= 10;
@@ -72,6 +74,8 @@ static float GetRefLoadCurrent() {
 }
 
 static int32_t GetResSenseCurrent(void) {
+	const uint16_t aVdd = GetAVDD();
+
 	volatile int32_t samAvg = GetSampleAverageDiff(0, 1);
 	return (samAvg * aVdd * 25) >> 8; // 4096 * 2 * aVdd * 100;
 }

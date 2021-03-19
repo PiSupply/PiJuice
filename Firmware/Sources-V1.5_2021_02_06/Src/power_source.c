@@ -99,6 +99,8 @@ void Power5VSetModeLDO(void) {
 }
 
 __STATIC_INLINE int Retry5VTurnOn() {
+	const uint16_t aVdd = GetAVDD();
+
 	int n = 5;
 	while(n--) {
 		DelayUs(200);
@@ -247,6 +249,8 @@ void PowerSourceInit(void) {
 }
 
 /*__STATIC_INLINE*/ void CheckMinimumPower(int16_t volt5) {
+	const uint16_t aVdd = GetAVDD();
+
 	if ( POW_5V_BOOST_EN_STATUS() ) {
 		volatile int16_t tstv = volt5;
 		if (volt5 < 2000 && aVdd > 2500) {
@@ -391,6 +395,8 @@ static void PowerSource5vIoDetectionTask(void *argument) {
 }
 #else
 void PowerSource5vIoDetectionTask(void) {
+
+	const uint16_t aVdd = GetAVDD();
 
 	volatile uint32_t timePassed =  MS_TIME_COUNT(pow5vOnTimeout);
 	if ( MS_TIME_COUNT(pow5vOnTimeout) < POW_5V_TURN_ON_TIMEOUT ) {

@@ -30,7 +30,7 @@ extern int32_t mcuTemperature;
 extern ADC_HandleTypeDef hadc;
 extern uint32_t analogIn[ADC_BUFFER_LENGTH];
 
-extern uint16_t aVdd;
+uint16_t GetAVDD(void);
 extern ADC_AnalogWDGConfTypeDef analogWDGConfig;
 
 //extern uint32_t analogBufferTicks;
@@ -48,7 +48,7 @@ void AnalogAdcWDGEnable(uint8_t enable);
 uint8_t AnalogSamplesReady();
 HAL_StatusTypeDef AnalogAdcWDGConfig(uint8_t channel, uint16_t voltThresh_mV);
 uint16_t GetSampleVoltage(uint8_t channel);
-uint16_t GetAverageBatteryVoltage(uint8_t channel);
+uint16_t GetAverageBatteryVoltage(void);
 
 __STATIC_INLINE uint16_t GetSample(uint8_t channel) {
     int32_t pos =  __HAL_DMA_GET_COUNTER(hadc.DMA_Handle);

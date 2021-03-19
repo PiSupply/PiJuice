@@ -31,10 +31,9 @@ static AVE_FILTER_U16_t	m_aveFilters[MAX_ANALOG_CHANNELS];
 static uint32_t m_lastAdcStartTime;
 
 static uint16_t m_adcIntRefCal;
-static float m_adcRefScale = 1.0f;
+static uint32_t m_adcRefScale = 0x00010000u;
 
 static bool m_aveFilterReady;
-
 
 // ----------------------------------------------------------------------------
 // Variables that have scope from outside this module:
@@ -101,7 +100,10 @@ void ADC_Service(const uint32_t sysTime)
 				m_aveFilterReady = true;
 			}
 
-			m_adcRefScale = (float)m_adcIntRefCal / m_aveFilters[ANALOG_CHANNEL_INTREF].average;
+			if ( (true == m_aveFilterReady) && (m_aveFilters[ANALOG_CHANNEL_INTREF].average > 0u) )
+			{
+				m_adcRefScale = (0x00010000u * ((uint32_t)m_adcIntRefCal)) / (uint32_t)m_aveFilters[ANALOG_CHANNEL_INTREF].average;
+			}
 
 			HAL_ADC_Start_DMA(&hadc, (uint32_t*)&m_adcVals[0u], MAX_ANALOG_CHANNELS);
 		}
@@ -118,7 +120,7 @@ void ADC_Service(const uint32_t sysTime)
  * @retval	uint16_t	value of the analog channel
  */
 // ****************************************************************************
-uint16_t ADC_GetInstantValue(uint8_t channel)
+uint16_t ADC_GetInstantValue(const uint8_t channel)
 {
 	uint16_t result = 0u;
 
@@ -140,7 +142,7 @@ uint16_t ADC_GetInstantValue(uint8_t channel)
  * @retval	uint16_t	averaged value of the analog channel
  */
 // ****************************************************************************
-uint16_t ADC_GetAverageValue(uint8_t channel)
+uint16_t ADC_GetAverageValue(const uint8_t channel)
 {
 	uint16_t result = 0u;
 
@@ -150,6 +152,67 @@ uint16_t ADC_GetAverageValue(uint8_t channel)
 	}
 
 	return result;
+}
+
+
+// ****************************************************************************
+/*!
+ * ADC_CalibrateValue adjusts a value read by the adc using the internal reference
+ * and its factory calibrated value.
+ *
+ * @param	value		ADC value
+ * @retval	uint16_t	corrected value based on the intref value.
+ */
+// ****************************************************************************
+uint16_t ADC_CalibrateValue(const uint16_t value)
+{
+	/* Apply fixed point multipler */
+	uint32_t result = value * m_adcRefScale;
+
+	// Round up if halfway there
+	if (0u != (result & 0x8000u))
+	{
+		result += 0x10000u;
+	}
+
+	return (uint16_t)(result >> 16u);
+}
+
+
+// ****************************************************************************
+/*!
+ * ADC_ConvertToMV turns an ADC value to a more relevant MV value.
+ *
+ * @param	value		ADC value
+ * @retval	uint16_t	value in MV.
+ */
+// ****************************************************************************
+uint16_t ADC_ConvertToMV(const uint16_t value)
+{
+	/* Apply fixed point multipler */
+	uint32_t result = value * ADC_TO_MV_K;
+
+	// Round up if halfway there
+	if (0u != (result & 0x8000u))
+	{
+		result += 0x10000u;
+	}
+
+	return (uint16_t)(result >> 16u);
+}
+
+
+// ****************************************************************************
+/*!
+ * ADC_GetMV returns an adc value that has been calibrated and converted to mV.
+ *
+ * @param	channel		ADC channel to read
+ * @retval	uint16_t	averaged and calibrated value in MV.
+ */
+// ****************************************************************************
+uint16_t ADC_GetMV(const uint8_t channel)
+{
+	return ADC_ConvertToMV(ADC_CalibrateValue(ADC_GetAverageValue(channel)));
 }
 
 
