@@ -33,6 +33,8 @@ static uint32_t m_lastAdcStartTime;
 static uint16_t m_adcIntRefCal;
 static float m_adcRefScale = 1.0f;
 
+static bool m_aveFilterReady;
+
 
 // ----------------------------------------------------------------------------
 // Variables that have scope from outside this module:
@@ -56,6 +58,8 @@ void ADC_Init(const uint32_t sysTime)
 		m_adcVals[i] = 0u;
 		AVE_FILTER_U16_Reset(&m_aveFilters[i]);
 	}
+
+	m_aveFilterReady = false;
 
 	m_adcIntRefCal = *(VREFINT_CAL_ADDR);
 
@@ -90,6 +94,11 @@ void ADC_Service(const uint32_t sysTime)
 			for (i = 0u; i < MAX_ANALOG_CHANNELS; i++)
 			{
 				AVE_FILTER_U16_Update(&m_aveFilters[i], m_adcVals[i]);
+			}
+
+			if (0u == m_aveFilters[0].nextValueIdx)
+			{
+				m_aveFilterReady = true;
 			}
 
 			m_adcRefScale = (float)m_adcIntRefCal / m_aveFilters[ANALOG_CHANNEL_INTREF].average;
@@ -141,6 +150,22 @@ uint16_t ADC_GetAverageValue(uint8_t channel)
 	}
 
 	return result;
+}
+
+
+// ****************************************************************************
+/*!
+ * ADC_GetFilterReady lets the caller know if the buffer in the average filter
+ * is full. Will only not be full after a reset for a short while, once checked
+ * that should be enough.
+ *
+ * @param	none
+ * @retval	bool		True = average filter ready, false = buffer not full
+ */
+// ****************************************************************************
+bool ADC_GetFilterReady(void)
+{
+	return m_aveFilterReady;
 }
 
 // ----------------------------------------------------------------------------
