@@ -68,8 +68,12 @@ extern uint8_t noBatteryTurnOn;
 
 static bool m_gpioPowerControl;
 static bool m_rpiActive;
+static uint32_t m_rpiActiveTime;
 
 void PowerManagementInit(void) {
+
+	const uint32_t sysTime = HAL_GetTick();
+
 	uint16_t var = 0u;
 	EE_ReadVariable(NV_RUN_PIN_CONFIG, &var);
 	if (((~var)&0xFFu) == (var>>8u)) {
@@ -110,10 +114,11 @@ void PowerManagementInit(void) {
 		powerOffBtnEventFlag = 0u;
 	}
 
-	MS_TIME_COUNTER_INIT(powerMngmtTaskMsCounter);
+	MS_TIMEREF_INIT(powerMngmtTaskMsCounter, sysTime);
 
 	m_gpioPowerControl = true;
 	m_rpiActive = false;
+	MS_TIMEREF_INIT(m_rpiActiveTime, sysTime);
 
 #if defined(RTOS_FREERTOS)
 	powManTaskHandle = osThreadNew(PowerManagementTask, (void*)NULL, &powManTask_attributes);
@@ -272,14 +277,14 @@ void PowerManagementTask(void) {
 	const bool chargerPresent = CHARGER_IS_INPUT_PRESENT();
 	const uint32_t sysTime = HAL_GetTick();
 
-	if (MS_TIME_COUNT(powerMngmtTaskMsCounter) >= 500) {
-		MS_TIME_COUNTER_INIT(powerMngmtTaskMsCounter);
+	if (MS_TIMEREF_TIMEOUT(powerMngmtTaskMsCounter, sysTime, 500u)) {
+		MS_TIMEREF_INIT(powerMngmtTaskMsCounter, sysTime);
 
 		volatile int isWakeupOnCharge = batteryRsoc >= wakeupOnCharge && chargerPresent && CHARGER_IS_BATTERY_PRESENT();
 		if ( 		( isWakeupOnCharge || rtcWakeupEventFlag || ioWakeupEvent) // there is wake-up trigger
 				&& 	!delayedPowerOffCounter // deny wake-up during shutdown
 				&& 	!delayedTurnOnFlag
-				&& 	( (MS_TIME_COUNT(lastHostCommandTimer) > 15000 && MS_TIME_COUNT(lastWakeupTimer) > 30000)
+				&& 	( (MS_TIMEREF_TIMEOUT(lastHostCommandTimer, sysTime, 15000) && MS_TIMEREF_TIMEOUT(lastWakeupTimer, sysTime, 30000))
 						//|| (!POW_5V_BOOST_EN_STATUS() && power5vIoStatus == POW_SOURCE_NOT_PRESENT) //  Host is non powered
 		   ) ) {
 			if ( ResetHost() == 0 ) { //if ( WakeUpHost() == 0 ) {
@@ -296,7 +301,7 @@ void PowerManagementTask(void) {
 			}
 		}
 
-		if (watchdogExpirePeriod && MS_TIME_COUNT(lastHostCommandTimer) > watchdogTimer) {
+		if (watchdogExpirePeriod && MS_TIMEREF_DIFF(lastHostCommandTimer, sysTime) > watchdogTimer) {
 			if ( ResetHost() == 0 ) {
 				wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 				watchdogExpiredFlag = 1;
@@ -308,7 +313,7 @@ void PowerManagementTask(void) {
 		}
 	}
 
-	if ( delayedTurnOnFlag && MS_TIME_COUNT(delayedTurnOnTimer) >= 100 ) {
+	if ( delayedTurnOnFlag && (MS_TIMEREF_TIMEOUT(delayedTurnOnTimer, sysTime, 100u)) ) {
 		Turn5vBoost(1);
 		delayedTurnOnFlag = 0;
 		MS_TIME_COUNTER_INIT(lastWakeupTimer);
@@ -319,12 +324,14 @@ void PowerManagementTask(void) {
 			Turn5vBoost(0);
 		}
 		delayedPowerOffCounter = 0u;
+
+		/* Turn off led as it keeps flashing! */
 		LedSetRGB(LED2, 0u, 0u, 0u);
 	}
 
 	if ( true == m_rpiActive )
 	{
-		if ( (true == m_gpioPowerControl) && (delayedPowerOffCounter > 5u) )
+		if ( (true == m_gpioPowerControl) && (delayedPowerOffCounter > 2000u) )
 		{
 			uint8_t pinData[2u];
 			uint16_t len;
@@ -333,9 +340,20 @@ void PowerManagementTask(void) {
 
 			if (0u == pinData[0u])
 			{
-				LedSetRGB(LED2, 100u, 0u, 0u);
+				/* RPi power has gone off, make sure */
+				if (MS_TIMEREF_TIMEOUT(m_rpiActiveTime, sysTime, 100u))
+				{
+					/* Turn led to red */
+					LedSetRGB(LED2, 100u, 0u, 0u);
 
-				delayedPowerOffCounter = 5u;
+					/* Adjust power off to 2 seconds */
+					delayedPowerOffCounter = 2000u;
+				}
+			}
+			else
+			{
+				/* RPi power is still on */
+				MS_TIMEREF_INIT(m_rpiActiveTime, sysTime);
 			}
 		}
 	}
@@ -346,8 +364,14 @@ void PowerManagementTask(void) {
 
 		IoRead(RPI_ACTLED_IO_PIN, pinData, &len);
 
-		if (0u != pinData[0u])
+		if (0u == pinData[0u])
 		{
+			/* RPi is not on yet */
+			MS_TIMEREF_INIT(m_rpiActiveTime, sysTime);
+		}
+		else if (MS_TIMEREF_TIMEOUT(m_rpiActiveTime, sysTime, 5000u))
+		{
+			/* RPi has been on for 5 seconds */
 			m_rpiActive = true;
 			LedSetRGB(LED2, 0u, 100u, 0u);
 		}
@@ -364,24 +388,24 @@ void InputSourcePresenceChangeCb(uint8_t event) {
 
 }
 
-void PowerMngmtSchedulePowerOff(uint8_t dalayCode) {
-	if (dalayCode <= 250) {
-		delayedPowerOffCounter = HAL_GetTick() + dalayCode * 1024;
-		if (delayedPowerOffCounter == 0) delayedPowerOffCounter ++; // 0 is used to indicate non active counter, so avoid that value
-	} else if (dalayCode == 0xFF) {
-		delayedPowerOffCounter = 0; // deactivate scheduled power off
+void PowerMngmtSchedulePowerOff(uint8_t delayCode) {
+	if (delayCode <= 250u) {
+		MS_TIMEREF_INIT(delayedPowerOffCounter, HAL_GetTick() + (delayCode * 1024u));
+		if (delayedPowerOffCounter == 0u) delayedPowerOffCounter = 1u; // 0 is used to indicate non active counter, so avoid that value
+	} else if (delayCode == 0xFFu) {
+		delayedPowerOffCounter = 0u; // deactivate scheduled power off
 	}
 }
 
 uint8_t PowerMngmtGetPowerOffCounter(void) {
 	if ( delayedPowerOffCounter ) {
 		if (delayedPowerOffCounter > HAL_GetTick()) {
-			return (delayedPowerOffCounter-HAL_GetTick()) >> 10;
+			return (delayedPowerOffCounter-HAL_GetTick()) >> 10u;
 		} else {
-			return 0;
+			return 0u;
 		}
 	} else {
-		return 0xFF;
+		return 0xFFu;
 	}
 }
 
