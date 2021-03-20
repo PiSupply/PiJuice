@@ -622,7 +622,13 @@ int main(void)
 
 	OSLOOP_Init();
 
-	while (1)
+	// Wait for the adc to become ready
+	while (false == ADC_GetFilterReady())
+	{
+		asm volatile ("nop");
+	}
+
+	while(1)
 	{
 		asm volatile ("nop");
 	}

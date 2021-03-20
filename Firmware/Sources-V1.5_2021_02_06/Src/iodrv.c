@@ -316,19 +316,24 @@ void IODRV_UpdatePins(const uint32_t sysTime)
 {
 	uint8_t pin;
 	uint16_t value = 0u;
+	uint8_t pinType;
+	uint32_t moder_pos;
 
 	for (pin = 0u; pin < IODRV_MAX_IO_PINS; pin++)
 	{
-		if (m_pins[pin].pinType == IOTYPE_ANALOG)
+		moder_pos = (m_pins[pin].gpioPin_pos * 2u);
+		pinType = (m_pins[pin].gpioPort->MODER >> moder_pos) & 0x03u;
+
+		if (pinType == PINMODE_ANALOG)
 		{
 			// Read analog pin value, will be 0 if not connected to the ADC
 			value = ADC_GetAverageValue(m_pins[pin].adcChannel);
 		}
-		else if ((m_pins[pin].pinType == IOTYPE_PWM_PUSHPULL) || (m_pins[pin].pinType == IOTYPE_PWM_OPENDRAIN))
+		else if (pinType == PINMODE_ALTERNATE)
 		{
 			value = 0u;
 		}
-		else
+		else // Must be digital then
 		{
 			if (GPIO_PIN_SET == HAL_GPIO_ReadPin(m_pins[pin].gpioPort, m_pins[pin].gpioPin_bm))
 			{
