@@ -13,6 +13,7 @@
 #include "time_count.h"
 #include "power_source.h"
 
+#include "system_conf.h"
 #include "util.h"
 
 #if defined(RTOS_FREERTOS)
@@ -66,9 +67,10 @@ int16_t pow5vIoResLoadCurrent = 0;
 bool ReadILoadCalibCoeffs(void);
 
 static float GetRefLoadCurrent() {
-	const uint16_t aVdd = GetAVDD();
+	const uint16_t aVdd = ANALOG_GetAVDDMv();
+	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
 
-	int32_t vdg = 4790 - ((GetSample(POW_DET_SENS_CHN)*aVdd)>>11);//ANALOG_GET_VDG_AVG();
+	int32_t vdg = 4790 - ( (ANALOG_GetMv(ANALOG_CHANNEL_POW_DET) * aVdd) >> 11 );
 	//vdg *= vdgCalibCoeff * mcuTemperature;
 	//vdg >>= 10;
 	int16_t i = vdg >= ID_T_POLY_COEFF_VDG_START ? (vdg - ID_T_POLY_COEFF_VDG_START + ID_T_POLY_COEFF_VDG_INC / 2) / ID_T_POLY_COEFF_VDG_INC : 0;
@@ -79,10 +81,8 @@ static float GetRefLoadCurrent() {
 }
 
 static int32_t GetResSenseCurrent(void) {
-	const uint16_t aVdd = GetAVDD();
-
-	volatile int32_t samAvg = GetSampleAverageDiff(0, 1);
-	return (samAvg * aVdd * 25) >> 8; // 4096 * 2 * aVdd * 100;
+	// TODO - Work out what this is supposed to return! Needs scaling.
+	return ANALOG_Get5VRailMa();
 }
 
 int32_t GetLoadCurrent(void) {
@@ -117,18 +117,13 @@ int32_t GetLoadCurrent(void) {
 }
 
 void MeasurePMOSLoadCurrent(void) {
+	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
+
 	pow5vIoPMOSLoadCurrent = ((kta * mcuTemperature + (((uint16_t)ktb) << 8) ) * ((int32_t)(GetRefLoadCurrent()+0.5))) >> 13; //ktNorm * k12 * refCurr
 }
 
 void GetCurrStat(uint8_t stat[]) {
-	uint8_t i;
-	for (i = 0; i < 8; i++) {
-		uint16_t ind = (ADC_BUFFER_LENGTH/8) * i;
-		int16_t diff = ((ADC_GET_BUFFER_SAMPLE(ind) - ADC_GET_BUFFER_SAMPLE(ind+1)) >> 1) + 8;
-		if (diff > 15) diff = 15;
-		if (diff < 0) diff = 0;
-		stat[diff] ++;
-	}
+	/* Not sure what this is supposed to do */
 }
 
 #if defined(RTOS_FREERTOS)
@@ -235,6 +230,8 @@ void LoadCurrentSenseInit(void) {
 
 // Return value not used.
 int8_t CalibrateLoadCurrent(void) {
+
+	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
 
 	resLoadCurrCalib = pow5vIoResLoadCurrent - 51;  // 5.1v/100ohm
 

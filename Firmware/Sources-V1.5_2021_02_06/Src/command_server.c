@@ -34,6 +34,7 @@ extern I2C_HandleTypeDef hi2c1;//extern SMBUS_HandleTypeDef hsmbus;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim15;
 extern TIM_HandleTypeDef htim17;
+extern ADC_HandleTypeDef hadc;
 
 extern uint16_t wakeupOnCharge;
 extern uint8_t powerOffBtnEventFlag;
@@ -566,15 +567,19 @@ void CmdServerReadBatCurrent(uint8_t dir, uint8_t *pData, uint16_t *dataLen){
 	}
 }
 
-void CmdServerReadMainVoltage(uint8_t dir, uint8_t *pData, uint16_t *dataLen){
-	if (dir == MASTER_CMD_DIR_READ) {
-		uint8_t adr = pData[0];
-		volatile uint16_t ioVolt = Get5vIoVoltage();
-		reg[adr] = ioVolt;
-		reg[adr+1] = ioVolt >> 8;
-		pData[0] = reg[adr];
-		pData[1] = reg[adr+1];
-		*dataLen = 2;
+void CmdServerReadMainVoltage(uint8_t dir, uint8_t *p_Data, uint16_t *dataLen)
+{
+	const uint16_t ioVolt = ANALOG_Get5VRailMv();
+
+	if (dir == MASTER_CMD_DIR_READ)
+	{
+		uint8_t adr = *p_Data;
+
+		*p_Data = reg[adr] = (uint8_t)(ioVolt & 0xFFu);
+		p_Data++;
+		*p_Data = reg[adr + 1u] = (uint8_t)((ioVolt >> 8u) & 0xFFu);
+
+		*dataLen = 2u;
 	}
 }
 

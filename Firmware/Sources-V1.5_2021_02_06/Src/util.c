@@ -43,5 +43,29 @@ bool UTIL_NV_ParamInitCheck_U16(uint16_t parameter)
 {
 	uint8_t chk = (parameter >> 8u) ^ 0xFF;
 
-	return (parameter & 0xFF) == chk;
+	return (parameter & 0x00FFu) == (uint16_t)chk;
+}
+
+
+// ****************************************************************************
+/*!
+ * UTIL_FixMul_U32_U16 multiplies a uint16 value by a 16/16 fixed point multiplier.
+ *
+ * @param	uint16_t 	parameter vaue
+ * @retval	bool		true = parameter is looking initialised
+ * 						false = parameter is not looking initialised
+ */
+// ****************************************************************************
+uint16_t UTIL_FixMul_U32_U16(uint32_t fixmul, uint16_t value)
+{
+	/* Apply fixed point multipler */
+	uint32_t result = (value * fixmul);
+
+	// Round up if halfway there
+	if (0u != (result & 0x8000u))
+	{
+		result += 0x10000u;
+	}
+
+	return (uint16_t)(result >> 16u);
 }

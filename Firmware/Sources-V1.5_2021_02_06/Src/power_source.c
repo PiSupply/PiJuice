@@ -5,15 +5,19 @@
  *      Author: milan
  */
 
+#include "main.h"
+
 #include "power_source.h"
 #include "charger_bq2416x.h"
-#include "stm32f0xx_hal.h"
 #include "nv.h"
+#include "adc.h"
 #include "analog.h"
 #include "fuel_gauge_lc709203f.h"
 #include "time_count.h"
 #include "load_current_sense.h"
 #include "execution.h"
+
+#include "system_conf.h"
 
 #define POW_5V_IO_DET_ADC_THRESHOLD		2950
 #define VBAT_TURNOFF_ADC_THRESHOLD		0 // mV unit
@@ -98,15 +102,19 @@ void Power5VSetModeLDO(void) {
 	POW_5V_DET_LDO_ENABLE(1);
 }
 
-__STATIC_INLINE int Retry5VTurnOn() {
-	const uint16_t aVdd = GetAVDD();
+uint8_t Retry5VTurnOn(void)
+{
+	uint16_t batVolt;
+	uint8_t n = 5;
 
-	int n = 5;
-	while(n--) {
+	while(n-- > 0u)
+	{
 		DelayUs(200);
 		// Check battery voltage
-		volatile int16_t batVolt = (GetSample(ADC_VBAT_SENS_CHN) * aVdd * 11) >> 15; // 4096 * 1374 / 1000
-		if ( (!POW_SOURCE_PRESENT()) && batVolt < vbatPowOffTresh) {
+		batVolt = ANALOG_GetBatteryMv();
+
+		if ( (false == POW_SOURCE_PRESENT() ) && (batVolt < vbatPowOffTresh) )
+		{
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET);
 			forcedPowerOffFlag = 1;
 			return REGULATOR_5V_SWITCHING_STATUS_NO_ENERGY;
@@ -114,7 +122,7 @@ __STATIC_INLINE int Retry5VTurnOn() {
 	}
 
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET);
-	DelayUs(5);
+	DelayUs(5u);
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_SET);
 
 	return REGULATOR_5V_SWITCHING_STATUS_SUCCESS;
@@ -169,6 +177,8 @@ __STATIC_INLINE void TurnVSysOutput(uint8_t onOff){
 
 void PowerSourceInit(void) {
 
+	uint16_t batVolt;
+
 	// initialize global variables after power-up
 	if (!resetStatus) {
 		forcedPowerOffFlag = 0;
@@ -190,10 +200,11 @@ void PowerSourceInit(void) {
 	}
 
 	vbatPowOffTresh = currentBatProfile!=NULL ? (uint16_t)(currentBatProfile->cutoffVoltage)*20+VBAT_TURNOFF_ADC_THRESHOLD : (uint16_t)3000+VBAT_TURNOFF_ADC_THRESHOLD;
-	AnalogAdcWDGConfig(ADC_VBAT_SENS_CHN,  vbatPowOffTresh);
+	AnalogAdcWDGConfig(ANALOG_CHANNEL_VBAT,  vbatPowOffTresh);
 
 	DelayUs(100);
-	volatile uint16_t batVolt = GetSampleVoltage(ADC_VBAT_SENS_CHN)*(int32_t)1374/1000;
+
+	batVolt = ANALOG_GetBatteryMv();
 
 	// maintain regulator state before reset
 	if ( HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10) == GPIO_PIN_SET ) {
@@ -248,35 +259,48 @@ void PowerSourceInit(void) {
 #endif
 }
 
-/*__STATIC_INLINE*/ void CheckMinimumPower(int16_t volt5) {
-	const uint16_t aVdd = GetAVDD();
+void CheckMinimumPower(int16_t volt5) {
+	const uint16_t aVdd = ANALOG_GetAVDDMv();
+	uint16_t batVolt;
 
-	if ( POW_5V_BOOST_EN_STATUS() ) {
-		volatile int16_t tstv = volt5;
-		if (volt5 < 2000 && aVdd > 2500) {
+	uint16_t samt;
+
+	if ( true == POW_5V_BOOST_EN_STATUS() )
+	{
+		if (volt5 < 2000 && aVdd > 2500)
+		{
 			//5V DCDC is in fault overcurrent state, turn it off to prevent draining battery
 			Turn5vBoost(0);
 			forcedPowerOffFlag = 1;
 			return;
 		}
 
-		volatile uint16_t samt = GetSample(ADC_VBAT_SENS_CHN);
+		samt = ADC_GetAverageValue(ANALOG_CHANNEL_VBAT);
+
 		// if no sources connected, turn off 5V regulator and system switch when battery voltage drops below minimum
-		if ( samt < GetAdcWDGThreshold() && pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_PRESENT && CHARGER_INSTAT()) {
-			if ( POW_VSYS_OUTPUT_EN_STATUS() ) {
+		if ( samt < GetAdcWDGThreshold() && pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_PRESENT && CHARGER_INSTAT())
+		{
+			if ( POW_VSYS_OUTPUT_EN_STATUS() )
+			{
 				TurnVSysOutput(0);
 				forcedVSysOutputOffFlag = 1;
 				MS_TIME_COUNTER_INIT(forcedPowerOffCounter); // leave 2 ms for switch to react
-			} else if ( MS_TIME_COUNT(forcedPowerOffCounter) >= 2) {
+			}
+			else if ( MS_TIME_COUNT(forcedPowerOffCounter) >= 2)
+			{
 				POW_5V_DET_LDO_ENABLE(0);
 				Turn5vBoost(0);
 				forcedPowerOffFlag = 1;
 				wakeupOnCharge = 5; // schedule wake up when power is applied
 			}
 		}
-	} else {
-		int16_t batVolt = (GetSample(ADC_VBAT_SENS_CHN) * aVdd * 11) >> 15; // 4096 * 1374 / 1000
-		if ( (!POW_SOURCE_PRESENT() /*chargerStatus == CHG_NO_VALID_SOURCE*/) && batVolt < vbatPowOffTresh && POW_VSYS_OUTPUT_EN_STATUS()) {
+	}
+	else
+	{
+		batVolt = ANALOG_GetBatteryMv();
+
+		if ( (!POW_SOURCE_PRESENT() /*chargerStatus == CHG_NO_VALID_SOURCE*/) && batVolt < vbatPowOffTresh && POW_VSYS_OUTPUT_EN_STATUS())
+		{
 			TurnVSysOutput(0);
 			forcedVSysOutputOffFlag = 1;
 		}
@@ -396,52 +420,76 @@ static void PowerSource5vIoDetectionTask(void *argument) {
 #else
 void PowerSource5vIoDetectionTask(void) {
 
-	const uint16_t aVdd = GetAVDD();
+	uint16_t volt5 = ANALOG_Get5VRailMv();
+	uint16_t batVolt;
+	uint16_t samp;
 
-	volatile uint32_t timePassed =  MS_TIME_COUNT(pow5vOnTimeout);
-	if ( MS_TIME_COUNT(pow5vOnTimeout) < POW_5V_TURN_ON_TIMEOUT ) {
-		volatile int16_t batVolt;
-		if ( (!POW_SOURCE_PRESENT()) && MS_TIME_COUNT(pow5vOnTimeout) > 0) {
-			batVolt = (GetSample(ADC_VBAT_SENS_CHN) * aVdd * 11) >> 15; // 4096 * 1374 / 1000
-			if (batVolt < vbatPowOffTresh) {
+	if ( MS_TIME_COUNT(pow5vOnTimeout) < POW_5V_TURN_ON_TIMEOUT )
+	{
+		if ( (!POW_SOURCE_PRESENT()) && MS_TIME_COUNT(pow5vOnTimeout) > 0)
+		{
+			batVolt = ANALOG_GetBatteryMv();
+
+			if (batVolt < vbatPowOffTresh)
+			{
 				Turn5vBoost(0);
 				forcedPowerOffFlag = 1;
 			}
 		}
+
 		// Wait for 5V to become stable after turn on timeout
 		return;
 	}
 
-	volatile int16_t volt5 = Get5vIoVoltage();
+	volt5 = ANALOG_Get5VRailMv();
 
 	CheckMinimumPower(volt5);
 
-	if ( POW_5V_BOOST_EN_STATUS() ) {
+	if ( true == POW_5V_BOOST_EN_STATUS() )
+	{
+		if (POW_5V_DET_LDO_EN_STATUS())
+		{
+			samp = ADC_GetAverageValue(ANALOG_CHANNEL_POW_DET);
 
-		if (POW_5V_DET_LDO_EN_STATUS()) {
-			volatile uint16_t samp = GetSample(POW_DET_SENS_CHN);
-			if ( samp < POW_5V_IO_DET_ADC_THRESHOLD) {
-				if (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_NOT_PRESENT) {
+			if ( samp < POW_5V_IO_DET_ADC_THRESHOLD)
+			{
+				if (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_NOT_PRESENT)
+				{
 					MS_TIME_COUNTER_INIT(pow5vPresentCounter);
 					ChargerUsbInCurrentLimitStepDown();
 				}
+
 				pow5vInDetStatus = POW_5V_IN_DETECTION_STATUS_NOT_PRESENT;
-				if (pow5VChgLoadMaximumReached > 1) pow5VChgLoadMaximumReached --;
+
+				if (pow5VChgLoadMaximumReached > 1)
+				{
+					pow5VChgLoadMaximumReached --;
+				}
+
 				ChargerSetUSBLockout(CHG_USB_IN_LOCK);
 				POW_5V_DET_LDO_ENABLE(0);
 			}
-		} else if (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_NOT_PRESENT) {
+		}
+		else if (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_NOT_PRESENT)
+		{
 			pow5vInDetStatus = POW_5V_IN_DETECTION_STATUS_UNKNOWN;
-			if (pow5VChgLoadMaximumReached > 1) pow5VChgLoadMaximumReached --;
+
+			if (pow5VChgLoadMaximumReached > 1)
+			{
+				pow5VChgLoadMaximumReached --;
+			}
+
 			ChargerSetUSBLockout(CHG_USB_IN_LOCK);
 			ChargerUsbInCurrentLimitStepDown();
 			MS_TIME_COUNTER_INIT(pow5vPresentCounter);
 		}
 
-		if ( pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_PRESENT && MS_TIME_COUNT(pow5vDetTimeCount) > 95 ) {
+		if ( pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_PRESENT && MS_TIME_COUNT(pow5vDetTimeCount) > 95 )
+		{
 			MS_TIME_COUNTER_INIT(pow5vDetTimeCount);
 
-			if (!POW_5V_DET_LDO_EN_STATUS()) {
+			if (!POW_5V_DET_LDO_EN_STATUS())
+			{
 				POW_5V_DET_LDO_ENABLE(1);
 				//Delay(100);
 			}
@@ -450,44 +498,76 @@ void PowerSource5vIoDetectionTask(void) {
 			volatile uint8_t i = 200, fetCutoffCount = 0, fetActiveCount = 0;
 			//volatile uint16_t activeSamples[6];
 			volatile uint32_t sam = 0;
-			while ( i-- && fetActiveCount < 3) {
+			while ( i-- && fetActiveCount < 3)
+			{
 				DelayUs(120);//HAL_Delay(2);//
-			    sam = GetSample(POW_DET_SENS_CHN);//analogIn[ind];
-			    if (sam >= POW_5V_IO_DET_ADC_THRESHOLD) fetCutoffCount ++;
-			    else fetCutoffCount = 0;
-			    if (sam < POW_5V_IO_DET_ADC_THRESHOLD)	{
+
+				sam = ADC_GetAverageValue(ANALOG_CHANNEL_POW_DET);
+
+			    if (sam >= POW_5V_IO_DET_ADC_THRESHOLD)
+			    {
+			    	fetCutoffCount ++;
+			    }
+			    else
+			    {
+			    	fetCutoffCount = 0;
+			    }
+
+			    if (sam < POW_5V_IO_DET_ADC_THRESHOLD)
+			    {
 			    	fetActiveCount ++;
 			    }
-			    else fetActiveCount = 0;
+			    else
+			    {
+			    	fetActiveCount = 0;
+			    }
+
 			    CheckMinimumPower(volt5);
 			    //activeSamples[i] = sam;
 			}
+
 			if ( fetCutoffCount >= 200 ) {//if ( sam >= POW_5V_IO_DET_ADC_THRESHOLD ) {
 				// turn on usb in if pmos is cutoff
 				pow5vInDetStatus = POW_5V_IN_DETECTION_STATUS_PRESENT;
 				ChargerSetUSBLockout(CHG_USB_IN_UNLOCK);
 				//pow5vIoLoadCurrent = 0;
 				MS_TIME_COUNTER_INIT(pow5vPresentCounter);
-			} else {
-				if (fetActiveCount >= 3) {
+			}
+			else
+			{
+				if (fetActiveCount >= 3)
+				{
 					MeasurePMOSLoadCurrent();//pow5vIoLoadCurrent = GetLoadCurrent();
 					pow5vInDetStatus = POW_5V_IN_DETECTION_STATUS_NOT_PRESENT;
 				}
+
 				POW_5V_DET_LDO_ENABLE(0);
 			}
 		} /*else {
 			pow5vIoLoadCurrent = 0;
 		}*/
-	} else {
-		if (volt5 < 4800) {
-			if (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_NOT_PRESENT) {
+	}
+	else
+	{
+		if (volt5 < 4800)
+		{
+			if (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_NOT_PRESENT)
+			{
 				MS_TIME_COUNTER_INIT(pow5vPresentCounter);
 				ChargerUsbInCurrentLimitStepDown();
 			}
+
 			pow5vInDetStatus = POW_5V_IN_DETECTION_STATUS_NOT_PRESENT;
 			ChargerSetUSBLockout(CHG_USB_IN_LOCK);
-			if (pow5VChgLoadMaximumReached > 1) pow5VChgLoadMaximumReached --;
-		} else if (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_PRESENT && MS_TIME_COUNT(pow5vDetTimeCount) > 500) {
+
+			if (pow5VChgLoadMaximumReached > 1)
+			{
+				pow5VChgLoadMaximumReached --;
+			}
+
+		}
+		else if (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_PRESENT && MS_TIME_COUNT(pow5vDetTimeCount) > 500)
+		{
 			REGULATOR_5V_TURN_ON(); //Turn5vBoost(1);
 			POW_5V_DET_LDO_ENABLE(1);
 			pow5vInDetStatus = POW_5V_IN_DETECTION_STATUS_PRESENT;
@@ -497,16 +577,24 @@ void PowerSource5vIoDetectionTask(void) {
 		}
 	}
 
-	if ( MS_TIME_COUNT(pow5vPresentCounter) > 800 ) {
+	if ( MS_TIME_COUNT(pow5vPresentCounter) > 800 )
+	{
 		MS_TIME_COUNTER_INIT(pow5vPresentCounter);
-		if (pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_PRESENT ) {
-			if (pow5VChgLoadMaximumReached > 1) {
+
+		if (pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_PRESENT )
+		{
+			if (pow5VChgLoadMaximumReached > 1)
+			{
 				ChargerUsbInCurrentLimitStepUp();
 				pow5VChgLoadMaximumReached = 2;
-			} else if (pow5VChgLoadMaximumReached == 0) {
+			}
+			else if (pow5VChgLoadMaximumReached == 0)
+			{
 				pow5VChgLoadMaximumReached = 3;
 			}
-		} else if (pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_NOT_PRESENT) {
+		}
+		else if (pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_NOT_PRESENT)
+		{
 			// this means input is disconnected, and flag can be cleared
 			pow5VChgLoadMaximumReached = 0;
 			ChargerUsbInCurrentLimitSetMin();
@@ -582,41 +670,68 @@ void PowerSourceTask(void) {
 }
 #endif
 
-void PowerSourceSetBatProfile(const BatteryProfile_T* batProfile) {
-	//vbatAdcTresh = currentBatProfile != NULL ? ((uint32_t)(currentBatProfile->cutoffVoltage*20+VBAT_TURNOFF_ADC_THRESHOLD) * 2981) /*20 * 4096 * 1000 / 1374*/ / 3300 : (((uint32_t)150*20+VBAT_TURNOFF_ADC_THRESHOLD) * 2981) / 3300;
-	//analogWDGConfig.LowThreshold = POW_5V_IO_DET_ADC_THRESHOLD;
-	//AnalogAdcWDGConfig(&analogWDGConfig);
-	vbatPowOffTresh = currentBatProfile!=NULL ? (uint16_t)(currentBatProfile->cutoffVoltage)*20+VBAT_TURNOFF_ADC_THRESHOLD : (uint16_t)3000+VBAT_TURNOFF_ADC_THRESHOLD;
-	AnalogAdcWDGConfig(ADC_VBAT_SENS_CHN,  vbatPowOffTresh);
-}
+void PowerSourceSetBatProfile(const BatteryProfile_T* batProfile)
+{
 
-void PowerSourceSetVSysSwitchState(uint8_t state) {
-	if (state == 5) {
-		HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_SET);
-		if ( GetSample(ADC_VBAT_SENS_CHN) > GetAdcWDGThreshold() || POW_SOURCE_PRESENT()/*chargerStatus != CHG_NO_VALID_SOURCE*/ )
-			TurnVSysOutput(1);
-		vsysSwitchLimit = state;
-	} else if (state == 21) {
-		HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_RESET);
-		if ( GetSample(ADC_VBAT_SENS_CHN) > GetAdcWDGThreshold() || POW_SOURCE_PRESENT()/*chargerStatus != CHG_NO_VALID_SOURCE*/ )
-			TurnVSysOutput(1);
-		vsysSwitchLimit = state;
-	} else {
-		TurnVSysOutput(0);
+	if (NULL == currentBatProfile)
+	{
+		vbatPowOffTresh = 3000u + VBAT_TURNOFF_ADC_THRESHOLD;
 	}
-	forcedVSysOutputOffFlag = 0;
+	else
+	{
+		vbatPowOffTresh = (currentBatProfile->cutoffVoltage * 20u) + VBAT_TURNOFF_ADC_THRESHOLD;
+	}
+
+	//vbatPowOffTresh = (currentBatProfile != NULL) ? (uint16_t)(currentBatProfile->cutoffVoltage) * 20u + VBAT_TURNOFF_ADC_THRESHOLD : 3000u + VBAT_TURNOFF_ADC_THRESHOLD;
+	AnalogAdcWDGConfig(ANALOG_CHANNEL_VBAT,  vbatPowOffTresh);
 }
 
-uint8_t PowerSourceGetVSysSwitchState() {
-	if (POW_VSYS_OUTPUT_EN_STATUS()) {
+void PowerSourceSetVSysSwitchState(uint8_t state)
+{
+	const uint16_t vbatAdcVal = ADC_GetAverageValue(ANALOG_CHANNEL_VBAT);
+	const uint16_t wdgThreshold = GetAdcWDGThreshold();
+
+	if (5u == state)
+	{
+		// Set VSys I limit pin
+		HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_SET);
+
+		if ( (vbatAdcVal > wdgThreshold) || POW_SOURCE_PRESENT() )
+		{
+			TurnVSysOutput(1u);
+		}
+
+		vsysSwitchLimit = state;
+	}
+	else if (21u == state)
+	{
+		// Reset VSys I limit pin
+		HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_RESET);
+
+		if ( (vbatAdcVal > wdgThreshold) || POW_SOURCE_PRESENT() )
+		{
+			TurnVSysOutput(1u);
+		}
+
+		vsysSwitchLimit = state;
+	}
+	else
+	{
+		TurnVSysOutput(0u);
+	}
+
+	forcedVSysOutputOffFlag = 0u;
+}
+
+uint8_t PowerSourceGetVSysSwitchState()
+{
+	if (POW_VSYS_OUTPUT_EN_STATUS())
+	{
 		return vsysSwitchLimit;
-		/*if (HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_1) == GPIO_PIN_SET) {
-			return 5;
-		} else {
-			return 21;
-		}*/
-	} else {
-		return 0;
+	}
+	else
+	{
+		return 0u;
 	}
 }
 

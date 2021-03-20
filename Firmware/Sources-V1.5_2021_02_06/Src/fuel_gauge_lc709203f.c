@@ -5,15 +5,19 @@
  *      Author: milan
  */
 
+#include "main.h"
+
 #include "fuel_gauge_lc709203f.h"
-#include "stm32f0xx_hal.h"
 #include "crc8_atm.h"
 #include "time_count.h"
+#include "adc.h"
 #include "analog.h"
 #include "charger_bq2416x.h"
 #include "power_source.h"
 #include "execution.h"
 #include "nv.h"
+
+#include "system_conf.h"
 
 #define FUEL_GAUGE_METHOD_DV	0
 
@@ -182,6 +186,9 @@ int8_t FuelGaugeIcPreInit(void) {
 }
 
 int8_t FuelGaugeIcInit(void) {
+
+	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
+
 	volatile int8_t succ;
 
 	if (FuelGaugeReadWord(0x11, &fgIcId) == 0) {
@@ -243,7 +250,8 @@ void FuelGaugeInit(void) {
 		FuelGaugeDvInit();
 	}
 
-	uint16_t batVolt = GetSampleVoltage(ADC_VBAT_SENS_CHN)*(int32_t)1374/1000;
+	uint16_t batVolt = ANALOG_GetBatteryMv();
+
 	if (batVolt > 2550) {
 		if (soc < 0 || soc>2139095040)
 			soc = GetSocFromOCV(batVolt);
@@ -482,6 +490,9 @@ static void FuelGaugeTask(void *argument) {
 }
 #else
 void FuelGaugeTask(void) {
+
+	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
+
 	volatile int8_t succ;
 	static uint8_t updateCnt;
 
@@ -590,7 +601,8 @@ void FuelGaugeTask(void) {
 						// fuel gauge ic is not responsive or absent
 						if ( currentBatProfile != NULL ) {
 							// use direct NTC measurement
-							volatile uint16_t ntcAdcSample = ADC_GET_BUFFER_SAMPLE(ADC_NTC_CHN);
+							volatile uint16_t ntcAdcSample = ADC_GetAverageValue(ANALOG_CHANNEL_NTC);
+
 							if (ntcAdcSample<3000 && ntcAdcSample>5) { // sensor is connected
 								//volatile int32_t r = ntcAdcSample * (int32_t)240000 / (4096 - ntcAdcSample);
 								int32_t dr25 = ntcAdcSample * (int32_t)240000 / ((int16_t)4096 - ntcAdcSample)*10 / currentBatProfile->ntcResistance;

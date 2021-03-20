@@ -648,7 +648,7 @@ int main(void)
 	defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 #endif
 
-	AnalogInit();
+
 	LoadCurrentSenseInit();
 	BatteryInit();
 
@@ -1457,6 +1457,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;//GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : BGINT_Pin no pull (external circuit) */
+  GPIO_InitStruct.Pin = GPIO_PIN_1;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   //Configure GPIOB output pins
   GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_8;

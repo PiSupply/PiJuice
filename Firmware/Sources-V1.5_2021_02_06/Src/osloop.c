@@ -13,6 +13,7 @@
 
 #include "adc.h"
 #include "iodrv.h"
+#include "analog.h"
 
 // ----------------------------------------------------------------------------
 // Defines section - add all #defines here:
@@ -71,6 +72,7 @@ void OSLOOP_Init(void)
 
 	ADC_Init(sysTime);
 	IODRV_Init(sysTime);
+	ANALOG_Init(sysTime);
 
 	GPIO_InitTypeDef GPIO_InitStruct;
 
@@ -101,6 +103,7 @@ void OSLOOP_Service(void)
 
 	ADC_Service(sysTime);
 	IODRV_Service(sysTime);
+	ANALOG_Service(sysTime);
 
 	m_osloopTimeTrack[m_osloopTimeTrackIdx] = sysTime;
 	m_osloopTimeTrackIdx++;

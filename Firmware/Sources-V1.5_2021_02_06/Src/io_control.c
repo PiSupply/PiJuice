@@ -5,9 +5,12 @@
  *      Author: milan
  */
 #include "main.h"
-#include "stm32f0xx_hal.h"
+
+#include "system_conf.h"
 #include "analog.h"
 #include "nv.h"
+
+#include "io_control.h"
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim);
 
@@ -314,37 +317,48 @@ void IoWrite(uint8_t pin, uint8_t data[], uint8_t len)
 
 void IoRead(uint8_t pin, uint8_t data[], uint16_t *len)
 {
-	uint16_t val;
-	if (pin == 1) {
+	const uint16_t val = ANALOG_GetMv(ANALOG_CHANNEL_IO1);
+
+	if (pin == 1)
+	{
 		gpioInitStruct.Pin = GPIO_PIN_7;
 		htim = &htim14;
-	} else if (pin == 2) {
+	}
+	else if (pin == 2)
+	{
 		gpioInitStruct.Pin = GPIO_PIN_8;
 		htim = &htim1;
-	} else {
+	}
+	else
+	{
 		return;
 	}
 
-	switch (ioConfig[pin-1]&0x0F) {
-		case 1:
-			val = GetSampleVoltage(ADC_IO1_CHN);
-			data[0] = val&0xFF;
-			data[1] = (val >> 8) & 0xFF;
-			break;
-		case 2:
-			data[0] = HAL_GPIO_ReadPin(GPIOA, gpioInitStruct.Pin);
-			break;
-		case 3: case 4:
-			data[0] = HAL_GPIO_ReadPin(GPIOA, gpioInitStruct.Pin);
-			data[1] = (GPIOA->ODR & (uint32_t)gpioInitStruct.Pin) == (uint32_t)gpioInitStruct.Pin;
-			break;
-		case 5: case 6:
-			//val = htim->Instance->CCR1 == 65535 ? 65535 : (uint32_t)htim->Instance->CCR1 * 65535 / htim->Instance->ARR;
-			data[0] = pwmLevel[pin-1]&0xFF;
-			data[1] = (pwmLevel[pin-1] >> 8) & 0xFF;
-			break;
-		default:
-			break;
+	switch (ioConfig[pin-1] & 0x0Fu)
+	{
+	case 1:
+		data[0u] = (uint8_t)(val & 0xFFu);
+		data[1u] = (uint8_t)((val >> 8) & 0xFFu);
+		break;
+
+	case 2:
+		data[0u] = HAL_GPIO_ReadPin(GPIOA, gpioInitStruct.Pin);
+		break;
+
+	case 3:
+	case 4:
+		data[0u] = HAL_GPIO_ReadPin(GPIOA, gpioInitStruct.Pin);
+		data[1u] = (GPIOA->ODR & (uint32_t)gpioInitStruct.Pin) == (uint32_t)gpioInitStruct.Pin;
+		break;
+
+	case 5:
+	case 6:
+		data[0u] = pwmLevel[pin-1]&0xFF;
+		data[1u] = (pwmLevel[pin-1] >> 8) & 0xFF;
+		break;
+
+	default:
+		break;
 	}
 	*len = 2;
 }
