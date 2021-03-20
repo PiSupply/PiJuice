@@ -5,7 +5,7 @@
  *      Author: milan
  */
 
-
+#include "main.h"
 #include "battery.h"
 #include "nv.h"
 #include "charger_bq2416x.h"
@@ -14,6 +14,9 @@
 #include "power_source.h"
 #include "time_count.h"
 #include "led.h"
+
+#include "system_conf.h"
+#include "util.h"
 
 #define BATTERY_PROFILES_COUNT() ((sizeof(batteryProfiles)/sizeof(BatteryProfile_T)))
 #define PACK_CAPACITY_U16(c) 	((c==0xFFFFFFFF) ? 0xFFFF : (c >> ((c>=0x8000)*7)) | (c>=0x8000)*0x8000)
@@ -337,18 +340,21 @@ void BatInitProfile(uint8_t initPofileId) {
 	}
 }
 
-void BatteryInit(void) {
+void BatteryInit(void)
+{
 	uint16_t var;
 
 	EE_ReadVariable(BAT_PROFILE_NV_ADDR, &var);
-	if ( ((var^0xFF)&0xFF) != (var>>8) ) {//if (!NV_IS_DATA_INITIALIZED) {
-		EE_WriteVariable(BAT_PROFILE_NV_ADDR, 0x00FF);
-	}
 
-	EE_ReadVariable(BAT_PROFILE_NV_ADDR, &var);
-	if ( ((var^0xFF)&0xFF) == (var>>8) ) {
-		// if crc correct
-		BatInitProfile(var&0xFF);
+	if ( false == UTIL_NV_ParamInitCheck_U16(var) )
+	{
+		// Initialise to default
+		EE_WriteVariable(BAT_PROFILE_NV_ADDR, 0x00FFu);
+		BatInitProfile(0xFFu);
+	}
+	else
+	{
+		BatInitProfile((uint8_t)(var & 0xFFu));
 	}
 
 #if defined(RTOS_FREERTOS)

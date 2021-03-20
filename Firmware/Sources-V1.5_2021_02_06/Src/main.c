@@ -628,11 +628,6 @@ int main(void)
 		asm volatile ("nop");
 	}
 
-	while(1)
-	{
-		asm volatile ("nop");
-	}
-
 	if (!resetStatus) MS_TIME_COUNTER_INIT(lastHostCommandTimer);
 
 	MS_TIME_COUNTER_INIT(mainPollMsCounter);
@@ -656,6 +651,12 @@ int main(void)
 	AnalogInit();
 	LoadCurrentSenseInit();
 	BatteryInit();
+
+	while(1)
+	{
+		asm volatile ("nop");
+	}
+
 	if (executionState == EXECUTION_STATE_POWER_ON) {
 		HAL_Delay(100);  // after power-on, charger and fuel gauge requires initialization time
 		FuelGaugeIcPreInit();

@@ -5,12 +5,15 @@
  *      Author: milan
  */
 
+#include "main.h"
 
 #include "load_current_sense.h"
 #include "analog.h"
 #include "nv.h"
 #include "time_count.h"
 #include "power_source.h"
+
+#include "util.h"
 
 #if defined(RTOS_FREERTOS)
 #include "cmsis_os.h"
@@ -59,6 +62,8 @@ uint8_t pow5vIoResLoadCurrentStat[16];
 
 int16_t pow5vIoPMOSLoadCurrent = 0;
 int16_t pow5vIoResLoadCurrent = 0;
+
+bool ReadILoadCalibCoeffs(void);
 
 static float GetRefLoadCurrent() {
 	const uint16_t aVdd = GetAVDD();
@@ -183,26 +188,41 @@ void LoadCurrentSenseTask(void) {
 }
 #endif
 
-static int8_t ReadILoadCalibCoeffs(void) {
-	kta = 0; // invalid value
-	ktb = 0; // invalid value
+
+bool ReadILoadCalibCoeffs(void) {
+	kta = 0u; // invalid value
+	ktb = 0u; // invalid value
 	resLoadCurrCalib = 0;
 
 	uint16_t var;
 	EE_ReadVariable(VDG_ILOAD_CALIB_KTA_NV_ADDR, &var);
-	if ( (((~var)&0xFF) != (var>>8)) ) return 1;
-	kta = var&0xFF;
+
+	if (false == UTIL_NV_ParamInitCheck_U16(var))
+	{
+		return false;
+	}
+
+	kta = (uint8_t)(var&0xFFu);
 
 	EE_ReadVariable(VDG_ILOAD_CALIB_KTB_NV_ADDR, &var);
-	if ( (((~var)&0xFF) != (var>>8)) ) return 1;
-	ktb = var&0xFF;
+
+	if (false == UTIL_NV_ParamInitCheck_U16(var))
+	{
+		return false;
+	}
+
+	ktb = (uint8_t)(var&0xFFu);
 
 	EE_ReadVariable(RES_ILOAD_CALIB_ZERO_NV_ADDR, &var);
-	if ( (((~var)&0xFF) != (var>>8)) ) return 1;
-	//uint8_t c = var&0xFF;
-	resLoadCurrCalib = (int16_t)10 * ((int8_t)(var&0xFF));
 
-	return 0;
+	if (false == UTIL_NV_ParamInitCheck_U16(var))
+	{
+		return false;
+	}
+
+	resLoadCurrCalib = ((int8_t)(var&0xFF)) * 10u;
+
+	return true;
 }
 
 void LoadCurrentSenseInit(void) {
@@ -212,6 +232,8 @@ void LoadCurrentSenseInit(void) {
 #endif
 }
 
+
+// Return value not used.
 int8_t CalibrateLoadCurrent(void) {
 
 	resLoadCurrCalib = pow5vIoResLoadCurrent - 51;  // 5.1v/100ohm
@@ -221,7 +243,7 @@ int8_t CalibrateLoadCurrent(void) {
 	Power5VSetModeLDO();
 	DelayUs(10000);
 
-	float ktNorm = 0.0052 * mcuTemperature + 0.9376;
+	float ktNorm = 0.0052f * mcuTemperature + 0.9376f;
 	volatile float curr = GetRefLoadCurrent();
 	DelayUs(10000);
 	curr += GetRefLoadCurrent();
@@ -239,8 +261,8 @@ int8_t CalibrateLoadCurrent(void) {
 	curr += GetRefLoadCurrent();
 	//if ( curr > (4*52) || curr < (52/4) ) return 2;
 	float k12 = (float)52 * 8 / (curr * ktNorm); // = k / ktNorm;
-	kta = 0.0052 * k12 * 1024 * 8;
-	ktb = 0.9376 * k12 * 32;
+	kta = 0.0052f * k12 * 1024 * 8;
+	ktb = 0.9376f * k12 * 32;
 	EE_WriteVariable(VDG_ILOAD_CALIB_KTA_NV_ADDR, kta | ((uint16_t)~kta<<8));
 	EE_WriteVariable(VDG_ILOAD_CALIB_KTB_NV_ADDR, ktb | ((uint16_t)~ktb<<8));
 
@@ -248,7 +270,7 @@ int8_t CalibrateLoadCurrent(void) {
 	EE_WriteVariable(RES_ILOAD_CALIB_ZERO_NV_ADDR, c | ((uint16_t)~c<<8));
 	if (resLoadCurrCalib > 1250 || resLoadCurrCalib < -1250) return 2;
 
-	if ( ReadILoadCalibCoeffs() != 0 ) return 3;
+	if ( false == ReadILoadCalibCoeffs() ) return 3;
 
 	return 0;
 }
