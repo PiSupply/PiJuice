@@ -49,6 +49,7 @@
 #include "io_control.h"
 #include "execution.h"
 
+#include "osloop.h"
 #include "adc.h"
 
 #define OWN1_I2C_ADDRESS		0x14
@@ -619,11 +620,11 @@ int main(void)
 
 	HAL_InitTick(TICK_INT_PRIORITY);
 
-	ADC_Init(HAL_GetTick());
+	OSLOOP_Init();
 
 	while (1)
 	{
-		ADC_Service(HAL_GetTick());
+		asm volatile ("nop");
 	}
 
 	if (!resetStatus) MS_TIME_COUNTER_INIT(lastHostCommandTimer);
@@ -816,11 +817,11 @@ void SystemClock_Config(void)
 #if !defined(RTOS_FREERTOS)
     /**Configure the Systick interrupt time
     */
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/10);
+  //HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/10);
 
     /**Configure the Systick
     */
-  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
+  //HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
   /* SysTick_IRQn interrupt configuration */
   //HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);

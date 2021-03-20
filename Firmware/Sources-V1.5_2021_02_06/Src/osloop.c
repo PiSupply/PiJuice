@@ -14,7 +14,6 @@
 #include "adc.h"
 #include "iodrv.h"
 
-
 // ----------------------------------------------------------------------------
 // Defines section - add all #defines here:
 
@@ -26,6 +25,9 @@ void OSLOOP_Service(void);
 
 // ----------------------------------------------------------------------------
 // Variables that only have scope in this module:
+
+static volatile uint32_t m_osloopTimeTrack[100u];
+static uint32_t m_osloopTimeTrackIdx = 0u;
 
 // ----------------------------------------------------------------------------
 // Variables that have scope from outside this module:
@@ -70,6 +72,15 @@ void OSLOOP_Init(void)
 	ADC_Init(sysTime);
 	IODRV_Init(sysTime);
 
+	GPIO_InitTypeDef GPIO_InitStruct;
+
+	//Configure GPIOB output pins
+	GPIO_InitStruct.Pin = GPIO_PIN_14;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
 	/* Start the os timer */
 	TIMER_OSLOOP->CR1 |= TIM_CR1_CEN;
 	TIMER_OSLOOP->DIER |= TIM_IT_UPDATE;
@@ -90,6 +101,16 @@ void OSLOOP_Service(void)
 
 	ADC_Service(sysTime);
 	IODRV_Service(sysTime);
+
+	m_osloopTimeTrack[m_osloopTimeTrackIdx] = sysTime;
+	m_osloopTimeTrackIdx++;
+
+	if (100u == m_osloopTimeTrackIdx)
+	{
+		m_osloopTimeTrackIdx = 0u;
+
+		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);
+	}
 }
 
 
@@ -108,11 +129,11 @@ void OSLOOP_AtomicAccess(bool access)
 {
 	if (true == access)
 	{
-		TIMER_OSLOOP &= ~(TIM_IT_UPDATE);
+		TIMER_OSLOOP->DIER &= ~(TIM_IT_UPDATE);
 	}
 	else
 	{
-		TIMER_OSLOOP |= TIM_IT_UPDATE;
+		TIMER_OSLOOP->DIER |= TIM_IT_UPDATE;
 	}
 }
 

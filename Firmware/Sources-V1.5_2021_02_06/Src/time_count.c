@@ -105,6 +105,7 @@ void HAL_ResumeTick(void)
 }
 #else //if defined(RTOS_NORTOS)
 
+#ifdef USE_20MS_TICK_PERIOD
 HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 {
   /*Configure the SysTick to have interrupt in 1ms time basis*/
@@ -127,6 +128,7 @@ uint32_t HAL_GetTick(void)
 {
   return msTickCnt;
 }
+#endif /* USE_20MS_TICK_PERIOD */
 #endif
 void HAL_Delay(__IO uint32_t Delay)
 {
