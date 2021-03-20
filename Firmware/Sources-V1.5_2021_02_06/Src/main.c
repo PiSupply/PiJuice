@@ -723,40 +723,52 @@ int main(void)
 			__HAL_RTC_ALARM_CLEAR_FLAG(&hrtc, RTC_FLAG_ALRAF);
 		}
 		LedTask();
+
 		//if (MS_TIME_COUNT(mainPollMsCounter) > 98) {
 			ButtonTask();
 			LoadCurrentSenseTask();
 			PowerManagementTask();
 
 		//}
-		if ( (hi2c2.ErrorCode&(HAL_I2C_ERROR_TIMEOUT | HAL_I2C_ERROR_BERR | HAL_I2C_ERROR_ARLO)) || hi2c2.State != HAL_I2C_STATE_READY || hi2c2.XferCount) {
-			HAL_I2C_DeInit(&hi2c2);
-			MX_I2C2_Init();
-			chargerI2cErrorCounter = 1;
-		}
-		if (chargerI2cErrorCounter > 10) {
+
+		if ( (hi2c2.ErrorCode&(HAL_I2C_ERROR_TIMEOUT | HAL_I2C_ERROR_BERR | HAL_I2C_ERROR_ARLO)) || hi2c2.State != HAL_I2C_STATE_READY || hi2c2.XferCount)
+		{
 			HAL_I2C_DeInit(&hi2c2);
 			MX_I2C2_Init();
 			chargerI2cErrorCounter = 1;
 		}
 
-		if ( NEED_EVENT_POLL() ) {
+		if (chargerI2cErrorCounter > 10)
+		{
+			HAL_I2C_DeInit(&hi2c2);
+			MX_I2C2_Init();
+			chargerI2cErrorCounter = 1;
+		}
+
+		if ( NEED_EVENT_POLL() )
+		{
 			state = STATE_RUN;
-		} else if ( ((GetLoadCurrent() <= 50 ) || (Get5vIoVoltage() < 4600 && !POW_VSYS_OUTPUT_EN_STATUS()) )
-				&& MS_TIME_COUNT(lastHostCommandTimer) > 5000
-				&& MS_TIME_COUNT(lowPowerDealyTimer) >= 22
-				&& MS_TIME_COUNT(lastWakeupTimer) > 20000
+		}
+		else if ( ((ANALOG_Get5VRailMa() <= 50 ) || ( (ANALOG_Get5VRailMv() < 4600u) && (false == POW_VSYS_OUTPUT_EN_STATUS()) ) )
+				&& MS_TIME_COUNT(lastHostCommandTimer) > 5000u
+				&& MS_TIME_COUNT(lowPowerDealyTimer) >= 22u
+				&& MS_TIME_COUNT(lastWakeupTimer) > 20000u
 				&& chargerStatus == CHG_NO_VALID_SOURCE
 				&& !IsButtonActive()
-				) {
+				)
+		{
 			state = STATE_LOWPOWER;
-		} else {
+		}
+		else
+		{
 			state = STATE_NORMAL;
 		}
 
-		if ( extiFlag == 2 ) {
+		if ( extiFlag == 2 )
+		{
 			MS_TIME_COUNTER_INIT(lastHostCommandTimer);
 		}
+
 		extiFlag = 0;
 
 	    // Refresh IWDG: reload counter
@@ -935,39 +947,6 @@ static void MX_ADC_Init(void)
   /* USER CODE BEGIN ADC_Init 2 */
 
   /* USER CODE END ADC_Init 2 */
-
-}
-
-
-/* ADC init function */
-static void MX_ADC_Init_old(void)
-{
-
-    /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
-    */
-  hadc.Instance = ADC1;
-  hadc.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
-  hadc.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
-  hadc.Init.EOCSelection = ADC_EOC_SEQ_CONV;
-  hadc.Init.LowPowerAutoWait = DISABLE;
-  hadc.Init.LowPowerAutoPowerOff = DISABLE;
-  hadc.Init.ContinuousConvMode = ENABLE;
-  hadc.Init.DiscontinuousConvMode = DISABLE;
-  hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc.Init.DMAContinuousRequests = ENABLE;
-  hadc.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
-  if (HAL_ADC_Init(&hadc) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /* ### - 2 - Start calibration ############################################ */
-  if (HAL_ADCEx_Calibration_Start(&hadc) != HAL_OK)
-  {
-    Error_Handler();
-  }
 
 }
 

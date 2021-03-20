@@ -7,7 +7,7 @@
 
 #include "main.h"
 
-#include "load_current_sense.h"
+#include "adc.h"
 #include "analog.h"
 #include "nv.h"
 #include "time_count.h"
@@ -15,6 +15,8 @@
 
 #include "system_conf.h"
 #include "util.h"
+
+#include "load_current_sense.h"
 
 #if defined(RTOS_FREERTOS)
 #include "cmsis_os.h"
@@ -54,10 +56,9 @@ static const float c[ID_T_POLY_COEFF_LEN] = {-8.2299,-4.4796,-1.6241,0.4295,1.77
 static int16_t currBuffer[16] = {0};
 static uint8_t currBufferInd = 0;
 
-volatile static uint8_t kta;
-volatile static uint8_t ktb;
-
-volatile static int16_t resLoadCurrCalib = 0;
+static uint8_t m_kta;
+static uint8_t m_ktb;
+static int16_t m_resLoadCurrCalib = 0;
 
 uint8_t pow5vIoResLoadCurrentStat[16];
 
@@ -69,15 +70,17 @@ bool ReadILoadCalibCoeffs(void);
 static float GetRefLoadCurrent() {
 	const uint16_t aVdd = ANALOG_GetAVDDMv();
 	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
+	float result;
 
-	int32_t vdg = 4790 - ( (ANALOG_GetMv(ANALOG_CHANNEL_POW_DET) * aVdd) >> 11 );
+	int32_t vdg = 4790 - ( (ADC_GetAverageValue(ANALOG_CHANNEL_POW_DET) * aVdd) >> 11 );
 	//vdg *= vdgCalibCoeff * mcuTemperature;
 	//vdg >>= 10;
 	int16_t i = vdg >= ID_T_POLY_COEFF_VDG_START ? (vdg - ID_T_POLY_COEFF_VDG_START + ID_T_POLY_COEFF_VDG_INC / 2) / ID_T_POLY_COEFF_VDG_INC : 0;
 	i = i >= ID_T_POLY_COEFF_LEN ? ID_T_POLY_COEFF_LEN - 1 : i;
 
-	volatile float current = a[i] * mcuTemperature * mcuTemperature + b[i] * mcuTemperature + c[i];
-	return current > 0 ? current : 0;
+	result = a[i] * mcuTemperature * mcuTemperature + b[i] * mcuTemperature + c[i];
+
+	return result > 0 ? result : 0;
 }
 
 static int32_t GetResSenseCurrent(void) {
@@ -88,15 +91,15 @@ static int32_t GetResSenseCurrent(void) {
 int32_t GetLoadCurrent(void) {
 	if ( pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_NOT_PRESENT ) {
 		if ( POW_5V_BOOST_EN_STATUS() )  {
-			if ((pow5vIoResLoadCurrent - resLoadCurrCalib) < 800 && (pow5vIoResLoadCurrent - resLoadCurrCalib) > -300 )
+			if ((pow5vIoResLoadCurrent - m_resLoadCurrCalib) < 800 && (pow5vIoResLoadCurrent - m_resLoadCurrCalib) > -300 )
 				return pow5vIoPMOSLoadCurrent;
 			else
-				return pow5vIoResLoadCurrent - resLoadCurrCalib;
+				return pow5vIoResLoadCurrent - m_resLoadCurrCalib;
 		} else {
 			return 0;
 		}
 	} else {
-		return pow5vIoResLoadCurrent - resLoadCurrCalib;
+		return pow5vIoResLoadCurrent - m_resLoadCurrCalib;
 	}
 	//return ((currBuffer[0] + currBuffer[1] + currBuffer[2] + currBuffer[3] + currBuffer[4] + currBuffer[5] + currBuffer[6] + currBuffer[7]) >> 3) - resLoadCurrCalib;
 	/*uint8_t i;
@@ -113,13 +116,13 @@ int32_t GetLoadCurrent(void) {
 	}
 
 	return cnt ? sum / cnt - resLoadCurrCalib : pow5vIoResLoadCurrent - resLoadCurrCalib;*/
-	return pow5vIoResLoadCurrent - resLoadCurrCalib;
+	return pow5vIoResLoadCurrent - m_resLoadCurrCalib;
 }
 
 void MeasurePMOSLoadCurrent(void) {
 	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
 
-	pow5vIoPMOSLoadCurrent = ((kta * mcuTemperature + (((uint16_t)ktb) << 8) ) * ((int32_t)(GetRefLoadCurrent()+0.5))) >> 13; //ktNorm * k12 * refCurr
+	pow5vIoPMOSLoadCurrent = ((m_kta * mcuTemperature + (((uint16_t)m_ktb) << 8) ) * ((int32_t)(GetRefLoadCurrent()+0.5))) >> 13; //ktNorm * k12 * refCurr
 }
 
 void GetCurrStat(uint8_t stat[]) {
@@ -143,14 +146,18 @@ void LoadCurrentSenseTask(void *argument) {
 	}
 }
 #else
-void LoadCurrentSenseTask(void) {
-	if (AnalogSamplesReady()) {
+void LoadCurrentSenseTask(void)
+{
+	if (ANALOG_AnalogSamplesReady())
+	{
 		volatile int32_t newCurr = GetResSenseCurrent();
-		if (newCurr < 3000 && newCurr > -3000) {
+
+		if (newCurr < 3000 && newCurr > -3000)
+		{
 			uint8_t i = (currBufferInd++)&0x0F;
-			pow5vIoResLoadCurrent -= currBuffer[i] >> 4;
+			pow5vIoResLoadCurrent -= currBuffer[i] >> 4u;
 			currBuffer[i] = newCurr;
-			pow5vIoResLoadCurrent += currBuffer[i] >> 4;
+			pow5vIoResLoadCurrent += currBuffer[i] >> 4u;
 		}
 	}
 
@@ -184,10 +191,11 @@ void LoadCurrentSenseTask(void) {
 #endif
 
 
-bool ReadILoadCalibCoeffs(void) {
-	kta = 0u; // invalid value
-	ktb = 0u; // invalid value
-	resLoadCurrCalib = 0;
+bool ReadILoadCalibCoeffs(void)
+{
+	m_kta = 0u; // invalid value
+	m_ktb = 0u; // invalid value
+	m_resLoadCurrCalib = 0;
 
 	uint16_t var;
 	EE_ReadVariable(VDG_ILOAD_CALIB_KTA_NV_ADDR, &var);
@@ -197,7 +205,7 @@ bool ReadILoadCalibCoeffs(void) {
 		return false;
 	}
 
-	kta = (uint8_t)(var&0xFFu);
+	m_kta = (uint8_t)(var&0xFFu);
 
 	EE_ReadVariable(VDG_ILOAD_CALIB_KTB_NV_ADDR, &var);
 
@@ -206,7 +214,7 @@ bool ReadILoadCalibCoeffs(void) {
 		return false;
 	}
 
-	ktb = (uint8_t)(var&0xFFu);
+	m_ktb = (uint8_t)(var&0xFFu);
 
 	EE_ReadVariable(RES_ILOAD_CALIB_ZERO_NV_ADDR, &var);
 
@@ -215,7 +223,7 @@ bool ReadILoadCalibCoeffs(void) {
 		return false;
 	}
 
-	resLoadCurrCalib = ((int8_t)(var&0xFF)) * 10u;
+	m_resLoadCurrCalib = ((int8_t)(var&0xFF)) * 10u;
 
 	return true;
 }
@@ -233,7 +241,7 @@ int8_t CalibrateLoadCurrent(void) {
 
 	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
 
-	resLoadCurrCalib = pow5vIoResLoadCurrent - 51;  // 5.1v/100ohm
+	m_resLoadCurrCalib = pow5vIoResLoadCurrent - 51;  // 5.1v/100ohm
 
 	Turn5vBoost(1);
 	if (!POW_5V_BOOST_EN_STATUS()) return 1;
@@ -258,14 +266,18 @@ int8_t CalibrateLoadCurrent(void) {
 	curr += GetRefLoadCurrent();
 	//if ( curr > (4*52) || curr < (52/4) ) return 2;
 	float k12 = (float)52 * 8 / (curr * ktNorm); // = k / ktNorm;
-	kta = 0.0052f * k12 * 1024 * 8;
-	ktb = 0.9376f * k12 * 32;
-	EE_WriteVariable(VDG_ILOAD_CALIB_KTA_NV_ADDR, kta | ((uint16_t)~kta<<8));
-	EE_WriteVariable(VDG_ILOAD_CALIB_KTB_NV_ADDR, ktb | ((uint16_t)~ktb<<8));
+	m_kta = 0.0052f * k12 * 1024 * 8;
+	m_ktb = 0.9376f * k12 * 32;
 
-	uint8_t c = resLoadCurrCalib / 10;
+	EE_WriteVariable(VDG_ILOAD_CALIB_KTA_NV_ADDR, m_kta | ((uint16_t)~m_kta<<8));
+
+	EE_WriteVariable(VDG_ILOAD_CALIB_KTB_NV_ADDR, m_ktb | ((uint16_t)~m_ktb<<8));
+
+	uint8_t c = m_resLoadCurrCalib / 10u;
+
 	EE_WriteVariable(RES_ILOAD_CALIB_ZERO_NV_ADDR, c | ((uint16_t)~c<<8));
-	if (resLoadCurrCalib > 1250 || resLoadCurrCalib < -1250) return 2;
+
+	if (m_resLoadCurrCalib > 1250 || m_resLoadCurrCalib < -1250) return 2;
 
 	if ( false == ReadILoadCalibCoeffs() ) return 3;
 

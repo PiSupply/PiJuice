@@ -30,14 +30,18 @@ void AnalogTask(void);
 void AnalogStop(void);
 void AnalogStart(void);
 void AnalogPowerIsGood(void);
-void AnalogAdcWDGEnable(uint8_t enable);
 
+
+/*
 int16_t Get5vIoVoltage();
 uint8_t AnalogSamplesReady();
-HAL_StatusTypeDef AnalogAdcWDGConfig(uint8_t channel, uint16_t voltThresh_mV);
+
 uint16_t GetSampleVoltage(uint8_t channel);
 uint16_t GetAverageBatteryVoltage(void);
+*/
 
+void AnalogAdcWDGEnable(uint8_t enable);
+HAL_StatusTypeDef AnalogAdcWDGConfig(uint8_t channel, uint16_t voltThresh_mV);
 __STATIC_INLINE uint16_t GetAdcWDGThreshold() {
 	return analogWDGConfig.LowThreshold;
 }

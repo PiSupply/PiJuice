@@ -259,10 +259,10 @@ void PowerSourceInit(void) {
 #endif
 }
 
-void CheckMinimumPower(int16_t volt5) {
+void CheckMinimumPower(int16_t volt5)
+{
 	const uint16_t aVdd = ANALOG_GetAVDDMv();
 	uint16_t batVolt;
-
 	uint16_t samt;
 
 	if ( true == POW_5V_BOOST_EN_STATUS() )
