@@ -28,5 +28,6 @@ uint16_t IODRV_ReadPin(uint32_t pin);
 bool IODRV_SetPinType(uint32_t pin, IODRV_PinType_t newType);
 bool IODRV_WritePin(uint32_t pin, uint8_t newValue);
 bool IODRV_SetPin(uint32_t pin, uint8_t newValue);
+bool IODRV_SetPinPullDir(uint32_t pin, uint32_t pullDirection);
 
 #endif /* IODRV_H_ */

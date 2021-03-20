@@ -27,19 +27,21 @@
 typedef struct
 {
 	uint16_t 			value;
-	AVE_FILTER_U16_t	aveFilter;
+	uint8_t				debounceCounter;
+	uint32_t			lastDigitalChangeTime;
+	uint8_t				adcChannel;
 	IODRV_PinType_t		pinType;
-	uint16_t			gpioPin;
+	uint16_t			gpioPin_bm;
+	uint8_t				gpioPin_pos;
 	GPIO_TypeDef*		gpioPort;
-	uint8_t				gpioModer_pos;
-	uint32_t			gpioOTyper_bm;
+	bool				canConfigure;
 } IODRV_Pin_t;
 
 
 // ----------------------------------------------------------------------------
 // Function prototypes for functions that only have scope in this module:
 
-void IODRV_UpdatePins(void);
+void IODRV_UpdatePins(const uint32_t sysTime);
 
 
 // ----------------------------------------------------------------------------
@@ -49,19 +51,42 @@ void IODRV_UpdatePins(void);
 // ----------------------------------------------------------------------------
 // Variables that only have scope in this module:
 
-IODRV_Pin_t m_pins[] =
+IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 {
 		{
-				.gpioPin = IOPIN_1_GPIO_PIN,
-				.gpioPort = IOPIN_1_GPIO,
-				.gpioModer_pos = IOPIN_1_MODER_POS,
-				.gpioOTyper_bm = GPIO_OTYPER_OT_7
+				.adcChannel = IODRV_PIN_IO1_ADC_CHANNEL,
+				.gpioPin_bm = (1u << IODRV_PIN_IO1_GPIO_PIN_Pos),
+				.gpioPin_pos = IODRV_PIN_IO1_GPIO_PIN_Pos,
+				.gpioPort = IODRV_PIN_IO1_GPIO,
+				.canConfigure = true
 		},
 		{
-				.gpioPin = IOPIN_2_GPIO_PIN,
-				.gpioPort = IOPIN_2_GPIO,
-				.gpioModer_pos = IOPIN_2_MODER_POS,
-				.gpioOTyper_bm = GPIO_OTYPER_OT_8
+				.adcChannel = MAX_ANALOG_CHANNELS,
+				.gpioPin_bm = (1u << IODRV_PIN_IO2_GPIO_PIN_Pos),
+				.gpioPin_pos = IODRV_PIN_IO2_GPIO_PIN_Pos,
+				.gpioPort = IODRV_PIN_IO2_GPIO,
+				.canConfigure = true
+		},
+		{
+				.adcChannel = MAX_ANALOG_CHANNELS,
+				.gpioPin_bm = (1u << IODRV_PIN_SW1_GPIO_PIN_Pos),
+				.gpioPin_pos = IODRV_PIN_SW1_GPIO_PIN_Pos,
+				.gpioPort = IODRV_PIN_SW1_GPIO,
+				.canConfigure = false
+		},
+		{
+				.adcChannel = MAX_ANALOG_CHANNELS,
+				.gpioPin_bm = (1u << IODRV_PIN_SW2_GPIO_PIN_Pos),
+				.gpioPin_pos = IODRV_PIN_SW2_GPIO_PIN_Pos,
+				.gpioPort = IODRV_PIN_SW2_GPIO,
+				.canConfigure = false
+		},
+		{
+				.adcChannel = MAX_ANALOG_CHANNELS,
+				.gpioPin_bm = (1u << IODRV_PIN_SW3_GPIO_PIN_Pos),
+				.gpioPin_pos = IODRV_PIN_SW3_GPIO_PIN_Pos,
+				.gpioPort = IODRV_PIN_SW3_GPIO,
+				.canConfigure = false
 		}
 };
 
@@ -83,8 +108,12 @@ static uint32_t m_lastPinUpdateTime;
 // ****************************************************************************
 void IODRV_Init(uint32_t sysTime)
 {
-	AVE_FILTER_U16_Reset(&m_pins[IOPIN_1].aveFilter);
-	AVE_FILTER_U16_Reset(&m_pins[IOPIN_2].aveFilter);
+	uint8_t i;
+
+	for (i = 0u; i < IODRV_MAX_IO_PINS; i++)
+	{
+		m_pins[i].value = 0u;
+	}
 
 	MS_TIMEREF_INIT(m_lastPinUpdateTime, sysTime);
 }
@@ -102,7 +131,7 @@ void IODRV_Service(uint32_t sysTime)
 {
 	if (MS_TIMEREF_TIMEOUT(m_lastPinUpdateTime, sysTime, IODRV_PIN_UPDATE_PERIOD_MS))
 	{
-		IODRV_UpdatePins();
+		IODRV_UpdatePins(sysTime);
 	}
 }
 
@@ -119,7 +148,7 @@ void IODRV_Service(uint32_t sysTime)
 // ****************************************************************************
 uint16_t IODRV_ReadPinValue(uint32_t pin)
 {
-	if ( pin >= MAX_IO_PINS )
+	if ( pin >= IODRV_MAX_IO_PINS )
 	{
 		return 0u;
 	}
@@ -139,12 +168,12 @@ uint16_t IODRV_ReadPinValue(uint32_t pin)
 // ****************************************************************************
 uint8_t IODRV_ReadPinOutputState(uint32_t pin)
 {
-	if ( pin >= MAX_IO_PINS )
+	if ( pin >= IODRV_MAX_IO_PINS )
 	{
 		return 0u;
 	}
 
-	return (m_pins[pin].gpioPort->ODR & m_pins[pin].gpioPin) != 0u;
+	return (m_pins[pin].gpioPort->ODR & m_pins[pin].gpioPin_bm) != 0u;
 }
 
 
@@ -182,12 +211,12 @@ bool IODRV_WritePin(uint32_t pin, uint8_t newValue)
 // ****************************************************************************
 bool IODRV_SetPin(uint32_t pin, uint8_t newValue)
 {
-	if ( (pin >= MAX_IO_PINS) || ((newValue != GPIO_PIN_RESET) || newValue != GPIO_PIN_SET) )
+	if ( (pin >= IODRV_MAX_IO_PINS) || ((newValue != GPIO_PIN_RESET) || newValue != GPIO_PIN_SET) )
 	{
 		return false;
 	}
 
-	HAL_GPIO_WritePin(m_pins[pin].gpioPort, m_pins[pin].gpioPin, newValue);
+	HAL_GPIO_WritePin(m_pins[pin].gpioPort, m_pins[pin].gpioPin_bm, newValue);
 
 	return true;
 }
@@ -206,40 +235,68 @@ bool IODRV_SetPin(uint32_t pin, uint8_t newValue)
 // ****************************************************************************
 bool IODRV_SetPinType(uint32_t pin, IODRV_PinType_t newType)
 {
-	bool result = false;
+	const uint32_t otyper_bm = (1u << m_pins[pin].gpioPin_pos);
+	const uint32_t moder_pos = (m_pins[pin].gpioPin_pos * 2u);
 
-	if ( pin >= MAX_IO_PINS )
+	if ( (pin >= IODRV_MAX_IO_PINS) || (false == m_pins[pin].canConfigure) )
 	{
 		return false;
 	}
 
-	m_pins[pin].gpioPort->MODER &= ~(3u << m_pins[pin].gpioModer_pos);
-	m_pins[pin].gpioPort->OTYPER &= ~m_pins[pin].gpioOTyper_bm;
+	m_pins[pin].gpioPort->MODER &= ~(3u << moder_pos);
+	m_pins[pin].gpioPort->OTYPER &= ~(otyper_bm);
 
 	switch (newType)
 	{
 	case IOTYPE_DIGOUT_OPENDRAIN:
-		m_pins[pin].gpioPort->OTYPER |= m_pins[pin].gpioOTyper_bm;
+		m_pins[pin].gpioPort->OTYPER |= otyper_bm;
 	case IOTYPE_DIGOUT_PUSHPULL:
-		m_pins[pin].gpioPort->MODER |= (PINMODE_OUTPUT << m_pins[pin].gpioModer_pos);
+		m_pins[pin].gpioPort->MODER |= (PINMODE_OUTPUT << moder_pos);
 		break;
 
 	case IOTYPE_PWM_OPENDRAIN:
-		m_pins[pin].gpioPort->OTYPER |= m_pins[pin].gpioOTyper_bm;
+		m_pins[pin].gpioPort->OTYPER |= otyper_bm;
 	case IOTYPE_PWM_PUSHPULL:
-		m_pins[pin].gpioPort->MODER |= (PINMODE_ALTERNATE << m_pins[pin].gpioModer_pos);
+		m_pins[pin].gpioPort->MODER |= (PINMODE_ALTERNATE << moder_pos);
 		break;
 
 	case IOTYPE_ANALOG:
-		m_pins[pin].gpioPort->MODER |= (PINMODE_ANALOG << m_pins[pin].gpioModer_pos);
+		m_pins[pin].gpioPort->MODER |= (PINMODE_ANALOG << moder_pos);
 		break;
 
 	default:
 		break;
 	}
 
-	return result;
+	return true;
 
+}
+
+
+// ****************************************************************************
+/*!
+ * IODRV_SetPinPullDir sets the required pull direction for the io pin, this can be
+ * up, down or none.
+ *
+ * @param	pin				index of the pin that is required to be set
+ * @param	pullDirection	direction the pin is to be pulled:
+ * 							GPIO_NOPULL, GPIO_PULLUP, GPIO_PULLDOWN
+ * @retval	bool			true if the pin has been set
+ */
+// ****************************************************************************
+bool IODRV_SetPinPullDir(uint32_t pin, uint32_t pullDirection)
+{
+	const uint32_t pupdr_pos = (m_pins[pin].gpioPin_pos * 2u);
+
+	if ( (pin >= IODRV_MAX_IO_PINS) || (false == m_pins[pin].canConfigure) || (pullDirection > 2u))
+	{
+		return false;
+	}
+
+	m_pins[pin].gpioPort->PUPDR &= ~(3u << pupdr_pos);
+	m_pins[pin].gpioPort->PUPDR |= (pullDirection << pupdr_pos);
+
+	return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -255,17 +312,17 @@ bool IODRV_SetPinType(uint32_t pin, IODRV_PinType_t newType)
  * @retval	none
  */
 // ****************************************************************************
-void IODRV_UpdatePins(void)
+void IODRV_UpdatePins(const uint32_t sysTime)
 {
 	uint8_t pin;
-	uint16_t value;
+	uint16_t value = 0u;
 
-	for (pin = 0u; pin < MAX_IO_PINS; pin++)
+	for (pin = 0u; pin < IODRV_MAX_IO_PINS; pin++)
 	{
 		if (m_pins[pin].pinType == IOTYPE_ANALOG)
 		{
-			// Read analog pin value
-			value = ADC_GetAverageValue(IOPIN_1_ADC_CHANNEL);
+			// Read analog pin value, will be 0 if not connected to the ADC
+			value = ADC_GetAverageValue(m_pins[pin].adcChannel);
 		}
 		else if ((m_pins[pin].pinType == IOTYPE_PWM_PUSHPULL) || (m_pins[pin].pinType == IOTYPE_PWM_OPENDRAIN))
 		{
@@ -273,8 +330,32 @@ void IODRV_UpdatePins(void)
 		}
 		else
 		{
-			AVE_FILTER_U16_Update(&m_pins[pin].aveFilter, HAL_GPIO_ReadPin(m_pins[pin].gpioPort, m_pins[pin].gpioPin));
-			value = m_pins[pin].aveFilter.average;
+			if (GPIO_PIN_SET == HAL_GPIO_ReadPin(m_pins[pin].gpioPort, m_pins[pin].gpioPin_bm))
+			{
+				if (m_pins[pin].debounceCounter < IODRV_PIN_DEBOUNCE_COUNT)
+				{
+					m_pins[pin].debounceCounter++;
+				}
+				else if (m_pins[pin].value != GPIO_PIN_SET)
+				{
+					/* log the change time */
+					m_pins[pin].lastDigitalChangeTime = sysTime;
+					m_pins[pin].value = GPIO_PIN_SET;
+				}
+			}
+			else
+			{
+				if (m_pins[pin].debounceCounter > 0u)
+				{
+					m_pins[pin].debounceCounter--;
+				}
+				else if (m_pins[pin].value != GPIO_PIN_RESET)
+				{
+					/* log the change time */
+					m_pins[pin].lastDigitalChangeTime = sysTime;
+					m_pins[pin].value = GPIO_PIN_RESET;
+				}
+			}
 		}
 
 		m_pins[pin].value = value;

@@ -137,6 +137,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/nv.h</locationURI>
 		</link>
 		<link>
+			<name>Inc/osloop.h</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/osloop.h</location>
+		</link>
+		<link>
 			<name>Inc/power_management.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/power_management.h</locationURI>
@@ -270,6 +275,11 @@
 			<name>Src/nv.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Src/nv.c</locationURI>
+		</link>
+		<link>
+			<name>Src/osloop.c</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Src/osloop.c</location>
 		</link>
 		<link>
 			<name>Src/power_management.c</name>
