@@ -15,95 +15,62 @@
 
 #include "button.h"
 
-#if defined(RTOS_FREERTOS)
-#include "cmsis_os.h"
-
-static void ButtonTask(void *argument);
-
-static osThreadId_t buttonTaskHandle;
-
-static const osThreadAttr_t buttonTask_attributes = {
-	.name = "buttonTask",
-	.priority = (osPriority_t) osPriorityNormal,
-	.stack_size = 256
-};
-#endif
-
-typedef struct
-{
-	ButtonFunction_T pressFunc;
-	uint16_t pressConfig; // reserved
-	ButtonFunction_T releaseFunc;
-	uint16_t releaseConfig; // reserved
-	ButtonFunction_T singlePressFunc;
-	uint16_t singlePressTime; // 0- reserved, 1 - 255  time
-	ButtonFunction_T doublePressFunc;
-	uint16_t doublePressTime; // 0- reserved, 1 - 255  time
-	ButtonFunction_T longPressFunc1;
-	uint16_t longPressTime1;
-	ButtonFunction_T longPressFunc2;
-	uint16_t longPressTime2;
-	GPIO_PinState state; // current press state, GPIO_PIN_RESET for release, GPIO_PIN_SET for press
-	ButtonEvent_T event;
-	ButtonEvent_T tempEvent;
-	uint32_t pressTimer;
-	uint8_t staticLongPressEvent;
-	const IODRV_Pin_t * p_pinInfo;
-	uint8_t pressCount;
-} Button_T;
 
 static Button_T m_buttons[3u] =
 {
 	{ // sw1
-		BUTTON_EVENT_NO_FUNC,
-		0u,
-		BUTTON_EVENT_NO_FUNC,
-		0u,
-		BUTTON_EVENT_FUNC_POWER_ON,
-		800u,
-		BUTTON_EVENT_NO_FUNC,
-		0u,
-		BUTTON_EVENT_FUNC_SYS_EVENT| 1u,
-		10000u,
-		BUTTON_EVENT_FUNC_POWER_OFF,
-		20000u
+		.pressFunc = BUTTON_EVENT_NO_FUNC,
+		.pressConfig = 0u,
+		.releaseFunc = BUTTON_EVENT_NO_FUNC,
+		.releaseConfig = 0u,
+		.singlePressFunc = BUTTON_EVENT_FUNC_POWER_ON,
+		.singlePressTime = 800u,
+		.doublePressFunc = BUTTON_EVENT_NO_FUNC,
+		.doublePressTime = 0u,
+		.longPressFunc1 = (BUTTON_EVENT_FUNC_SYS_EVENT| 1u),
+		.longPressTime1 = 10000u,
+		.longPressFunc2 = BUTTON_EVENT_FUNC_POWER_OFF,
+		.longPressTime2 = 20000u,
+		.index = 0u
 	},
 	{ // sw2
-		BUTTON_EVENT_NO_FUNC,
-		0u,
-		BUTTON_EVENT_NO_FUNC,
-		0u,
-		BUTTON_EVENT_FUNC_USER_EVENT | 1u,
-		400u,
-		BUTTON_EVENT_FUNC_USER_EVENT | 2u,
-		600u,
-		BUTTON_EVENT_NO_FUNC,
-		0u,
-		BUTTON_EVENT_NO_FUNC,
-		0u
+		.pressFunc = BUTTON_EVENT_NO_FUNC,
+		.pressConfig = 0u,
+		.releaseFunc = BUTTON_EVENT_NO_FUNC,
+		.releaseConfig = 0u,
+		.singlePressFunc = (BUTTON_EVENT_FUNC_USER_EVENT | 1u),
+		.singlePressTime = 400u,
+		.doublePressFunc = (BUTTON_EVENT_FUNC_USER_EVENT | 2u),
+		.doublePressTime = 600u,
+		.longPressFunc1 = BUTTON_EVENT_NO_FUNC,
+		.longPressTime1 = 0u,
+		.longPressFunc2 = BUTTON_EVENT_NO_FUNC,
+		.longPressTime2 = 0u,
+		.index = 1u
 	},
 	{ // sw3
-		BUTTON_EVENT_FUNC_USER_EVENT | 3u,
-		0u,
-		BUTTON_EVENT_FUNC_USER_EVENT | 4u,
-		0u,
-		BUTTON_EVENT_FUNC_USER_EVENT | 5u,
-		1000u,
-		BUTTON_EVENT_FUNC_USER_EVENT | 6u,
-		1500u,
-		BUTTON_EVENT_FUNC_USER_EVENT | 7u,
-		5000u,
-		BUTTON_EVENT_FUNC_USER_EVENT | 8u,
-		10000u
+		.pressFunc = (BUTTON_EVENT_FUNC_USER_EVENT | 3u),
+		.pressConfig = 0u,
+		.releaseFunc = (BUTTON_EVENT_FUNC_USER_EVENT | 4u),
+		.releaseConfig = 0u,
+		.singlePressFunc = (BUTTON_EVENT_FUNC_USER_EVENT | 5u),
+		.singlePressTime = 1000u,
+		.doublePressFunc = (BUTTON_EVENT_FUNC_USER_EVENT | 6u),
+		.doublePressTime = 1500u,
+		.longPressFunc1 = (BUTTON_EVENT_FUNC_USER_EVENT | 7u),
+		.longPressTime1 = 5000u,
+		.longPressFunc2 = (BUTTON_EVENT_FUNC_USER_EVENT | 8u),
+		.longPressTime2 = 10000u,
+		.index = 2u
 	}
 };
 
-static ButtonEventCb_T buttonEventCbs[BUTTON_EVENT_FUNC_NUMBER] =
+static ButtonEventCb_T m_buttonEventCallbacks[BUTTON_EVENT_FUNC_COUNT] =
 {
 	NULL, // BUTTON_EVENT_NO_FUNC
-	PowerOnButtonEventCb, // BUTTON_EVENT_FUNC_POWER_ON
-	PowerOffButtonEventCb, // BUTTON_EVENT_FUNC_POWER_OFF
-	ButtonEventFuncPowerResetCb, // BUTTON_EVENT_FUNC_POWER_RESET
+	BUTTON_PowerOnEventCb, // BUTTON_EVENT_FUNC_POWER_ON
+	BUTTON_PowerOffEventCb, // BUTTON_EVENT_FUNC_POWER_OFF
+	BUTTON_PowerResetEventCb, // BUTTON_EVENT_FUNC_POWER_RESET
 };
 
 static int8_t m_writebuttonConfigData = -1;
@@ -118,30 +85,60 @@ static void BUTTON_SetConfigData(Button_T * const p_button, const uint8_t pinref
 static bool BUTTON_ReadConfigurationNv(const uint8_t buttonIndex);
 
 
-static ButtonFunction_T BUTTON_GetEventFunc(Button_T * const p_button)
+void BUTTON_Init(void)
 {
-	switch (p_button->event)
+	if ( true == BUTTON_ReadConfigurationNv(0u) )
 	{
-	case BUTTON_EVENT_PRESS:
-		return p_button->pressFunc;
+		BUTTON_SetConfigData(&m_buttons[0u], IODRV_PIN_SW1);
+	}
 
-	case BUTTON_EVENT_RELEASE:
-		return p_button->releaseFunc;
+	if ( true == BUTTON_ReadConfigurationNv(1u) )
+	{
+		BUTTON_SetConfigData(&m_buttons[1u], IODRV_PIN_SW2);
+	}
 
-	case BUTTON_EVENT_SINGLE_PRESS:
-		return p_button->singlePressFunc;
+	if ( true == BUTTON_ReadConfigurationNv(2u) )
+	{
+		BUTTON_SetConfigData(&m_buttons[2u], IODRV_PIN_SW3);
+	}
+}
 
-	case BUTTON_EVENT_DOUBLE_PRESS:
-		return p_button->doublePressFunc;
 
-	case BUTTON_EVENT_LONG_PRESS1:
-		return p_button->longPressFunc1;
+void BUTTON_Task(void)
+{
+	const uint32_t sysTime = HAL_GetTick();
+	const uint8_t oldDualLongPressStatus = m_buttons[0u].staticLongPressEvent && m_buttons[1u].staticLongPressEvent;
 
-	case BUTTON_EVENT_LONG_PRESS2:
-		return p_button->longPressFunc2;
+	BUTTON_ProcessButton(&m_buttons[0u], sysTime); // sw1
+	BUTTON_ProcessButton(&m_buttons[1u], sysTime); // sw2
+	BUTTON_ProcessButton(&m_buttons[2u], sysTime); // sw3
 
-	default:
-		return BUTTON_EVENT_NO_FUNC;
+	// Check to see if both buttons SW1 and SW2 have been held down at the same time
+	if ((m_buttons[0u].staticLongPressEvent && m_buttons[1u].staticLongPressEvent) > oldDualLongPressStatus)
+	{
+		BUTTON_DualLongPressEventCb();
+	}
+
+	if (m_writebuttonConfigData >= 0)
+	{
+		uint8_t nvOffset = m_writebuttonConfigData * (BUTTON_PRESS_FUNC_SW2 - BUTTON_PRESS_FUNC_SW1) + BUTTON_PRESS_FUNC_SW1;
+		EE_WriteVariable(nvOffset, m_buttonConfigData.pressFunc | ((uint16_t)(~m_buttonConfigData.pressFunc)<<8u));
+		EE_WriteVariable(nvOffset + 2u, m_buttonConfigData.releaseFunc | ((uint16_t)(~m_buttonConfigData.releaseFunc)<<8u));
+		EE_WriteVariable(nvOffset + 4u, m_buttonConfigData.singlePressFunc | ((uint16_t)(~m_buttonConfigData.singlePressFunc)<<8u));
+		EE_WriteVariable(nvOffset + 5u, m_buttonConfigData.singlePressTime | ((uint16_t)(~m_buttonConfigData.singlePressTime)<<8u));
+		EE_WriteVariable(nvOffset + 6u, m_buttonConfigData.doublePressFunc | ((uint16_t)(~m_buttonConfigData.doublePressFunc)<<8u));
+		EE_WriteVariable(nvOffset + 7u, m_buttonConfigData.doublePressTime | ((uint16_t)(~m_buttonConfigData.doublePressTime)<<8u));
+		EE_WriteVariable(nvOffset + 8u, m_buttonConfigData.longPressFunc1 | ((uint16_t)(~m_buttonConfigData.longPressFunc1)<<8u));
+		EE_WriteVariable(nvOffset + 9u, m_buttonConfigData.longPressTime1 | ((uint16_t)(~m_buttonConfigData.longPressTime1)<<8u));
+		EE_WriteVariable(nvOffset + 10u, m_buttonConfigData.longPressFunc2 | ((uint16_t)(~m_buttonConfigData.longPressFunc2)<<8u));
+		EE_WriteVariable(nvOffset + 11u, m_buttonConfigData.longPressTime2 | ((uint16_t)(~m_buttonConfigData.longPressTime2)<<8u));
+
+		if ( true == BUTTON_ReadConfigurationNv(m_writebuttonConfigData) )
+		{
+			BUTTON_UpdateConfigData(&m_buttons[m_writebuttonConfigData], &m_buttonConfigData);
+		}
+
+		m_writebuttonConfigData = -1;
 	}
 }
 
@@ -181,7 +178,6 @@ void BUTTON_ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 
 	ButtonEvent_T oldEv = p_button->event;
 	ButtonFunction_T func;
-	uint8_t i;
 
 	// Copy value to ensure compatibility
 	p_button->state = p_button->p_pinInfo->value;
@@ -262,19 +258,90 @@ void BUTTON_ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 	{
 	    func = BUTTON_GetEventFunc(p_button);
 
-		if ( func < BUTTON_EVENT_FUNC_NUMBER && buttonEventCbs[func] != NULL )
+		if ( (func < BUTTON_EVENT_FUNC_COUNT) && (m_buttonEventCallbacks[func] != NULL) )
 		{
-			// Hack to get button index for now.
-			i = 0u;
-
-			while( (i < 3u) && (&m_buttons[i] != p_button) )
-			{
-				i++;
-			}
-
-			//buttonEventCbs[func](i, p_button->event);
+			m_buttonEventCallbacks[func](p_button);
 		}
 	}
+}
+
+
+ButtonEvent_T BUTTON_GetButtonEvent(const uint8_t buttonIndex)
+{
+	return (buttonIndex < BUTTON_MAX_BUTTONS) ? m_buttons[buttonIndex].event : BUTTON_EVENT_NONE;
+}
+
+
+void BUTTON_ClearEvent(const uint8_t buttonIndex)
+{
+	if (buttonIndex < BUTTON_MAX_BUTTONS)
+	{
+		m_buttons[buttonIndex].event = BUTTON_EVENT_NONE;
+	}
+}
+
+
+bool BUTTON_IsEventActive(void)
+{
+	return (BUTTON_EVENT_NONE != m_buttons[0].event) || (BUTTON_EVENT_NONE != m_buttons[1].event) || (BUTTON_EVENT_NONE != m_buttons[2].event);
+}
+
+
+bool BUTTON_IsButtonActive(void)
+{
+	return (GPIO_PIN_SET == m_buttons[0u].state) || (GPIO_PIN_SET ==  m_buttons[1].state) || (GPIO_PIN_SET == m_buttons[2].state);
+}
+
+
+void BUTTON_SetConfiguarion(const uint8_t buttonIndex, const uint8_t * const data, const uint8_t len)
+{
+	if (buttonIndex > BUTTON_MAX_BUTTONS)
+	{
+		return;
+	}
+
+	m_buttonConfigData.pressFunc = (ButtonFunction_T)data[0u];
+	m_buttonConfigData.pressConfig = data[1u];
+	m_buttonConfigData.releaseFunc = (ButtonFunction_T)data[2u];
+	m_buttonConfigData.releaseConfig = data[3u];
+	m_buttonConfigData.singlePressFunc = (ButtonFunction_T)data[4u];
+	m_buttonConfigData.singlePressTime = data[5u];
+	m_buttonConfigData.doublePressFunc = (ButtonFunction_T)data[6u];
+	m_buttonConfigData.doublePressTime = data[7u];
+	m_buttonConfigData.longPressFunc1 = (ButtonFunction_T)data[8u];
+	m_buttonConfigData.longPressTime1 = data[9u];
+	m_buttonConfigData.longPressFunc2 = (ButtonFunction_T)data[10u];
+	m_buttonConfigData.longPressTime2 = data[11u];
+
+	m_writebuttonConfigData = buttonIndex;
+}
+
+
+bool BUTTON_GetConfiguarion(const uint8_t buttonIndex, uint8_t * const data, uint16_t * const len)
+{
+	if (buttonIndex < BUTTON_MAX_BUTTONS)
+	{
+		return false;
+	}
+
+	const Button_T* p_button = &m_buttons[buttonIndex];
+
+	data[0] = (uint8_t)p_button->pressFunc;
+	data[1] = (uint8_t)p_button->pressConfig;
+	data[2] = (uint8_t)p_button->releaseFunc;
+	data[3] = (uint8_t)p_button->releaseConfig;
+	data[4] = (uint8_t)p_button->singlePressFunc;
+	data[5] = (uint8_t)(p_button->singlePressTime / 100u);
+	data[6] = (uint8_t)p_button->doublePressFunc;
+	data[7] = (uint8_t)(p_button->doublePressTime / 100u);
+	data[8] = (uint8_t)p_button->longPressFunc1;
+	data[9] = (uint8_t)(p_button->longPressTime1 / 100u);
+	data[10] = (uint8_t)p_button->longPressFunc2;
+	data[11] = (uint8_t)(p_button->longPressTime2 / 100u);
+
+	*len = 12u;
+
+	return true;
 }
 
 
@@ -353,184 +420,50 @@ static void BUTTON_UpdateConfigData(Button_T * const p_button, const Button_T * 
 }
 
 
-void BUTTON_Init(void)
+static ButtonFunction_T BUTTON_GetEventFunc(Button_T * const p_button)
 {
-	if ( true == BUTTON_ReadConfigurationNv(0u) )
+	switch (p_button->event)
 	{
-		BUTTON_SetConfigData(&m_buttons[0u], IODRV_PIN_SW1);
-	}
+	case BUTTON_EVENT_PRESS:
+		return p_button->pressFunc;
 
-	if ( true == BUTTON_ReadConfigurationNv(1u) )
-	{
-		BUTTON_SetConfigData(&m_buttons[1u], IODRV_PIN_SW2);
-	}
+	case BUTTON_EVENT_RELEASE:
+		return p_button->releaseFunc;
 
-	if ( true == BUTTON_ReadConfigurationNv(2u) )
-	{
-		BUTTON_SetConfigData(&m_buttons[2u], IODRV_PIN_SW3);
+	case BUTTON_EVENT_SINGLE_PRESS:
+		return p_button->singlePressFunc;
+
+	case BUTTON_EVENT_DOUBLE_PRESS:
+		return p_button->doublePressFunc;
+
+	case BUTTON_EVENT_LONG_PRESS1:
+		return p_button->longPressFunc1;
+
+	case BUTTON_EVENT_LONG_PRESS2:
+		return p_button->longPressFunc2;
+
+	default:
+		return BUTTON_EVENT_NO_FUNC;
 	}
-#if defined(RTOS_FREERTOS)
-	buttonTaskHandle = osThreadNew(ButtonTask, (void*)NULL, &buttonTask_attributes);
-#endif
 }
 
 
-bool BUTTON_IsButtonActive(void)
+__weak void BUTTON_PowerOnEventCb(const Button_T * const p_button)
 {
-	return (GPIO_PIN_SET == m_buttons[0u].state) || (GPIO_PIN_SET ==  m_buttons[1].state) || (GPIO_PIN_SET == m_buttons[2].state);
+	UNUSED(p_button);
 }
 
-
-#if defined(RTOS_FREERTOS)
-static void ButtonTask(void *argument) {
-  for(;;)
-  {
-	uint8_t oldDualLongPressStatus = buttons[0].staticLongPressEvent && buttons[1].staticLongPressEvent;
-
-	ProcessButton(0, HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13)); // sw1
-
-	ProcessButton(1, HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12)); // sw2
-
-	ProcessButton(2, HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_2)); // sw3
-
-	if ((buttons[0].staticLongPressEvent && buttons[1].staticLongPressEvent) > oldDualLongPressStatus) ButtonDualLongPressEventCb();
-
-	if (writebuttonConfigData >= 0) {
-		uint8_t nvOffset = writebuttonConfigData * (BUTTON_PRESS_FUNC_SW2 - BUTTON_PRESS_FUNC_SW1) + BUTTON_PRESS_FUNC_SW1;
-		EE_WriteVariable(nvOffset, buttonConfigData.pressFunc | ((uint16_t)(~buttonConfigData.pressFunc)<<8));
-		EE_WriteVariable(nvOffset + 2, buttonConfigData.releaseFunc | ((uint16_t)(~buttonConfigData.releaseFunc)<<8));
-		EE_WriteVariable(nvOffset + 4, buttonConfigData.singlePressFunc | ((uint16_t)(~buttonConfigData.singlePressFunc)<<8));
-		EE_WriteVariable(nvOffset + 5, buttonConfigData.singlePressTime | ((uint16_t)(~buttonConfigData.singlePressTime)<<8));
-		EE_WriteVariable(nvOffset + 6, buttonConfigData.doublePressFunc | ((uint16_t)(~buttonConfigData.doublePressFunc)<<8));
-		EE_WriteVariable(nvOffset + 7, buttonConfigData.doublePressTime | ((uint16_t)(~buttonConfigData.doublePressTime)<<8));
-		EE_WriteVariable(nvOffset + 8, buttonConfigData.longPressFunc1 | ((uint16_t)(~buttonConfigData.longPressFunc1)<<8));
-		EE_WriteVariable(nvOffset + 9, buttonConfigData.longPressTime1 | ((uint16_t)(~buttonConfigData.longPressTime1)<<8));
-		EE_WriteVariable(nvOffset + 10, buttonConfigData.longPressFunc2 | ((uint16_t)(~buttonConfigData.longPressFunc2)<<8));
-		EE_WriteVariable(nvOffset + 11, buttonConfigData.longPressTime2 | ((uint16_t)(~buttonConfigData.longPressTime2)<<8));
-
-		if ( ButtonReadConfigurationNv(writebuttonConfigData) == 0 ) {
-			ButtonSetConfigData(writebuttonConfigData);
-		}
-		writebuttonConfigData = -1;
-	}
-
-	osDelay(20);
-  }
-}
-#else
-void ButtonTask(void) {
-
-	const uint32_t sysTime = HAL_GetTick();
-	const uint8_t oldDualLongPressStatus = m_buttons[0u].staticLongPressEvent && m_buttons[1u].staticLongPressEvent;
-
-	BUTTON_ProcessButton(&m_buttons[0u], sysTime); // sw1
-	BUTTON_ProcessButton(&m_buttons[1u], sysTime); // sw2
-	BUTTON_ProcessButton(&m_buttons[2u], sysTime); // sw3
-
-	// Check to see if both buttons SW1 and SW2 have been held down at the same time
-	if ((m_buttons[0u].staticLongPressEvent && m_buttons[1u].staticLongPressEvent) > oldDualLongPressStatus) ButtonDualLongPressEventCb();
-
-	if (m_writebuttonConfigData >= 0) {
-		uint8_t nvOffset = m_writebuttonConfigData * (BUTTON_PRESS_FUNC_SW2 - BUTTON_PRESS_FUNC_SW1) + BUTTON_PRESS_FUNC_SW1;
-		EE_WriteVariable(nvOffset, m_buttonConfigData.pressFunc | ((uint16_t)(~m_buttonConfigData.pressFunc)<<8u));
-		EE_WriteVariable(nvOffset + 2u, m_buttonConfigData.releaseFunc | ((uint16_t)(~m_buttonConfigData.releaseFunc)<<8u));
-		EE_WriteVariable(nvOffset + 4u, m_buttonConfigData.singlePressFunc | ((uint16_t)(~m_buttonConfigData.singlePressFunc)<<8u));
-		EE_WriteVariable(nvOffset + 5u, m_buttonConfigData.singlePressTime | ((uint16_t)(~m_buttonConfigData.singlePressTime)<<8u));
-		EE_WriteVariable(nvOffset + 6u, m_buttonConfigData.doublePressFunc | ((uint16_t)(~m_buttonConfigData.doublePressFunc)<<8u));
-		EE_WriteVariable(nvOffset + 7u, m_buttonConfigData.doublePressTime | ((uint16_t)(~m_buttonConfigData.doublePressTime)<<8u));
-		EE_WriteVariable(nvOffset + 8u, m_buttonConfigData.longPressFunc1 | ((uint16_t)(~m_buttonConfigData.longPressFunc1)<<8u));
-		EE_WriteVariable(nvOffset + 9u, m_buttonConfigData.longPressTime1 | ((uint16_t)(~m_buttonConfigData.longPressTime1)<<8u));
-		EE_WriteVariable(nvOffset + 10u, m_buttonConfigData.longPressFunc2 | ((uint16_t)(~m_buttonConfigData.longPressFunc2)<<8u));
-		EE_WriteVariable(nvOffset + 11u, m_buttonConfigData.longPressTime2 | ((uint16_t)(~m_buttonConfigData.longPressTime2)<<8u));
-
-		if ( true == BUTTON_ReadConfigurationNv(m_writebuttonConfigData) )
-		{
-			BUTTON_UpdateConfigData(&m_buttons[m_writebuttonConfigData], &m_buttonConfigData);
-		}
-
-		m_writebuttonConfigData = -1;
-	}
-}
-#endif
-
-ButtonEvent_T GetButtonEvent(uint8_t b) {
-	ButtonEvent_T event = m_buttons[b].event;
-	//buttons[b].event = 0;
-	return event;
-}
-
-void ButtonRemoveEvent(uint8_t b) {
-	m_buttons[b].event = 0;
-}
-
-uint8_t IsButtonEvent(void) {
-	return (BUTTON_EVENT_NONE != m_buttons[0].event) || (BUTTON_EVENT_NONE != m_buttons[1].event) || (BUTTON_EVENT_NONE != m_buttons[2].event);
-}
-
-void ButtonSetConfiguarion(uint8_t b, uint8_t data[], uint8_t len)
+__weak void BUTTON_PowerOffEventCb(const Button_T * const p_button)
 {
-	if (b > BUTTONS_MAX_BUTTONS)
-	{
-		return;
-	}
-
-	m_buttonConfigData.pressFunc = data[0];
-	/*if ( buttonConfigData.func >= BUTTON_FUNC_NUMBER  ) return;
-	if ( buttonConfigData.func != BUTTON_FUNC_POWER_BUTTON && buttons[b].func == BUTTON_FUNC_POWER_BUTTON ) {
-		// ensure this will not override existing power button, if only one defined
-		int i, powBtnCnt = 0;
-		for (i=0;i<3;i++) {
-			if (buttons[i].func == BUTTON_FUNC_POWER_BUTTON) powBtnCnt ++;
-		}
-		if (powBtnCnt<2) return;
-	}*/
-	m_buttonConfigData.pressConfig = data[1];
-	m_buttonConfigData.releaseFunc = data[2];
-	m_buttonConfigData.releaseConfig = data[3];
-	m_buttonConfigData.singlePressFunc = data[4];
-	m_buttonConfigData.singlePressTime = data[5];
-	m_buttonConfigData.doublePressFunc = data[6];
-	m_buttonConfigData.doublePressTime = data[7];
-	m_buttonConfigData.longPressFunc1 = data[8];
-	m_buttonConfigData.longPressTime1 = data[9];
-	m_buttonConfigData.longPressFunc2 = data[10];
-	m_buttonConfigData.longPressTime2 = data[11];
-
-	m_writebuttonConfigData = b;
+	UNUSED(p_button);
 }
 
-void ButtonGetConfiguarion(uint8_t b, uint8_t data[], uint16_t *len) {
-	data[0] = m_buttons[b].pressFunc;
-	data[1] = m_buttons[b].pressConfig;
-	data[2] = m_buttons[b].releaseFunc;
-	data[3] = m_buttons[b].releaseConfig;
-	data[4] = m_buttons[b].singlePressFunc;
-	data[5] = m_buttons[b].singlePressTime / 100u;
-	data[6] = m_buttons[b].doublePressFunc;
-	data[7] = m_buttons[b].doublePressTime / 100u;
-	data[8] = m_buttons[b].longPressFunc1;
-	data[9] = m_buttons[b].longPressTime1 / 100u;
-	data[10] = m_buttons[b].longPressFunc2;
-	data[11] = m_buttons[b].longPressTime2 / 100u;
-	*len = 12u;
+__weak void BUTTON_PowerResetEventCb(const Button_T * const p_button)
+{
+	UNUSED(p_button);
 }
 
-__weak void PowerOnButtonEventCb(uint8_t b, ButtonEvent_T event) {
-	UNUSED(b);
-	UNUSED(event);
-}
-
-__weak void PowerOffButtonEventCb(uint8_t b, ButtonEvent_T event) {
-	UNUSED(b);
-	UNUSED(event);
-}
-
-__weak void ButtonEventFuncPowerResetCb(uint8_t b, ButtonEvent_T event) {
-	UNUSED(b);
-	UNUSED(event);
-}
-
-__weak void ButtonDualLongPressEventCb(void) {
+__weak void BUTTON_DualLongPressEventCb(void) {
 
 }
 

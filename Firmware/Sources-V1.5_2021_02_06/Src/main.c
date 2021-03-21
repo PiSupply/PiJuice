@@ -33,7 +33,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "eeprom.h"
-#include "stm32f0xx_hal.h"
+
+#include "iodrv.h"
 
 #include "charger_bq2416x.h"
 #include "fuel_gauge_lc709203f.h"
@@ -51,6 +52,7 @@
 
 #include "osloop.h"
 #include "adc.h"
+
 
 #define OWN1_I2C_ADDRESS		0x14
 #define OWN2_I2C_ADDRESS		0x68
@@ -654,7 +656,7 @@ int main(void)
 
 	while(1)
 	{
-		ButtonTask();
+		BUTTON_Task();
 		HAL_Delay(100u);
 
 	    // Refresh IWDG: reload counter
@@ -732,7 +734,7 @@ int main(void)
 		LedTask();
 
 		//if (MS_TIME_COUNT(mainPollMsCounter) > 98) {
-			ButtonTask();
+			BUTTON_Task();
 			LoadCurrentSenseTask();
 			PowerManagementTask();
 

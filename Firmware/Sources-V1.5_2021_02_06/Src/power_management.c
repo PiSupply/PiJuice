@@ -16,6 +16,7 @@
 #include "button.h"
 #include "io_control.h"
 #include "led.h"
+#include "iodrv.h"
 
 #if defined(RTOS_FREERTOS)
 #include "cmsis_os.h"
@@ -182,7 +183,7 @@ int8_t ResetHost(void) {
 	return 1;
 }*/
 
-void PowerOnButtonEventCb(uint8_t b, ButtonEvent_T event) {
+void PowerOnButtonEventCb(const Button_T * const p_button) {
 	//if ( event == BUTTON_EVENT_SINGLE_PRESS ) {
 		if ( (!POW_5V_BOOST_EN_STATUS() && power5vIoStatus == POW_SOURCE_NOT_PRESENT)
 				|| (MS_TIME_COUNT(lastWakeupTimer) > 12000/*15000*/ && MS_TIME_COUNT(lastHostCommandTimer) > 11000)  ) {
@@ -194,7 +195,8 @@ void PowerOnButtonEventCb(uint8_t b, ButtonEvent_T event) {
 				delayedPowerOffCounter = 0;
 			}
 		}
-		ButtonRemoveEvent(b);
+
+		BUTTON_ClearEvent(p_button->index);
 	//}
 }
 
@@ -205,7 +207,7 @@ void PowerOffButtonEventCb(uint8_t b, ButtonEvent_T event) {
 				Turn5vBoost(0);
 				powerOffBtnEventFlag = 1;
 		}
-		ButtonRemoveEvent(b); // remove event
+		BUTTON_ClearEvent(b); // remove event
 	//}
 }
 
@@ -216,7 +218,7 @@ void ButtonEventFuncPowerResetCb(uint8_t b, ButtonEvent_T event) {
 		ioWakeupEvent = 0;
 		delayedPowerOffCounter = 0;
 	}
-	ButtonRemoveEvent(b);
+	BUTTON_ClearEvent(b);
 }
 
 void PowerMngmtHostPollEvent(void) {

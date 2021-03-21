@@ -8,6 +8,8 @@
 #include "main.h"
 #include "system_conf.h"
 
+#include "iodrv.h"
+
 #include "load_current_sense.h"
 #include "command_server.h"
 #include "stddef.h"
@@ -472,14 +474,17 @@ static uint8_t IsEventFault(void) {
 	return ev;
 }
 
-void CmdServerReadStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_READ) {
-		pData[0] = IsEventFault();
-		pData[0] |= IsButtonEvent() << 1;
-		pData[0] |= (batteryStatus << 2);
-		pData[0] |= (powerInStatus << 4);
-		pData[0] |= (power5vIoStatus << 6);
-		*dataLen = 1;
+void CmdServerReadStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_READ)
+	{
+		pData[0] = IsEventFault() ? 1u : 0u;
+		pData[0] |= BUTTON_IsEventActive() ? 2u : 0u;
+		pData[0] |= (batteryStatus << 2u);
+		pData[0] |= (powerInStatus << 4u);
+		pData[0] |= (power5vIoStatus << 6u);
+
+		*dataLen = 1u;
 	}
 }
 
@@ -520,19 +525,34 @@ void CmdServerReadRsocHigherResolution(uint8_t dir, uint8_t *pData, uint16_t *da
 	}
 }
 
-void CmdServerReadButtonStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_READ) {
-		ButtonEvent_T evSw = GetButtonEvent(0);
+void CmdServerReadButtonStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_READ)
+	{
+		ButtonEvent_T evSw = BUTTON_GetButtonEvent(0u);
 		pData[0] = evSw & 0x0f;
-		evSw = GetButtonEvent(1);
+		evSw = BUTTON_GetButtonEvent(1u);
 		pData[0] |= evSw << 4;
-		evSw = GetButtonEvent(2);
+		evSw = BUTTON_GetButtonEvent(2u);
 		pData[1] = evSw & 0x0f;
 		*dataLen = 2;
-	} else {
-		if (!(pData[1] & 0x0F)) ButtonRemoveEvent(0);
-		if (!(pData[1] & 0xF0)) ButtonRemoveEvent(1);
-		if (!(pData[2] & 0x0F)) ButtonRemoveEvent(2);
+	}
+	else
+	{
+		if (0u == (pData[1u] & 0x0Fu))
+		{
+			BUTTON_ClearEvent(0u);
+		}
+
+		if (0u == (pData[1u] & 0xF0u))
+		{
+			BUTTON_ClearEvent(1u);
+		}
+
+		if (0u == (pData[2u] & 0x0Fu))
+		{
+			BUTTON_ClearEvent(2u);
+		}
 	}
 }
 
@@ -850,25 +870,25 @@ void CmdServerReadWriteWakeupOnCharge(uint8_t dir, uint8_t *pData, uint16_t *dat
 
 void CmdServerReadWriteButtonConfigurationSw1(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
-		ButtonSetConfiguarion(0, pData+1, *dataLen - 1);
+		BUTTON_SetConfiguarion(0, pData+1, *dataLen - 1);
 	} else {
-		ButtonGetConfiguarion(0, pData, dataLen);
+		BUTTON_GetConfiguarion(0, pData, dataLen);
 	}
 }
 
 void CmdServerReadWriteButtonConfigurationSw2(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
-		ButtonSetConfiguarion(1, pData+1, *dataLen - 1);
+		BUTTON_SetConfiguarion(1, pData+1, *dataLen - 1);
 	} else {
-		ButtonGetConfiguarion(1, pData, dataLen);
+		BUTTON_GetConfiguarion(1, pData, dataLen);
 	}
 }
 
 void CmdServerReadWriteButtonConfigurationSw3(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
-		ButtonSetConfiguarion(2, pData+1, *dataLen - 1);
+		BUTTON_SetConfiguarion(2, pData+1, *dataLen - 1);
 	} else {
-		ButtonGetConfiguarion(2, pData, dataLen);
+		BUTTON_GetConfiguarion(2, pData, dataLen);
 	}
 }
 
