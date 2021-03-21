@@ -34,7 +34,7 @@ typedef enum ButtonEvent_T {
 
 typedef void (*ButtonEventCb_T)(uint8_t b, ButtonEvent_T event);
 
-void ButtonInit(void);
+
 #if !defined(RTOS_FREERTOS)
 void ButtonTask(void);
 #endif
@@ -47,6 +47,8 @@ void PowerOnButtonEventCb(uint8_t b, ButtonEvent_T event);
 void PowerOffButtonEventCb(uint8_t b, ButtonEvent_T event);
 void ButtonEventFuncPowerResetCb(uint8_t b, ButtonEvent_T event);
 void ButtonDualLongPressEventCb(void);
-int8_t IsButtonActive(void);
+
+void BUTTON_Init(void);
+bool BUTTON_IsButtonActive(void);
 
 #endif /* BUTTON_H_ */

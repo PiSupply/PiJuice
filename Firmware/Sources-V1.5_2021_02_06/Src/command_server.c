@@ -5,7 +5,10 @@
  *      Author: milan
  */
 
-#include <load_current_sense.h>
+#include "main.h"
+#include "system_conf.h"
+
+#include "load_current_sense.h"
 #include "command_server.h"
 #include "stddef.h"
 #include "nv.h"

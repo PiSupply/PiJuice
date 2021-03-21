@@ -650,7 +650,7 @@ int main(void)
 
 	LoadCurrentSenseInit();
 	BatteryInit();
-	ButtonInit();
+	BUTTON_Init();
 
 	while(1)
 	{
@@ -673,7 +673,7 @@ int main(void)
 	FuelGaugeInit();
 	PowerManagementInit();
 	LedInit();
-	ButtonInit();
+	BUTTON_Init();
 	RtcInit();
 	IoControlInit();
 
@@ -761,7 +761,7 @@ int main(void)
 				&& MS_TIME_COUNT(lowPowerDealyTimer) >= 22u
 				&& MS_TIME_COUNT(lastWakeupTimer) > 20000u
 				&& chargerStatus == CHG_NO_VALID_SOURCE
-				&& !IsButtonActive()
+				&& !BUTTON_IsButtonActive()
 				)
 		{
 			state = STATE_LOWPOWER;
@@ -1088,9 +1088,9 @@ static void MX_I2C2_Init(void)
 static void MX_RTC_Init(void)
 {
 
-  RTC_TimeTypeDef sTime;
-  RTC_DateTypeDef sDate;
-  RTC_AlarmTypeDef sAlarm;
+  //RTC_TimeTypeDef sTime;
+  //RTC_DateTypeDef sDate;
+  //RTC_AlarmTypeDef sAlarm;
 
     /**Initialize RTC Only
     */
@@ -1238,7 +1238,7 @@ static void MX_TIM15_Init(void)
 
   TIM_MasterConfigTypeDef sMasterConfig;
   TIM_OC_InitTypeDef sConfigOC;
-  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
+  //TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
 
   htim15.Instance = TIM15;
   htim15.Init.Prescaler = 2;
@@ -1296,7 +1296,7 @@ static void MX_TIM17_Init(void)
 {
 
   TIM_OC_InitTypeDef sConfigOC;
-  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
+  //TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
 
   htim17.Instance = TIM17;
   htim17.Init.Prescaler = 0;

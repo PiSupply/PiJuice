@@ -148,7 +148,7 @@ HAL_StatusTypeDef ChargerRegWrite( uint8_t regAddress ) {
 }*/
 
 int8_t ChargerUpdateRegulationVoltage() {
-	static int8_t status;
+	//static int8_t status;
 	//static int8_t *pStatus;
 	//static uint32_t readTimeCnt;
 
@@ -176,7 +176,6 @@ int8_t ChargerUpdateRegulationVoltage() {
 		}*/
 
 		if (ChargerRegRead(0x03) != HAL_OK) {
-			status = 1;
 			return 1;
 		}
 	}
@@ -192,7 +191,6 @@ int8_t ChargerUpdateRegulationVoltage() {
 		}*/
 		// write regulation voltage register
 		if (ChargerRegWrite(0x03) != HAL_OK) {
-			status = 3;
 			return 2;
 		}
 		/*if (CHARGER_IS_BATTERY_PRESENT()) {
@@ -213,12 +211,10 @@ int8_t ChargerUpdateRegulationVoltage() {
 		}
 	}*/
 
-	status = 0;
 	return 0;
 }
 
 int8_t ChargerUpdateChgCurrentAndTermCurrent() {
-	static int8_t status;
 
 	if (currentBatProfile!=NULL) {
 		regsw[5] = ((currentBatProfile->chargeCurrent>26?26:currentBatProfile->chargeCurrent&0x1F) << 3) | (currentBatProfile->terminationCurr&0x07);
@@ -230,7 +226,6 @@ int8_t ChargerUpdateChgCurrentAndTermCurrent() {
 	// if there were errors in previous transfers, or first time update, read state from register
 	if (regsStatusRW[0x05]) {
 		if (ChargerRegRead(0x05) != HAL_OK) {
-			status = 1;
 			return 1;
 		}
 	}
@@ -238,22 +233,18 @@ int8_t ChargerUpdateChgCurrentAndTermCurrent() {
 	if ( regsw[5] != regs[5] ) {
 		// write new value to register
 		if (ChargerRegWrite(0x05) != HAL_OK) {
-			status = 2;
 			return 2;
 		}
 	}
 
-	status = 0;
 	return 0;
 }
 
 int8_t ChargerUpdateVinDPM() {
-	static int8_t status;
 
 	// if there were errors in previous transfers read state from register
 	if (regsStatusRW[0x06]) {
 		if (ChargerRegRead(0x06) != HAL_OK) {
-			status = 1;
 			return 1;
 		}
 	}
@@ -262,17 +253,14 @@ int8_t ChargerUpdateVinDPM() {
 	if ( regsw[6] != (regs[6]&0x3F) ) {
 		// write new value to register
 		if (ChargerRegWrite(0x06) != HAL_OK) {
-			status = 2;
 			return 2;
 		}
 	}
 
-	status = 0;
 	return 0;
 }
 
 int8_t ChargerUpdateTempRegulationControlStatus() {
-	static int8_t status;
 
 	regsw[7] = 0xC0; // Timer slowed by 2x when in thermal regulation, 10 � 9 hour fast charge, TS function disabled
 	if (currentBatProfile!=NULL) {
@@ -291,7 +279,6 @@ int8_t ChargerUpdateTempRegulationControlStatus() {
 	// if there were errors in previous transfers read state from register
 	if (regsStatusRW[0x07]) {
 		if (ChargerRegRead(0x07) != HAL_OK) {
-			status = 1;
 			return 1;
 		}
 	}
@@ -299,17 +286,14 @@ int8_t ChargerUpdateTempRegulationControlStatus() {
 	if ( (regsw[7]&0xE9) != (regs[7]&0xE9) ) {
 		// write new value to register
 		if (ChargerRegWrite(0x07) != HAL_OK) {
-			status = 2;
 			return 2;
 		}
 	}
 
-	status = 0;
 	return 0;
 }
 
 int8_t ChargerUpdateControlStatus() {
-	static int8_t status;
 
 	regsw[2] = ((chargerUsbInCurrentLimit&0x07) << 4) | 0x0C; // usb in current limit code, Enable STAT output, Enable charge current termination
 	if (currentBatProfile!=NULL) {
@@ -332,7 +316,6 @@ int8_t ChargerUpdateControlStatus() {
 	// if there were errors in previous transfers, or first time update, read state from register
 	if (regsStatusRW[0x02]) {
 		if (ChargerRegRead(0x02) != HAL_OK) {
-			status = 1;
 			return 1;
 		}
 	}
@@ -340,17 +323,14 @@ int8_t ChargerUpdateControlStatus() {
 	if ( (regsw[2]&0x7F) != (regs[2]&0x7F) ) {
 		// write new value to register
 		if (ChargerRegWrite(0x02) != HAL_OK) {
-			status = 2;
 			return 1;
 		}
 	}
 
-	status = 0;
 	return 0;
 }
 
 int8_t ChargerUpdateUSBInLockout() {
-	static int8_t status;
 
 	regsw[1] = noBatteryOperationEnabled != 0;
 	if ( usbInEnabled && pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_PRESENT && (regs[1] & 0x06) == 0x00 ) {
@@ -364,7 +344,6 @@ int8_t ChargerUpdateUSBInLockout() {
 	// if there were errors in previous transfers, or first time update, read state from register
 	if (regsStatusRW[0x01]) {
 		if (ChargerRegRead(0x01) != HAL_OK) {
-			status = 1;
 			return 1;
 		}
 	}
@@ -372,14 +351,12 @@ int8_t ChargerUpdateUSBInLockout() {
 	if ( (regsw[1]&0x09) != (regs[1]&0x09) ) {
 		// write new value to register
 		if (ChargerRegWrite(0x01) != HAL_OK) {
-			status = 2;
 			return 2;
 		}
 	}
 
 	usbInLockoutStatus = (regs[1] & BQ2416X_OTG_LOCK_BIT) ? CHG_USB_IN_LOCK : CHG_USB_IN_UNLOCK;
 
-	status = 0;
 	return 0;
 }
 

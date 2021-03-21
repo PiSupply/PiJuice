@@ -356,8 +356,8 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
   GPIO_InitTypeDef GPIO_InitStruct;
   if(hi2c->Instance==I2C1)
   {
-	  static DMA_HandleTypeDef hdma_tx;
-	  static DMA_HandleTypeDef hdma_rx;
+	  //static DMA_HandleTypeDef hdma_tx;
+	  //static DMA_HandleTypeDef hdma_rx;
 	  RCC_PeriphCLKInitTypeDef  RCC_PeriphCLKInitStruct;
 
 	  /*##-1- Configure the I2C clock source. The clock is derived from the SYSCLK #*/
