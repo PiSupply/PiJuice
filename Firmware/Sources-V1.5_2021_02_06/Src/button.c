@@ -5,10 +5,14 @@
  *      Author: milan
  */
 
-#include "button.h"
-#include "stm32f0xx_hal.h"
+#include "main.h"
+
+#include "system_conf.h"
+#include "iodrv.h"
 #include "time_count.h"
 #include "nv.h"
+
+#include "button.h"
 
 #if defined(RTOS_FREERTOS)
 #include "cmsis_os.h"
@@ -43,54 +47,57 @@ typedef struct
 	ButtonEvent_T tempEvent;
 	uint32_t pressTimer;
 	uint8_t staticLongPressEvent;
+	const IODRV_Pin_t * p_pinInfo;
 } Button_T;
 
-Button_T buttons[3] = {
+static Button_T buttons[3u] =
+{
 	{ // sw1
 		BUTTON_EVENT_NO_FUNC,
-		0,
+		0u,
 		BUTTON_EVENT_NO_FUNC,
-		0,
+		0u,
 		BUTTON_EVENT_FUNC_POWER_ON,
-		800,
+		800u,
 		BUTTON_EVENT_NO_FUNC,
-		0,
-		BUTTON_EVENT_FUNC_SYS_EVENT|1,
-		10000,
+		0u,
+		BUTTON_EVENT_FUNC_SYS_EVENT| 1u,
+		10000u,
 		BUTTON_EVENT_FUNC_POWER_OFF,
-		20000
+		20000u
 	},
 	{ // sw2
 		BUTTON_EVENT_NO_FUNC,
-		0,
+		0u,
 		BUTTON_EVENT_NO_FUNC,
-		0,
-		BUTTON_EVENT_FUNC_USER_EVENT|1,
-		400,
-		BUTTON_EVENT_FUNC_USER_EVENT|2,
-		600,
+		0u,
+		BUTTON_EVENT_FUNC_USER_EVENT | 1u,
+		400u,
+		BUTTON_EVENT_FUNC_USER_EVENT | 2u,
+		600u,
 		BUTTON_EVENT_NO_FUNC,
-		0,
+		0u,
 		BUTTON_EVENT_NO_FUNC,
-		0
+		0u
 	},
 	{ // sw3
-		BUTTON_EVENT_FUNC_USER_EVENT|3,
-		0,
-		BUTTON_EVENT_FUNC_USER_EVENT|4,
-		0,
+		BUTTON_EVENT_FUNC_USER_EVENT | 3u,
+		0u,
+		BUTTON_EVENT_FUNC_USER_EVENT | 4u,
+		0u,
 		BUTTON_EVENT_NO_FUNC,
-		0,
+		0u,
 		BUTTON_EVENT_NO_FUNC,
-		0,
+		0u,
 		BUTTON_EVENT_NO_FUNC,
-		0,
+		0u,
 		BUTTON_EVENT_NO_FUNC,
-		0
+		0u
 	}
 };
 
-ButtonEventCb_T buttonEventCbs[BUTTON_EVENT_FUNC_NUMBER] = {
+ButtonEventCb_T buttonEventCbs[BUTTON_EVENT_FUNC_NUMBER] =
+{
 	NULL, // BUTTON_EVENT_NO_FUNC
 	PowerOnButtonEventCb, // BUTTON_EVENT_FUNC_POWER_ON
 	PowerOffButtonEventCb, // BUTTON_EVENT_FUNC_POWER_OFF
@@ -99,6 +106,38 @@ ButtonEventCb_T buttonEventCbs[BUTTON_EVENT_FUNC_NUMBER] = {
 
 static int8_t writebuttonConfigData = -1;
 Button_T buttonConfigData;
+
+static void ButtonSetConfigData(uint8_t b, uint8_t pinref);
+static void ButtonUpdateConfigData(uint8_t b);
+static ButtonFunction_T BUTTON_GetEventFunc(Button_T * const p_button);
+void ProcessButton(Button_T * const p_button, const uint32_t sysTick);
+
+static ButtonFunction_T BUTTON_GetEventFunc(Button_T * const p_button)
+{
+	switch (p_button->event)
+	{
+	case BUTTON_EVENT_PRESS:
+		return p_button->pressFunc;
+
+	case BUTTON_EVENT_RELEASE:
+		return p_button->releaseFunc;
+
+	case BUTTON_EVENT_SINGLE_PRESS:
+		return p_button->singlePressFunc;
+
+	case BUTTON_EVENT_DOUBLE_PRESS:
+		return p_button->doublePressFunc;
+
+	case BUTTON_EVENT_LONG_PRESS1:
+		return p_button->longPressFunc1;
+
+	case BUTTON_EVENT_LONG_PRESS2:
+		return p_button->longPressFunc2;
+
+	default:
+		return BUTTON_EVENT_NO_FUNC;
+	}
+}
 
 static ButtonFunction_T GetFuncOfEvent(uint8_t b) {
 	switch (buttons[b].event) {
@@ -119,7 +158,127 @@ static ButtonFunction_T GetFuncOfEvent(uint8_t b) {
 	}
 }
 
-/*__STATIC_INLINE*/ void ProcessButton( uint8_t b, GPIO_PinState pinState ) {
+
+/* Attempt to understand this function:
+ *
+ * BUTTON_EVENT_PRESS is raised on first rising edge after 30 seconds of no activity.
+ * BUTTON_EVENT_RELEASE is raised on first falling edge if time exceeds single press or no action is registered for single press.
+ * BUTTON_EVENT_SINGLE_PRESS is raised after button is released and meets minimum button.pressed time
+ * BUTTON_EVENT_DOUBLE_PRESS is raised on second rising edge if the second edge occurs before button.doublePressTime
+ * BUTTON_EVENT_LONG_PRESS1 is raised if the button is held and the button.longPressTime1 is exceeded.
+ * BUTTON_EVENT_LONG_PRESS2 is raised if the button is held and the button.longPressTime2 is exceeded.
+ *
+ * In all cases: Events are not registered if actions are not allocated to the function.
+ * In all cases: Events are always raised if the previous priority is exceeded with exception of BUTTON_EVENT_SINGLE_PRESS.
+ *
+ * Activity is cleared after 30 seconds.
+ *
+ * Double press is not registered on first rising edge because the timer has not been initialised and it is expected that the
+ * timer is greater than double press time.
+ *
+ */
+void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
+{
+	if (NULL == p_button->p_pinInfo)
+	{
+		return;
+	}
+
+	const uint32_t previousButtonCycleTimeMs = p_button->p_pinInfo->lastPosPulseWidthTimeMs
+										+ p_button->p_pinInfo->lastNegPulseWidthTimeMs;
+
+	const uint32_t lastEdgeMs = MS_TIMEREF_DIFF(p_button->p_pinInfo->lastDigitalChangeTime, sysTick);
+
+	ButtonEvent_T oldEv = p_button->event;
+	ButtonFunction_T func;
+	uint8_t i;
+
+	if (GPIO_PIN_RESET == p_button->p_pinInfo->value)
+	{
+		if (lastEdgeMs > BUTTON_EVENT_EXPIRE_PERIOD_MS)
+		{
+			// Event timeout, remove it
+			p_button->tempEvent = BUTTON_EVENT_NONE;
+			p_button->event = BUTTON_EVENT_NONE;
+			oldEv = BUTTON_EVENT_NONE;
+		}
+
+		if ( (p_button->p_pinInfo->lastPosPulseWidthTimeMs > p_button->singlePressTime)
+				&& (BUTTON_EVENT_NO_FUNC != p_button->singlePressFunc) )
+		{
+			if ((lastEdgeMs + p_button->p_pinInfo->lastPosPulseWidthTimeMs) > p_button->doublePressTime)
+			{
+				// Raise single press event
+			}
+		}
+	}
+	else
+	{
+		/* Button is pressed and held */
+
+		if ( (lastEdgeMs > p_button->longPressTime2) && (BUTTON_EVENT_NO_FUNC != p_button->longPressFunc2) )
+		{
+			// Raise long press 2
+		}
+		else if ( (lastEdgeMs > p_button->longPressTime1) && (BUTTON_EVENT_NO_FUNC != p_button->longPressFunc1) )
+		{
+			// Raise long press 1
+		}
+		else if ( ((lastEdgeMs + previousButtonCycleTimeMs) > p_button->doublePressTime)
+				&& (BUTTON_EVENT_NO_FUNC != p_button->doublePressFunc))
+		{
+			// Raise double press event
+		}
+
+		if ( lastEdgeMs > BUTTON_STATIC_LONG_PRESS_TIME)
+		{
+			p_button->staticLongPressEvent = 1u;
+		}
+
+		if ( (p_button->event < BUTTON_EVENT_PRESS) && (BUTTON_EVENT_NO_FUNC != p_button->pressFunc) )
+		{
+			// Raise button press event
+		}
+	}
+
+	if ( p_button->event > oldEv )
+	{
+	    func = BUTTON_GetEventFunc(p_button);
+
+		if ( func < BUTTON_EVENT_FUNC_NUMBER && buttonEventCbs[func] != NULL )
+		{
+			i = 0u;
+
+			while( (i < 3u) && (&buttons[i] != p_button) )
+			{
+				i++;
+			}
+
+			buttonEventCbs[func](i, p_button->event);
+		}
+	}
+}
+
+
+/* Attempt to understand this function:
+ *
+ * BUTTON_EVENT_PRESS is raised on first rising edge after 30 seconds of no activity.
+ * BUTTON_EVENT_RELEASE is raised on first falling edge if time exceeds single press or no action is registered for single press.
+ * BUTTON_EVENT_SINGLE_PRESS is raised after button is released and meets minimum button.pressed time
+ * BUTTON_EVENT_DOUBLE_PRESS is raised on second rising edge if the second edge occurs before button.doublePressTime
+ * BUTTON_EVENT_LONG_PRESS1 is raised if the button is held and the button.longPressTime1 is exceeded.
+ * BUTTON_EVENT_LONG_PRESS2 is raised if the button is held and the button.longPressTime2 is exceeded.
+ *
+ * In all cases: Events are not registered if actions are not allocated to the function.
+ * In all cases: Events are always raised if the previous priority is exceeded with exception of BUTTON_EVENT_SINGLE_PRESS.
+ *
+ * Activity is cleared after 30 seconds.
+ *
+ * Double press is not registered on first rising edge because the timer has not been initialised and it is expected that the
+ * timer is greater than double press time.
+ *
+ */
+void ProcessButton_Old( uint8_t b, GPIO_PinState pinState ) {
 	volatile ButtonEvent_T oldEv = buttons[b].event;
 
 	if ( pinState != buttons[b].state ) {
@@ -234,30 +393,43 @@ static uint8_t ButtonReadConfigurationNv(uint8_t b) {
 	return !dataValid;
 }
 
-static void ButtonSetConfigData(uint8_t b) {
+
+static void ButtonSetConfigData(uint8_t b, uint8_t pinref)
+{
+	buttons[b].p_pinInfo = IODRV_GetPinInfo(pinref);
+}
+
+
+static void ButtonUpdateConfigData(uint8_t b)
+{
 	buttons[b].pressFunc = buttonConfigData.pressFunc;
 	buttons[b].releaseFunc = buttonConfigData.releaseFunc;
 	buttons[b].singlePressFunc = buttonConfigData.singlePressFunc;
-	buttons[b].singlePressTime = buttonConfigData.singlePressTime * 100;
+	buttons[b].singlePressTime = buttonConfigData.singlePressTime * 100u;
 	buttons[b].doublePressFunc = buttonConfigData.doublePressFunc;
-	buttons[b].doublePressTime = buttonConfigData.doublePressTime * 100;
+	buttons[b].doublePressTime = buttonConfigData.doublePressTime * 100u;
 	buttons[b].longPressFunc1 = buttonConfigData.longPressFunc1;
-	buttons[b].longPressTime1 = buttonConfigData.longPressTime1 * 100;
+	buttons[b].longPressTime1 = buttonConfigData.longPressTime1 * 100u;
 	buttons[b].longPressFunc2 = buttonConfigData.longPressFunc2;
-	buttons[b].longPressTime2 = buttonConfigData.longPressTime2 * 100;
+	buttons[b].longPressTime2 = buttonConfigData.longPressTime2 * 100u;
 }
 
-void ButtonInit(void) {
-	if ( ButtonReadConfigurationNv(0) == 0 ) {
-		ButtonSetConfigData(0);
+
+void ButtonInit(void)
+{
+	if ( 0u == ButtonReadConfigurationNv(0u) )
+	{
+		ButtonSetConfigData(0u, IODRV_PIN_SW1);
 	}
 
-	if ( ButtonReadConfigurationNv(1) == 0 ) {
-		ButtonSetConfigData(1);
+	if ( 0u == ButtonReadConfigurationNv(1u) )
+	{
+		ButtonSetConfigData(1u, IODRV_PIN_SW2);
 	}
 
-	if ( ButtonReadConfigurationNv(2) == 0 ) {
-		ButtonSetConfigData(2);
+	if ( 0u == ButtonReadConfigurationNv(2u) )
+	{
+		ButtonSetConfigData(2u, IODRV_PIN_SW3);
 	}
 #if defined(RTOS_FREERTOS)
 	buttonTaskHandle = osThreadNew(ButtonTask, (void*)NULL, &buttonTask_attributes);
@@ -309,32 +481,33 @@ static void ButtonTask(void *argument) {
 #else
 void ButtonTask(void) {
 
+	const uint32_t sysTime = HAL_GetTick();
 	uint8_t oldDualLongPressStatus = buttons[0].staticLongPressEvent && buttons[1].staticLongPressEvent;
 
-	ProcessButton(0, HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13)); // sw1
-
-	ProcessButton(1, HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12)); // sw2
-
-	ProcessButton(2, HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_2)); // sw3
+	ProcessButton(&buttons[0u], sysTime); // sw1
+	ProcessButton(&buttons[1u], sysTime); // sw2
+	ProcessButton(&buttons[2u], sysTime); // sw3
 
 	if ((buttons[0].staticLongPressEvent && buttons[1].staticLongPressEvent) > oldDualLongPressStatus) ButtonDualLongPressEventCb();
 
 	if (writebuttonConfigData >= 0) {
 		uint8_t nvOffset = writebuttonConfigData * (BUTTON_PRESS_FUNC_SW2 - BUTTON_PRESS_FUNC_SW1) + BUTTON_PRESS_FUNC_SW1;
-		EE_WriteVariable(nvOffset, buttonConfigData.pressFunc | ((uint16_t)(~buttonConfigData.pressFunc)<<8));
-		EE_WriteVariable(nvOffset + 2, buttonConfigData.releaseFunc | ((uint16_t)(~buttonConfigData.releaseFunc)<<8));
-		EE_WriteVariable(nvOffset + 4, buttonConfigData.singlePressFunc | ((uint16_t)(~buttonConfigData.singlePressFunc)<<8));
-		EE_WriteVariable(nvOffset + 5, buttonConfigData.singlePressTime | ((uint16_t)(~buttonConfigData.singlePressTime)<<8));
-		EE_WriteVariable(nvOffset + 6, buttonConfigData.doublePressFunc | ((uint16_t)(~buttonConfigData.doublePressFunc)<<8));
-		EE_WriteVariable(nvOffset + 7, buttonConfigData.doublePressTime | ((uint16_t)(~buttonConfigData.doublePressTime)<<8));
-		EE_WriteVariable(nvOffset + 8, buttonConfigData.longPressFunc1 | ((uint16_t)(~buttonConfigData.longPressFunc1)<<8));
-		EE_WriteVariable(nvOffset + 9, buttonConfigData.longPressTime1 | ((uint16_t)(~buttonConfigData.longPressTime1)<<8));
-		EE_WriteVariable(nvOffset + 10, buttonConfigData.longPressFunc2 | ((uint16_t)(~buttonConfigData.longPressFunc2)<<8));
-		EE_WriteVariable(nvOffset + 11, buttonConfigData.longPressTime2 | ((uint16_t)(~buttonConfigData.longPressTime2)<<8));
+		EE_WriteVariable(nvOffset, buttonConfigData.pressFunc | ((uint16_t)(~buttonConfigData.pressFunc)<<8u));
+		EE_WriteVariable(nvOffset + 2u, buttonConfigData.releaseFunc | ((uint16_t)(~buttonConfigData.releaseFunc)<<8u));
+		EE_WriteVariable(nvOffset + 4u, buttonConfigData.singlePressFunc | ((uint16_t)(~buttonConfigData.singlePressFunc)<<8u));
+		EE_WriteVariable(nvOffset + 5u, buttonConfigData.singlePressTime | ((uint16_t)(~buttonConfigData.singlePressTime)<<8u));
+		EE_WriteVariable(nvOffset + 6u, buttonConfigData.doublePressFunc | ((uint16_t)(~buttonConfigData.doublePressFunc)<<8u));
+		EE_WriteVariable(nvOffset + 7u, buttonConfigData.doublePressTime | ((uint16_t)(~buttonConfigData.doublePressTime)<<8u));
+		EE_WriteVariable(nvOffset + 8u, buttonConfigData.longPressFunc1 | ((uint16_t)(~buttonConfigData.longPressFunc1)<<8u));
+		EE_WriteVariable(nvOffset + 9u, buttonConfigData.longPressTime1 | ((uint16_t)(~buttonConfigData.longPressTime1)<<8u));
+		EE_WriteVariable(nvOffset + 10u, buttonConfigData.longPressFunc2 | ((uint16_t)(~buttonConfigData.longPressFunc2)<<8u));
+		EE_WriteVariable(nvOffset + 11u, buttonConfigData.longPressTime2 | ((uint16_t)(~buttonConfigData.longPressTime2)<<8u));
 
-		if ( ButtonReadConfigurationNv(writebuttonConfigData) == 0 ) {
-			ButtonSetConfigData(writebuttonConfigData);
+		if ( ButtonReadConfigurationNv(writebuttonConfigData) == 0 )
+		{
+			ButtonUpdateConfigData(writebuttonConfigData);
 		}
+
 		writebuttonConfigData = -1;
 	}
 }

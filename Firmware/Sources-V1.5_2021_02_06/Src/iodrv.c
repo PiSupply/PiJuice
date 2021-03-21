@@ -24,19 +24,6 @@
 #define PINMODE_ALTERNATE			2u
 #define PINMODE_ANALOG				3u
 
-typedef struct
-{
-	uint16_t 			value;
-	uint8_t				debounceCounter;
-	uint32_t			lastDigitalChangeTime;
-	uint8_t				adcChannel;
-	IODRV_PinType_t		pinType;
-	uint16_t			gpioPin_bm;
-	uint8_t				gpioPin_pos;
-	GPIO_TypeDef*		gpioPort;
-	bool				canConfigure;
-} IODRV_Pin_t;
-
 
 // ----------------------------------------------------------------------------
 // Function prototypes for functions that only have scope in this module:
@@ -223,7 +210,7 @@ void IODRV_Service(uint32_t sysTime)
  * @retval	uint16_t	value of the pin that is required
  */
 // ****************************************************************************
-uint16_t IODRV_ReadPinValue(uint32_t pin)
+uint16_t IODRV_ReadPinValue(uint8_t pin)
 {
 	if ( pin >= IODRV_MAX_IO_PINS )
 	{
@@ -243,7 +230,7 @@ uint16_t IODRV_ReadPinValue(uint32_t pin)
  * @retval	uint8_t		value of the pin that is required
  */
 // ****************************************************************************
-uint8_t IODRV_ReadPinOutputState(uint32_t pin)
+uint8_t IODRV_ReadPinOutputState(uint8_t pin)
 {
 	if ( pin >= IODRV_MAX_IO_PINS )
 	{
@@ -265,7 +252,7 @@ uint8_t IODRV_ReadPinOutputState(uint32_t pin)
  * @retval	bool		returns true is the pin is an output, false if an input
  */
 // ****************************************************************************
-bool IODRV_WritePin(uint32_t pin, uint8_t newValue)
+bool IODRV_WritePin(uint8_t pin, uint8_t newValue)
 {
 	if ( (m_pins[pin].pinType == IOTYPE_DIGOUT_PUSHPULL) || (m_pins[pin].pinType <= IOTYPE_DIGOUT_OPENDRAIN) )
 	{
@@ -286,7 +273,7 @@ bool IODRV_WritePin(uint32_t pin, uint8_t newValue)
  * @retval	bool		returns true if the arguments are correct
  */
 // ****************************************************************************
-bool IODRV_SetPin(uint32_t pin, uint8_t newValue)
+bool IODRV_SetPin(uint8_t pin, uint8_t newValue)
 {
 	if ( (pin >= IODRV_MAX_IO_PINS) || ((newValue != GPIO_PIN_RESET) || newValue != GPIO_PIN_SET) )
 	{
@@ -310,7 +297,7 @@ bool IODRV_SetPin(uint32_t pin, uint8_t newValue)
  * @retval	bool		true if the pin has been set
  */
 // ****************************************************************************
-bool IODRV_SetPinType(uint32_t pin, IODRV_PinType_t newType)
+bool IODRV_SetPinType(uint8_t pin, IODRV_PinType_t newType)
 {
 	const uint32_t otyper_bm = (1u << m_pins[pin].gpioPin_pos);
 	const uint32_t moder_pos = (m_pins[pin].gpioPin_pos * 2u);
@@ -361,7 +348,7 @@ bool IODRV_SetPinType(uint32_t pin, IODRV_PinType_t newType)
  * @retval	bool			true if the pin has been set
  */
 // ****************************************************************************
-bool IODRV_SetPinPullDir(uint32_t pin, uint32_t pullDirection)
+bool IODRV_SetPinPullDir(uint8_t pin, uint32_t pullDirection)
 {
 	const uint32_t pupdr_pos = (m_pins[pin].gpioPin_pos * 2u);
 
@@ -374,6 +361,25 @@ bool IODRV_SetPinPullDir(uint32_t pin, uint32_t pullDirection)
 	m_pins[pin].gpioPort->PUPDR |= (pullDirection << pupdr_pos);
 
 	return true;
+}
+
+
+// ****************************************************************************
+/*!
+ * IODRV_GetPinInfo gets a const pointer to the pin informationd
+ *
+ * @param	pin				index of the pin that is required to be set
+ * @retval	IODRV_Pin_t*	const pointer to the pin data, NULL if pin not valid
+ */
+// ****************************************************************************
+const IODRV_Pin_t * IODRV_GetPinInfo(uint8_t pin)
+{
+	if ( (pin >= IODRV_MAX_IO_PINS) )
+	{
+		return NULL;
+	}
+
+	return &m_pins[pin];
 }
 
 // ----------------------------------------------------------------------------
@@ -420,8 +426,12 @@ void IODRV_UpdatePins(const uint32_t sysTime)
 				}
 				else if (m_pins[pin].value != GPIO_PIN_SET)
 				{
+					/* log positive pulse width */
+					m_pins[pin].lastPosPulseWidthTimeMs = MS_TIMEREF_DIFF(m_pins[pin].lastDigitalChangeTime, sysTime);
+
 					/* log the change time */
-					m_pins[pin].lastDigitalChangeTime = sysTime;
+					MS_TIMEREF_INIT(m_pins[pin].lastDigitalChangeTime, sysTime);
+
 					m_pins[pin].value = GPIO_PIN_SET;
 				}
 			}
@@ -433,6 +443,9 @@ void IODRV_UpdatePins(const uint32_t sysTime)
 				}
 				else if (m_pins[pin].value != GPIO_PIN_RESET)
 				{
+					/* log negative pulse width */
+					m_pins[pin].lastNegPulseWidthTimeMs = MS_TIMEREF_DIFF(m_pins[pin].lastDigitalChangeTime, sysTime);
+
 					/* log the change time */
 					m_pins[pin].lastDigitalChangeTime = sysTime;
 					m_pins[pin].value = GPIO_PIN_RESET;

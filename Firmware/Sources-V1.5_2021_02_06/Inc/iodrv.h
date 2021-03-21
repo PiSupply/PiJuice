@@ -22,12 +22,30 @@ typedef enum
 	IOTYPES_COUNT = 7u	/* Strictly 6 but 6 is the last one and 0 is ignored! */
 } IODRV_PinType_t;
 
+
+typedef struct
+{
+	uint16_t 			value;
+	uint8_t				debounceCounter;
+	uint32_t			lastDigitalChangeTime;
+	uint32_t			lastPosPulseWidthTimeMs;
+	uint32_t			lastNegPulseWidthTimeMs;
+	uint8_t				adcChannel;
+	IODRV_PinType_t		pinType;
+	uint16_t			gpioPin_bm;
+	uint8_t				gpioPin_pos;
+	GPIO_TypeDef*		gpioPort;
+	bool				canConfigure;
+} IODRV_Pin_t;
+
+
 void IODRV_Init(uint32_t sysTime);
 void IODRV_Service(uint32_t sysTime);
-uint16_t IODRV_ReadPin(uint32_t pin);
-bool IODRV_SetPinType(uint32_t pin, IODRV_PinType_t newType);
-bool IODRV_WritePin(uint32_t pin, uint8_t newValue);
-bool IODRV_SetPin(uint32_t pin, uint8_t newValue);
-bool IODRV_SetPinPullDir(uint32_t pin, uint32_t pullDirection);
+uint16_t IODRV_ReadPin(uint8_t pin);
+const IODRV_Pin_t * IODRV_GetPinInfo(uint8_t pin);
+bool IODRV_SetPinType(uint8_t pin, IODRV_PinType_t newType);
+bool IODRV_WritePin(uint8_t pin, uint8_t newValue);
+bool IODRV_SetPin(uint8_t pin, uint8_t newValue);
+bool IODRV_SetPinPullDir(uint8_t pin, uint32_t pullDirection);
 
 #endif /* IODRV_H_ */
