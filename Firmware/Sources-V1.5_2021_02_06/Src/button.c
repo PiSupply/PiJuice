@@ -48,6 +48,7 @@ typedef struct
 	uint32_t pressTimer;
 	uint8_t staticLongPressEvent;
 	const IODRV_Pin_t * p_pinInfo;
+	uint8_t pressCount;
 } Button_T;
 
 static Button_T buttons[3u] =
@@ -159,24 +160,7 @@ static ButtonFunction_T GetFuncOfEvent(uint8_t b) {
 }
 
 
-/* Attempt to understand this function:
- *
- * BUTTON_EVENT_PRESS is raised on first rising edge after 30 seconds of no activity.
- * BUTTON_EVENT_RELEASE is raised on first falling edge if time exceeds single press or no action is registered for single press.
- * BUTTON_EVENT_SINGLE_PRESS is raised after button is released and meets minimum button.pressed time
- * BUTTON_EVENT_DOUBLE_PRESS is raised on second rising edge if the second edge occurs before button.doublePressTime
- * BUTTON_EVENT_LONG_PRESS1 is raised if the button is held and the button.longPressTime1 is exceeded.
- * BUTTON_EVENT_LONG_PRESS2 is raised if the button is held and the button.longPressTime2 is exceeded.
- *
- * In all cases: Events are not registered if actions are not allocated to the function.
- * In all cases: Events are always raised if the previous priority is exceeded with exception of BUTTON_EVENT_SINGLE_PRESS.
- *
- * Activity is cleared after 30 seconds.
- *
- * Double press is not registered on first rising edge because the timer has not been initialised and it is expected that the
- * timer is greater than double press time.
- *
- */
+// TODO - Deal with 47 day roll over
 void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 {
 	if (NULL == p_button->p_pinInfo)
@@ -193,12 +177,12 @@ void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 	ButtonFunction_T func;
 	uint8_t i;
 
-	if (GPIO_PIN_RESET == p_button->p_pinInfo->value)
+	if ( (GPIO_PIN_RESET == p_button->p_pinInfo->value) )
 	{
 		if (lastEdgeMs > BUTTON_EVENT_EXPIRE_PERIOD_MS)
 		{
 			// Event timeout, remove it
-			p_button->tempEvent = BUTTON_EVENT_NONE;
+			p_button->pressCount = 0u;
 			p_button->event = BUTTON_EVENT_NONE;
 			oldEv = BUTTON_EVENT_NONE;
 		}
@@ -209,8 +193,17 @@ void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 			if ((lastEdgeMs + p_button->p_pinInfo->lastPosPulseWidthTimeMs) > p_button->doublePressTime)
 			{
 				// Raise single press event
+				p_button->event = BUTTON_EVENT_SINGLE_PRESS;
 			}
 		}
+
+		if ( (p_button->event < BUTTON_EVENT_RELEASE) && (BUTTON_EVENT_NO_FUNC != p_button->releaseFunc) )
+		{
+			// Raise release event
+			p_button->event = BUTTON_EVENT_RELEASE;
+		}
+
+		p_button->staticLongPressEvent = 0u;
 	}
 	else
 	{
@@ -219,15 +212,18 @@ void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 		if ( (lastEdgeMs > p_button->longPressTime2) && (BUTTON_EVENT_NO_FUNC != p_button->longPressFunc2) )
 		{
 			// Raise long press 2
+			p_button->event = BUTTON_EVENT_LONG_PRESS2;
 		}
 		else if ( (lastEdgeMs > p_button->longPressTime1) && (BUTTON_EVENT_NO_FUNC != p_button->longPressFunc1) )
 		{
 			// Raise long press 1
+			p_button->event = BUTTON_EVENT_LONG_PRESS1;
 		}
 		else if ( ((lastEdgeMs + previousButtonCycleTimeMs) > p_button->doublePressTime)
 				&& (BUTTON_EVENT_NO_FUNC != p_button->doublePressFunc))
 		{
 			// Raise double press event
+			p_button->event = BUTTON_EVENT_DOUBLE_PRESS;
 		}
 
 		if ( lastEdgeMs > BUTTON_STATIC_LONG_PRESS_TIME)
@@ -238,15 +234,18 @@ void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 		if ( (p_button->event < BUTTON_EVENT_PRESS) && (BUTTON_EVENT_NO_FUNC != p_button->pressFunc) )
 		{
 			// Raise button press event
+			p_button->event = BUTTON_EVENT_PRESS;
 		}
 	}
 
+	// Check if event has already been processed
 	if ( p_button->event > oldEv )
 	{
 	    func = BUTTON_GetEventFunc(p_button);
 
 		if ( func < BUTTON_EVENT_FUNC_NUMBER && buttonEventCbs[func] != NULL )
 		{
+			// Hack to get button index for now.
 			i = 0u;
 
 			while( (i < 3u) && (&buttons[i] != p_button) )
@@ -276,6 +275,9 @@ void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
  *
  * Double press is not registered on first rising edge because the timer has not been initialised and it is expected that the
  * timer is greater than double press time.
+ *
+ * staticButtonLongPress is evaluated to true when the button is held and time exceeds BUTTON_STATIC_LONG_PRESS_TIME
+ * staticButtonLongPress is reset on button release
  *
  */
 void ProcessButton_Old( uint8_t b, GPIO_PinState pinState ) {
