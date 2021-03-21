@@ -117,6 +117,17 @@ void OSLOOP_Service(void)
 }
 
 
+void OSLOOP_Shutdown(void)
+{
+	// Shutdown all modules for low power
+}
+
+
+void OSLOOP_Restart(void)
+{
+	// Restart all modules from low power
+}
+
 // ****************************************************************************
 /*!
  * OSLOOP_AtomicAccess is a really awful way of ensuring that variables are not

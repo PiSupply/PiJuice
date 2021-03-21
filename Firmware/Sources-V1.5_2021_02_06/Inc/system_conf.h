@@ -122,8 +122,9 @@
 #define TEMP30_CAL_ADDR 			((uint16_t*)((uint32_t)0x1FFFF7B8u))
 #define VREFINT_CAL_ADDR 			((uint16_t*)((uint32_t)0x1FFFF7BAu))
 #define ADC_TO_MV_K					52800u
-#define ADC_TO_BATTMV_K				72547u
-#define ADC_TO_5VRAIL_ISEN_K		0x10000
+#define ADC_TO_BATTMV_K				72547ul
+#define ADC_TO_5VRAIL_MV_K			105601ul
+#define ADC_TO_5VRAIL_ISEN_K		21120000ul
 
 #define IODRV_PIN_DEBOUNCE_COUNT	5u
 

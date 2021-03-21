@@ -91,11 +91,12 @@ uint16_t ANALOG_GetBatteryMv(void)
 }
 
 
+// Original averaged both sides of ferrite bead
 uint16_t ANALOG_Get5VRailMv(void)
 {
-	const uint16_t adcVal = ADC_CalibrateValue(ADC_GetAverageValue(ANALOG_CHANNEL_VBAT));
+	const uint16_t adcVal = ADC_CalibrateValue(ADC_GetAverageValue(ANALOG_CHANNEL_CS1));
 
-	return adcVal * 2u;
+	return UTIL_FixMul_U32_U16(ADC_TO_5VRAIL_MV_K, adcVal);
 }
 
 

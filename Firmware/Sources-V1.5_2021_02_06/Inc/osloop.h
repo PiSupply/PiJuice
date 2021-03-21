@@ -10,6 +10,9 @@
 
 void OSLOOP_Init(void);
 void OSLOOP_Service(void);
+void OSLOOP_Shutdown(void);
+void OSLOOP_Restart(void);
+
 void OSLOOP_AtomicAccess(bool access);
 
 

@@ -710,7 +710,6 @@ int main(void)
 	  if ( MS_TIME_COUNT(mainPollMsCounter) >= TICK_PERIOD_MS || NEED_EVENT_POLL() ) {
 
 		PowerSource5vIoDetectionTask();
-		AnalogTask();
 		ChargerTask();
 		FuelGaugeTask();
 		BatteryTask();
