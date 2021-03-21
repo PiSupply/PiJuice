@@ -163,7 +163,7 @@ static ButtonFunction_T GetFuncOfEvent(uint8_t b) {
 // TODO - Deal with 47 day roll over
 void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 {
-	if (NULL == p_button->p_pinInfo)
+	if ( (NULL == p_button) || (NULL == p_button->p_pinInfo) )
 	{
 		return;
 	}
