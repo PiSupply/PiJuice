@@ -654,22 +654,11 @@ int main(void)
 	BatteryInit();
 	BUTTON_Init();
 
-	while(1)
-	{
-		BUTTON_Task();
-		HAL_Delay(100u);
-
-	    // Refresh IWDG: reload counter
-	    if (HAL_IWDG_Refresh(&hiwdg) != HAL_OK)
-	    {
-	      Error_Handler(); // Refresh Error
-	    }
-	}
-
 	if (executionState == EXECUTION_STATE_POWER_ON) {
 		HAL_Delay(100);  // after power-on, charger and fuel gauge requires initialization time
 		FuelGaugeIcPreInit();
 	}
+
 	ChargerInit();
 	PowerSourceInit();
 	FuelGaugeInit();

@@ -10,14 +10,14 @@
 #include "analog.h"
 #include "nv.h"
 
+#include "iodrv.h"
 #include "io_control.h"
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim);
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim14;
-TIM_HandleTypeDef *htim;
-static GPIO_InitTypeDef gpioInitStruct;
+
 TIM_OC_InitTypeDef sConfigOC;
 
 uint8_t ioConfig[2] __attribute__((section("no_init")));
@@ -140,98 +140,48 @@ void MX_TIM14_Init(void)
 
 }
 
-void IoConfigure(uint8_t pin) {
-	if (pin == 1) {
-		gpioInitStruct.Pin = GPIO_PIN_7;
-		gpioInitStruct.Alternate = GPIO_AF4_TIM14;
+void IoConfigure(uint8_t extIOPinIdx)
+{
+	uint8_t iodrvPinIdx;
+	const uint8_t ioPinIdx = extIOPinIdx - 1u;
+	TIM_HandleTypeDef *htim;
+
+	if (extIOPinIdx == 1u)
+	{
+		iodrvPinIdx = IODRV_PIN_IO1;
 		htim = &htim14;
-	} else if (pin == 2) {
-		gpioInitStruct.Pin = GPIO_PIN_8;
-		gpioInitStruct.Alternate = GPIO_AF2_TIM1;
+	}
+	else if (extIOPinIdx == 2u)
+	{
+		iodrvPinIdx = IODRV_PIN_IO2;
 		htim = &htim1;
-	} else {
+	}
+	else
+	{
 		return;
 	}
 
-	if (htim->Instance->BDTR&(TIM_BDTR_MOE)) HAL_TIM_PWM_Stop(htim, TIM_CHANNEL_1);
+	const uint8_t pulldir = (ioConfig[ioPinIdx] >> 4u) & 0x3u;
+	const uint8_t newPinType = (ioConfig[ioPinIdx] & 0x0Fu);
 
-	switch (ioConfig[pin-1]&0x30) {
-	case 0x10: gpioInitStruct.Pull = GPIO_PULLDOWN; break;
-	case 0x20: gpioInitStruct.Pull = GPIO_PULLUP; break;
-	default: gpioInitStruct.Pull = GPIO_NOPULL; break;
+	if (0u != (htim->Instance->BDTR & TIM_BDTR_MOE))
+	{
+		HAL_TIM_PWM_Stop(htim, TIM_CHANNEL_1);
 	}
 
-	switch (ioConfig[pin-1]&0x0F) {
-	case 0: case 1:
-		//HAL_TIM_PWM_Stop(htim, TIM_CHANNEL_1);
-		gpioInitStruct.Mode = GPIO_MODE_ANALOG;
-	    HAL_GPIO_Init(GPIOA, &gpioInitStruct);
-	    break;
-	case 2:
-		// digital input
-		//HAL_TIM_PWM_Stop(htim, TIM_CHANNEL_1);
-		if ((pin==2) && (ioParam1[pin-1]&0x03) == 1) {
-			gpioInitStruct.Mode = GPIO_MODE_IT_FALLING; // on IO1 enable wakeup on falling edge
-		} else if ((pin==2) && (ioParam1[pin-1]&0x03) == 2) {
-			gpioInitStruct.Mode = GPIO_MODE_IT_RISING; // on IO1 enable wakeup on rising edge
-		} else {
-			gpioInitStruct.Mode = GPIO_MODE_INPUT;
-		}
-		HAL_GPIO_Init(GPIOA, &gpioInitStruct);
-		break;
-	case 3:
-		// digital output, push-pull
-		//HAL_TIM_PWM_Stop(htim, TIM_CHANNEL_1);
-		gpioInitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-		gpioInitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-		HAL_GPIO_WritePin(GPIOA, gpioInitStruct.Pin, ioParam1[pin-1]&0x01 ? GPIO_PIN_SET : GPIO_PIN_RESET);
-		HAL_GPIO_Init(GPIOA, &gpioInitStruct);
-		break;
-	case 4:
-		// digital output, open drain
-		gpioInitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-		gpioInitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-		HAL_GPIO_WritePin(GPIOA, gpioInitStruct.Pin, ioParam1[pin-1]&0x01 ? GPIO_PIN_SET : GPIO_PIN_RESET);
-		HAL_GPIO_Init(GPIOA, &gpioInitStruct);
-		break;
-	case 5:
-		// pus = arr*psc/8, arr = 65535, pus = 8192*psc, psc = pus/8192, arr = pus*8/psc
-		// pwm output
-		htim->Instance->PSC = ioParam1[pin-1] < 4096 ? 0 : (((uint32_t)ioParam1[pin-1])/4096);
-		htim->Instance->ARR = ((uint32_t)ioParam1[pin-1]+1)*16/(htim->Instance->PSC+1)-1;
-		//HAL_TIM_Base_Init(&htim1);
-		htim->Instance->CCR1 = ioParam2[pin-1] == 65535 ? 65535 : (uint32_t)htim->Instance->ARR*ioParam2[pin-1]/65534;
-		pwmLevel[pin-1] = ioParam2[pin-1];
-		gpioInitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-		// push-pull
-		gpioInitStruct.Mode = GPIO_MODE_AF_PP;
-		HAL_GPIO_Init(GPIOA, &gpioInitStruct);
-		//gpioInitStruct.Pin = GPIO_PIN_7;
-		//gpioInitStruct.Alternate = GPIO_AF2_TIM1;
-		//HAL_GPIO_Init(GPIOA, &gpioInitStruct);
+	IODRV_SetPinType(iodrvPinIdx, newPinType);
+	IODRV_SetPinPullDir(iodrvPinIdx, pulldir);
+
+	if ( (newPinType == IOTYPE_PWM_PUSHPULL) || (newPinType == IOTYPE_PWM_OPENDRAIN) )
+	{
+		// Setup pwm timer.
+		htim->Instance->PSC = ioParam1[ioPinIdx] < 4096u ? 0u : (((uint32_t)ioParam1[ioPinIdx]) / 4096u);
+		htim->Instance->ARR = ((uint32_t)ioParam1[ioPinIdx] + 1u) * 16u / (htim->Instance->PSC + 1u) - 1u;
+		htim->Instance->CCR1 = ioParam2[ioPinIdx] == 65535u ? 65535u : (uint32_t)htim->Instance->ARR * ioParam2[ioPinIdx] / 65534u;
+
+		pwmLevel[ioPinIdx] = ioParam2[ioPinIdx];
+
 		HAL_TIM_PWM_Start(htim, TIM_CHANNEL_1); // Start channel 1
-		//HAL_TIMEx_PWMN_Start(htim, TIM_CHANNEL_1);
-		break;
-	case 6:
-		// pwm output
-		htim->Instance->PSC = ioParam1[pin-1] < 4096 ? 0 : (((uint32_t)ioParam1[pin-1])/4096);
-		htim->Instance->ARR = ((uint32_t)ioParam1[pin-1]+1)*16/(htim->Instance->PSC+1)-1;
-		//HAL_TIM_Base_Init(&htim1);
-		htim->Instance->CCR1 = ioParam2[pin-1] == 65535 ? 65535 : (uint32_t)htim->Instance->ARR*ioParam2[pin-1]/65534;
-		pwmLevel[pin-1] = ioParam2[pin-1];
-		gpioInitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-		// push-pull
-		gpioInitStruct.Mode = GPIO_MODE_AF_OD;
-		HAL_GPIO_Init(GPIOA, &gpioInitStruct);
-		//gpioInitStruct.Pin = GPIO_PIN_7;
-		//gpioInitStruct.Alternate = GPIO_AF2_TIM1;
-		//HAL_GPIO_Init(GPIOA, &gpioInitStruct);
-		HAL_TIM_PWM_Start(htim, TIM_CHANNEL_1); // Start channel 1
-		break;
-	default:
-		//HAL_TIM_PWM_Stop(htim, TIM_CHANNEL_1);
-		gpioInitStruct.Mode = GPIO_MODE_ANALOG;
-	    HAL_GPIO_Init(GPIOA, &gpioInitStruct);
 	}
 }
 
@@ -287,46 +237,29 @@ void IoGetConfiguarion(uint8_t pin, uint8_t data[], uint16_t *len) {
 	*len = 5;
 }
 
-void IoWrite(uint8_t pin, uint8_t data[], uint8_t len)
+
+void IoWrite(const uint8_t extIOPinIdx, const uint8_t * const data, const uint16_t len)
 {
-	uint16_t val;
-	if (pin == 1) {
-		gpioInitStruct.Pin = GPIO_PIN_7;
-		htim = &htim14;
-	} else if (pin == 2) {
-		gpioInitStruct.Pin = GPIO_PIN_8;
-		htim = &htim1;
-	} else {
+	uint8_t iodrvPinIdx;
+	const uint8_t ioPinIdx = extIOPinIdx - 1u;
+	const uint8_t pinType = (ioConfig[ioPinIdx] & 0x0Fu);
+	const uint16_t outVal = (uint16_t)data[0u] | (data[1] << 8u);
+
+	TIM_HandleTypeDef *htim;
+
+	if (len != 2u)
+	{
 		return;
 	}
 
-	switch (ioConfig[pin-1]&0x0F) {
-	case 3: case 4:
-		HAL_GPIO_WritePin(GPIOA, gpioInitStruct.Pin, data[1]&0x01 ? GPIO_PIN_SET : GPIO_PIN_RESET);
-		break;
-	case 5: case 6:
-		val = data[1];
-		val <<= 8;
-		val |= data[0];
-		htim->Instance->CCR1 = val == 65535 ? 65535 : (uint32_t)htim->Instance->ARR*val/65534;
-		pwmLevel[pin-1] = val;
-	default:
-		break;
-	}
-}
-
-void IoRead(uint8_t pin, uint8_t data[], uint16_t *len)
-{
-	const uint16_t val = ANALOG_GetMv(ANALOG_CHANNEL_IO1);
-
-	if (pin == 1)
+	if (extIOPinIdx == 1u)
 	{
-		gpioInitStruct.Pin = GPIO_PIN_7;
+		iodrvPinIdx = IODRV_PIN_IO1;
 		htim = &htim14;
 	}
-	else if (pin == 2)
+	else if (extIOPinIdx == 2u)
 	{
-		gpioInitStruct.Pin = GPIO_PIN_8;
+		iodrvPinIdx = IODRV_PIN_IO2;
 		htim = &htim1;
 	}
 	else
@@ -334,31 +267,70 @@ void IoRead(uint8_t pin, uint8_t data[], uint16_t *len)
 		return;
 	}
 
-	switch (ioConfig[pin-1] & 0x0Fu)
+	switch (pinType)
 	{
-	case 1:
-		data[0u] = (uint8_t)(val & 0xFFu);
-		data[1u] = (uint8_t)((val >> 8) & 0xFFu);
-		break;
-
-	case 2:
-		data[0u] = HAL_GPIO_ReadPin(GPIOA, gpioInitStruct.Pin);
-		break;
-
 	case 3:
 	case 4:
-		data[0u] = HAL_GPIO_ReadPin(GPIOA, gpioInitStruct.Pin);
-		data[1u] = (GPIOA->ODR & (uint32_t)gpioInitStruct.Pin) == (uint32_t)gpioInitStruct.Pin;
+		IODRV_WritePin(iodrvPinIdx, (0u != (data[1u] & 0x01u)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 		break;
 
 	case 5:
 	case 6:
-		data[0u] = pwmLevel[pin-1]&0xFF;
-		data[1u] = (pwmLevel[pin-1] >> 8) & 0xFF;
+		htim->Instance->CCR1 = (outVal == 65535) ? 65535 : (uint32_t)htim->Instance->ARR * outVal / 65534u;
+		pwmLevel[ioPinIdx] = outVal;
+
+	default:
+		break;
+	}
+}
+
+void IoRead(const uint8_t extIOPinIdx, uint8_t * const data, uint16_t * const len)
+{
+	const uint8_t ioPinIdx = extIOPinIdx - 1u;
+	const uint8_t pinType = (ioConfig[ioPinIdx] & 0x0Fu);
+	uint8_t iodrvPinIdx;
+
+	if (extIOPinIdx == 1u)
+	{
+		iodrvPinIdx = IODRV_PIN_IO1;
+	}
+	else if (extIOPinIdx == 2u)
+	{
+		iodrvPinIdx = IODRV_PIN_IO2;
+	}
+	else
+	{
+		return;
+	}
+
+	const uint16_t pinValue = IODRV_ReadPinValue(iodrvPinIdx);
+
+	switch (pinType)
+	{
+	case IOTYPE_ANALOG:
+		data[0u] = (uint8_t)(pinValue & 0xFFu);
+		data[1u] = (uint8_t)((pinValue >> 8u) & 0xFFu);
+		break;
+
+	case IOTYPE_DIGIN:
+		data[0u] = (uint8_t)pinValue;
+		break;
+
+	case IOTYPE_DIGOUT_PUSHPULL:
+	case IOTYPE_DIGOUT_OPENDRAIN:
+		data[0u] = (uint8_t)pinValue;
+		data[1u] = IODRV_ReadPinOutputState(iodrvPinIdx);
+		break;
+
+	case IOTYPE_PWM_PUSHPULL:
+	case IOTYPE_PWM_OPENDRAIN:
+		data[0u] = (uint8_t)(pwmLevel[ioPinIdx] & 0xFFu);
+		data[1u] = (uint8_t)((pwmLevel[ioPinIdx] >> 8u) & 0xFFu);
 		break;
 
 	default:
 		break;
 	}
-	*len = 2;
+
+	*len = 2u;
 }

@@ -14,6 +14,8 @@
 #include "ave_filter.h"
 #include "time_count.h"
 #include "adc.h"
+#include "util.h"
+
 #include "iodrv.h"
 
 // ----------------------------------------------------------------------------
@@ -45,7 +47,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_IO1_GPIO_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_IO1_GPIO_PIN_Pos,
 				.gpioPort = IODRV_PIN_IO1_GPIO,
-				.canConfigure = true
+				.canConfigure = true,
+				.analogConversionFactor = ADC_TO_MV_K
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -301,6 +304,7 @@ bool IODRV_SetPinType(uint8_t pin, IODRV_PinType_t newType)
 {
 	const uint32_t otyper_bm = (1u << m_pins[pin].gpioPin_pos);
 	const uint32_t moder_pos = (m_pins[pin].gpioPin_pos * 2u);
+	const uint32_t ospeed_pos = (m_pins[pin].gpioPin_pos * 2u);
 
 	if ( (pin >= IODRV_MAX_IO_PINS) || (false == m_pins[pin].canConfigure) )
 	{
@@ -309,6 +313,7 @@ bool IODRV_SetPinType(uint8_t pin, IODRV_PinType_t newType)
 
 	m_pins[pin].gpioPort->MODER &= ~(3u << moder_pos);
 	m_pins[pin].gpioPort->OTYPER &= ~(otyper_bm);
+	m_pins[pin].gpioPort->OSPEEDR &= ~(3u << ospeed_pos);
 
 	switch (newType)
 	{
@@ -321,6 +326,8 @@ bool IODRV_SetPinType(uint8_t pin, IODRV_PinType_t newType)
 	case IOTYPE_PWM_OPENDRAIN:
 		m_pins[pin].gpioPort->OTYPER |= otyper_bm;
 	case IOTYPE_PWM_PUSHPULL:
+		// Set output pin to be high speed
+		m_pins[pin].gpioPort->OSPEEDR |= (3u << ospeed_pos);
 		m_pins[pin].gpioPort->MODER |= (PINMODE_ALTERNATE << moder_pos);
 		break;
 
@@ -410,7 +417,10 @@ void IODRV_UpdatePins(const uint32_t sysTime)
 		if (pinType == PINMODE_ANALOG)
 		{
 			// Read analog pin value, will be 0 if not connected to the ADC
-			value = ADC_GetAverageValue(m_pins[pin].adcChannel);
+			value = UTIL_FixMul_U32_U16(
+					m_pins[pin].analogConversionFactor,
+					ADC_CalibrateValue(ADC_GetAverageValue(m_pins[pin].adcChannel))
+					);
 		}
 		else if (pinType == PINMODE_ALTERNATE)
 		{

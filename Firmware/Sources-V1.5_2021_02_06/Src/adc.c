@@ -204,20 +204,6 @@ uint16_t ADC_ConvertToMV(const uint16_t value)
 
 // ****************************************************************************
 /*!
- * ADC_GetMV returns an adc value that has been calibrated and converted to mV.
- *
- * @param	channel		ADC channel to read
- * @retval	uint16_t	averaged and calibrated value in MV.
- */
-// ****************************************************************************
-uint16_t ADC_GetMV(const uint8_t channel)
-{
-	return ADC_ConvertToMV(ADC_CalibrateValue(ADC_GetAverageValue(channel)));
-}
-
-
-// ****************************************************************************
-/*!
  * ADC_GetFilterReady lets the caller know if the buffer in the average filter
  * is full. Will only not be full after a reset for a short while, once checked
  * that should be enough.

@@ -31,6 +31,7 @@ typedef struct
 	uint32_t			lastPosPulseWidthTimeMs;
 	uint32_t			lastNegPulseWidthTimeMs;
 	uint8_t				adcChannel;
+	uint32_t			analogConversionFactor;
 	IODRV_PinType_t		pinType;
 	uint16_t			gpioPin_bm;
 	uint8_t				gpioPin_pos;
@@ -41,7 +42,8 @@ typedef struct
 
 void IODRV_Init(uint32_t sysTime);
 void IODRV_Service(uint32_t sysTime);
-uint16_t IODRV_ReadPin(uint8_t pin);
+uint16_t IODRV_ReadPinValue(uint8_t pin);
+uint8_t IODRV_ReadPinOutputState(uint8_t pin);
 const IODRV_Pin_t * IODRV_GetPinInfo(uint8_t pin);
 bool IODRV_SetPinType(uint8_t pin, IODRV_PinType_t newType);
 bool IODRV_WritePin(uint8_t pin, uint8_t newValue);
