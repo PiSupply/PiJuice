@@ -418,6 +418,8 @@ void IODRV_UpdatePins(const uint32_t sysTime)
 		}
 		else // Must be digital then
 		{
+			value = m_pins[pin].value;
+
 			if (GPIO_PIN_SET == HAL_GPIO_ReadPin(m_pins[pin].gpioPort, m_pins[pin].gpioPin_bm))
 			{
 				if (m_pins[pin].debounceCounter < IODRV_PIN_DEBOUNCE_COUNT)
@@ -427,12 +429,16 @@ void IODRV_UpdatePins(const uint32_t sysTime)
 				else if (m_pins[pin].value != GPIO_PIN_SET)
 				{
 					/* log positive pulse width */
-					m_pins[pin].lastPosPulseWidthTimeMs = MS_TIMEREF_DIFF(m_pins[pin].lastDigitalChangeTime, sysTime);
+					m_pins[pin].lastNegPulseWidthTimeMs = MS_TIMEREF_DIFF(m_pins[pin].lastDigitalChangeTime, sysTime);
 
 					/* log the change time */
 					MS_TIMEREF_INIT(m_pins[pin].lastDigitalChangeTime, sysTime);
 
-					m_pins[pin].value = GPIO_PIN_SET;
+					value = GPIO_PIN_SET;
+				}
+				else
+				{
+					// Value already set
 				}
 			}
 			else
@@ -444,12 +450,24 @@ void IODRV_UpdatePins(const uint32_t sysTime)
 				else if (m_pins[pin].value != GPIO_PIN_RESET)
 				{
 					/* log negative pulse width */
-					m_pins[pin].lastNegPulseWidthTimeMs = MS_TIMEREF_DIFF(m_pins[pin].lastDigitalChangeTime, sysTime);
+					m_pins[pin].lastPosPulseWidthTimeMs = MS_TIMEREF_DIFF(m_pins[pin].lastDigitalChangeTime, sysTime);
 
 					/* log the change time */
-					m_pins[pin].lastDigitalChangeTime = sysTime;
-					m_pins[pin].value = GPIO_PIN_RESET;
+					MS_TIMEREF_INIT(m_pins[pin].lastDigitalChangeTime, sysTime);
+
+					value = GPIO_PIN_RESET;
 				}
+				else
+				{
+					// Value already set
+				}
+			}
+
+			// Clear pulse widths after one day, button routine might catch uint32_t timeref roll over and cause havok!
+			if (MS_TIMEREF_TIMEOUT(m_pins[pin].lastDigitalChangeTime, sysTime, MS_ONE_DAY))
+			{
+				m_pins[pin].lastNegPulseWidthTimeMs = 0u;
+				m_pins[pin].lastPosPulseWidthTimeMs = 0u;
 			}
 		}
 

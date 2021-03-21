@@ -648,13 +648,20 @@ int main(void)
 	defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 #endif
 
-
 	LoadCurrentSenseInit();
 	BatteryInit();
+	ButtonInit();
 
 	while(1)
 	{
-		asm volatile ("nop");
+		ButtonTask();
+		HAL_Delay(100u);
+
+	    // Refresh IWDG: reload counter
+	    if (HAL_IWDG_Refresh(&hiwdg) != HAL_OK)
+	    {
+	      Error_Handler(); // Refresh Error
+	    }
 	}
 
 	if (executionState == EXECUTION_STATE_POWER_ON) {

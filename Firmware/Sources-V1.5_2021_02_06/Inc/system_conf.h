@@ -21,17 +21,17 @@
 #define IODRV_PIN_IO2_GPIO			GPIOA
 #define IODRV_PIN_IO2_GPIO_PIN_Pos	8u
 
-/* SW1 */
+/* SW1 - Note: this is SW1 as on the PCB not schematic!! */
 /* EXTI12 Pull down rising edge trigger */
-#define IODRV_PIN_SW1				2u
-#define IODRV_PIN_SW1_GPIO			GPIOB
-#define IODRV_PIN_SW1_GPIO_PIN_Pos	12u
+#define IODRV_PIN_SW2				2u
+#define IODRV_PIN_SW2_GPIO			GPIOB
+#define IODRV_PIN_SW2_GPIO_PIN_Pos	12u
 
-/* SW2 */
+/* SW2 - Note: this is SW2 as on the PCB not schematic!! */
 /* EXTI3 Pull down rising edge trigger */
-#define IODRV_PIN_SW2				3u
-#define IODRV_PIN_SW2_GPIO			GPIOC
-#define IODRV_PIN_SW2_GPIO_PIN_Pos	13u
+#define IODRV_PIN_SW1				3u
+#define IODRV_PIN_SW1_GPIO			GPIOC
+#define IODRV_PIN_SW1_GPIO_PIN_Pos	13u
 
 /* SW3 */
 /* EXTI2 Pull down rising edge trigger */

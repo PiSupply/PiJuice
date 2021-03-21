@@ -22,6 +22,11 @@
 #define MS_TIMEREF_DIFF(ref,time)		(time - ref)
 #define MS_TIMEREF_TIMEOUT(ref,time,timeout)	((time - ref) >= timeout)
 
+#define MS_ONE_SECOND	1000ul
+#define MS_ONE_MINUTE	60u * MS_ONE_SECOND
+#define MS_ONE_HOUR		60u * MS_ONE_MINUTE
+#define MS_ONE_DAY		24u * MS_ONE_HOUR
+
 //extern uint32_t ticks[TIME_COUNTERS_MAX];
 
 //int8_t AddTimeCounter();

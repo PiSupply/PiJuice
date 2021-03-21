@@ -86,14 +86,14 @@ static Button_T buttons[3u] =
 		0u,
 		BUTTON_EVENT_FUNC_USER_EVENT | 4u,
 		0u,
-		BUTTON_EVENT_NO_FUNC,
-		0u,
-		BUTTON_EVENT_NO_FUNC,
-		0u,
-		BUTTON_EVENT_NO_FUNC,
-		0u,
-		BUTTON_EVENT_NO_FUNC,
-		0u
+		BUTTON_EVENT_FUNC_USER_EVENT | 5u,
+		1000u,
+		BUTTON_EVENT_FUNC_USER_EVENT | 6u,
+		1500u,
+		BUTTON_EVENT_FUNC_USER_EVENT | 7u,
+		5000u,
+		BUTTON_EVENT_FUNC_USER_EVENT | 8u,
+		10000u
 	}
 };
 
@@ -108,10 +108,10 @@ ButtonEventCb_T buttonEventCbs[BUTTON_EVENT_FUNC_NUMBER] =
 static int8_t writebuttonConfigData = -1;
 Button_T buttonConfigData;
 
-static void ButtonSetConfigData(uint8_t b, uint8_t pinref);
+static void BUTTON_SetConfigData(Button_T * const p_button, const uint8_t pinref);
 static void ButtonUpdateConfigData(uint8_t b);
 static ButtonFunction_T BUTTON_GetEventFunc(Button_T * const p_button);
-void ProcessButton(Button_T * const p_button, const uint32_t sysTick);
+static void BUTTON_ProcessButton(Button_T * const p_button, const uint32_t sysTick);
 
 static ButtonFunction_T BUTTON_GetEventFunc(Button_T * const p_button)
 {
@@ -160,8 +160,7 @@ static ButtonFunction_T GetFuncOfEvent(uint8_t b) {
 }
 
 
-// TODO - Deal with 47 day roll over
-void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
+void BUTTON_ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 {
 	if ( (NULL == p_button) || (NULL == p_button->p_pinInfo) )
 	{
@@ -177,30 +176,41 @@ void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 	ButtonFunction_T func;
 	uint8_t i;
 
+
 	if ( (GPIO_PIN_RESET == p_button->p_pinInfo->value) )
 	{
 		if (lastEdgeMs > BUTTON_EVENT_EXPIRE_PERIOD_MS)
 		{
 			// Event timeout, remove it
-			p_button->pressCount = 0u;
 			p_button->event = BUTTON_EVENT_NONE;
 			oldEv = BUTTON_EVENT_NONE;
 		}
-
-		if ( (p_button->p_pinInfo->lastPosPulseWidthTimeMs > p_button->singlePressTime)
-				&& (BUTTON_EVENT_NO_FUNC != p_button->singlePressFunc) )
+		// The pulse is cleared after one day in the IODRV module
+		// This check ensures that the 47 day roll over does not cause a phantom
+		// button press as the button will have appeared to have been pressed
+		// recently when it hasn't!
+		else if (p_button->p_pinInfo->lastPosPulseWidthTimeMs > 0u)
 		{
-			if ((lastEdgeMs + p_button->p_pinInfo->lastPosPulseWidthTimeMs) > p_button->doublePressTime)
+
+			// Check 	- single press time has not been exceeded for last press cycle
+			//			- double press time has been exceeded
+			//			- single press function has been allocated
+			//			- single press function has not already been executed
+			if ( (p_button->p_pinInfo->lastPosPulseWidthTimeMs < p_button->singlePressTime)
+					&& ((lastEdgeMs + p_button->p_pinInfo->lastPosPulseWidthTimeMs) > p_button->doublePressTime)
+					&& (BUTTON_EVENT_NO_FUNC != p_button->singlePressFunc)
+					&& (p_button->event < BUTTON_EVENT_SINGLE_PRESS))
 			{
 				// Raise single press event
 				p_button->event = BUTTON_EVENT_SINGLE_PRESS;
 			}
-		}
 
-		if ( (p_button->event < BUTTON_EVENT_RELEASE) && (BUTTON_EVENT_NO_FUNC != p_button->releaseFunc) )
-		{
-			// Raise release event
-			p_button->event = BUTTON_EVENT_RELEASE;
+
+			if ( (p_button->event < BUTTON_EVENT_RELEASE) && (BUTTON_EVENT_NO_FUNC != p_button->releaseFunc) )
+			{
+				// Raise release event
+				p_button->event = BUTTON_EVENT_RELEASE;
+			}
 		}
 
 		p_button->staticLongPressEvent = 0u;
@@ -219,7 +229,7 @@ void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 			// Raise long press 1
 			p_button->event = BUTTON_EVENT_LONG_PRESS1;
 		}
-		else if ( ((lastEdgeMs + previousButtonCycleTimeMs) > p_button->doublePressTime)
+		else if ( ((lastEdgeMs + previousButtonCycleTimeMs) < p_button->doublePressTime)
 				&& (BUTTON_EVENT_NO_FUNC != p_button->doublePressFunc))
 		{
 			// Raise double press event
@@ -253,7 +263,7 @@ void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 				i++;
 			}
 
-			buttonEventCbs[func](i, p_button->event);
+			//buttonEventCbs[func](i, p_button->event);
 		}
 	}
 }
@@ -263,7 +273,7 @@ void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
  *
  * BUTTON_EVENT_PRESS is raised on first rising edge after 30 seconds of no activity.
  * BUTTON_EVENT_RELEASE is raised on first falling edge if time exceeds single press or no action is registered for single press.
- * BUTTON_EVENT_SINGLE_PRESS is raised after button is released and meets minimum button.pressed time
+ * BUTTON_EVENT_SINGLE_PRESS is raised after button is released and does not exceed button.singlePress time
  * BUTTON_EVENT_DOUBLE_PRESS is raised on second rising edge if the second edge occurs before button.doublePressTime
  * BUTTON_EVENT_LONG_PRESS1 is raised if the button is held and the button.longPressTime1 is exceeded.
  * BUTTON_EVENT_LONG_PRESS2 is raised if the button is held and the button.longPressTime2 is exceeded.
@@ -280,7 +290,7 @@ void ProcessButton(Button_T * const p_button, const uint32_t sysTick)
  * staticButtonLongPress is reset on button release
  *
  */
-void ProcessButton_Old( uint8_t b, GPIO_PinState pinState ) {
+void ProcessButton( uint8_t b, GPIO_PinState pinState ) {
 	volatile ButtonEvent_T oldEv = buttons[b].event;
 
 	if ( pinState != buttons[b].state ) {
@@ -396,9 +406,11 @@ static uint8_t ButtonReadConfigurationNv(uint8_t b) {
 }
 
 
-static void ButtonSetConfigData(uint8_t b, uint8_t pinref)
+static void BUTTON_SetConfigData(Button_T * const p_button, const uint8_t pinref)
 {
-	buttons[b].p_pinInfo = IODRV_GetPinInfo(pinref);
+	p_button->p_pinInfo = IODRV_GetPinInfo(pinref);
+
+	//ButtonUpdateConfigData(b);
 }
 
 
@@ -421,17 +433,17 @@ void ButtonInit(void)
 {
 	if ( 0u == ButtonReadConfigurationNv(0u) )
 	{
-		ButtonSetConfigData(0u, IODRV_PIN_SW1);
+		BUTTON_SetConfigData(&buttons[0u], IODRV_PIN_SW1);
 	}
 
 	if ( 0u == ButtonReadConfigurationNv(1u) )
 	{
-		ButtonSetConfigData(1u, IODRV_PIN_SW2);
+		BUTTON_SetConfigData(&buttons[1u], IODRV_PIN_SW2);
 	}
 
 	if ( 0u == ButtonReadConfigurationNv(2u) )
 	{
-		ButtonSetConfigData(2u, IODRV_PIN_SW3);
+		BUTTON_SetConfigData(&buttons[2u], IODRV_PIN_SW3);
 	}
 #if defined(RTOS_FREERTOS)
 	buttonTaskHandle = osThreadNew(ButtonTask, (void*)NULL, &buttonTask_attributes);
@@ -484,12 +496,13 @@ static void ButtonTask(void *argument) {
 void ButtonTask(void) {
 
 	const uint32_t sysTime = HAL_GetTick();
-	uint8_t oldDualLongPressStatus = buttons[0].staticLongPressEvent && buttons[1].staticLongPressEvent;
+	const uint8_t oldDualLongPressStatus = buttons[0].staticLongPressEvent && buttons[1].staticLongPressEvent;
 
-	ProcessButton(&buttons[0u], sysTime); // sw1
-	ProcessButton(&buttons[1u], sysTime); // sw2
-	ProcessButton(&buttons[2u], sysTime); // sw3
+	//BUTTON_ProcessButton(&buttons[0u], sysTime); // sw1
+	//BUTTON_ProcessButton(&buttons[1u], sysTime); // sw2
+	BUTTON_ProcessButton(&buttons[2u], sysTime); // sw3
 
+	// Check to see if both buttons SW1 and SW2 have been held down at the same time
 	if ((buttons[0].staticLongPressEvent && buttons[1].staticLongPressEvent) > oldDualLongPressStatus) ButtonDualLongPressEventCb();
 
 	if (writebuttonConfigData >= 0) {
