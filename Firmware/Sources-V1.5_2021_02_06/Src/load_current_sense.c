@@ -91,7 +91,7 @@ static int32_t GetResSenseCurrent(void) {
 
 int32_t GetLoadCurrent(void)
 {
-	const bool boostConverterEnabled = (bool)IODRV_ReadPinValue(IODRV_PIN_POW_EN);
+	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
 	int32_t result = pow5vIoResLoadCurrent - m_resLoadCurrCalib;
 
 	if ( pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_NOT_PRESENT )
@@ -233,7 +233,7 @@ void LoadCurrentSenseInit(void) {
 int8_t CalibrateLoadCurrent(void) {
 
 	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
-	const bool boostConverterEnabled = IODRV_ReadPinValue(IODRV_PIN_POW_EN);
+	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
 
 	m_resLoadCurrCalib = pow5vIoResLoadCurrent - 51;  // 5.1v/100ohm
 
@@ -244,7 +244,8 @@ int8_t CalibrateLoadCurrent(void) {
 		return 1;
 	}
 
-	Power5VSetModeLDO();
+	POWERSOURCE_SetLDOEnable(true);
+
 	DelayUs(10000);
 
 	float ktNorm = 0.0052f * mcuTemperature + 0.9376f;

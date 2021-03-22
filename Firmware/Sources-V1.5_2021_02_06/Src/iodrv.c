@@ -97,7 +97,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_POW_EN_PIN_Pos,
 				.gpioPort = IODRV_PIN_POW_EN_GPIO,
 				.invert_bm = IODRV_PIN_POW_EN_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = true
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -105,7 +105,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_EXTVS_EN_PIN_Pos,
 				.gpioPort = IODRV_PIN_EXTVS_EN_GPIO,
 				.invert_bm = IODRV_PIN_EXTVS_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = true
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,

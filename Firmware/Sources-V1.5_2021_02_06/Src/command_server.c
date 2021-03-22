@@ -479,13 +479,17 @@ static uint8_t IsEventFault(void)
 
 void CmdServerReadStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
+	const uint8_t vinStatus = (uint8_t)(POWERSOURCE_GetVInStatus() & 0x03u);
+	const uint8_t v5VRailStatus = (uint8_t)(POWERSOURCE_Get5VRailStatus() & 0x03u);
+	const uint8_t batteryStatus = (uint8_t)(BATTERY_GetStatus() & 0x03u);
+
 	if (dir == MASTER_CMD_DIR_READ)
 	{
-		pData[0] = IsEventFault() ? 1u : 0u;
-		pData[0] |= BUTTON_IsEventActive() ? 2u : 0u;
-		pData[0] |= (batteryStatus << 2u);
-		pData[0] |= (powerInStatus << 4u);
-		pData[0] |= (power5vIoStatus << 6u);
+		pData[0] = IsEventFault();
+		pData[0] |= BUTTON_IsEventActive() < 1u;
+		pData[0] |= batteryStatus << 2u;
+		pData[0] |= vinStatus << 4u;
+		pData[0] |= v5VRailStatus << 6u;
 
 		*dataLen = 1u;
 	}
@@ -856,9 +860,9 @@ void CmdServerReadWriteScheduledPowerOff(uint8_t dir, uint8_t *pData, uint16_t *
 
 void CmdServerReadWriteVSysSwitchState(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
-		PowerSourceSetVSysSwitchState(pData[1]);
+		POWERSOURCE_SetVSysSwitchState(pData[1]);
 	} else {
-		pData[0] = PowerSourceGetVSysSwitchState();
+		pData[0] = POWERSOURCE_GetVSysSwitchState();
 		*dataLen = 1;
 	}
 }

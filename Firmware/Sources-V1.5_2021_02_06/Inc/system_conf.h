@@ -8,89 +8,89 @@
 #ifndef SYSTEM_CONF_H_
 #define SYSTEM_CONF_H_
 
-#define TIMER_OSLOOP				TIM6
-#define OSLOOP_TIMER_IRQHandler		TIM6_IRQHandler
+#define TIMER_OSLOOP					TIM6
+#define OSLOOP_TIMER_IRQHandler			TIM6_IRQHandler
 
-#define IODRV_PIN_IO1				0u
-#define IODRV_PIN_IO1_GPIO			GPIOA
-#define IODRV_PIN_IO1_GPIO_PIN_Pos	7u
-#define IODRV_PIN_IO1_ADC_CHANNEL	ANALOG_CHANNEL_IO1
-#define IODRV_PIN_IO1_ADC_CONV_K	ADC_TO_MV_K
-#define IODRV_PIN_IO1_INVERT_bm		0u
+#define IODRV_PIN_IO1					0u
+#define IODRV_PIN_IO1_GPIO				GPIOA
+#define IODRV_PIN_IO1_GPIO_PIN_Pos		7u
+#define IODRV_PIN_IO1_ADC_CHANNEL		ANALOG_CHANNEL_IO1
+#define IODRV_PIN_IO1_ADC_CONV_K		ADC_TO_MV_K
+#define IODRV_PIN_IO1_INVERT_bm			0u
 
-#define IODRV_PIN_IO2				1u
-#define IODRV_PIN_IO2_GPIO			GPIOA
-#define IODRV_PIN_IO2_GPIO_PIN_Pos	8u
-#define IODRV_PIN_IO2_INVERT_bm		0u
+#define IODRV_PIN_IO2					1u
+#define IODRV_PIN_IO2_GPIO				GPIOA
+#define IODRV_PIN_IO2_GPIO_PIN_Pos		8u
+#define IODRV_PIN_IO2_INVERT_bm			0u
 
 /* SW1 - Note: this is SW1 as on the PCB not schematic!! */
 /* EXTI12 Pull down rising edge trigger */
-#define IODRV_PIN_SW2				2u
-#define IODRV_PIN_SW2_GPIO			GPIOB
-#define IODRV_PIN_SW2_GPIO_PIN_Pos	12u
-#define IODRV_PIN_SW2_INVERT_bm		0u
+#define IODRV_PIN_SW2					2u
+#define IODRV_PIN_SW2_GPIO				GPIOB
+#define IODRV_PIN_SW2_GPIO_PIN_Pos		12u
+#define IODRV_PIN_SW2_INVERT_bm			0u
 
 /* SW2 - Note: this is SW2 as on the PCB not schematic!! */
 /* EXTI3 Pull down rising edge trigger */
-#define IODRV_PIN_SW1				3u
-#define IODRV_PIN_SW1_GPIO			GPIOC
-#define IODRV_PIN_SW1_GPIO_PIN_Pos	13u
-#define IODRV_PIN_SW1_INVERT_bm		0u
+#define IODRV_PIN_SW1					3u
+#define IODRV_PIN_SW1_GPIO				GPIOC
+#define IODRV_PIN_SW1_GPIO_PIN_Pos		13u
+#define IODRV_PIN_SW1_INVERT_bm			0u
 
 /* SW3 */
 /* EXTI2 Pull down rising edge trigger */
-#define IODRV_PIN_SW3				4u
-#define IODRV_PIN_SW3_GPIO			GPIOB
-#define IODRV_PIN_SW3_GPIO_PIN_Pos	2u
-#define IODRV_PIN_SW3_INVERT_bm		0u
+#define IODRV_PIN_SW3					4u
+#define IODRV_PIN_SW3_GPIO				GPIOB
+#define IODRV_PIN_SW3_GPIO_PIN_Pos		2u
+#define IODRV_PIN_SW3_INVERT_bm			0u
 
 /* LDO regulator enable */
 /* Output pushpull */
-#define IODRV_PIN_POWDET_EN			5u
-#define IODRV_PIN_POWDET_EN_GPIO	GPIOA
-#define IODRV_PIN_POWDET_EN_PIN_Pos	11u
+#define IODRV_PIN_POWDET_EN				5u
+#define IODRV_PIN_POWDET_EN_GPIO		GPIOA
+#define IODRV_PIN_POWDET_EN_PIN_Pos		11u
 #define IODRV_PIN_POWDET_EN_INVERT_bm	0u
 
 /* Boost converter enable */
 /* Output tbd but initially set to input */
-#define IODRV_PIN_POW_EN			6u
-#define IODRV_PIN_POW_EN_GPIO		GPIOA
-#define IODRV_PIN_POW_EN_PIN_Pos	10u
-#define IODRV_PIN_POW_EN_INVERT_bm	0u
+#define IODRV_PIN_POW_EN				6u
+#define IODRV_PIN_POW_EN_GPIO			GPIOA
+#define IODRV_PIN_POW_EN_PIN_Pos		10u
+#define IODRV_PIN_POW_EN_INVERT_bm		0u
 
 /* VSys enable */
 /* Output tbd but initially set to input */
-#define IODRV_PIN_EXTVS_EN			7u
-#define IODRV_PIN_EXTVS_EN_GPIO		GPIOA
-#define IODRV_PIN_EXTVS_EN_PIN_Pos	12u
-#define IODRV_PIN_EXTVS_INVERT_bm	0x01u
+#define IODRV_PIN_EXTVS_EN				7u
+#define IODRV_PIN_EXTVS_EN_GPIO			GPIOA
+#define IODRV_PIN_EXTVS_EN_PIN_Pos		12u
+#define IODRV_PIN_EXTVS_INVERT_bm		0x01u
 
 /* Charger TS */
 /* Ouput pushpull */
-#define IODRV_PIN_TS_CTR1			8u
-#define IODRV_PIN_TS_CTR1_GPIO		GPIOA
-#define IODRV_PIN_TS_CTR1_PIN_Pos	6u
-#define IODRV_PIN_TS_CTR1_bm		0u
+#define IODRV_PIN_TS_CTR1				8u
+#define IODRV_PIN_TS_CTR1_GPIO			GPIOA
+#define IODRV_PIN_TS_CTR1_PIN_Pos		6u
+#define IODRV_PIN_TS_CTR1_bm			0u
 
 /* Output pushpull */
-#define IODRV_PIN_TS_CTR2			9u
-#define IODRV_PIN_TS_CTR2_GPIO		GPIOA
-#define IODRV_PIN_TS_CTR2_PIN_Pos	15u
-#define IODRV_PIN_TS_CTR2_bm		0u
+#define IODRV_PIN_TS_CTR2				9u
+#define IODRV_PIN_TS_CTR2_GPIO			GPIOA
+#define IODRV_PIN_TS_CTR2_PIN_Pos		15u
+#define IODRV_PIN_TS_CTR2_bm			0u
 
 /* Charger interrupt */
 /* EXTI0 falling edge trigger */
-#define IODRV_PIN_CH_INT			10u
-#define IODRV_PIN_CH_INT_GPIO		GPIOF
-#define IODRV_PIN_CH_INT_PIN_Pos	0u
-#define IODRV_PIN_CH_INT_bm			0u
+#define IODRV_PIN_CH_INT				10u
+#define IODRV_PIN_CH_INT_GPIO			GPIOF
+#define IODRV_PIN_CH_INT_PIN_Pos		0u
+#define IODRV_PIN_CH_INT_bm				0u
 
 /* VSys current limit control - Sets 500mA drive limit */
 /* Output open drain */
-#define IODRV_PIN_ESYSLIM			11u
-#define IODRV_PIN_ESYSLIM_GPIO		GPIOF
-#define IODRV_PIN_ESYSLIM_PIN_Pos	1u
-#define IODRV_PIN_ESYSLIM_bm		0u
+#define IODRV_PIN_ESYSLIM				11u
+#define IODRV_PIN_ESYSLIM_GPIO			GPIOF
+#define IODRV_PIN_ESYSLIM_PIN_Pos		1u
+#define IODRV_PIN_ESYSLIM_bm			0u
 
 /* Fuel guage alarm output */
 /* Maybe not initialised? Input no pull */

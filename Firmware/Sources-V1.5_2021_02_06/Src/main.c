@@ -661,7 +661,7 @@ int main(void)
 	}
 
 	ChargerInit();
-	PowerSourceInit();
+	POWERSOURCE_Init();
 	FuelGaugeInit();
 	PowerManagementInit();
 	LedInit();
@@ -715,7 +715,7 @@ int main(void)
 		ChargerTask();
 		FuelGaugeTask();
 		BatteryTask();
-		PowerSourceTask();
+		POWERSOURCE_Task();
 		if (alarmEventFlag || __HAL_RTC_ALARM_GET_FLAG(&hrtc, RTC_FLAG_ALRAF) != RESET) {
 			EvaluateAlarm();
 			alarmEventFlag = 0;

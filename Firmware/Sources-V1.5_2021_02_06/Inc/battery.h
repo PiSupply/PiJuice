@@ -72,9 +72,8 @@ typedef enum {
 	STATE_LOWPOWER
 } PowerState_T;
 
-//extern const BatteryProfile_T batteryProfiles[];
+
 extern uint8_t batProfileStatus;
-extern BatteryStatus_T batteryStatus;
 
 void BatteryInit(void);
 #if !defined(RTOS_FREERTOS)
@@ -88,5 +87,6 @@ int8_t BatteryWriteCustomExtendedProfileReq(uint8_t *data, uint16_t len);
 int8_t BatteryReadCurrentExtendedProfile(uint8_t *data, uint16_t *len);
 
 const BatteryProfile_T * BATTERY_GetActiveProfile(void);
+BatteryStatus_T BATTERY_GetStatus(void);
 
 #endif /* BATTERY_H_ */

@@ -129,7 +129,8 @@ void PowerManagementInit(void) {
 
 int8_t ResetHost(void)
 {
-	const bool boostConverterEnabled = IODRV_ReadPinValue(IODRV_PIN_POW_EN);
+	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
+	const PowerSourceStatus_T power5vIoStatus = POWERSOURCE_Get5VRailStatus();
 
 	if ( ((true == boostConverterEnabled) || (POW_SOURCE_NOT_PRESENT != power5vIoStatus))
 			&& (RUN_PIN_INSTALLED == runPinInstallationStatus)
@@ -198,7 +199,8 @@ int8_t ResetHost(void)
 
 void BUTTON_PowerOnEventCb(const Button_T * const p_button)
 {
-	const bool boostConverterEnabled = IODRV_ReadPinValue(IODRV_PIN_POW_EN);
+	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
+	const PowerSourceStatus_T power5vIoStatus = POWERSOURCE_Get5VRailStatus();
 
 	// TODO - Should be another bracket set there somewhere!
 	if ( ((false == boostConverterEnabled) && (POW_SOURCE_NOT_PRESENT == power5vIoStatus))
@@ -223,7 +225,8 @@ void BUTTON_PowerOnEventCb(const Button_T * const p_button)
 
 void BUTTON_PowerOffEventCb(const Button_T * const p_button)
 {
-	const bool boostConverterEnabled = IODRV_ReadPinValue(IODRV_PIN_POW_EN);
+	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
+	const PowerSourceStatus_T power5vIoStatus = POWERSOURCE_Get5VRailStatus();
 
 	if ( (true == boostConverterEnabled) && (POW_SOURCE_NOT_PRESENT == power5vIoStatus) )
 	{
@@ -349,7 +352,7 @@ void PowerManagementTask(void) {
 		MS_TIME_COUNTER_INIT(lastWakeupTimer);
 	}
 
-	boostConverterEnabled = IODRV_ReadPinValue(IODRV_PIN_POW_EN);
+	boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
 
 	if ( (0u != delayedPowerOffCounter) && (delayedPowerOffCounter <= sysTime) )
 	{

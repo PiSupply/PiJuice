@@ -43,7 +43,7 @@ static int16_t setProfileReq = -1;
 static int8_t writeCustomProfileReq = 0;
 BatteryProfile_T customBatProfileReq;
 
-BatteryStatus_T batteryStatus = BAT_STATUS_NOT_PRESENT;
+
 
 const BatteryProfile_T batteryProfiles[] = {
 	{ 	// PiJuice Zero 1000mAh battery
@@ -270,6 +270,7 @@ BatteryProfile_T customBatProfile = {
 uint8_t batProfileStatus = BATTERY_INVALID_PROFILE_ID;
 
 static const BatteryProfile_T * m_activeBatteryProfile = NULL;
+static BatteryStatus_T m_batteryStatus = BAT_STATUS_NOT_PRESENT;
 
 int8_t BatReadEEprofileData(void);
 int8_t BatReadExtendedEEprofileData(void);
@@ -668,14 +669,21 @@ void BatteryTask(void) {
 		}
 	}
 
-	if (!CHARGER_IS_BATTERY_PRESENT() || batteryVoltage < 2500) {
-		batteryStatus = BAT_STATUS_NOT_PRESENT;
-	} else if (chargerStatus == CHG_CHARGING_FROM_IN) {
-		batteryStatus = BAT_STATUS_CHARGING_FROM_IN;
-	} else if (chargerStatus == CHG_CHARGING_FROM_USB) {
-		batteryStatus = BAT_STATUS_CHARGING_FROM_5V_IO;
-	} else {
-		batteryStatus = BAT_STATUS_NORMAL;
+	if (!CHARGER_IS_BATTERY_PRESENT() || batteryVoltage < 2500)
+	{
+		m_batteryStatus = BAT_STATUS_NOT_PRESENT;
+	}
+	else if (chargerStatus == CHG_CHARGING_FROM_IN)
+	{
+		m_batteryStatus = BAT_STATUS_CHARGING_FROM_IN;
+	}
+	else if (chargerStatus == CHG_CHARGING_FROM_USB)
+	{
+		m_batteryStatus = BAT_STATUS_CHARGING_FROM_5V_IO;
+	}
+	else
+	{
+		m_batteryStatus = BAT_STATUS_NORMAL;
 	}
 
 	if (MS_TIME_COUNT(chargeLedTaskMsCounter) >= 900/*(state == STATE_LOWPOWER?2000:500)*/) {
@@ -694,11 +702,16 @@ void BatteryTask(void) {
 		}
 		uint8_t paramB = LedGetParamB(LED_CHARGE_STATUS);
 
-		if (batteryStatus == BAT_STATUS_CHARGING_FROM_IN || batteryStatus == BAT_STATUS_CHARGING_FROM_5V_IO) {//if (chargerStatus == CHG_CHARGING_FROM_IN || chargerStatus == CHG_CHARGING_FROM_USB) {
-			b = b?0:paramB;//200 - r;
-		} else if (chargerStatus == CHG_CHARGE_DONE) {
+		if ( (m_batteryStatus == BAT_STATUS_CHARGING_FROM_IN) || (m_batteryStatus == BAT_STATUS_CHARGING_FROM_5V_IO) )
+		{
+			b = b ? 0 : paramB;//200 - r;
+		}
+		else if (chargerStatus == CHG_CHARGE_DONE)
+		{
 			b = paramB;
-		} else {
+		}
+		else
+		{
 			b = 0;
 		}
 
@@ -828,4 +841,10 @@ int8_t BatteryReadProfileStatus(uint8_t *data, uint16_t *len) {
 const BatteryProfile_T * BATTERY_GetActiveProfile(void)
 {
 	return m_activeBatteryProfile;
+}
+
+
+BatteryStatus_T BATTERY_GetStatus(void)
+{
+	return m_batteryStatus;
 }
