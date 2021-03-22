@@ -161,8 +161,11 @@ void IoConfigure(uint8_t extIOPinIdx)
 		return;
 	}
 
-	const uint8_t pulldir = (ioConfig[ioPinIdx] >> 4u) & 0x3u;
+
 	const uint8_t newPinType = (ioConfig[ioPinIdx] & 0x0Fu);
+	uint8_t pulldir = (ioConfig[ioPinIdx] >> 4u) & 0x3u;
+
+	pulldir = (pulldir > 0u) ? pulldir ^ 0x03u : pulldir;
 
 	if (0u != (htim->Instance->BDTR & TIM_BDTR_MOE))
 	{

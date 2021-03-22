@@ -403,6 +403,7 @@ void POWERSOURCE_5VIoDetection_Task(void)
 	}
 	else
 	{
+		// LDO regulator is set to 4.79V
 		if (v5RailMv < 4800u)
 		{
 			if (POW_5V_IN_DETECTION_STATUS_NOT_PRESENT != pow5vInDetStatus)
