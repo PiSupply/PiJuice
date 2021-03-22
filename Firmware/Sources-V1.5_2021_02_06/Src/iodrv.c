@@ -48,6 +48,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_IO1_GPIO_PIN_Pos,
 				.gpioPort = IODRV_PIN_IO1_GPIO,
 				.canConfigure = true,
+				.invert_bm = IODRV_PIN_IO1_INVERT_bm,
 				.analogConversionFactor = ADC_TO_MV_K
 		},
 		{
@@ -55,6 +56,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_IO2_GPIO_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_IO2_GPIO_PIN_Pos,
 				.gpioPort = IODRV_PIN_IO2_GPIO,
+				.invert_bm = IODRV_PIN_IO2_INVERT_bm,
 				.canConfigure = true
 		},
 		{
@@ -62,6 +64,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_SW1_GPIO_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_SW1_GPIO_PIN_Pos,
 				.gpioPort = IODRV_PIN_SW1_GPIO,
+				.invert_bm = IODRV_PIN_SW1_INVERT_bm,
 				.canConfigure = false
 		},
 		{
@@ -69,6 +72,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_SW2_GPIO_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_SW2_GPIO_PIN_Pos,
 				.gpioPort = IODRV_PIN_SW2_GPIO,
+				.invert_bm = IODRV_PIN_SW2_INVERT_bm,
 				.canConfigure = false
 		},
 		{
@@ -76,6 +80,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_SW3_GPIO_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_SW3_GPIO_PIN_Pos,
 				.gpioPort = IODRV_PIN_SW3_GPIO,
+				.invert_bm = IODRV_PIN_SW3_INVERT_bm,
 				.canConfigure = false
 		},
 		{
@@ -83,6 +88,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_POWDET_EN_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_POWDET_EN_PIN_Pos,
 				.gpioPort = IODRV_PIN_POWDET_EN_GPIO,
+				.invert_bm = IODRV_PIN_POWDET_EN_INVERT_bm,
 				.canConfigure = false
 		},
 		{
@@ -90,6 +96,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_POW_EN_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_POW_EN_PIN_Pos,
 				.gpioPort = IODRV_PIN_POW_EN_GPIO,
+				.invert_bm = IODRV_PIN_POW_EN_INVERT_bm,
 				.canConfigure = false
 		},
 		{
@@ -97,6 +104,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_EXTVS_EN_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_EXTVS_EN_PIN_Pos,
 				.gpioPort = IODRV_PIN_EXTVS_EN_GPIO,
+				.invert_bm = IODRV_PIN_EXTVS_INVERT_bm,
 				.canConfigure = false
 		},
 		{
@@ -104,6 +112,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_TS_CTR1_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_TS_CTR1_PIN_Pos,
 				.gpioPort = IODRV_PIN_TS_CTR1_GPIO,
+				.invert_bm = IODRV_PIN_TS_CTR1_bm,
 				.canConfigure = false
 		},
 		{
@@ -111,6 +120,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_TS_CTR2_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_TS_CTR2_PIN_Pos,
 				.gpioPort = IODRV_PIN_TS_CTR2_GPIO,
+				.invert_bm = IODRV_PIN_TS_CTR2_bm,
 				.canConfigure = false
 		},
 		{
@@ -118,6 +128,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_CH_INT_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_CH_INT_PIN_Pos,
 				.gpioPort = IODRV_PIN_CH_INT_GPIO,
+				.invert_bm = IODRV_PIN_CH_INT_bm,
 				.canConfigure = false
 		},
 		{
@@ -125,6 +136,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_ESYSLIM_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_ESYSLIM_PIN_Pos,
 				.gpioPort = IODRV_PIN_ESYSLIM_GPIO,
+				.invert_bm = IODRV_PIN_ESYSLIM_bm,
 				.canConfigure = false
 		},
 		{
@@ -132,6 +144,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_BGINT_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_BGINT_PIN_Pos,
 				.gpioPort = IODRV_PIN_BGINT_GPIO,
+				.invert_bm = IODRV_PIN_BGINT_bm,
 				.canConfigure = false
 		},
 		{
@@ -139,6 +152,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_EE_A_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_EE_A_PIN_Pos,
 				.gpioPort = IODRV_PIN_EE_A_GPIO,
+				.invert_bm = IODRV_PIN_EE_A_bm,
 				.canConfigure = false
 		},
 		{
@@ -146,6 +160,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_EE_WP_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_EE_WP_PIN_Pos,
 				.gpioPort = IODRV_PIN_EE_WP_GPIO,
+				.invert_bm = IODRV_PIN_EE_WP_bm,
 				.canConfigure = false
 		},
 		{
@@ -153,6 +168,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_RUN_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_RUN_PIN_Pos,
 				.gpioPort = IODRV_PIN_RUN_GPIO,
+				.invert_bm = IODRV_PIN_RUN_bm,
 				.canConfigure = false
 		}
 };
@@ -227,13 +243,15 @@ uint16_t IODRV_ReadPinValue(uint8_t pin)
 // ****************************************************************************
 /*!
  * IODRV_ReadPinOutputState returns the value of the output data register, giving
- * the expected drive level (could still be pulled down)
+ * the expected drive level (could still be pulled down).
+ *
+ * Note: this ignores the invert bitmap.
  *
  * @param	pin			index of the pin that is required
  * @retval	uint8_t		value of the pin that is required
  */
 // ****************************************************************************
-uint8_t IODRV_ReadPinOutputState(uint8_t pin)
+bool IODRV_ReadPinOutputState(uint8_t pin)
 {
 	if ( pin >= IODRV_MAX_IO_PINS )
 	{
@@ -255,7 +273,7 @@ uint8_t IODRV_ReadPinOutputState(uint8_t pin)
  * @retval	bool		returns true is the pin is an output, false if an input
  */
 // ****************************************************************************
-bool IODRV_WritePin(uint8_t pin, uint8_t newValue)
+bool IODRV_WritePin(uint8_t pin, bool newValue)
 {
 	if ( (m_pins[pin].pinType == IOTYPE_DIGOUT_PUSHPULL) || (m_pins[pin].pinType <= IOTYPE_DIGOUT_OPENDRAIN) )
 	{
@@ -276,14 +294,16 @@ bool IODRV_WritePin(uint8_t pin, uint8_t newValue)
  * @retval	bool		returns true if the arguments are correct
  */
 // ****************************************************************************
-bool IODRV_SetPin(uint8_t pin, uint8_t newValue)
+bool IODRV_SetPin(uint8_t pin, bool newValue)
 {
-	if ( (pin >= IODRV_MAX_IO_PINS) || ((newValue != GPIO_PIN_RESET) || newValue != GPIO_PIN_SET) )
+	const GPIO_PinState outVal = (newValue ^ m_pins[pin].invert_bm);
+
+	if ( (pin >= IODRV_MAX_IO_PINS) )
 	{
 		return false;
 	}
 
-	HAL_GPIO_WritePin(m_pins[pin].gpioPort, m_pins[pin].gpioPin_bm, newValue);
+	HAL_GPIO_WritePin(m_pins[pin].gpioPort, m_pins[pin].gpioPin_bm, outVal);
 
 	return true;
 }
@@ -481,7 +501,7 @@ void IODRV_UpdatePins(const uint32_t sysTime)
 			}
 		}
 
-		m_pins[pin].value = value;
+		m_pins[pin].value = (value ^ m_pins[pin].invert_bm);
 	}
 }
 

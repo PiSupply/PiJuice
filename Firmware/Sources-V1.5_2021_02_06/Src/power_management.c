@@ -5,7 +5,8 @@
  *      Author: milan
  */
 
-#include <stdbool.h>
+#include "main.h"
+#include "system_conf.h"
 
 #include "nv.h"
 #include "power_management.h"
@@ -126,30 +127,40 @@ void PowerManagementInit(void) {
 #endif
 }
 
-int8_t ResetHost(void) {
-	if ( (POW_5V_BOOST_EN_STATUS() || power5vIoStatus != POW_SOURCE_NOT_PRESENT) && runPinInstallationStatus == RUN_PIN_INSTALLED ) {
-		Turn5vBoost(1);
+int8_t ResetHost(void)
+{
+	const bool boostConverterEnabled = IODRV_ReadPinValue(IODRV_PIN_POW_EN);
+
+	if ( ((true == boostConverterEnabled) || (POW_SOURCE_NOT_PRESENT != power5vIoStatus))
+			&& (RUN_PIN_INSTALLED == runPinInstallationStatus)
+			)
+	{
+		POWERSOURCE_Set5vBoostEnable(true);
 		// activate RUN signal
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
 		DelayUs(100);
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
 		MS_TIME_COUNTER_INIT(lastWakeupTimer);
 		return 0;
-	} else if (power5vIoStatus == POW_SOURCE_NOT_PRESENT) {
-		if (POW_5V_BOOST_EN_STATUS()) {
+	}
+	else if (power5vIoStatus == POW_SOURCE_NOT_PRESENT) {
+		if (true == boostConverterEnabled) {
 			// do power circle, first turn power off
-			Turn5vBoost(0);
+			POWERSOURCE_Set5vBoostEnable(false);
 			// schedule turn on after delay
 			delayedTurnOnFlag = 1;
 			MS_TIME_COUNTER_INIT(delayedTurnOnTimer);
 			MS_TIME_COUNTER_INIT(lastWakeupTimer);
 			return 0;
-		} else {
-			/*int ret = */Turn5vBoost(1);
+		}
+		else
+		{
+			POWERSOURCE_Set5vBoostEnable(true);
 			MS_TIME_COUNTER_INIT(lastWakeupTimer);
 			return 0;
 		}
-	} else if ( (POW_5V_BOOST_EN_STATUS() || power5vIoStatus != POW_SOURCE_NOT_PRESENT) ) {
+	} else if ( (true == boostConverterEnabled) || (POW_SOURCE_NOT_PRESENT != power5vIoStatus) )
+	{
 		// wakeup via RPI GPIO3
 	    GPIO_InitTypeDef i2c_GPIO_InitStruct;
 		i2c_GPIO_InitStruct.Pin = GPIO_PIN_6;
@@ -166,8 +177,10 @@ int8_t ResetHost(void) {
 		i2c_GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
 		HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
 		MS_TIME_COUNTER_INIT(lastWakeupTimer);
+
 		return 0;
 	}
+
 	return 1;
 }
 
@@ -183,42 +196,56 @@ int8_t ResetHost(void) {
 	return 1;
 }*/
 
-void PowerOnButtonEventCb(const Button_T * const p_button) {
-	//if ( event == BUTTON_EVENT_SINGLE_PRESS ) {
-		if ( (!POW_5V_BOOST_EN_STATUS() && power5vIoStatus == POW_SOURCE_NOT_PRESENT)
-				|| (MS_TIME_COUNT(lastWakeupTimer) > 12000/*15000*/ && MS_TIME_COUNT(lastHostCommandTimer) > 11000)  ) {
+void BUTTON_PowerOnEventCb(const Button_T * const p_button)
+{
+	const bool boostConverterEnabled = IODRV_ReadPinValue(IODRV_PIN_POW_EN);
 
-			if (ResetHost() == 0) {//if (ResetHost() == 0) {
-				wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
-				rtcWakeupEventFlag = 0;
-				ioWakeupEvent = 0;
-				delayedPowerOffCounter = 0;
-			}
+	// TODO - Should be another bracket set there somewhere!
+	if ( ((false == boostConverterEnabled) && (POW_SOURCE_NOT_PRESENT == power5vIoStatus))
+			|| (MS_TIME_COUNT(lastWakeupTimer) > 12000/*15000*/
+			&& MS_TIME_COUNT(lastHostCommandTimer) > 11000)
+			)
+	{
+
+		if (ResetHost() == 0)
+		{//if (ResetHost() == 0) {
+			wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
+			rtcWakeupEventFlag = 0;
+			ioWakeupEvent = 0;
+			delayedPowerOffCounter = 0;
 		}
+	}
 
-		BUTTON_ClearEvent(p_button->index);
-	//}
+	BUTTON_ClearEvent(p_button->index);
+
 }
 
-void PowerOffButtonEventCb(uint8_t b, ButtonEvent_T event) {
-	//if ( event == BUTTON_EVENT_LONG_PRESS2 ) {
-		// cut power to rpi
-		if ( POW_5V_BOOST_EN_STATUS() && power5vIoStatus == POW_SOURCE_NOT_PRESENT ) {
-				Turn5vBoost(0);
-				powerOffBtnEventFlag = 1;
-		}
-		BUTTON_ClearEvent(b); // remove event
-	//}
+
+void BUTTON_PowerOffEventCb(const Button_T * const p_button)
+{
+	const bool boostConverterEnabled = IODRV_ReadPinValue(IODRV_PIN_POW_EN);
+
+	if ( (true == boostConverterEnabled) && (POW_SOURCE_NOT_PRESENT == power5vIoStatus) )
+	{
+		POWERSOURCE_Set5vBoostEnable(false);
+		powerOffBtnEventFlag = 1u;
+	}
+
+	BUTTON_ClearEvent(p_button->index); // remove event
 }
 
-void ButtonEventFuncPowerResetCb(uint8_t b, ButtonEvent_T event) {
-	if (ResetHost() == 0) {
+
+void BUTTON_PowerResetEventCb(const Button_T * const p_button)
+{
+	if (ResetHost() == 0)
+	{
 		wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 		rtcWakeupEventFlag = 0;
 		ioWakeupEvent = 0;
 		delayedPowerOffCounter = 0;
 	}
-	BUTTON_ClearEvent(b);
+
+	BUTTON_ClearEvent(p_button->index);
 }
 
 void PowerMngmtHostPollEvent(void) {
@@ -278,6 +305,7 @@ void PowerManagementTask(void) {
 
 	const bool chargerPresent = CHARGER_IS_INPUT_PRESENT();
 	const uint32_t sysTime = HAL_GetTick();
+	bool boostConverterEnabled;
 
 	if (MS_TIMEREF_TIMEOUT(powerMngmtTaskMsCounter, sysTime, 500u)) {
 		MS_TIMEREF_INIT(powerMngmtTaskMsCounter, sysTime);
@@ -316,15 +344,20 @@ void PowerManagementTask(void) {
 	}
 
 	if ( delayedTurnOnFlag && (MS_TIMEREF_TIMEOUT(delayedTurnOnTimer, sysTime, 100u)) ) {
-		Turn5vBoost(1);
+		POWERSOURCE_Set5vBoostEnable(true);
 		delayedTurnOnFlag = 0;
 		MS_TIME_COUNTER_INIT(lastWakeupTimer);
 	}
 
-	if ( delayedPowerOffCounter && delayedPowerOffCounter <= sysTime ) {
-		if (POW_5V_BOOST_EN_STATUS() && (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_PRESENT)) {
-			Turn5vBoost(0);
+	boostConverterEnabled = IODRV_ReadPinValue(IODRV_PIN_POW_EN);
+
+	if ( (0u != delayedPowerOffCounter) && (delayedPowerOffCounter <= sysTime) )
+	{
+		if ((true == boostConverterEnabled) && (POW_5V_IN_DETECTION_STATUS_PRESENT != pow5vInDetStatus))
+		{
+			POWERSOURCE_Set5vBoostEnable(false);
 		}
+
 		delayedPowerOffCounter = 0u;
 
 		/* Turn off led as it keeps flashing! */

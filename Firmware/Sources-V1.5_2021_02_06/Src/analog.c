@@ -102,9 +102,9 @@ uint16_t ANALOG_Get5VRailMv(void)
 
 int16_t ANALOG_Get5VRailMa(void)
 {
-	const int16_t diff = ADC_CalibrateValue(ADC_GetAverageValue(ANALOG_CHANNEL_CS1)) - ADC_CalibrateValue(ADC_GetAverageValue(ANALOG_CHANNEL_CS2));
+	const int16_t diff = ADC_GetAverageValue(ANALOG_CHANNEL_CS1) - ADC_GetAverageValue(ANALOG_CHANNEL_CS2);
 	const bool neg = (diff < 0u) ? true : false;
-	const uint16_t convVal = UTIL_FixMul_U32_U16(ADC_TO_5VRAIL_ISEN_K, abs(diff));
+	const uint16_t convVal = UTIL_FixMul_U32_U16(ADC_TO_5VRAIL_ISEN_K, ADC_CalibrateValue(abs(diff)));
 
 	return (neg == true) ? -convVal : convVal;
 }

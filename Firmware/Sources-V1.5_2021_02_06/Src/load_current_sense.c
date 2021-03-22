@@ -15,6 +15,7 @@
 
 #include "system_conf.h"
 #include "util.h"
+#include "iodrv.h"
 
 #include "load_current_sense.h"
 
@@ -88,35 +89,27 @@ static int32_t GetResSenseCurrent(void) {
 	return ANALOG_Get5VRailMa();
 }
 
-int32_t GetLoadCurrent(void) {
-	if ( pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_NOT_PRESENT ) {
-		if ( POW_5V_BOOST_EN_STATUS() )  {
-			if ((pow5vIoResLoadCurrent - m_resLoadCurrCalib) < 800 && (pow5vIoResLoadCurrent - m_resLoadCurrCalib) > -300 )
-				return pow5vIoPMOSLoadCurrent;
-			else
-				return pow5vIoResLoadCurrent - m_resLoadCurrCalib;
-		} else {
-			return 0;
+int32_t GetLoadCurrent(void)
+{
+	const bool boostConverterEnabled = (bool)IODRV_ReadPinValue(IODRV_PIN_POW_EN);
+	int32_t result = pow5vIoResLoadCurrent - m_resLoadCurrCalib;
+
+	if ( pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_NOT_PRESENT )
+	{
+		if (true == boostConverterEnabled)
+		{
+			if ( ((pow5vIoResLoadCurrent - m_resLoadCurrCalib) < 800) && ((pow5vIoResLoadCurrent - m_resLoadCurrCalib) > -300) )
+			{
+				result = pow5vIoPMOSLoadCurrent;
+			}
 		}
-	} else {
-		return pow5vIoResLoadCurrent - m_resLoadCurrCalib;
-	}
-	//return ((currBuffer[0] + currBuffer[1] + currBuffer[2] + currBuffer[3] + currBuffer[4] + currBuffer[5] + currBuffer[6] + currBuffer[7]) >> 3) - resLoadCurrCalib;
-	/*uint8_t i;
-	int8_t cnt = 0;
-	int32_t sum = 0;
-	int16_t d = pow5vIoResLoadCurrent < 0 ? - (pow5vIoResLoadCurrent >> 2) : pow5vIoResLoadCurrent >> 2;
-	int16_t h = pow5vIoResLoadCurrent + d;
-	int16_t r = pow5vIoResLoadCurrent - d;
-	for (i=0; i < 16; i++) {
-		if (currBuffer[i] < h && currBuffer[i] > r) {
-			sum += currBuffer[i];
-			cnt ++;
+		else
+		{
+			result = 0;
 		}
 	}
 
-	return cnt ? sum / cnt - resLoadCurrCalib : pow5vIoResLoadCurrent - resLoadCurrCalib;*/
-	return pow5vIoResLoadCurrent - m_resLoadCurrCalib;
+	return result;
 }
 
 void MeasurePMOSLoadCurrent(void) {
@@ -240,11 +233,17 @@ void LoadCurrentSenseInit(void) {
 int8_t CalibrateLoadCurrent(void) {
 
 	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
+	const bool boostConverterEnabled = IODRV_ReadPinValue(IODRV_PIN_POW_EN);
 
 	m_resLoadCurrCalib = pow5vIoResLoadCurrent - 51;  // 5.1v/100ohm
 
-	Turn5vBoost(1);
-	if (!POW_5V_BOOST_EN_STATUS()) return 1;
+	POWERSOURCE_Set5vBoostEnable(true);
+
+	if (false == boostConverterEnabled)
+	{
+		return 1;
+	}
+
 	Power5VSetModeLDO();
 	DelayUs(10000);
 

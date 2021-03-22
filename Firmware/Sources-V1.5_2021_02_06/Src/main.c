@@ -34,6 +34,7 @@
 #include "main.h"
 #include "eeprom.h"
 
+#include "system_conf.h"
 #include "iodrv.h"
 
 #include "charger_bq2416x.h"
@@ -709,7 +710,8 @@ int main(void)
 	  // Do not disturb i2c transfer if this is i2c interrupt wakeup
 	  if ( MS_TIME_COUNT(mainPollMsCounter) >= TICK_PERIOD_MS || NEED_EVENT_POLL() ) {
 
-		PowerSource5vIoDetectionTask();
+		POWERSOURCE_5VIoDetection_Task();
+
 		ChargerTask();
 		FuelGaugeTask();
 		BatteryTask();
@@ -746,7 +748,8 @@ int main(void)
 		{
 			state = STATE_RUN;
 		}
-		else if ( ((ANALOG_Get5VRailMa() <= 50 ) || ( (ANALOG_Get5VRailMv() < 4600u) && (false == POW_VSYS_OUTPUT_EN_STATUS()) ) )
+		//else if ( ((ANALOG_Get5VRailMa() <= 50) || ((ANALOG_Get5VRailMv() < 4600u) && (false == POW_VSYS_OUTPUT_EN_STATUS()) ) )
+		else if ( ((ANALOG_Get5VRailMa() <= 50) || ((ANALOG_Get5VRailMv() < 4600u) && IODRV_ReadPinValue(IODRV_PIN_EXTVS_EN)) )
 				&& MS_TIME_COUNT(lastHostCommandTimer) > 5000u
 				&& MS_TIME_COUNT(lowPowerDealyTimer) >= 22u
 				&& MS_TIME_COUNT(lastWakeupTimer) > 20000u
@@ -1207,9 +1210,9 @@ static void MX_TIM6_Init(void)
 
   /* USER CODE END TIM6_Init 1 */
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 8 - 1;
+  htim6.Init.Prescaler = 8u - 1u;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 10000;
+  htim6.Init.Period = 1000u - 1u;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {

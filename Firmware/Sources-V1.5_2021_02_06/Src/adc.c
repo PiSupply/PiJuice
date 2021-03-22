@@ -50,13 +50,15 @@ extern ADC_HandleTypeDef hadc;
 // ****************************************************************************
 void ADC_Init(const uint32_t sysTime)
 {
-	uint8_t i = MAX_ANALOG_CHANNELS;
-
-	while (i-- > 0u)
-	{
-		m_adcVals[i] = 0u;
-		AVE_FILTER_U16_Reset(&m_aveFilters[i]);
-	}
+	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_CS1], sysTime, FILTER_PERIOD_MS_CS1);
+	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_CS2], sysTime, FILTER_PERIOD_MS_CS2);
+	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_VBAT], sysTime, FILTER_PERIOD_MS_VBAT);
+	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_NTC], sysTime, FILTER_PERIOD_MS_NTC);
+	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_POW_DET], sysTime, FILTER_PERIOD_MS_POW_DET);
+	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_BATTYPE], sysTime, FILTER_PERIOD_MS_BATTYPE);
+	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_IO1], sysTime, FILTER_PERIOD_MS_IO1);
+	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_MPUTEMP], sysTime, FILTER_PERIOD_MS_MPUTEMP);
+	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_INTREF], sysTime, FILTER_PERIOD_MS_INTREF);
 
 	m_aveFilterReady = false;
 
@@ -92,7 +94,15 @@ void ADC_Service(const uint32_t sysTime)
 
 			for (i = 0u; i < MAX_ANALOG_CHANNELS; i++)
 			{
-				AVE_FILTER_U16_Update(&m_aveFilters[i], m_adcVals[i]);
+				if (false == m_aveFilterReady)
+				{
+					// Spam in values to fill the buffer
+					AVE_FILTER_U16_Update(&m_aveFilters[i], m_adcVals[i]);
+				}
+				else
+				{
+					AVE_FILTER_U16_UpdatePeriodic(&m_aveFilters[i], m_adcVals[i], sysTime);
+				}
 			}
 
 			if (0u == m_aveFilters[0].nextValueIdx)

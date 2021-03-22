@@ -111,7 +111,10 @@ inline int32_t GetSocFromOCV(uint16_t ocv){
 	return ((int32_t)255)<<23;
 }
 
-void FuelGaugeDvInit(void) {
+void FuelGaugeDvInit(void)
+{
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+
 	int16_t i;
 	uint16_t ocv50 = 3800, ocv10 = 3649, ocv90 = 4077;
 	//uint16_t r10=1.1*91, r50=1.1*83, r90=1.1*76; // lifepo
@@ -121,7 +124,8 @@ void FuelGaugeDvInit(void) {
 	const int16_t *ocvSocTableRef = ocvSocTableNormLipo;
 	c0 = 1820;
 
-	if ( currentBatProfile != NULL ) {
+	if ( currentBatProfile != NULL )
+	{
 		if (currentBatProfile->chemistry==BAT_CHEMISTRY_LIFEPO4) {
 			ocvSocTableRef = ocvSocTableNormLifepo4;
 			ocvRef50 = 3243;
@@ -186,6 +190,7 @@ int8_t FuelGaugeIcPreInit(void) {
 int8_t FuelGaugeIcInit(void) {
 
 	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
 
 	volatile int8_t succ;
 
@@ -280,7 +285,9 @@ void SocEvaluateDirectDynVoltage(uint16_t batVolt, int32_t dt) {
 
 }
 
-void SocEvaluateFuelGaugeIc(void) {
+void SocEvaluateFuelGaugeIc(void)
+{
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
 	volatile int8_t succ;
 	// read battery voltage
 	succ = FuelGaugeReadWord(0x09, &batteryVoltage);
@@ -488,9 +495,11 @@ static void FuelGaugeTask(void *argument) {
 	}
 }
 #else
-void FuelGaugeTask(void) {
+void FuelGaugeTask(void)
+{
 
 	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
 
 	volatile int8_t succ;
 	static uint8_t updateCnt;

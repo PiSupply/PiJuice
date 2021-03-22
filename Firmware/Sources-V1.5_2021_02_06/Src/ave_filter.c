@@ -9,6 +9,7 @@
 // Include section - add all #includes here:
 #include <string.h>
 #include <stdint.h>
+#include "time_count.h"
 #include "ave_filter.h"
 
 // ----------------------------------------------------------------------------
@@ -26,6 +27,19 @@
 // FUNCTIONS WITH GLOBAL SCOPE
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
+
+void AVE_FILTER_U16_UpdatePeriodic(AVE_FILTER_U16_t * const p_filter,
+									const uint16_t newValue,
+									const uint32_t sysTime)
+{
+	if (MS_TIMEREF_TIMEOUT(p_filter->lastFilterUpdateTime, sysTime, p_filter->filterPeriodMs))
+	{
+		MS_TIMEREF_INIT(p_filter->lastFilterUpdateTime, sysTime);
+
+		AVE_FILTER_U16_Update(p_filter, newValue);
+	}
+}
+
 // ****************************************************************************
 /*!
  * AVE_FILTER_U16_Update updates the filter with a new value and calculates the
@@ -56,6 +70,14 @@ void AVE_FILTER_U16_Update(AVE_FILTER_U16_t * const p_filter, const uint16_t new
 
 		p_filter->lastVal = newValue;
 	}
+}
+
+
+void AVE_FILTER_U16_InitPeriodic(AVE_FILTER_U16_t * const p_filter, const uint32_t sysTime, const uint16_t filterPeriodMs)
+{
+	MS_TIMEREF_INIT(p_filter->lastFilterUpdateTime, sysTime);
+	p_filter->filterPeriodMs = filterPeriodMs;
+	AVE_FILTER_U16_Reset(p_filter);
 }
 
 

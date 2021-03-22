@@ -462,7 +462,10 @@ void CmdServerDefaultReadWrite(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	}
 }
 
-static uint8_t IsEventFault(void) {
+static uint8_t IsEventFault(void)
+{
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+
 	uint8_t ev = 0;
 	ev |= (0u != powerOffBtnEventFlag);
 	ev |= (0u != forcedPowerOffFlag);
@@ -488,7 +491,10 @@ void CmdServerReadStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 	}
 }
 
-void CmdServerReadWriteEventFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
+void CmdServerReadWriteEventFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+
 	if (dir == MASTER_CMD_DIR_READ) {
 		uint8_t ev = 0;
 		ev |= powerOffBtnEventFlag;

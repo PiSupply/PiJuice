@@ -1,5 +1,6 @@
+#include "main.h"
+
 #include "charger_bq2416x.h"
-#include "stm32f0xx_hal.h"
 #include "time_count.h"
 #include "nv.h"
 #include "eeprom.h"
@@ -8,19 +9,6 @@
 #include "power_source.h"
 #include "analog.h"
 
-#if defined(RTOS_FREERTOS)
-#include "cmsis_os.h"
-
-static void ChargerTask(void *argument);
-
-static osThreadId_t chargerTaskHandle;
-
-static const osThreadAttr_t chargerTask_attributes = {
-	.name = "chargerTask",
-	.priority = (osPriority_t) osPriorityNormal,
-	.stack_size = 512
-};
-#endif
 
 #define CHG_READ_PERIOD_MS 	90  // ms
 #define WD_RESET_TRSH_MS 	(30000 / 3)
@@ -152,9 +140,13 @@ int8_t ChargerUpdateRegulationVoltage() {
 	//static int8_t *pStatus;
 	//static uint32_t readTimeCnt;
 
-	regsw[3] &= ~0xFE;
-	regsw[3] |= chargerInLimit << 1;
-	if (currentBatProfile!=NULL) {
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+
+	regsw[3] &= ~(0xFEu);
+	regsw[3] |= chargerInLimit << 1u;
+
+	if (currentBatProfile != NULL)
+	{
 		int16_t newRegVol;
 		if (batteryTemp > currentBatProfile->tWarm && tempSensorConfig != BAT_TEMP_SENSE_CONFIG_NOT_USED) {
 			newRegVol = (int16_t)(currentBatProfile->regulationVoltage) - (140/20);
@@ -214,7 +206,10 @@ int8_t ChargerUpdateRegulationVoltage() {
 	return 0;
 }
 
-int8_t ChargerUpdateChgCurrentAndTermCurrent() {
+int8_t ChargerUpdateChgCurrentAndTermCurrent(void)
+{
+
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
 
 	if (currentBatProfile!=NULL) {
 		regsw[5] = ((currentBatProfile->chargeCurrent>26?26:currentBatProfile->chargeCurrent&0x1F) << 3) | (currentBatProfile->terminationCurr&0x07);
@@ -260,20 +255,33 @@ int8_t ChargerUpdateVinDPM() {
 	return 0;
 }
 
-int8_t ChargerUpdateTempRegulationControlStatus() {
+int8_t ChargerUpdateTempRegulationControlStatus(void)
+{
 
-	regsw[7] = 0xC0; // Timer slowed by 2x when in thermal regulation, 10 � 9 hour fast charge, TS function disabled
-	if (currentBatProfile!=NULL) {
-		if (batteryTemp < currentBatProfile->tCool && tempSensorConfig != BAT_TEMP_SENSE_CONFIG_NOT_USED) {
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+
+	regsw[7] = 0xC0u; // Timer slowed by 2x when in thermal regulation, 10 � 9 hour fast charge, TS function disabled
+
+	if (currentBatProfile!=NULL)
+	{
+		if (batteryTemp < currentBatProfile->tCool && tempSensorConfig != BAT_TEMP_SENSE_CONFIG_NOT_USED)
+		{
 			// charge current reduced to half
 			regsw[7] |= 0x01;
-		} else {
+		}
+		else
+		{
 			// normal charge current
 			regsw[7] &= ~0x01;
 		}
-	} else {
+	}
+	else
+	{
 		regsw[7] &= ~0x01;
-		if (!regsStatusRW[0x07]) return 0;
+		if (!regsStatusRW[0x07])
+		{
+			return 0;
+		}
 	}
 
 	// if there were errors in previous transfers read state from register
@@ -293,10 +301,14 @@ int8_t ChargerUpdateTempRegulationControlStatus() {
 	return 0;
 }
 
-int8_t ChargerUpdateControlStatus() {
+int8_t ChargerUpdateControlStatus(void)
+{
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
 
 	regsw[2] = ((chargerUsbInCurrentLimit&0x07) << 4) | 0x0C; // usb in current limit code, Enable STAT output, Enable charge current termination
-	if (currentBatProfile!=NULL) {
+
+	if (currentBatProfile != NULL)
+	{
 		if ( !chargingEnabled || ((batteryTemp >= currentBatProfile->tHot || batteryTemp <= currentBatProfile->tCold) && tempSensorConfig != BAT_TEMP_SENSE_CONFIG_NOT_USED) ) {
 			// disable charging
 			regsw[2] |= 0x02;

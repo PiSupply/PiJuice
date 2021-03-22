@@ -16,93 +16,109 @@
 #define IODRV_PIN_IO1_GPIO_PIN_Pos	7u
 #define IODRV_PIN_IO1_ADC_CHANNEL	ANALOG_CHANNEL_IO1
 #define IODRV_PIN_IO1_ADC_CONV_K	ADC_TO_MV_K
+#define IODRV_PIN_IO1_INVERT_bm		0u
 
 #define IODRV_PIN_IO2				1u
 #define IODRV_PIN_IO2_GPIO			GPIOA
 #define IODRV_PIN_IO2_GPIO_PIN_Pos	8u
+#define IODRV_PIN_IO2_INVERT_bm		0u
 
 /* SW1 - Note: this is SW1 as on the PCB not schematic!! */
 /* EXTI12 Pull down rising edge trigger */
 #define IODRV_PIN_SW2				2u
 #define IODRV_PIN_SW2_GPIO			GPIOB
 #define IODRV_PIN_SW2_GPIO_PIN_Pos	12u
+#define IODRV_PIN_SW2_INVERT_bm		0u
 
 /* SW2 - Note: this is SW2 as on the PCB not schematic!! */
 /* EXTI3 Pull down rising edge trigger */
 #define IODRV_PIN_SW1				3u
 #define IODRV_PIN_SW1_GPIO			GPIOC
 #define IODRV_PIN_SW1_GPIO_PIN_Pos	13u
+#define IODRV_PIN_SW1_INVERT_bm		0u
 
 /* SW3 */
 /* EXTI2 Pull down rising edge trigger */
 #define IODRV_PIN_SW3				4u
 #define IODRV_PIN_SW3_GPIO			GPIOB
 #define IODRV_PIN_SW3_GPIO_PIN_Pos	2u
+#define IODRV_PIN_SW3_INVERT_bm		0u
 
 /* LDO regulator enable */
 /* Output pushpull */
 #define IODRV_PIN_POWDET_EN			5u
 #define IODRV_PIN_POWDET_EN_GPIO	GPIOA
 #define IODRV_PIN_POWDET_EN_PIN_Pos	11u
+#define IODRV_PIN_POWDET_EN_INVERT_bm	0u
 
 /* Boost converter enable */
 /* Output tbd but initially set to input */
 #define IODRV_PIN_POW_EN			6u
 #define IODRV_PIN_POW_EN_GPIO		GPIOA
 #define IODRV_PIN_POW_EN_PIN_Pos	10u
+#define IODRV_PIN_POW_EN_INVERT_bm	0u
 
 /* VSys enable */
 /* Output tbd but initially set to input */
 #define IODRV_PIN_EXTVS_EN			7u
 #define IODRV_PIN_EXTVS_EN_GPIO		GPIOA
 #define IODRV_PIN_EXTVS_EN_PIN_Pos	12u
+#define IODRV_PIN_EXTVS_INVERT_bm	0x01u
 
 /* Charger TS */
 /* Ouput pushpull */
 #define IODRV_PIN_TS_CTR1			8u
 #define IODRV_PIN_TS_CTR1_GPIO		GPIOA
 #define IODRV_PIN_TS_CTR1_PIN_Pos	6u
+#define IODRV_PIN_TS_CTR1_bm		0u
 
 /* Output pushpull */
 #define IODRV_PIN_TS_CTR2			9u
 #define IODRV_PIN_TS_CTR2_GPIO		GPIOA
 #define IODRV_PIN_TS_CTR2_PIN_Pos	15u
+#define IODRV_PIN_TS_CTR2_bm		0u
 
 /* Charger interrupt */
 /* EXTI0 falling edge trigger */
 #define IODRV_PIN_CH_INT			10u
 #define IODRV_PIN_CH_INT_GPIO		GPIOF
 #define IODRV_PIN_CH_INT_PIN_Pos	0u
+#define IODRV_PIN_CH_INT_bm			0u
 
-/* VSys current limit control */
+/* VSys current limit control - Sets 500mA drive limit */
 /* Output open drain */
 #define IODRV_PIN_ESYSLIM			11u
 #define IODRV_PIN_ESYSLIM_GPIO		GPIOF
 #define IODRV_PIN_ESYSLIM_PIN_Pos	1u
+#define IODRV_PIN_ESYSLIM_bm		0u
 
 /* Fuel guage alarm output */
 /* Maybe not initialised? Input no pull */
 #define IODRV_PIN_BGINT				12u
 #define IODRV_PIN_BGINT_GPIO		GPIOB
 #define IODRV_PIN_BGINT_PIN_Pos		1u
+#define IODRV_PIN_BGINT_bm			0u
 
 /* I2C EEprom address control */
 /* Output pushpull */
 #define IODRV_PIN_EE_A				13u
 #define IODRV_PIN_EE_A_GPIO			GPIOB
 #define IODRV_PIN_EE_A_PIN_Pos		3u
+#define IODRV_PIN_EE_A_bm			0u
 
 /* I2C EEprom write control */
 /* Output pushpull */
 #define IODRV_PIN_EE_WP				14u
 #define IODRV_PIN_EE_WP_GPIO		GPIOB
 #define IODRV_PIN_EE_WP_PIN_Pos		8u
+#define IODRV_PIN_EE_WP_bm			0u
 
 /* RPi RUN pin */
 /* Output open drain, no pull */
 #define IODRV_PIN_RUN				15u
 #define IODRV_PIN_RUN_GPIO			GPIOB
 #define IODRV_PIN_RUN_PIN_Pos		13u
+#define IODRV_PIN_RUN_bm			0u
 
 
 #define IODRV_MAX_IO_PINS			16u
@@ -116,6 +132,16 @@
 #define ANALOG_CHANNEL_IO1			6u
 #define ANALOG_CHANNEL_MPUTEMP		7u
 #define ANALOG_CHANNEL_INTREF		8u
+
+#define FILTER_PERIOD_MS_CS1		10u
+#define FILTER_PERIOD_MS_CS2		10u
+#define FILTER_PERIOD_MS_VBAT		10u
+#define FILTER_PERIOD_MS_NTC		10u
+#define FILTER_PERIOD_MS_POW_DET	10u
+#define FILTER_PERIOD_MS_BATTYPE	10u
+#define FILTER_PERIOD_MS_IO1		10u
+#define FILTER_PERIOD_MS_MPUTEMP	10u
+#define FILTER_PERIOD_MS_INTREF		10u
 
 #define MAX_ANALOG_CHANNELS			9u
 
@@ -140,7 +166,7 @@
 #define BUTTON_EVENT_FUNC_SYS_EVENT		0x10u
 
 #define IODRV_PIN_UPDATE_PERIOD_MS	10u
-#define ADC_SAMPLE_PERIOD_MS		50u
+#define ADC_SAMPLE_PERIOD_MS		0u
 
 
 #endif /* SYSTEM_CONF_H_ */

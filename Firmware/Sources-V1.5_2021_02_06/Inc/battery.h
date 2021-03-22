@@ -74,7 +74,6 @@ typedef enum {
 
 //extern const BatteryProfile_T batteryProfiles[];
 extern uint8_t batProfileStatus;
-extern BatteryProfile_T const *currentBatProfile;
 extern BatteryStatus_T batteryStatus;
 
 void BatteryInit(void);
@@ -82,11 +81,12 @@ void BatteryInit(void);
 void BatteryTask(void);
 #endif
 int8_t BatterySetProfileReq(uint8_t id);
-const BatteryProfile_T *BatteryGetProfile(void);
 int8_t BatteryReadCurrentProfile(uint8_t *data, uint16_t *len);
 int8_t BatteryReadProfileStatus(uint8_t *data, uint16_t *len);
 int8_t BatteryWriteCustomProfileReq(uint8_t *data, uint16_t len);
 int8_t BatteryWriteCustomExtendedProfileReq(uint8_t *data, uint16_t len);
 int8_t BatteryReadCurrentExtendedProfile(uint8_t *data, uint16_t *len);
+
+const BatteryProfile_T * BATTERY_GetActiveProfile(void);
 
 #endif /* BATTERY_H_ */

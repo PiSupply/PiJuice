@@ -36,6 +36,7 @@ typedef struct
 	uint16_t			gpioPin_bm;
 	uint8_t				gpioPin_pos;
 	GPIO_TypeDef*		gpioPort;
+	uint16_t			invert_bm;
 	bool				canConfigure;
 } IODRV_Pin_t;
 
@@ -43,11 +44,11 @@ typedef struct
 void IODRV_Init(uint32_t sysTime);
 void IODRV_Service(uint32_t sysTime);
 uint16_t IODRV_ReadPinValue(uint8_t pin);
-uint8_t IODRV_ReadPinOutputState(uint8_t pin);
+bool IODRV_ReadPinOutputState(uint8_t pin);
 const IODRV_Pin_t * IODRV_GetPinInfo(uint8_t pin);
 bool IODRV_SetPinType(uint8_t pin, IODRV_PinType_t newType);
-bool IODRV_WritePin(uint8_t pin, uint8_t newValue);
-bool IODRV_SetPin(uint8_t pin, uint8_t newValue);
+bool IODRV_WritePin(uint8_t pin, bool newValue);
+bool IODRV_SetPin(uint8_t pin, bool newValue);
 bool IODRV_SetPinPullDir(uint8_t pin, uint32_t pullDirection);
 
 #endif /* IODRV_H_ */
