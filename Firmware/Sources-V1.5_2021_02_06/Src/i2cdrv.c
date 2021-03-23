@@ -61,10 +61,15 @@ void I2C2_IRQHandler(void)
 	else if (0u != (I2C2->ISR & I2C_ISR_TC))
 	{
 		// Transmit complete indicates the address has been sent
+
+		// Clear the interrupt enable
 		I2C2->CR1 &= ~I2C_CR1_TCIE;
 
 		// Enable the dma channel for receiving the data from the device
 		p_device->p_dmaRXChannelInstance->CCR |= DMA_CCR_EN;
+
+		// Clear previous datalen (may not be needed)
+		I2C2->CR2 |= ~I2C_CR2_NBYTES;
 
 		// Start the transfer!!
 		// Start read is an extra bit from start write RD_WRN
