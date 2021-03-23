@@ -53,9 +53,9 @@ void I2C2_IRQHandler(void)
 		}
 		else if(p_device->status == I2CDRV_STATUS_BUSY_RX)
 		{
-			I2C2->TXDR = p_device->data[0u];
-
 			I2C2->CR1 |= I2C_CR1_TCIE;
+
+			I2C2->TXDR = p_device->data[0u];
 		}
 	}
 	else if (0u != (I2C2->ISR & I2C_ISR_TC))
@@ -69,7 +69,7 @@ void I2C2_IRQHandler(void)
 		p_device->p_dmaRXChannelInstance->CCR |= DMA_CCR_EN;
 
 		// Clear previous datalen (may not be needed)
-		I2C2->CR2 |= ~I2C_CR2_NBYTES;
+		I2C2->CR2 &= ~I2C_CR2_NBYTES;
 
 		// Start the transfer!!
 		// Start read is an extra bit from start write RD_WRN
@@ -114,13 +114,11 @@ void I2CDRV_Init(const uint32_t sysTime)
 
 void I2CDRV_ProcessDevice(I2CDRV_Device_t * p_device, uint32_t sysTime)
 {
-	uint8_t isrPos = p_device->txDmaChannelIndex;
-
 	// If blocked or ready then alles gut
 	if (I2CDRV_STATUS_BUSY_TX == p_device->status)
 	{
 		// Check for tx complete
-		if ( 0u != (p_device->p_dmaTXInstance->ISR & ((0x1UL << 1u) << isrPos)) )
+		if ( 0u != (p_device->p_dmaTXInstance->ISR & ((0x1UL << 1u) << p_device->txDmaChannelIndex)) )
 		{
 			p_device->event = I2CDRV_EVENT_TX_COMPLETE;
 		}
@@ -132,6 +130,23 @@ void I2CDRV_ProcessDevice(I2CDRV_Device_t * p_device, uint32_t sysTime)
 			p_device->p_dmaTXChannelInstance->CCR &= ~DMA_CCR_EN;
 
 			p_device->event = I2CDRV_EVENT_TX_FAILED;
+		}
+	}
+	else if (I2CDRV_STATUS_BUSY_RX == p_device->status)
+	{
+		// Check for tx complete
+		if ( 0u != (p_device->p_dmaRXInstance->ISR & ((0x1UL << 1u) << p_device->rxDmaChannelIndex)) )
+		{
+			p_device->event = I2CDRV_EVENT_RX_COMPLETE;
+		}
+
+		// Time out after 100ms, what can be taking that long???
+		if (MS_TIMEREF_TIMEOUT(p_device->transactTime, sysTime, 100u))
+		{
+			// Disable DMA channel for transmitter
+			p_device->p_dmaRXChannelInstance->CCR &= ~DMA_CCR_EN;
+
+			p_device->event = I2CDRV_EVENT_RX_FAILED;
 		}
 	}
 
@@ -209,7 +224,7 @@ bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 	if (transactType == I2CDRV_TRANSACTION_TX)
 	{
 		// Transmit action is pretty straightforward.... Just spam out the data.
-		p_device->p_i2cInstance->CR2 = I2C_AUTOEND_MODE;
+		p_device->p_i2cInstance->CR2 = I2C_AUTOEND_MODE | (len << I2C_CR2_NBYTES_Pos);
 
 		// Disable DMA channel for transmitter
 		p_device->p_dmaTXChannelInstance->CCR &= ~DMA_CCR_EN;
@@ -235,8 +250,8 @@ bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 		// This implementation luckily only requires one byte so it'll just send out the address
 		// in the first iteration of the interrupt routine.
 
-		// Make sure the stop bit doesn't get set.
-		p_device->p_i2cInstance->CR2 = 0u;
+		// Make sure the stop bit doesn't get set, load in 1 byte for address
+		p_device->p_i2cInstance->CR2 = (1u << I2C_CR2_NBYTES_Pos);
 
 		// Disable DMA channel for transmitter
 		p_device->p_dmaRXChannelInstance->CCR &= ~DMA_CCR_EN;
@@ -245,13 +260,13 @@ bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 		p_device->p_dmaRXInstance->IFCR = (DMA_FLAG_GL1 << p_device->txDmaChannelIndex);
 
 		// Bung in the amount of data to expect
-		p_device->p_dmaRXChannelInstance->CNDTR = 1u;
+		p_device->p_dmaRXChannelInstance->CNDTR = len;
 
 		// Not sure if this requires setting every time
 		p_device->p_dmaTXChannelInstance->CPAR = (uint32_t)p_device->data;
 
 		// Notify what the device is busy doing
-		p_device->status = I2CDRV_STATUS_BUSY_TX;
+		p_device->status = I2CDRV_STATUS_BUSY_RX;
 
 
 	}
@@ -267,7 +282,7 @@ bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 	p_device->p_i2cInstance->CR1 |= I2C_CR1_PE | I2C_CR1_TXIE;
 
 	// Initiate the transaction
-	p_device->p_i2cInstance->CR2 |= (len << I2C_CR2_NBYTES_Pos) | addr | I2C_GENERATE_START_WRITE;
+	p_device->p_i2cInstance->CR2 |= (addr | I2C_GENERATE_START_WRITE);
 
 	return true;
 }
