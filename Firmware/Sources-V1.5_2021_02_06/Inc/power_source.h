@@ -17,7 +17,9 @@
 
 #define POW_SOURCE_NEED_POLL() 			(pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_PRESENT || MS_TIME_COUNT(pow5vOnTimeout) <= POW_5V_TURN_ON_TIMEOUT)
 
+
 extern uint32_t pow5vOnTimeout;
+
 
 typedef enum PowerSourceStatus_T {
 	POW_SOURCE_NOT_PRESENT = 0,
@@ -34,21 +36,13 @@ typedef enum PowerRegulatorConfig_T {
 } PowerRegulatorConfig_T;
 
 
-//extern PowerSourceStatus_T powerInStatus;
-//extern PowerSourceStatus_T power5vIoStatus;
 extern uint8_t pow5vInDetStatus;
 extern uint8_t delayedPowerOff;
 extern uint8_t forcedPowerOffFlag;
 extern uint8_t forcedVSysOutputOffFlag;
 
-
 void PowerSourceExitLowPower(void);
 void PowerSourceEnterLowPower(void);
-void PowerSourceSetBatProfile(const BatteryProfile_T* batProfile);
-void PowerSourceSetVSysSwitchState(uint8_t state);
-
-void SetPowerRegulatorConfigCmd(uint8_t data[], uint8_t len);
-void GetPowerRegulatorConfigCmd(uint8_t data[], uint16_t *len);
 
 void POWERSOURCE_Init(void);
 void POWERSOURCE_Task(void);
@@ -59,8 +53,12 @@ bool POWERSOURCE_IsVsysEnabled(void);
 bool POWERSOURCE_IsBoostConverterEnabled(void);
 void POWERSOURCE_SetVSysSwitchState(uint8_t state);
 uint8_t POWERSOURCE_GetVSysSwitchState(void);
+void POWERSOURCE_UpdateBatteryProfile(const BatteryProfile_T* batProfile);
 
 PowerSourceStatus_T POWERSOURCE_GetVInStatus(void);
 PowerSourceStatus_T POWERSOURCE_Get5VRailStatus(void);
+
+void POWERSOURCE_SetRegulatorConfig(const uint8_t * const data, const uint8_t len);
+void POWERSOURCE_GetRegulatorConfig(uint8_t * const data, uint16_t * const len);
 
 #endif /* POWER_SOURCE_H_ */

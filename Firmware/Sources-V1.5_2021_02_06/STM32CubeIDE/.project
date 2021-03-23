@@ -102,6 +102,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/fuel_gauge_lc709203f.h</locationURI>
 		</link>
 		<link>
+			<name>Inc/i2cdrv.h</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/i2cdrv.h</location>
+		</link>
+		<link>
 			<name>Inc/io_control.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/io_control.h</locationURI>
@@ -250,6 +255,11 @@
 			<name>Src/fuel_gauge_lc709203f.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Src/fuel_gauge_lc709203f.c</locationURI>
+		</link>
+		<link>
+			<name>Src/i2cdrv.c</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Src/i2cdrv.c</location>
 		</link>
 		<link>
 			<name>Src/io_control.c</name>

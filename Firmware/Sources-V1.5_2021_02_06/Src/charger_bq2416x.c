@@ -667,27 +667,13 @@ void ChargerTriggerNTCMonitor(NTC_MonitorTemperature_T temp) {
 	}
 }
 
-void ChargerSetUSBLockout(ChargerUSBInLockoutStatus_T status) {
-	chargerNeedPoll |= ChargerUpdateUSBInLockout();
-	/*uint8_t chReg;
 
-	if (status == CHG_USB_IN_LOCK) {
-		if (!(regs[1] & BQ2416X_OTG_LOCK_BIT)) {
-			regsw[1] |= 0x08;
-			I2C_SlaveRegsWrite(&hi2c2, 0xD6, 1, 1, &regsw[1], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-			//while (HAL_I2C_GetState(&hi2c2) != HAL_I2C_STATE_READY);
-			//regs[1] = regsw[1];
-		}
-	} else {
-		if (regs[1] & BQ2416X_OTG_LOCK_BIT) {
-			// turn on usb in
-			regsw[1] &= ~0x08;
-			I2C_SlaveRegsWrite(&hi2c2, 0xD6, 1, 1, &regsw[1], 1, CHARGER_I2C_REG_WRITE_TIMEOUT_US);
-			//while (HAL_I2C_GetState(&hi2c2) != HAL_I2C_STATE_READY);
-			//regs[1] = regsw[1];
-		}
-	}*/
+void ChargerSetUSBLockout(ChargerUSBInLockoutStatus_T status)
+{
+	// Notify update required (if required?)
+	chargerNeedPoll |= ChargerUpdateUSBInLockout();
 }
+
 
 /*void SetChargeCurrentReq(uint8_t current) {
 	chargeCurrentReq = current;
@@ -700,6 +686,7 @@ void SetBatRegulationVoltageReq(uint8_t voltageCode) {
 void SetChargeTerminationCurrentReq(uint8_t current) {
 	chargeTerminationCurrentReq = current;
 }*/
+
 
 void ChargerSetBatProfileReq(const BatteryProfile_T* batProfile) {
 	chargerSetProfileDataReq = 1;

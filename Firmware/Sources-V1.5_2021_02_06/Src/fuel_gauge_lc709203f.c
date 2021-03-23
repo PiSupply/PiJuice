@@ -17,6 +17,7 @@
 #include "execution.h"
 #include "nv.h"
 
+#include "osloop.h"
 #include "system_conf.h"
 
 #define FUEL_GAUGE_METHOD_DV	0
@@ -187,46 +188,78 @@ int8_t FuelGaugeIcPreInit(void) {
 	return succ;
 }
 
-int8_t FuelGaugeIcInit(void) {
+int8_t FuelGaugeIcInit(void)
+{
 
 	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
 
 	volatile int8_t succ;
 
-	if (FuelGaugeReadWord(0x11, &fgIcId) == 0) {
+	OSLOOP_AtomicAccess(true);
+
+	if (FuelGaugeReadWord(0x11, &fgIcId) == 0)
+	{
 
 		// Set operational mode
 		succ = FuelGaugeWriteWord(0x15, 0x0001); //3.7V
-		if (succ != 0) return 1;
+		if (succ != 0)
+		{
+			return 1;
+		}
 
 		// set APA
 		succ = FuelGaugeWriteWord(0x0b, 0x36); //FuelGaugeWriteWord(0x0b, 0x2d);//
-		if (succ != 0) return 2;
+		if (succ != 0)
+		{
+			return 2;
+		}
 
 		// set change of the parameter
 		succ = FuelGaugeWriteWord(0x12, 0x0001);
-		if (succ != 0) return 3;
+		if (succ != 0)
+		{
+			return 3;
+		}
 
 		// set APT
 		succ = FuelGaugeWriteWord(0x0C, 0x3000);//FuelGaugeWriteWord(0x0C, 0x001E);//
-		if (succ != 0) return 4;
+		if (succ != 0)
+		{
+			return 4;
+		}
 
 		if ( currentBatProfile != NULL && currentBatProfile->ntcB != 0xFFFF /*&& currentBatProfile->ntcResistance == 1000*/ ) {
 			// Set NTC B constant
 			succ = FuelGaugeWriteWord(0x06, currentBatProfile->ntcB);
-			if (succ != 0) return 5;
+			if (succ != 0)
+			{
+				return 5;
+			}
 		}
 
 		// Set NTC mode
 		succ = FuelGaugeWriteWord(0x16, 0x0001);
-		if (succ != 0) return 6;
+		if (succ != 0)
+		{
+			return 6;
+		}
+
 		fuelGaugeTempMode = FUEL_GAUGE_TEMP_MODE_THERMISTOR;
 
 		succ = FuelGaugeReadWord(0x09, &batteryVoltage);
-		if (succ != 0) return 7;
+
+		if (succ != 0)
+		{
+			return 7;
+		}
+
 		succ = FuelGaugeReadWord(0x0F, &batteryRsoc);
-		if (succ != 0) return 8;
+
+		if (succ != 0)
+		{
+			return 8;
+		}
 
 		prevRsoc = batteryRsoc;
 		dischargeCount = HAL_GetTick();

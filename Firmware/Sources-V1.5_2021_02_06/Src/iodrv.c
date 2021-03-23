@@ -112,7 +112,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_TS_CTR1_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_TS_CTR1_PIN_Pos,
 				.gpioPort = IODRV_PIN_TS_CTR1_GPIO,
-				.invert_bm = IODRV_PIN_TS_CTR1_bm,
+				.invert_bm = IODRV_PIN_TS_CTR1_INVERT_bm,
 				.canConfigure = false
 		},
 		{
@@ -120,7 +120,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_TS_CTR2_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_TS_CTR2_PIN_Pos,
 				.gpioPort = IODRV_PIN_TS_CTR2_GPIO,
-				.invert_bm = IODRV_PIN_TS_CTR2_bm,
+				.invert_bm = IODRV_PIN_TS_CTR2_INVERT_bm,
 				.canConfigure = false
 		},
 		{
@@ -128,7 +128,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_CH_INT_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_CH_INT_PIN_Pos,
 				.gpioPort = IODRV_PIN_CH_INT_GPIO,
-				.invert_bm = IODRV_PIN_CH_INT_bm,
+				.invert_bm = IODRV_PIN_CH_INT_INVERT_bm,
 				.canConfigure = false
 		},
 		{
@@ -136,7 +136,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_ESYSLIM_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_ESYSLIM_PIN_Pos,
 				.gpioPort = IODRV_PIN_ESYSLIM_GPIO,
-				.invert_bm = IODRV_PIN_ESYSLIM_bm,
+				.invert_bm = IODRV_PIN_ESYSLIM_INVERT_bm,
 				.canConfigure = false
 		},
 		{
@@ -144,7 +144,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_BGINT_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_BGINT_PIN_Pos,
 				.gpioPort = IODRV_PIN_BGINT_GPIO,
-				.invert_bm = IODRV_PIN_BGINT_bm,
+				.invert_bm = IODRV_PIN_BGINT_INVERT_bm,
 				.canConfigure = false
 		},
 		{
@@ -152,7 +152,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_EE_A_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_EE_A_PIN_Pos,
 				.gpioPort = IODRV_PIN_EE_A_GPIO,
-				.invert_bm = IODRV_PIN_EE_A_bm,
+				.invert_bm = IODRV_PIN_EE_A_INVERT_bm,
 				.canConfigure = false
 		},
 		{
@@ -160,7 +160,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_EE_WP_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_EE_WP_PIN_Pos,
 				.gpioPort = IODRV_PIN_EE_WP_GPIO,
-				.invert_bm = IODRV_PIN_EE_WP_bm,
+				.invert_bm = IODRV_PIN_EE_WP_INVERT_bm,
 				.canConfigure = false
 		},
 		{
@@ -168,7 +168,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_bm = (1u << IODRV_PIN_RUN_PIN_Pos),
 				.gpioPin_pos = IODRV_PIN_RUN_PIN_Pos,
 				.gpioPort = IODRV_PIN_RUN_GPIO,
-				.invert_bm = IODRV_PIN_RUN_bm,
+				.invert_bm = IODRV_PIN_RUN_INVERT_bm,
 				.canConfigure = false
 		}
 };

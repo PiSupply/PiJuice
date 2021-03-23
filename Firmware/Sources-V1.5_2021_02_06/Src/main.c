@@ -53,7 +53,7 @@
 
 #include "osloop.h"
 #include "adc.h"
-
+#include "i2cdrv.h"
 
 #define OWN1_I2C_ADDRESS		0x14
 #define OWN2_I2C_ADDRESS		0x68
@@ -76,6 +76,8 @@ osThreadId_t defaultTaskHandle;
 #endif
 ADC_HandleTypeDef hadc;
 DMA_HandleTypeDef hdma_adc;
+DMA_HandleTypeDef hdma_i2c2_rx;
+DMA_HandleTypeDef hdma_i2c2_tx;
 
 I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
@@ -573,6 +575,16 @@ void StartDefaultTask(void *argument)
 }
 #endif
 
+
+void i2cCallbackTest(const I2CDRV_Device_t * const p_device)
+{
+	if (p_device->index == 1u)
+	{
+		asm volatile ("nop");
+	}
+}
+
+
 int main(void)
 {
 	//HAL_Init();
@@ -629,6 +641,19 @@ int main(void)
 	while (false == ADC_GetFilterReady())
 	{
 		asm volatile ("nop");
+	}
+
+	//I2CDRV_Init(0u);
+
+	uint8_t i2cdata[4u]= { 0x09u, 0x55, 0xAA, 0x3B };
+
+	while(true)
+	{
+		/* Testing I2C */
+		HAL_Delay(1000);
+
+		//HAL_I2C_Mem_Write(&hi2c2, 0x16, 0x09u, 1u, &i2cdata[1u], 3u, 1u);
+		I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, i2cdata, 4u, I2CDRV_TRANSACTION_TX, i2cCallbackTest, HAL_GetTick() );
 	}
 
 	if (!resetStatus) MS_TIME_COUNTER_INIT(lastHostCommandTimer);

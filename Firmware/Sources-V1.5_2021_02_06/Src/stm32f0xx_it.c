@@ -172,11 +172,12 @@ void I2C1_IRQHandler(void)
  // if (hi2c1.Instance->ISR & 0x02) hi2c1.Instance->TXDR = 1;
 }
 
-void I2C2_IRQHandler(void)
-{
-  HAL_I2C_EV_IRQHandler(&hi2c2);
-  HAL_I2C_ER_IRQHandler(&hi2c2);
-}
+
+//void I2C2_IRQHandler(void)
+//{
+//  HAL_I2C_EV_IRQHandler(&hi2c2);
+//  HAL_I2C_ER_IRQHandler(&hi2c2);
+//}
 
 /**
   * @brief  This function handles DMA interrupt request.

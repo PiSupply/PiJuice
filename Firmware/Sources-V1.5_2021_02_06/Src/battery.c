@@ -22,19 +22,6 @@
 #define PACK_CAPACITY_U16(c) 	((c==0xFFFFFFFF) ? 0xFFFF : (c >> ((c>=0x8000)*7)) | (c>=0x8000)*0x8000)
 #define UNPACK_CAPACITY_U16(v) 	((v==0xFFFF) ? 0xFFFFFFFF : (uint32_t)(v&0x7FFF) << (((v&0x8000) >> 15)*7))
 
-#if defined(RTOS_FREERTOS)
-#include "cmsis_os.h"
-
-static void BatteryTask(void *argument);
-
-static osThreadId_t batteryTaskHandle;
-
-static const osThreadAttr_t batteryTask_attributes = {
-	.name = "batteryTask",
-	.priority = (osPriority_t) osPriorityNormal,
-	.stack_size = 256
-};
-#endif
 
 extern PowerState_T state;
 
@@ -269,7 +256,7 @@ BatteryProfile_T customBatProfile = {
 
 uint8_t batProfileStatus = BATTERY_INVALID_PROFILE_ID;
 
-static const BatteryProfile_T * m_activeBatteryProfile = NULL;
+static const BatteryProfile_T * m_p_activeBatteryProfile = NULL;
 static BatteryStatus_T m_batteryStatus = BAT_STATUS_NOT_PRESENT;
 
 int8_t BatReadEEprofileData(void);
@@ -279,24 +266,31 @@ void BatWriteEEprofileData(BatteryProfile_T *batProfile);
 void BatInitProfile(uint8_t initPofileId) {
 	//uint16_t var;
 
-	if ( initPofileId == BATTERY_CUSTOM_PROFILE_ID ) {
-		if (BatReadEEprofileData() == 0) {
+	if ( initPofileId == BATTERY_CUSTOM_PROFILE_ID )
+	{
+		if (BatReadEEprofileData() == 0)
+		{
 			BatReadExtendedEEprofileData();
-			m_activeBatteryProfile = &customBatProfile;
+			m_p_activeBatteryProfile = &customBatProfile;
 			batProfileStatus = BATTERY_CUSTOM_PROFILE_ID;
-		} else {
-			m_activeBatteryProfile = NULL;
+		}
+		else
+		{
+			m_p_activeBatteryProfile = NULL;
 			batProfileStatus = BATTERY_INVALID_CUSTOM_PROFILE_STATUS;
 		}
-	} else if (initPofileId == BATTERY_DEFAULT_PROFILE_ID) {
+	}
+	else if (initPofileId == BATTERY_DEFAULT_PROFILE_ID)
+	{
 		// Make profile data based on dip switch or resistor configuration
-		if ( switchConfigCode >= 0) {
+		if ( switchConfigCode >= 0)
+		{
 			if ( switchConfigCode < BATTERY_PROFILES_COUNT() && resistorConfig1Code7 == -1 && resistorConfig2Code4 == -1 ){
 				// Use switch coded profile id
-				m_activeBatteryProfile = &batteryProfiles[switchConfigCode];
+				m_p_activeBatteryProfile = &batteryProfiles[switchConfigCode];
 				batProfileStatus = BATTERY_CONFIG_SW_PROFILE_ID | switchConfigCode;
 			} else if ( switchConfigCode == 1 && resistorConfig2Code4 >= 0 && resistorConfig2Code4 < BATTERY_PROFILES_COUNT() ){
-				m_activeBatteryProfile = &batteryProfiles[resistorConfig2Code4];
+				m_p_activeBatteryProfile = &batteryProfiles[resistorConfig2Code4];
 				batProfileStatus = BATTERY_CONFIG_RES_PROFILE_ID | resistorConfig2Code4;
 			} else if ( switchConfigCode == 1 && resistorConfig1Code7 >= 0 ){
 				customBatProfile.chargeCurrent = ((resistorConfig1Code7&0x07) << 2); // offset 550mA
@@ -320,23 +314,23 @@ void BatInitProfile(uint8_t initPofileId) {
 				customBatProfile.r90 = 0xFFFF;
 
 				batProfileStatus = BATTERY_CONFIG_PROFILE_STATUS;
-				m_activeBatteryProfile = &customBatProfile;
+				m_p_activeBatteryProfile = &customBatProfile;
 			} else {
-				m_activeBatteryProfile = NULL;
+				m_p_activeBatteryProfile = NULL;
 				batProfileStatus = BATTERY_CONFIG_INVALID_PROFILE_STATUS;
 			}
 		} else {
-			m_activeBatteryProfile = NULL;
+			m_p_activeBatteryProfile = NULL;
 			batProfileStatus = BATTERY_CONFIG_INVALID_PROFILE_STATUS;
 		}
 	} else if (initPofileId < BATTERY_PROFILES_COUNT()) {
 		batProfileStatus = initPofileId;
-		m_activeBatteryProfile = &batteryProfiles[batProfileStatus];
+		m_p_activeBatteryProfile = &batteryProfiles[batProfileStatus];
 	} else if (initPofileId >= BATTERY_PROFILES_COUNT() && initPofileId < 15) {//32) {
-		m_activeBatteryProfile = NULL;
+		m_p_activeBatteryProfile = NULL;
 		batProfileStatus = BATTERY_NONEXIST_PROFILE_ID | initPofileId; // non defined  profile
 	} else {
-		m_activeBatteryProfile = NULL;
+		m_p_activeBatteryProfile = NULL;
 		batProfileStatus = BATTERY_INVALID_PROFILE_ID;
 	}
 }
@@ -357,10 +351,6 @@ void BatteryInit(void)
 	{
 		BatInitProfile((uint8_t)(var & 0xFFu));
 	}
-
-#if defined(RTOS_FREERTOS)
-	batteryTaskHandle = osThreadNew(BatteryTask, (void*)NULL, &batteryTask_attributes);
-#endif
 }
 
 int8_t BatReadExtendedEEprofileData(void) {
@@ -480,152 +470,36 @@ void BatWriteExtendedEEprofileData(BatteryProfile_T *batProfile) {
 	NvWriteVariableU8(BAT_R90H_NV_ADDR, (batProfile->r90)>>8);
 }
 
-#if defined(RTOS_FREERTOS)
-static void BatteryTask(void *argument) {
-  uint8_t chargingBlink[] = {0xFF, 0, 0, 0, 90, 0, 0, 0, 90};
-  BatteryStatus_T prevBatteryStatus = BAT_STATUS_NORMAL;
-  uint16_t prevBatteryRsoc = 0xFFFF;
 
-  for(;;)
-  {
-	if (setProfileReq >= 0) {
-		uint8_t id = setProfileReq;
-		setProfileReq = -1;
-		EE_WriteVariable(BAT_PROFILE_NV_ADDR, id | ((uint16_t)(~id)<<8));
-		uint16_t var;
-		EE_ReadVariable(BAT_PROFILE_NV_ADDR, &var);
-		if ( ((var^0xFF)&0xFF) == (var>>8) ) {
-			// if fcs correct
-			BatInitProfile(var&0xFF);
-		} else {
-			currentBatProfile = NULL;
-			batProfileStatus = BATTERY_INVALID_PROFILE_ID;
-		}
-
-		ChargerSetBatProfileReq(currentBatProfile);
-		PowerSourceSetBatProfile(currentBatProfile);
-		FuelGaugeSetBatProfile(currentBatProfile);
-	}
-
-	if (writeCustomProfileReq==1) {
-		writeCustomProfileReq = 0;
-		BatWriteEEprofileData(&customBatProfileReq);
-		if (BatReadEEprofileData() == 0) {
-			batProfileStatus = BATTERY_CUSTOM_PROFILE_ID;
-			currentBatProfile = &customBatProfile;
-		} else {
-			batProfileStatus = BATTERY_INVALID_CUSTOM_PROFILE_STATUS;
-			currentBatProfile = NULL;
-		}
-
-		uint16_t var;
-		EE_ReadVariable(BAT_PROFILE_NV_ADDR, &var);
-		if ( ((var&0xFF) != BATTERY_CUSTOM_PROFILE_ID) || (((var^0xFF)&0xFF) != (var>>8)) ) {
-			BatReadExtendedEEprofileData();
-			uint16_t var;
-			EE_WriteVariable(BAT_PROFILE_NV_ADDR, BATTERY_CUSTOM_PROFILE_ID | ((uint16_t)~BATTERY_CUSTOM_PROFILE_ID<<8));
-			EE_ReadVariable(BAT_PROFILE_NV_ADDR, &var);
-			if (((var^0xFF)&0xFF) == (var>>8) && (var&0xFF) == BATTERY_CUSTOM_PROFILE_ID) {  // upper byte should be complement if data are valid
-				if (currentBatProfile != NULL)
-					batProfileStatus = BATTERY_CUSTOM_PROFILE_ID;
-				else
-					batProfileStatus = BATTERY_INVALID_CUSTOM_PROFILE_STATUS;
-			} else {
-				currentBatProfile = NULL;
-				batProfileStatus = BATTERY_INVALID_PROFILE_ID;
-			}
-		}
-
-		ChargerSetBatProfileReq(currentBatProfile);
-		PowerSourceSetBatProfile(currentBatProfile);
-		FuelGaugeSetBatProfile(currentBatProfile);
-	} else if (writeCustomProfileReq==2) {
-		writeCustomProfileReq = 0;
-		BatWriteExtendedEEprofileData(&customBatProfileReq);
-		BatReadExtendedEEprofileData();
-		if (batProfileStatus == BATTERY_CUSTOM_PROFILE_ID) {
-			FuelGaugeSetBatProfile(currentBatProfile);
-		}
-	}
-
-	if (!CHARGER_IS_BATTERY_PRESENT() || batteryVoltage < 2500) {
-		batteryStatus = BAT_STATUS_NOT_PRESENT;
-	} else if (chargerStatus == CHG_CHARGING_FROM_IN) {
-		batteryStatus = BAT_STATUS_CHARGING_FROM_IN;
-	} else if (chargerStatus == CHG_CHARGING_FROM_USB) {
-		batteryStatus = BAT_STATUS_CHARGING_FROM_5V_IO;
-	} else {
-		batteryStatus = BAT_STATUS_NORMAL;
-	}
-
-	uint8_t r=0,g=0,b=0;
-	if (prevBatteryRsoc != batteryRsoc || prevBatteryStatus != batteryStatus)  {
-		if (batteryRsoc > 500) {
-			r = 0;
-			g = LedGetParamG(LED_CHARGE_STATUS);//60;
-		} else if (batteryRsoc > 150) {
-			r = LedGetParamR(LED_CHARGE_STATUS);//50;
-			g = LedGetParamG(LED_CHARGE_STATUS);//60;
-		} else {
-			r = LedGetParamR(LED_CHARGE_STATUS);//50;
-			g = 0;
-		}
-		b = LedGetParamB(LED_CHARGE_STATUS);
-	}
-
-	if (batteryStatus == BAT_STATUS_CHARGING_FROM_IN || batteryStatus == BAT_STATUS_CHARGING_FROM_5V_IO) {
-		if (prevBatteryStatus != batteryStatus) {
-			chargingBlink[1] = r;
-			chargingBlink[2] = g;
-			chargingBlink[5] = r;
-			chargingBlink[6] = g;
-			chargingBlink[7] = b;
-			chargingBlink[0] = 0xFF;
-			LedCmdSetBlink(LED_CHARGE_STATUS, chargingBlink, 0xFF);
-		}
-	} else if (chargerStatus == CHG_CHARGE_DONE) {
-		if (prevBatteryStatus != batteryStatus) {
-			LedFunctionSetRGB(LED_CHARGE_STATUS, r, g, b);
-		}
-	} else {
-		if (prevBatteryRsoc != batteryRsoc || prevBatteryStatus != batteryStatus)  {
-			if (state == STATE_LOWPOWER)
-				LedFunctionSetRGB(LED_CHARGE_STATUS, r>>2, g>>2, 0);
-			else
-				LedFunctionSetRGB(LED_CHARGE_STATUS, r, g, 0);
-		}
-	}
-
-	prevBatteryStatus = batteryStatus;
-	prevBatteryRsoc = batteryRsoc;
-
-	osDelay(20);
-  }
-}
-#else
 static uint32_t chargeLedTaskMsCounter;
 
-void BatteryTask(void) {
-	static uint8_t b = 0;
-	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
 
-	if (setProfileReq >= 0) {
+void BatteryTask(void)
+{
+	static uint8_t b = 0;
+
+	if (setProfileReq >= 0)
+	{
 		uint8_t id = setProfileReq;
 		setProfileReq = -1;
 		EE_WriteVariable(BAT_PROFILE_NV_ADDR, id | ((uint16_t)(~id)<<8));
 		uint16_t var;
 		EE_ReadVariable(BAT_PROFILE_NV_ADDR, &var);
-		if ( ((var^0xFF)&0xFF) == (var>>8) ) {
+
+		if ( ((var^0xFF)&0xFF) == (var>>8) )
+		{
 			// if fcs correct
 			BatInitProfile(var&0xFF);
-		} else {
-			currentBatProfile = NULL;
+		}
+		else
+		{
+			m_p_activeBatteryProfile = NULL;
 			batProfileStatus = BATTERY_INVALID_PROFILE_ID;
 		}
 
-		ChargerSetBatProfileReq(currentBatProfile);
-		PowerSourceSetBatProfile(currentBatProfile);
-		FuelGaugeSetBatProfile(currentBatProfile);
+		ChargerSetBatProfileReq(m_p_activeBatteryProfile);
+		POWERSOURCE_UpdateBatteryProfile(m_p_activeBatteryProfile);
+		FuelGaugeSetBatProfile(m_p_activeBatteryProfile);
 	}
 
 	if (writeCustomProfileReq==1) {
@@ -633,10 +507,10 @@ void BatteryTask(void) {
 		BatWriteEEprofileData(&customBatProfileReq);
 		if (BatReadEEprofileData() == 0) {
 			batProfileStatus = BATTERY_CUSTOM_PROFILE_ID;
-			currentBatProfile = &customBatProfile;
+			m_p_activeBatteryProfile = &customBatProfile;
 		} else {
 			batProfileStatus = BATTERY_INVALID_CUSTOM_PROFILE_STATUS;
-			currentBatProfile = NULL;
+			m_p_activeBatteryProfile = NULL;
 		}
 
 		uint16_t var;
@@ -647,25 +521,25 @@ void BatteryTask(void) {
 			EE_WriteVariable(BAT_PROFILE_NV_ADDR, BATTERY_CUSTOM_PROFILE_ID | (uint16_t)((~BATTERY_CUSTOM_PROFILE_ID)<<8));
 			EE_ReadVariable(BAT_PROFILE_NV_ADDR, &var);
 			if (((var^0xFF)&0xFF) == (var>>8) && (var&0xFF) == BATTERY_CUSTOM_PROFILE_ID) {  // upper byte should be complement if data are valid
-				if (currentBatProfile != NULL)
+				if (m_p_activeBatteryProfile != NULL)
 					batProfileStatus = BATTERY_CUSTOM_PROFILE_ID;
 				else
 					batProfileStatus = BATTERY_INVALID_CUSTOM_PROFILE_STATUS;
 			} else {
-				currentBatProfile = NULL;
+				m_p_activeBatteryProfile = NULL;
 				batProfileStatus = BATTERY_INVALID_PROFILE_ID;
 			}
 		}
 
-		ChargerSetBatProfileReq(currentBatProfile);
-		PowerSourceSetBatProfile(currentBatProfile);
-		FuelGaugeSetBatProfile(currentBatProfile);
+		ChargerSetBatProfileReq(m_p_activeBatteryProfile);
+		POWERSOURCE_UpdateBatteryProfile(m_p_activeBatteryProfile);
+		FuelGaugeSetBatProfile(m_p_activeBatteryProfile);
 	} else if (writeCustomProfileReq==2) {
 		writeCustomProfileReq = 0;
 		BatWriteExtendedEEprofileData(&customBatProfileReq);
 		BatReadExtendedEEprofileData();
 		if (batProfileStatus == BATTERY_CUSTOM_PROFILE_ID) {
-			FuelGaugeSetBatProfile(currentBatProfile);
+			FuelGaugeSetBatProfile(m_p_activeBatteryProfile);
 		}
 	}
 
@@ -721,7 +595,7 @@ void BatteryTask(void) {
 			LedFunctionSetRGB(LED_CHARGE_STATUS, r, g, b);
 	}
 }
-#endif
+
 
 int8_t BatterySetProfileReq(uint8_t id) {
 	if (batProfileStatus != id) {
@@ -736,6 +610,7 @@ int8_t BatterySetProfileReq(uint8_t id) {
 	}*/
 	return 0;
 }
+
 
 int8_t BatteryWriteCustomProfileReq(uint8_t *data, uint16_t len) {
 	batProfileStatus = BATTERY_PROFILE_WRITE_BUSY_STATUS;
@@ -757,35 +632,41 @@ int8_t BatteryWriteCustomProfileReq(uint8_t *data, uint16_t len) {
 	return 0;
 }
 
-int8_t BatteryReadCurrentProfile(uint8_t *data, uint16_t *len)
-{
-	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
 
-	if (writeCustomProfileReq || setProfileReq >= 0 || currentBatProfile == NULL)
+// return value ignored
+int8_t BatteryReadCurrentProfile(uint8_t * const data, uint16_t * const len)
+{
+	uint8_t i;
+
+	if ( (writeCustomProfileReq) || (setProfileReq >= 0u) || (m_p_activeBatteryProfile == NULL) )
 	{
-		int i = 0;
-		for (i = 0; i < 14; i++) data[i] = 0;
+		for (i = 0u; i < 14u; i++)
+		{
+			data[i] = 0u;
+		}
 	}
 	else
 	{
-		volatile uint16_t var = PACK_CAPACITY_U16(currentBatProfile->capacity); // correction for large capacities over 32767
+		volatile uint16_t var = PACK_CAPACITY_U16(m_p_activeBatteryProfile->capacity); // correction for large capacities over 32767
 		data[0] = var; //currentBatProfile->capacity;
 		data[1] = var>>8; //currentBatProfile->capacity>>8;
-		data[2] = currentBatProfile->chargeCurrent;
-		data[3] = currentBatProfile->terminationCurr;
-		data[4] = currentBatProfile->regulationVoltage;
-		data[5] = currentBatProfile->cutoffVoltage;
-		data[6] = currentBatProfile->tCold;
-		data[7] = currentBatProfile->tCool;
-		data[8] = currentBatProfile->tWarm;
-		data[9] = currentBatProfile->tHot;
-		data[10] = currentBatProfile->ntcB;
-		data[11] = currentBatProfile->ntcB>>8;
-		data[12] = currentBatProfile->ntcResistance;
-		data[13] = currentBatProfile->ntcResistance>>8;
+		data[2] = m_p_activeBatteryProfile->chargeCurrent;
+		data[3] = m_p_activeBatteryProfile->terminationCurr;
+		data[4] = m_p_activeBatteryProfile->regulationVoltage;
+		data[5] = m_p_activeBatteryProfile->cutoffVoltage;
+		data[6] = m_p_activeBatteryProfile->tCold;
+		data[7] = m_p_activeBatteryProfile->tCool;
+		data[8] = m_p_activeBatteryProfile->tWarm;
+		data[9] = m_p_activeBatteryProfile->tHot;
+		data[10] = m_p_activeBatteryProfile->ntcB;
+		data[11] = m_p_activeBatteryProfile->ntcB>>8;
+		data[12] = m_p_activeBatteryProfile->ntcResistance;
+		data[13] = m_p_activeBatteryProfile->ntcResistance>>8;
 
 	}
-	*len = 14;
+
+	*len = 14u;
+
 	return 0;
 }
 
@@ -806,21 +687,20 @@ int8_t BatteryWriteCustomExtendedProfileReq(uint8_t data[], uint16_t len) {
 
 int8_t BatteryReadCurrentExtendedProfile(uint8_t *data, uint16_t *len)
 {
-	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
 
-	data[0] = currentBatProfile->chemistry;
-	data[1] = currentBatProfile->ocv10;
-	data[2] = currentBatProfile->ocv10>>8;
-	data[3] = currentBatProfile->ocv50;
-	data[4] = currentBatProfile->ocv50>>8;
-	data[5] = currentBatProfile->ocv90;
-	data[6] = currentBatProfile->ocv90>>8;
-	data[7] = currentBatProfile->r10;
-	data[8] = currentBatProfile->r10>>8;
-	data[9] = currentBatProfile->r50;
-	data[10] = currentBatProfile->r50>>8;
-	data[11] = currentBatProfile->r90;
-	data[12] = currentBatProfile->r90>>8;
+	data[0] = m_p_activeBatteryProfile->chemistry;
+	data[1] = m_p_activeBatteryProfile->ocv10;
+	data[2] = m_p_activeBatteryProfile->ocv10>>8;
+	data[3] = m_p_activeBatteryProfile->ocv50;
+	data[4] = m_p_activeBatteryProfile->ocv50>>8;
+	data[5] = m_p_activeBatteryProfile->ocv90;
+	data[6] = m_p_activeBatteryProfile->ocv90>>8;
+	data[7] = m_p_activeBatteryProfile->r10;
+	data[8] = m_p_activeBatteryProfile->r10>>8;
+	data[9] = m_p_activeBatteryProfile->r50;
+	data[10] = m_p_activeBatteryProfile->r50>>8;
+	data[11] = m_p_activeBatteryProfile->r90;
+	data[12] = m_p_activeBatteryProfile->r90>>8;
 	data[13] = 0xFF; // reserved for future use
 	data[14] = 0xFF; // reserved for future use
 	data[15] = 0xFF; // reserved for future use
@@ -840,7 +720,7 @@ int8_t BatteryReadProfileStatus(uint8_t *data, uint16_t *len) {
 
 const BatteryProfile_T * BATTERY_GetActiveProfile(void)
 {
-	return m_activeBatteryProfile;
+	return m_p_activeBatteryProfile;
 }
 
 

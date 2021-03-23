@@ -966,11 +966,15 @@ void CmdServerReadWriteWDGConfiguration(uint8_t dir, uint8_t *pData, uint16_t *d
 	}
 }
 
-void CmdServerReadWritePowerRegulatorConfiguration(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		SetPowerRegulatorConfigCmd(pData+1, *dataLen - 1);
-	} else {
-		GetPowerRegulatorConfigCmd(pData, dataLen);
+void CmdServerReadWritePowerRegulatorConfiguration(uint8_t dir, uint8_t * pData, uint16_t * dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		POWERSOURCE_SetRegulatorConfig(pData + 1u, *dataLen - 1u);
+	}
+	else
+	{
+		POWERSOURCE_GetRegulatorConfig(pData, dataLen);
 	}
 }
 
