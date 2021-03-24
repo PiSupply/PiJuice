@@ -36,7 +36,6 @@ typedef struct
 	I2CDRV_Device_Event_t event;
 	uint8_t data[I2CDRV_MAX_BUFFER_SIZE];
 	uint8_t datalen;
-	bool checksumPassed;
 	I2CDRV_Device_Status status;
 	uint32_t transactTime;
 	uint8_t index;

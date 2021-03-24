@@ -36,6 +36,7 @@
 
 #include "system_conf.h"
 #include "iodrv.h"
+#include "crc.h"
 
 #include "charger_bq2416x.h"
 #include "fuel_gauge_lc709203f.h"
@@ -578,9 +579,17 @@ void StartDefaultTask(void *argument)
 
 void i2cCallbackTest(const I2CDRV_Device_t * const p_device)
 {
-	if (p_device->index == 1u)
+	crc_t crc;
+
+	if (p_device->event == I2CDRV_EVENT_RX_COMPLETE)
 	{
-		asm volatile ("nop");
+		crc = crc_8_init(0x16u);
+		crc = crc_8_update(crc, p_device->data, 4u);
+
+		if (crc == (crc_t)p_device->data[4u])
+		{
+			asm volatile ("nop");
+		}
 	}
 }
 

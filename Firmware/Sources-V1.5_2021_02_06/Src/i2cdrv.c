@@ -100,7 +100,9 @@ void I2CDRV_Init(const uint32_t sysTime)
 	m_devices[1u].p_dmaTXChannelInstance->CMAR = (uint32_t)m_devices[1u].data;
 
 	m_devices[1u].p_dmaRXChannelInstance->CPAR = (uint32_t)&I2C2->RXDR;
-	m_devices[1u].p_dmaRXChannelInstance->CMAR = (uint32_t)m_devices[1u].data;
+	// Point to the 3rd byte as the first will contain the address to read
+	// The second will contain the device address with the read flag set (bit 0)
+	m_devices[1u].p_dmaRXChannelInstance->CMAR = (uint32_t)&m_devices[1u].data[2u];
 
 	// Enable the DMA transfer mode
 	I2C2->CR1 |= I2C_CR1_TXDMAEN | I2C_CR1_RXDMAEN;
@@ -124,7 +126,7 @@ void I2CDRV_ProcessDevice(I2CDRV_Device_t * p_device, uint32_t sysTime)
 		}
 
 		// Time out after 100ms, what can be taking that long???
-		if (MS_TIMEREF_TIMEOUT(p_device->transactTime, sysTime, 100u))
+		if (MS_TIMEREF_TIMEOUT(p_device->transactTime, sysTime, 100u) /* TODO - || check for fault flags in dma/i2c devices */)
 		{
 			// Disable DMA channel for transmitter
 			p_device->p_dmaTXChannelInstance->CCR &= ~DMA_CCR_EN;
@@ -207,15 +209,13 @@ bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 		return false;
 	}
 
-	if (len > sizeof(p_device->data))
+	if ( (len > sizeof(p_device->data)) || (len == 0u) )
 	{
 		return false;
 	}
 
-	memcpy(p_device->data, data, len);
 
 	p_device->datalen = len;
-	p_device->checksumPassed = false;
 	p_device->event = I2CDRV_EVENT_NONE;
 
 
@@ -223,6 +223,9 @@ bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 
 	if (transactType == I2CDRV_TRANSACTION_TX)
 	{
+		// Copy data to transmit
+		memcpy(p_device->data, data, len);
+
 		// Transmit action is pretty straightforward.... Just spam out the data.
 		p_device->p_i2cInstance->CR2 = I2C_AUTOEND_MODE | (len << I2C_CR2_NBYTES_Pos);
 
@@ -235,11 +238,7 @@ bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 		// Bung in the amount of data to send
 		p_device->p_dmaTXChannelInstance->CNDTR = len;
 
-		// Not sure if this requires setting every time
-		p_device->p_dmaTXChannelInstance->CMAR = (uint32_t)p_device->data;
-
 		p_device->status = I2CDRV_STATUS_BUSY_TX;
-
 
 	}
 	else if (transactType == I2CDRV_TRANSACTION_RX)
@@ -249,6 +248,15 @@ bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 
 		// This implementation luckily only requires one byte so it'll just send out the address
 		// in the first iteration of the interrupt routine.
+
+		// Only need the first byte to read
+		p_device->data[0u] = data[0u];
+
+		// Populate the address to send and the read flag
+		p_device->data[1u] = (addr | 0x01u);
+
+		// Clear rest of the buffer
+		memset(&p_device->data[2u], 0u, len);
 
 		// Make sure the stop bit doesn't get set, load in 1 byte for address
 		p_device->p_i2cInstance->CR2 = (1u << I2C_CR2_NBYTES_Pos);
@@ -262,12 +270,8 @@ bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 		// Bung in the amount of data to expect
 		p_device->p_dmaRXChannelInstance->CNDTR = len;
 
-		// Not sure if this requires setting every time
-		p_device->p_dmaTXChannelInstance->CPAR = (uint32_t)p_device->data;
-
 		// Notify what the device is busy doing
 		p_device->status = I2CDRV_STATUS_BUSY_RX;
-
 
 	}
 	else

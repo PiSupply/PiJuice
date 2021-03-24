@@ -82,6 +82,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/config_switch_resistor.h</locationURI>
 		</link>
 		<link>
+			<name>Inc/crc.h</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/crc.h</location>
+		</link>
+		<link>
 			<name>Inc/crc8_atm.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/crc8_atm.h</locationURI>
@@ -235,6 +240,11 @@
 			<name>Src/config_switch_resistor.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Src/config_switch_resistor.c</locationURI>
+		</link>
+		<link>
+			<name>Src/crc.c</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Src/crc.c</location>
 		</link>
 		<link>
 			<name>Src/crc8_atm.c</name>
