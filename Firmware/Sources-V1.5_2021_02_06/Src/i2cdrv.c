@@ -5,6 +5,9 @@
  *      Author: jsteggall
  */
 
+// ----------------------------------------------------------------------------
+// Include section - add all #includes here:
+
 #include <string.h>
 
 #include "main.h"
@@ -13,10 +16,25 @@
 #include "time_count.h"
 #include "i2cdrv.h"
 
+// ----------------------------------------------------------------------------
+// Defines section - add all #defines here:
+
+
+// ----------------------------------------------------------------------------
+// Function prototypes for functions that only have scope in this module:
+
+void I2CDRV_ProcessDevice(I2CDRV_Device_t * p_device, uint32_t sysTime);
+
+
+// ----------------------------------------------------------------------------
+// Variables that have scope from outside this module:
 
 extern I2C_HandleTypeDef hi2c1;
 extern I2C_HandleTypeDef hi2c2;
 
+
+// ----------------------------------------------------------------------------
+// Variables that only have scope in this module:
 
 static I2CDRV_Device_t m_devices[I2CDRV_MAX_DEVICES] =
 {
@@ -32,10 +50,14 @@ static I2CDRV_Device_t m_devices[I2CDRV_MAX_DEVICES] =
 		}
 };
 
-
 static I2CDRV_EventCb_t m_deviceCallbacks[I2CDRV_MAX_DEVICES] = {NULL, NULL};
 
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// INTERRUPT HANDLERS
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 void I2C2_IRQHandler(void)
 {
 	I2CDRV_Device_t * p_device = &m_devices[1u];
@@ -78,6 +100,18 @@ void I2C2_IRQHandler(void)
 }
 
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH GLOBAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * I2CDRV_Init configures the module to a known initial state
+ * @param	sysTime		current value of the ms tick timer
+ * @retval	none
+ */
+// ****************************************************************************
 void I2CDRV_Init(const uint32_t sysTime)
 {
 	// Tell the dma controllers about the data addresses
@@ -114,72 +148,31 @@ void I2CDRV_Init(const uint32_t sysTime)
 }
 
 
-void I2CDRV_ProcessDevice(I2CDRV_Device_t * p_device, uint32_t sysTime)
-{
-	// If blocked or ready then alles gut
-	if (I2CDRV_STATUS_BUSY_TX == p_device->status)
-	{
-		// Check for tx complete
-		if ( 0u != (p_device->p_dmaTXInstance->ISR & ((0x1UL << 1u) << p_device->txDmaChannelIndex)) )
-		{
-			p_device->event = I2CDRV_EVENT_TX_COMPLETE;
-		}
-
-		// Time out after 100ms, what can be taking that long???
-		if (MS_TIMEREF_TIMEOUT(p_device->transactTime, sysTime, 100u) /* TODO - || check for fault flags in dma/i2c devices */)
-		{
-			// Disable DMA channel for transmitter
-			p_device->p_dmaTXChannelInstance->CCR &= ~DMA_CCR_EN;
-
-			p_device->event = I2CDRV_EVENT_TX_FAILED;
-		}
-	}
-	else if (I2CDRV_STATUS_BUSY_RX == p_device->status)
-	{
-		// Check for tx complete
-		if ( 0u != (p_device->p_dmaRXInstance->ISR & ((0x1UL << 1u) << p_device->rxDmaChannelIndex)) )
-		{
-			p_device->event = I2CDRV_EVENT_RX_COMPLETE;
-		}
-
-		// Time out after 100ms, what can be taking that long???
-		if (MS_TIMEREF_TIMEOUT(p_device->transactTime, sysTime, 100u))
-		{
-			// Disable DMA channel for transmitter
-			p_device->p_dmaRXChannelInstance->CCR &= ~DMA_CCR_EN;
-
-			p_device->event = I2CDRV_EVENT_RX_FAILED;
-		}
-	}
-
-	// Raise on event
-	if (p_device->event != I2CDRV_EVENT_NONE)
-	{
-		if (m_deviceCallbacks[p_device->index] != NULL)
-		{
-			m_deviceCallbacks[p_device->index](p_device);
-		}
-
-		p_device->event = I2CDRV_EVENT_NONE;
-		p_device->status = I2CDRV_STATUS_READY;
-		p_device->p_i2cInstance->CR1 &= ~I2C_CR1_PE;
-	}
-
-	return;
-}
 
 
+// ****************************************************************************
+/*!
+ * I2CDRV_Service performs periodic updates for this module
+ *
+ * @param	sysTime		current value of the ms tick timer
+ * @retval	none
+ */
+// ****************************************************************************
 void I2CDRV_Service(const uint32_t sysTime)
 {
-
 	I2CDRV_ProcessDevice(&m_devices[1u], sysTime);
-
-	// Check for transaction errors
-	// Check for receive completion
-	// Notify low priority task of events
 }
 
 
+// ****************************************************************************
+/*!
+ * I2CDRV_IsReady returns the ready status of a module device.
+ *
+ * @param	devIdx		index of the device that is required
+ * @retval	bool		true = device is ready
+ * 						false = device is busy or just not available
+ */
+// ****************************************************************************
 bool I2CDRV_IsReady(uint8_t devIdx)
 {
 	if (devIdx < I2CDRV_MAX_DEVICES)
@@ -191,6 +184,44 @@ bool I2CDRV_IsReady(uint8_t devIdx)
 }
 
 
+// ****************************************************************************
+/*!
+ * I2CDRV_Transact starts a transaction with an i2c device hooked on the bus.
+ * The transaction can be transmit or receive but for a receive transaction the
+ * module is limited to only one memory address byte. In both cases the device
+ * address is limited to the standard 7bit also. The caller is expected to either
+ * provide a call back or poll the is isready to see if the transaction is complete,
+ * the latter being slightly dangerous if not careful as the device could be used
+ * and the data becoming inconsistent.
+ *
+ * @param	devIdx			index of the device that is required
+ * @param	addr			address of the i2c device, pre bit shifted..
+ * 							Note: this is important!!
+ *
+ * @param   data			data for the transaction, if a memory read/write then
+ * 							call with the 8 bit memory address in byte 0.
+ * 							On completion of a memory read, the 1st two bytes contain
+ * 							the memory address in byte 0 and the device address or'd
+ * 							with 0x01 as presented to the device (read/write bit).
+ *
+ * @param	len				length of data to send or length of data to receive, when
+ * 							receiving, this does not include the 1st two bytes, just
+ * 							the data that is expected back (add one on for checksum
+ * 							if the device sends one and it is required.)
+ *
+ * @param	transactType	I2CDRV_TRANSACTION_TX = transit transaction
+ * 							I2CDRV_TRANSACTION_RX = receive transaction
+ *
+ * @param	callback		pointer to a callback function, if NULL is passed then
+ * 							the callback is ignored.
+ *
+ * @param	sysTime			current value of the ms tick timer
+ *
+ * @retval	bool			true if the transaction can be loaded
+ * 							false if the transaction can't be performed
+ *
+ */
+// ****************************************************************************
 bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 					const uint8_t * const data,	const uint8_t len,
 					I2CDRV_TransactionType_t transactType, const I2CDRV_EventCb_t callback,
@@ -292,3 +323,86 @@ bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 }
 
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH LOCAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * I2CDRV_ProcessDevice checks the i2c hardware and the dma hardware to see if
+ * the transaction is complete or has any errors. Registered callbacks are
+ * processed here, errors are not at all analysed but will be cleared either after
+ * the callback has been performed (i2c device is disabled) or on next transaction
+ * call (dma controller).
+ *
+ * @param	p_device	pointer to the i2cdrv struct
+ * @param	sysTime		current value of the ms tick timer
+ * @retval	none
+ */
+// ****************************************************************************
+void I2CDRV_ProcessDevice(I2CDRV_Device_t * p_device, uint32_t sysTime)
+{
+	DMA_Channel_TypeDef * p_dmaChannel;
+	DMA_TypeDef * p_dma;
+	uint8_t dmaChannelPos;
+
+
+	// If blocked or ready then alles gut
+	if ( (I2CDRV_STATUS_BUSY_TX == p_device->status) || (I2CDRV_STATUS_BUSY_RX == p_device->status) )
+	{
+		p_dmaChannel = (I2CDRV_STATUS_BUSY_TX == p_device->status) ?
+												p_device->p_dmaTXChannelInstance :
+												p_device->p_dmaRXChannelInstance;
+
+		p_dma = (I2CDRV_STATUS_BUSY_TX == p_device->status) ?
+												p_device->p_dmaTXInstance :
+												p_device->p_dmaRXInstance;
+
+		dmaChannelPos = (I2CDRV_STATUS_BUSY_TX == p_device->status) ?
+												p_device->txDmaChannelIndex :
+												p_device->rxDmaChannelIndex;
+
+		// Check for complete flag
+		if ( 0u != (p_dma->ISR & (DMA_FLAG_TC1 << dmaChannelPos)) )
+		{
+			p_device->event = (I2CDRV_STATUS_BUSY_TX == p_device->status) ?
+												I2CDRV_EVENT_TX_COMPLETE :
+												I2CDRV_EVENT_RX_COMPLETE;
+		}
+		else
+		{
+			// Check for errors in data transfer or just a timeout because something else went wrong?
+			if (MS_TIMEREF_TIMEOUT(p_device->transactTime, sysTime, 100u)
+					|| (0u != (I2C2->ISR & ~(I2C_ISR_NACKF | I2C_ISR_TXIS | I2C_ISR_RXNE | I2C_ISR_TXE)))
+					|| (0u != (p_dma->ISR & (DMA_FLAG_TE1 << dmaChannelPos)))
+			)
+			{
+				// Disable DMA channel for transmitter
+				p_dmaChannel->CCR &= ~DMA_CCR_EN;
+
+				// Notify event
+				p_device->event = (I2CDRV_STATUS_BUSY_TX == p_device->status) ?
+												I2CDRV_EVENT_TX_FAILED :
+												I2CDRV_EVENT_RX_FAILED;
+			}
+		}
+	}
+
+	// Raise on event
+	if (p_device->event != I2CDRV_EVENT_NONE)
+	{
+		if (m_deviceCallbacks[p_device->index] != NULL)
+		{
+			m_deviceCallbacks[p_device->index](p_device);
+		}
+
+		p_device->event = I2CDRV_EVENT_NONE;
+		p_device->status = I2CDRV_STATUS_READY;
+
+		// Turn off the device, clears all isr flags but keeps the existing configuration
+		p_device->p_i2cInstance->CR1 &= ~I2C_CR1_PE;
+	}
+
+	return;
+}

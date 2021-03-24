@@ -173,4 +173,8 @@
 #define FUELGUAGE_I2C_ADDR			0x16u
 #define FUELGUAGE_I2C_PORTNO		1u
 
+
+#define CHARGER_I2C_ADDR			0xD6u
+#define CHARGER_I2C_PORTNO			1u
+
 #endif /* SYSTEM_CONF_H_ */

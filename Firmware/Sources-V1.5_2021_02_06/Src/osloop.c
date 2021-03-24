@@ -16,8 +16,10 @@
 #include "analog.h"
 #include "i2cdrv.h"
 
+
 // ----------------------------------------------------------------------------
 // Defines section - add all #defines here:
+
 
 // ----------------------------------------------------------------------------
 // Function prototypes for functions that only have scope in this module:
@@ -31,10 +33,12 @@ void OSLOOP_Service(void);
 static volatile uint32_t m_osloopTimeTrack[100u];
 static uint32_t m_osloopTimeTrackIdx = 0u;
 
+
 // ----------------------------------------------------------------------------
 // Variables that have scope from outside this module:
 
 extern TIM_HandleTypeDef htim6;
+
 
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------

@@ -655,16 +655,17 @@ int main(void)
 	//I2CDRV_Init(0u);
 
 	uint8_t i2cdata[4u]=
-		//{ 0x09u, 0x55, 0xAA, 0x3B };
-		{ 0x11u, 0x00, 0x00, 0x00 };
+		{ 0x09u, 0x55, 0xAA, 0x3B };
+		//{ 0x11u, 0x00, 0x00, 0x00 };
 	while(true)
 	{
 		/* Testing I2C */
 		HAL_Delay(1000);
 
 		//HAL_I2C_Mem_Write(&hi2c2, 0x16, 0x09u, 1u, &i2cdata[1u], 3u, 1u);
-		//I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, i2cdata, 4u, I2CDRV_TRANSACTION_TX, i2cCallbackTest, HAL_GetTick() );
-		I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, i2cdata, 3u, I2CDRV_TRANSACTION_RX, i2cCallbackTest, HAL_GetTick() );
+		I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, i2cdata, 4u, I2CDRV_TRANSACTION_TX, i2cCallbackTest, HAL_GetTick() );
+		//I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, i2cdata, 3u, I2CDRV_TRANSACTION_RX, i2cCallbackTest, HAL_GetTick() );
+		//I2CDRV_Transact(CHARGER_I2C_PORTNO, CHARGER_I2C_ADDR, i2cdata, 1u, I2CDRV_TRANSACTION_RX, i2cCallbackTest, HAL_GetTick() );
 	}
 
 	if (!resetStatus) MS_TIME_COUNTER_INIT(lastHostCommandTimer);
