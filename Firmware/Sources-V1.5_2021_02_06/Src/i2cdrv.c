@@ -95,7 +95,7 @@ void I2C2_IRQHandler(void)
 
 		// Start the transfer!!
 		// Start read is an extra bit from start write RD_WRN
-		I2C2->CR2 |=  (p_device->datalen << I2C_CR2_NBYTES_Pos) | (I2C_GENERATE_START_READ);
+		I2C2->CR2 |=  (p_device->datalen << I2C_CR2_NBYTES_Pos) | I2C_AUTOEND_MODE | (I2C_GENERATE_START_READ);
 	}
 }
 
@@ -143,6 +143,10 @@ void I2CDRV_Init(const uint32_t sysTime)
 
 	// Turn off device until we're ready to use it.
 	I2C2->CR1 &= ~I2C_CR1_PE;
+
+	// Disable own address
+	I2C2->OAR1 = 0u;
+
 
 	m_devices[1u].status = I2CDRV_STATUS_READY;
 }
@@ -225,7 +229,7 @@ bool I2CDRV_IsReady(uint8_t devIdx)
 bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 					const uint8_t * const data,	const uint8_t len,
 					I2CDRV_TransactionType_t transactType, const I2CDRV_EventCb_t callback,
-					const uint32_t sysTime)
+					const uint16_t timeout, const uint32_t sysTime)
 {
 
 	if (deviceIdx >= I2CDRV_MAX_DEVICES)
@@ -296,7 +300,7 @@ bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 		p_device->p_dmaRXChannelInstance->CCR &= ~DMA_CCR_EN;
 
 		// Clear all flags
-		p_device->p_dmaRXInstance->IFCR = (DMA_FLAG_GL1 << p_device->txDmaChannelIndex);
+		p_device->p_dmaRXInstance->IFCR = (DMA_FLAG_GL1 << p_device->rxDmaChannelIndex);
 
 		// Bung in the amount of data to expect
 		p_device->p_dmaRXChannelInstance->CNDTR = len;
@@ -312,6 +316,9 @@ bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 
 	// Note transaction start time
 	MS_TIMEREF_INIT(p_device->transactTime, sysTime);
+
+	// Load in the max time for the transaction
+	p_device->timeout = timeout;
 
 	// Enable the transmit interrupt and turn on the peripheral
 	p_device->p_i2cInstance->CR1 |= I2C_CR1_PE | I2C_CR1_TXIE;
@@ -373,9 +380,9 @@ void I2CDRV_ProcessDevice(I2CDRV_Device_t * p_device, uint32_t sysTime)
 		else
 		{
 			// Check for errors in data transfer or just a timeout because something else went wrong?
-			if (MS_TIMEREF_TIMEOUT(p_device->transactTime, sysTime, 100u)
-					|| (0u != (I2C2->ISR & ~(I2C_ISR_NACKF | I2C_ISR_TXIS | I2C_ISR_RXNE | I2C_ISR_TXE)))
-					|| (0u != (p_dma->ISR & (DMA_FLAG_TE1 << dmaChannelPos)))
+			if (MS_TIMEREF_TIMEOUT(p_device->transactTime, sysTime, p_device->timeout)
+					|| (0u != (I2C2->ISR & (I2C_ISR_NACKF | I2C_ISR_BERR | I2C_ISR_ARLO)))
+					/*|| (0u != (p_dma->ISR & (DMA_FLAG_TE1 << dmaChannelPos)))*/
 			)
 			{
 				// Disable DMA channel for transmitter

@@ -38,6 +38,7 @@ typedef struct
 	uint8_t datalen;
 	I2CDRV_Device_Status status;
 	uint32_t transactTime;
+	uint16_t timeout;
 	uint8_t index;
 } I2CDRV_Device_t;
 
@@ -51,6 +52,6 @@ bool I2CDRV_IsReady(uint8_t devIdx);
 bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
 					const uint8_t * const data,	const uint8_t len,
 					I2CDRV_TransactionType_t transactType, const I2CDRV_EventCb_t callback,
-					const uint32_t sysTime);
+					const uint16_t timeout, const uint32_t sysTime);
 
 #endif

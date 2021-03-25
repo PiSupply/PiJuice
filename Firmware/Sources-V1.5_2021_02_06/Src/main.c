@@ -39,7 +39,7 @@
 #include "crc.h"
 
 #include "charger_bq2416x.h"
-#include "fuel_gauge_lc709203f.h"
+#include "fuel_gauge.h"
 #include "power_source.h"
 #include "command_server.h"
 #include "led.h"
@@ -576,10 +576,16 @@ void StartDefaultTask(void *argument)
 }
 #endif
 
+static uint8_t failCrc = 0u;
+static uint8_t failRX = 0u;
+static uint8_t goodRX = 0u;
+static volatile uint16_t lastTransactionTime = 0u;
 
 void i2cCallbackTest(const I2CDRV_Device_t * const p_device)
 {
 	crc_t crc;
+
+	lastTransactionTime = (HAL_GetTick() - p_device->transactTime);
 
 	if (p_device->event == I2CDRV_EVENT_RX_COMPLETE)
 	{
@@ -589,10 +595,25 @@ void i2cCallbackTest(const I2CDRV_Device_t * const p_device)
 		if (crc == (crc_t)p_device->data[4u])
 		{
 			asm volatile ("nop");
+			goodRX++;
 		}
+		else
+		{
+			asm volatile ("nop");
+			failCrc++;
+		}
+	}
+	else
+	{
+		asm volatile ("nop");
+		failRX++;
 	}
 }
 
+
+int8_t FuelGaugeIcInit(void);
+static volatile uint8_t badcount = 0u;
+static volatile uint8_t goodcount = 0u;
 
 int main(void)
 {
@@ -652,20 +673,47 @@ int main(void)
 		asm volatile ("nop");
 	}
 
-	//I2CDRV_Init(0u);
 
-	uint8_t i2cdata[4u]=
-		{ 0x09u, 0x55, 0xAA, 0x3B };
-		//{ 0x11u, 0x00, 0x00, 0x00 };
-	while(true)
-	{
+//	FUELGUAGE_IcReset();
+//	HAL_Delay(10u);
+//	FUELGUAGE_IcSetOperational(true);
+
+	//uint8_t i2cdataout[4u]=
+		//{ 0x09u, 0x55, 0xAA, 0x3B };
+	//	{ 0x11u, 0x00, 0x00, 0x00 };
+
+	//HAL_I2C_Mem_Write(&hi2c2, FUELGUAGE_I2C_ADDR, i2cdata[0u], 1u, &i2cdata[1u], 3u, 1000u);
+
+	//HAL_Delay(250u);
+
+	//HAL_NVIC_DisableIRQ(I2C2_IRQn);
+
+//	uint8_t i2cdata[4u]=
+		//{ 0x09u, 0x55, 0xAA, 0x3B };
+//		{ 0x11u, 0x00, 0x00, 0x00 };
+//	while(true)
+//	{
 		/* Testing I2C */
-		HAL_Delay(1000);
+//		HAL_Delay(100u);
 
-		//HAL_I2C_Mem_Write(&hi2c2, 0x16, 0x09u, 1u, &i2cdata[1u], 3u, 1u);
-		I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, i2cdata, 4u, I2CDRV_TRANSACTION_TX, i2cCallbackTest, HAL_GetTick() );
-		//I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, i2cdata, 3u, I2CDRV_TRANSACTION_RX, i2cCallbackTest, HAL_GetTick() );
-		//I2CDRV_Transact(CHARGER_I2C_PORTNO, CHARGER_I2C_ADDR, i2cdata, 1u, I2CDRV_TRANSACTION_RX, i2cCallbackTest, HAL_GetTick() );
+		//HAL_I2C_Mem_Read(&hi2c2, FUELGUAGE_I2C_ADDR, i2cdata[0u], 1u, &i2cdata[1u], 3u, 1000u);
+		//I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, i2cdata, 4u, I2CDRV_TRANSACTION_TX, i2cCallbackTest, HAL_GetTick() );
+//		I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, i2cdata, 3u, I2CDRV_TRANSACTION_RX, i2cCallbackTest, 2500u, HAL_GetTick() );
+//	}
+
+	while (1)
+	{
+		if (0u == FuelGaugeIcInit())
+		{
+			goodcount++;
+		}
+		else
+		{
+			badcount++;
+		}
+
+		HAL_Delay(250u);
+		// do nothing else for now
 	}
 
 	if (!resetStatus) MS_TIME_COUNTER_INIT(lastHostCommandTimer);
@@ -1091,26 +1139,41 @@ static void MX_SMBUS_Init(void) {
 static void MX_I2C2_Init(void)
 {
 
-  hi2c2.Instance = I2C2;
-  hi2c2.Init.Timing = 0x20000A0D;//0x0010020B;//0x2000090E;//0x0010020A;//0x00900000;//0x2000090E;
-  hi2c2.Init.OwnAddress1 = 0;
-  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c2.Init.OwnAddress2 = 0;
-  hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	  /* USER CODE BEGIN I2C2_Init 0 */
 
-    /**Configure Analogue filter
-    */
-  /*if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
-    Error_Handler();
-  }*/
+	  /* USER CODE END I2C2_Init 0 */
+
+	  /* USER CODE BEGIN I2C2_Init 1 */
+
+	  /* USER CODE END I2C2_Init 1 */
+	  hi2c2.Instance = I2C2;
+	  hi2c2.Init.Timing = 0x2000090E;
+	  hi2c2.Init.OwnAddress1 = 0;
+	  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+	  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+	  hi2c2.Init.OwnAddress2 = 0;
+	  hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+	  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+	  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+	  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+	  /** Configure Analogue filter
+	  */
+	  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+	  /** Configure Digital filter
+	  */
+	  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+	  /* USER CODE BEGIN I2C2_Init 2 */
+
+	  /* USER CODE END I2C2_Init 2 */
 
 }
 

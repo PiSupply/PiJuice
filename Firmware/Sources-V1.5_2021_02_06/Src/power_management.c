@@ -11,7 +11,7 @@
 #include "nv.h"
 #include "power_management.h"
 #include "charger_bq2416x.h"
-#include "fuel_gauge_lc709203f.h"
+#include "fuel_gauge.h"
 #include "time_count.h"
 #include "power_source.h"
 #include "button.h"
@@ -304,29 +304,37 @@ static void PowerManagementTask(void *argument) {
   }
 }
 #else
-void PowerManagementTask(void) {
-
+void PowerManagementTask(void)
+{
 	const bool chargerPresent = CHARGER_IS_INPUT_PRESENT();
 	const uint32_t sysTime = HAL_GetTick();
-	bool boostConverterEnabled;
+	const batteryRsoc = FUELGUAGE_GetSocPt1();
 
-	if (MS_TIMEREF_TIMEOUT(powerMngmtTaskMsCounter, sysTime, 500u)) {
+	bool boostConverterEnabled;
+	bool isWakeupOnCharge;
+
+	if (MS_TIMEREF_TIMEOUT(powerMngmtTaskMsCounter, sysTime, POWERMANAGE_TASK_PERIOD_MS))
+	{
 		MS_TIMEREF_INIT(powerMngmtTaskMsCounter, sysTime);
 
-		volatile int isWakeupOnCharge = batteryRsoc >= wakeupOnCharge && chargerPresent && CHARGER_IS_BATTERY_PRESENT();
-		if ( 		( isWakeupOnCharge || rtcWakeupEventFlag || ioWakeupEvent) // there is wake-up trigger
+		isWakeupOnCharge = (batteryRsoc >= wakeupOnCharge) && (chargerPresent) && (CHARGER_IS_BATTERY_PRESENT());
+
+		if ( ( isWakeupOnCharge || rtcWakeupEventFlag || ioWakeupEvent ) // there is wake-up trigger
 				&& 	!delayedPowerOffCounter // deny wake-up during shutdown
 				&& 	!delayedTurnOnFlag
 				&& 	( (MS_TIMEREF_TIMEOUT(lastHostCommandTimer, sysTime, 15000) && MS_TIMEREF_TIMEOUT(lastWakeupTimer, sysTime, 30000))
 						//|| (!POW_5V_BOOST_EN_STATUS() && power5vIoStatus == POW_SOURCE_NOT_PRESENT) //  Host is non powered
-		   ) ) {
-			if ( ResetHost() == 0 ) { //if ( WakeUpHost() == 0 ) {
+		   ) )
+		{
+			if ( ResetHost() == 0u )
+			{ //if ( WakeUpHost() == 0 ) {
 				wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 				rtcWakeupEventFlag = 0;
 				ioWakeupEvent = 0;
 				delayedPowerOffCounter = 0;
 
-				if (watchdogConfig) {
+				if (watchdogConfig)
+				{
 					// activate watchdog after wake-up if watchdog config has restore flag
 					watchdogExpirePeriod = watchdogConfig * (uint32_t)60000;
 					watchdogTimer = watchdogExpirePeriod;

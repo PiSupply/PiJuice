@@ -4,7 +4,7 @@
 #include "time_count.h"
 #include "nv.h"
 #include "eeprom.h"
-#include "fuel_gauge_lc709203f.h"
+#include "fuel_gauge.h"
 #include "stddef.h"
 #include "power_source.h"
 #include "analog.h"
@@ -141,6 +141,8 @@ int8_t ChargerUpdateRegulationVoltage() {
 	//static uint32_t readTimeCnt;
 
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const uint8_t batteryTemperature = FUELGUAGE_GetBatteryTemperature();
+	const BatteryTempSenseConfig_T tempSensorConfig = FUELGUAGE_GetBatteryTempSensorCfg();
 
 	regsw[3] &= ~(0xFEu);
 	regsw[3] |= chargerInLimit << 1u;
@@ -148,10 +150,14 @@ int8_t ChargerUpdateRegulationVoltage() {
 	if (currentBatProfile != NULL)
 	{
 		int16_t newRegVol;
-		if (batteryTemp > currentBatProfile->tWarm && tempSensorConfig != BAT_TEMP_SENSE_CONFIG_NOT_USED) {
+
+		if ( (batteryTemperature > currentBatProfile->tWarm) && (tempSensorConfig != BAT_TEMP_SENSE_CONFIG_NOT_USED) )
+		{
 			newRegVol = (int16_t)(currentBatProfile->regulationVoltage) - (140/20);
 			newRegVol = newRegVol < 0 ? 0 : newRegVol;
-		} else {
+		}
+		else
+		{
 			newRegVol = currentBatProfile->regulationVoltage;
 		}
 
@@ -257,12 +263,13 @@ int8_t ChargerUpdateVinDPM() {
 
 int8_t ChargerUpdateTempRegulationControlStatus(void)
 {
-
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const uint8_t batteryTemp = FUELGUAGE_GetBatteryTemperature();
+	const BatteryTempSenseConfig_T tempSensorConfig = FUELGUAGE_GetBatteryTempSensorCfg();
 
-	regsw[7] = 0xC0u; // Timer slowed by 2x when in thermal regulation, 10 � 9 hour fast charge, TS function disabled
+	regsw[7u] = 0xC0u; // Timer slowed by 2x when in thermal regulation, 10 � 9 hour fast charge, TS function disabled
 
-	if (currentBatProfile!=NULL)
+	if (currentBatProfile != NULL)
 	{
 		if (batteryTemp < currentBatProfile->tCool && tempSensorConfig != BAT_TEMP_SENSE_CONFIG_NOT_USED)
 		{
@@ -278,6 +285,7 @@ int8_t ChargerUpdateTempRegulationControlStatus(void)
 	else
 	{
 		regsw[7] &= ~0x01;
+
 		if (!regsStatusRW[0x07])
 		{
 			return 0;
@@ -285,15 +293,19 @@ int8_t ChargerUpdateTempRegulationControlStatus(void)
 	}
 
 	// if there were errors in previous transfers read state from register
-	if (regsStatusRW[0x07]) {
-		if (ChargerRegRead(0x07) != HAL_OK) {
+	if (regsStatusRW[0x07])
+	{
+		if (ChargerRegRead(0x07) != HAL_OK)
+		{
 			return 1;
 		}
 	}
 
-	if ( (regsw[7]&0xE9) != (regs[7]&0xE9) ) {
+	if ( (regsw[7]&0xE9) != (regs[7]&0xE9) )
+	{
 		// write new value to register
-		if (ChargerRegWrite(0x07) != HAL_OK) {
+		if (ChargerRegWrite(0x07) != HAL_OK)
+		{
 			return 2;
 		}
 	}
@@ -304,12 +316,19 @@ int8_t ChargerUpdateTempRegulationControlStatus(void)
 int8_t ChargerUpdateControlStatus(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const uint8_t batteryTemp = FUELGUAGE_GetBatteryTemperature();
+	const BatteryTempSenseConfig_T tempSensorConfig = FUELGUAGE_GetBatteryTempSensorCfg();
 
-	regsw[2] = ((chargerUsbInCurrentLimit&0x07) << 4) | 0x0C; // usb in current limit code, Enable STAT output, Enable charge current termination
+	regsw[2u] = ((chargerUsbInCurrentLimit&0x07) << 4) | 0x0C; // usb in current limit code, Enable STAT output, Enable charge current termination
 
 	if (currentBatProfile != NULL)
 	{
-		if ( !chargingEnabled || ((batteryTemp >= currentBatProfile->tHot || batteryTemp <= currentBatProfile->tCold) && tempSensorConfig != BAT_TEMP_SENSE_CONFIG_NOT_USED) ) {
+		if ( !chargingEnabled ||
+				(
+					((batteryTemp >= currentBatProfile->tHot) || (batteryTemp <= currentBatProfile->tCold))
+					&& (tempSensorConfig != BAT_TEMP_SENSE_CONFIG_NOT_USED)
+					)
+			) {
 			// disable charging
 			regsw[2] |= 0x02;
 			regsw[2] &= ~0x01; // clear high impedance mode

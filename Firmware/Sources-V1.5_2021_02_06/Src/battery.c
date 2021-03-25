@@ -10,7 +10,7 @@
 #include "nv.h"
 #include "charger_bq2416x.h"
 #include "config_switch_resistor.h"
-#include "fuel_gauge_lc709203f.h"
+#include "fuel_gauge.h"
 #include "power_source.h"
 #include "time_count.h"
 #include "led.h"
@@ -476,7 +476,10 @@ static uint32_t chargeLedTaskMsCounter;
 
 void BatteryTask(void)
 {
-	static uint8_t b = 0;
+	const uint16_t batteryVoltageMv = FUELGUAGE_GetBatteryMv();
+	const uint16_t batteryRsocPt1 = FUELGUAGE_GetSocPt1();
+
+	uint8_t r, g, b, paramB;
 
 	if (setProfileReq >= 0)
 	{
@@ -499,7 +502,7 @@ void BatteryTask(void)
 
 		ChargerSetBatProfileReq(m_p_activeBatteryProfile);
 		POWERSOURCE_UpdateBatteryProfile(m_p_activeBatteryProfile);
-		FuelGaugeSetBatProfile(m_p_activeBatteryProfile);
+		FUELGUAGE_SetBatteryProfile(m_p_activeBatteryProfile);
 	}
 
 	if (writeCustomProfileReq==1) {
@@ -533,17 +536,21 @@ void BatteryTask(void)
 
 		ChargerSetBatProfileReq(m_p_activeBatteryProfile);
 		POWERSOURCE_UpdateBatteryProfile(m_p_activeBatteryProfile);
-		FuelGaugeSetBatProfile(m_p_activeBatteryProfile);
-	} else if (writeCustomProfileReq==2) {
+		FUELGUAGE_SetBatteryProfile(m_p_activeBatteryProfile);
+	}
+	else if (2u == writeCustomProfileReq)
+	{
 		writeCustomProfileReq = 0;
 		BatWriteExtendedEEprofileData(&customBatProfileReq);
 		BatReadExtendedEEprofileData();
-		if (batProfileStatus == BATTERY_CUSTOM_PROFILE_ID) {
-			FuelGaugeSetBatProfile(m_p_activeBatteryProfile);
+
+		if (batProfileStatus == BATTERY_CUSTOM_PROFILE_ID)
+		{
+			FUELGUAGE_SetBatteryProfile(m_p_activeBatteryProfile);
 		}
 	}
 
-	if (!CHARGER_IS_BATTERY_PRESENT() || batteryVoltage < 2500)
+	if (!CHARGER_IS_BATTERY_PRESENT() || (batteryVoltageMv < 2500u))
 	{
 		m_batteryStatus = BAT_STATUS_NOT_PRESENT;
 	}
@@ -563,22 +570,29 @@ void BatteryTask(void)
 	if (MS_TIME_COUNT(chargeLedTaskMsCounter) >= 900/*(state == STATE_LOWPOWER?2000:500)*/) {
 		MS_TIME_COUNTER_INIT(chargeLedTaskMsCounter);
 
-		uint8_t r,g;
-		if (batteryRsoc > 500) {
-			r = 0;
+		if (batteryRsocPt1 > 500u)
+		{
+			r = 0u;
 			g = LedGetParamG(LED_CHARGE_STATUS);//60;
-		} else if (batteryRsoc > 150) {
-			r = LedGetParamR(LED_CHARGE_STATUS);//50;
-			g = LedGetParamG(LED_CHARGE_STATUS);//60;
-		} else {
-			r = LedGetParamR(LED_CHARGE_STATUS);//50;
-			g = 0;
 		}
-		uint8_t paramB = LedGetParamB(LED_CHARGE_STATUS);
+		else if (batteryRsocPt1 > 150u)
+		{
+			r = LedGetParamR(LED_CHARGE_STATUS);//50;
+			g = LedGetParamG(LED_CHARGE_STATUS);//60;
+		}
+		else
+		{
+			r = LedGetParamR(LED_CHARGE_STATUS);//50;
+			g = 0u;
+		}
+
+		paramB = LedGetParamB(LED_CHARGE_STATUS);
 
 		if ( (m_batteryStatus == BAT_STATUS_CHARGING_FROM_IN) || (m_batteryStatus == BAT_STATUS_CHARGING_FROM_5V_IO) )
 		{
-			b = b ? 0 : paramB;//200 - r;
+			// b did = 0!
+			//b = b ? 0 : paramB;
+			b = paramB;
 		}
 		else if (chargerStatus == CHG_CHARGE_DONE)
 		{
@@ -597,7 +611,8 @@ void BatteryTask(void)
 }
 
 
-int8_t BatterySetProfileReq(uint8_t id) {
+int8_t BatterySetProfileReq(uint8_t id)
+{
 	if (batProfileStatus != id) {
 		batProfileStatus = BATTERY_PROFILE_WRITE_BUSY_STATUS;
 		setProfileReq = id;

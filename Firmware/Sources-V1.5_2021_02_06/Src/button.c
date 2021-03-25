@@ -73,6 +73,7 @@ static ButtonEventCb_T m_buttonEventCallbacks[BUTTON_EVENT_FUNC_COUNT] =
 	BUTTON_PowerResetEventCb, // BUTTON_EVENT_FUNC_POWER_RESET
 };
 
+
 static int8_t m_writebuttonConfigData = -1;
 static Button_T m_buttonConfigData;
 
