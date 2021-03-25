@@ -72,6 +72,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/charger_bq2416x.h</locationURI>
 		</link>
 		<link>
+			<name>Inc/charger_conf.h</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/charger_conf.h</location>
+		</link>
+		<link>
 			<name>Inc/command_server.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/command_server.h</locationURI>

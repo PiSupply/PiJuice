@@ -131,9 +131,6 @@ void FUELGUAGE_Init(void)
 
 	MS_TIMEREF_INIT(m_lastFuelGuageTaskTimeMs, sysTime);
 
-#if defined(RTOS_FREERTOS)
-	fgTaskHandle = osThreadNew(FuelGaugeTask, (void*)NULL, &fgTask_attributes);
-#endif
 }
 
 void SocEvaluateDirectDynVoltage(uint16_t batVolt, int32_t dt)

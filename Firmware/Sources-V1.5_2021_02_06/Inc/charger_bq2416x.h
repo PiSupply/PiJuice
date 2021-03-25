@@ -23,18 +23,35 @@
 #define CHARGER_IS_INPUT_PRESENT() ((regs[0]&0x70)&&((regs[0]&0x70)<(6*16)))
 #define CHARGER_FAULT_STATUS() (regs[0]&0x07)
 
-typedef enum ChargerStatus_T {
-	CHG_NO_VALID_SOURCE = 0,
-	CHG_IN_READY,
-	CHG_USB_READY,
-	CHG_CHARGING_FROM_IN,
-	CHG_CHARGING_FROM_USB,
-	CHG_CHARGE_DONE,
-	CHG_NA,
-	CHG_FAULT
+
+typedef enum
+{
+	CHG_NO_VALID_SOURCE = 0u,
+	CHG_IN_READY = 1u,
+	CHG_USB_READY = 2u,
+	CHG_CHARGING_FROM_IN = 3u,
+	CHG_CHARGING_FROM_USB = 4u,
+	CHG_CHARGE_DONE = 5u,
+	CHG_NA = 6u,
+	CHG_FAULT = 7u
 } ChargerStatus_T;
 
-typedef enum NTC_MonitorTemperature_T {
+
+typedef enum
+{
+	CHG_FAULT_NORMAL = 0u,
+	CHG_FAULT_THERMAL_SHUTDOWN = 1u,
+	CHG_FAULT_BATTERY_TEMPERATURE_FAULT = 2u,
+	CHG_FAULT_WATCHDOG_TIMER_EXPIRED = 3u,
+	CHG_FAULT_SAFETY_TIMER_EXPIRED = 4u,
+	CHG_FAULT_IN_SUPPLY_FAULT = 5u,
+	CHG_FAULT_USB_SUPPLY_FAULT = 6u,
+	CHG_FAULT_BATTERY_FAULT = 7u
+} ChargerFaultStatus_T;
+
+
+typedef enum NTC_MonitorTemperature_T
+{
 	COLD,
 	COOL,
 	NORMAL,
@@ -43,13 +60,17 @@ typedef enum NTC_MonitorTemperature_T {
 	UNKNOWN
 } NTC_MonitorTemperature_T;
 
-typedef enum ChargerUSBInLockoutStatus_T {
+
+typedef enum ChargerUSBInLockoutStatus_T
+{
 	CHG_USB_IN_UNKNOWN,
 	CHG_USB_IN_LOCK,
 	CHG_USB_IN_UNLOCK
 } ChargerUSBInLockoutStatus_T;
 
-typedef enum ChargerUsbInCurrentLimit_T {
+
+typedef enum ChargerUsbInCurrentLimit_T
+{
 	CHG_IUSB_LIMIT_100MA = 0,
 	CHG_IUSB_LIMIT_150MA,
 	CHG_IUSB_LIMIT_500MA,
@@ -58,17 +79,7 @@ typedef enum ChargerUsbInCurrentLimit_T {
 	CHG_IUSB_LIMIT_1500MA,
 } ChargerUsbInCurrentLimit_T;
 
-typedef enum ChargerFaultStatus_T {
-	CHG_FAULT_NORMAL = 0,
-	CHG_FAULT_THERMAL_SHUTDOWN,
-	CHG_FAULT_BATTERY_TEMPERATURE_FAULT,
-	CHG_FAULT_WATCHDOG_TIMER_EXPIRED,
-	CHG_FAULT_SAFETY_TIMER_EXPIRED,
-	CHG_FAULT_IN_SUPPLY_FAULT,
-	CHG_FAULT_USB_SUPPLY_FAULT,
-	CHG_FAULT_BATTERY_FAULT,
-	CHG_FAULT_UNKNOWN
-} ChargerFaultStatus_T;
+
 
 extern uint8_t regs[8];
 

@@ -72,7 +72,22 @@ uint8_t chargerInterruptFlag = 0;
 
 void ChargerSetInputsConfig(uint8_t config);
 
-HAL_StatusTypeDef ChargerRegRead( uint8_t regAddress ) {
+
+void CHARGER_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
+{
+	if ( (p_i2cdrvDevice->event == I2CDRV_EVENT_TX_COMPLETE) || (p_i2cdrvDevice->event == I2CDRV_EVENT_RX_COMPLETE) )
+	{
+		m_i2cSuccess = true;
+	}
+	else
+	{
+		m_i2cSuccess = false;
+	}
+}
+
+
+bool CHARGER_RegRead( const uint8_t regAddress )
+{
 	HAL_StatusTypeDef rStatus;
 	uint8_t regVal1, regVal2;
 	regsStatusRW[regAddress] |= 0x01;
@@ -391,17 +406,24 @@ int8_t ChargerUpdateUSBInLockout() {
 	return 0;
 }
 
-void ChargerInit() {
+
+void CHARGER_Init(void)
+{
 	//uint8_t chReg = 0;
 	uint16_t var = 0;
 	//const BatteryProfile_T* batProfile = BatteryGetProfile();
 
-	if (!resetStatus) {
+	if (!resetStatus)
+	{
 		EE_ReadVariable(CHARGER_INPUTS_CONFIG_NV_ADDR, &var);
-		if (((~var)&0xFF) == (var>>8)) {
+
+		if (((~var)&0xFF) == (var>>8))
+		{
 			chargerInputsConfig = var&0xFF;
 			ChargerSetInputsConfig(chargerInputsConfig);
-		} else {
+		}
+		else
+		{
 			// set default config
 			chargerInputsPrecedence = 0x01; // 5V GPIO has precedence for charging
 			usbInEnabled = 1; // enabled
@@ -416,10 +438,14 @@ void ChargerInit() {
 		}
 
 		EE_ReadVariable(CHARGING_CONFIG_NV_ADDR, &var);
-		if (((~var)&0xFF) == (var>>8)) {
+
+		if (((~var)&0xFF) == (var>>8))
+		{
 			chargingConfig = var&0xFF;
 			chargingEnabled = chargingConfig & 0x01;
-		} else {
+		}
+		else
+		{
 			// set default config
 			chargingEnabled = 1;
 			chargingConfig = chargingEnabled & 0x01;
