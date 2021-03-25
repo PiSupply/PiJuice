@@ -308,7 +308,7 @@ void PowerManagementTask(void)
 {
 	const bool chargerPresent = CHARGER_IS_INPUT_PRESENT();
 	const uint32_t sysTime = HAL_GetTick();
-	const batteryRsoc = FUELGUAGE_GetSocPt1();
+	const uint16_t batteryRsoc = FUELGUAGE_GetSocPt1();
 
 	bool boostConverterEnabled;
 	bool isWakeupOnCharge;

@@ -28,6 +28,7 @@
 #define ALARM_DISABLE					0u
 #define POWER_MODE_OPERATIONAL			1u
 #define POWER_MODE_SLEEP				2u
+#define CELL_TEMP_OFS					0x0AACu
 
 #define THERM_TYPE_I2C					0u
 #define THERM_TYPE_NTC					1u

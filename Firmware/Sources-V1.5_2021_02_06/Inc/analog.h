@@ -22,23 +22,9 @@ uint8_t ANALOG_AnalogSamplesReady(void);
 int16_t ANALOG_GetMCUTemp(void);
 
 
-
-#if !defined(RTOS_FREERTOS)
-void AnalogTask(void);
-#endif
-
 void AnalogStop(void);
 void AnalogStart(void);
 void AnalogPowerIsGood(void);
-
-
-/*
-int16_t Get5vIoVoltage();
-uint8_t AnalogSamplesReady();
-
-uint16_t GetSampleVoltage(uint8_t channel);
-uint16_t GetAverageBatteryVoltage(void);
-*/
 
 void AnalogAdcWDGEnable(uint8_t enable);
 HAL_StatusTypeDef AnalogAdcWDGConfig(uint8_t channel, uint16_t voltThresh_mV);

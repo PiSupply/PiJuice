@@ -611,7 +611,7 @@ void i2cCallbackTest(const I2CDRV_Device_t * const p_device)
 }
 
 
-int8_t FuelGaugeIcInit(void);
+int8_t FUELGUAGE_IcInit(void);
 static volatile uint8_t badcount = 0u;
 static volatile uint8_t goodcount = 0u;
 
@@ -703,7 +703,7 @@ int main(void)
 
 	while (1)
 	{
-		if (0u == FuelGaugeIcInit())
+		if (0u == FUELGUAGE_IcInit())
 		{
 			goodcount++;
 		}
@@ -740,14 +740,10 @@ int main(void)
 	BatteryInit();
 	BUTTON_Init();
 
-	if (executionState == EXECUTION_STATE_POWER_ON) {
-		HAL_Delay(100);  // after power-on, charger and fuel gauge requires initialization time
-		FuelGaugeIcPreInit();
-	}
 
 	ChargerInit();
 	POWERSOURCE_Init();
-	FuelGaugeInit();
+	FUELGUAGE_Init();
 	PowerManagementInit();
 	LedInit();
 	BUTTON_Init();
@@ -798,7 +794,7 @@ int main(void)
 		POWERSOURCE_5VIoDetection_Task();
 
 		ChargerTask();
-		FuelGaugeTask();
+		FUELGUAGE_Task();
 		BatteryTask();
 		POWERSOURCE_Task();
 		if (alarmEventFlag || __HAL_RTC_ALARM_GET_FLAG(&hrtc, RTC_FLAG_ALRAF) != RESET) {
