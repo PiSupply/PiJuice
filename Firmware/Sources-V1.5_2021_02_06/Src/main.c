@@ -673,49 +673,6 @@ int main(void)
 		asm volatile ("nop");
 	}
 
-
-//	FUELGUAGE_IcReset();
-//	HAL_Delay(10u);
-//	FUELGUAGE_IcSetOperational(true);
-
-	//uint8_t i2cdataout[4u]=
-		//{ 0x09u, 0x55, 0xAA, 0x3B };
-	//	{ 0x11u, 0x00, 0x00, 0x00 };
-
-	//HAL_I2C_Mem_Write(&hi2c2, FUELGUAGE_I2C_ADDR, i2cdata[0u], 1u, &i2cdata[1u], 3u, 1000u);
-
-	//HAL_Delay(250u);
-
-	//HAL_NVIC_DisableIRQ(I2C2_IRQn);
-
-//	uint8_t i2cdata[4u]=
-		//{ 0x09u, 0x55, 0xAA, 0x3B };
-//		{ 0x11u, 0x00, 0x00, 0x00 };
-//	while(true)
-//	{
-		/* Testing I2C */
-//		HAL_Delay(100u);
-
-		//HAL_I2C_Mem_Read(&hi2c2, FUELGUAGE_I2C_ADDR, i2cdata[0u], 1u, &i2cdata[1u], 3u, 1000u);
-		//I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, i2cdata, 4u, I2CDRV_TRANSACTION_TX, i2cCallbackTest, HAL_GetTick() );
-//		I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, i2cdata, 3u, I2CDRV_TRANSACTION_RX, i2cCallbackTest, 2500u, HAL_GetTick() );
-//	}
-
-	while (1)
-	{
-		if (0u == FUELGUAGE_IcInit())
-		{
-			goodcount++;
-		}
-		else
-		{
-			badcount++;
-		}
-
-		HAL_Delay(250u);
-		// do nothing else for now
-	}
-
 	if (!resetStatus) MS_TIME_COUNTER_INIT(lastHostCommandTimer);
 
 	MS_TIME_COUNTER_INIT(mainPollMsCounter);

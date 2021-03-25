@@ -10,7 +10,7 @@
 #define FG_MEM_ADDR_APA					0x0Bu
 #define FG_MEM_ADDR_APT					0x0Cu
 #define FG_MEM_ADDR_RSOC				0x0Du
-#define FG_MEM_ADDR_ITE					0x0Fu
+#define FG_MEM_ADDR_ITE					0x0Fu	/* RSOC Pt1 */
 #define FG_MEM_ADDR_IC_VERSION			0x11u
 #define FG_MEM_ADDR_PARAM_NO_SET		0x12u
 #define FG_MEM_ADDR_ALARM_RSOC			0x13u
