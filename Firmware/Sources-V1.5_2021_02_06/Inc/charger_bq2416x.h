@@ -108,9 +108,14 @@ uint8_t CHARGER_GetChargeEnableConfig(void);
 ChargerStatus_T CHARGER_GetStatus(void);
 void CHARGER_SetInterrupt(void);
 
-void CHARGER_SetRPi5vLockout(const CHARGER_USBInLockoutStatus_T status);
+void CHARGER_SetRPi5vInputEnable(bool enable);
+bool CHARGER_GetRPi5vInputEnable(void);
+
 void CHARGER_RPi5vInCurrentLimitSetMin(void);
 void CHARGER_RPi5vInCurrentLimitStepDown(void);
 void CHARGER_RPi5vInCurrentLimitStepUp(void);
+
+bool CHARGER_RequirePoll(void);
+bool CHARGER_GetNoBatteryTurnOnEnable(void);
 
 #endif /* CHARGER_BQ2416X_H_ */

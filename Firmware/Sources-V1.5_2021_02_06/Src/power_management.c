@@ -72,38 +72,54 @@ static bool m_gpioPowerControl;
 static bool m_rpiActive;
 static uint32_t m_rpiActiveTime;
 
-void PowerManagementInit(void) {
+void PowerManagementInit(void)
+{
 
 	const uint32_t sysTime = HAL_GetTick();
+	const bool noBatteryTurnOn = CHARGER_GetNoBatteryTurnOnEnable();
 
 	uint16_t var = 0u;
+
 	EE_ReadVariable(NV_RUN_PIN_CONFIG, &var);
-	if (((~var)&0xFFu) == (var>>8u)) {
+
+	if (((~var)&0xFFu) == (var>>8u))
+	{
 		runPinInstallationStatus = (RunPinInstallationStatus_T)(var&0xFFu);
 	}
 
-	if (!resetStatus) { // on mcu power up
+	if (!resetStatus)
+	{
+		// on mcu power up
 
 		wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 		wakeupOnChargeConfig = 0x7Fu;
-		if (NvReadVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (uint8_t*)&wakeupOnChargeConfig) == NV_READ_VARIABLE_SUCCESS) {
+
+		if (NvReadVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (uint8_t*)&wakeupOnChargeConfig) == NV_READ_VARIABLE_SUCCESS)
+		{
 			if (wakeupOnChargeConfig<=100u) {
 				/* Set last bit in config value to show EE is not just blank. */
 				wakeupOnChargeConfig |= 0x80u;
 			}
 		}
 
-		if (CHARGER_IS_INPUT_PRESENT()) {	/* Charger is connected */
-			delayedTurnOnFlag = (noBatteryTurnOn == 1u);
-		} else {							/* Charger is not connected */
+		if (CHARGER_IS_INPUT_PRESENT())
+		{	/* Charger is connected */
+			delayedTurnOnFlag = noBatteryTurnOn;
+		}
+		else
+		{	/* Charger is not connected */
 			delayedTurnOnFlag = 0u;
+
 			if (WAKEUPONCHARGE_NV_INITIALISED)
+			{
 				wakeupOnCharge = (wakeupOnChargeConfig&0x7Fu) <= 100u ? (wakeupOnChargeConfig&0x7Fu) * 10u : WAKEUP_ONCHARGE_DISABLED_VAL;
+			}
 		}
 
-		if (	   NvReadVariableU8(WATCHDOG_CONFIGL_NV_ADDR, (uint8_t*)&watchdogConfig) != NV_READ_VARIABLE_SUCCESS
-				|| NvReadVariableU8(WATCHDOG_CONFIGH_NV_ADDR, (uint8_t*)&watchdogConfig+1) != NV_READ_VARIABLE_SUCCESS
-		 	 ) {
+		if ( NvReadVariableU8(WATCHDOG_CONFIGL_NV_ADDR, (uint8_t*)&watchdogConfig) != NV_READ_VARIABLE_SUCCESS ||
+				NvReadVariableU8(WATCHDOG_CONFIGH_NV_ADDR, (uint8_t*)&watchdogConfig+1) != NV_READ_VARIABLE_SUCCESS
+		 	 )
+		{
 			watchdogConfig  = 0u;
 		}
 

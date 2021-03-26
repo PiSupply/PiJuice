@@ -314,7 +314,7 @@ void POWERSOURCE_5VIoDetection_Task(void)
 				if (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_NOT_PRESENT)
 				{
 					MS_TIME_COUNTER_INIT(pow5vPresentCounter);
-					CHARGER_UsbInCurrentLimitStepDown();
+					CHARGER_RPi5vInCurrentLimitStepDown();
 				}
 
 				pow5vInDetStatus = POW_5V_IN_DETECTION_STATUS_NOT_PRESENT;
@@ -325,7 +325,7 @@ void POWERSOURCE_5VIoDetection_Task(void)
 				}
 
 				// Tell charger to not use USB (5V) input
-				CHARGER_SetUSBLockout(CHG_USB_IN_LOCK);
+				CHARGER_SetRPi5vInputEnable(false);
 
 				// Turn off LDO?
 				POWERSOURCE_SetLDOEnable(false);
@@ -340,8 +340,8 @@ void POWERSOURCE_5VIoDetection_Task(void)
 				pow5VChgLoadMaximumReached --;
 			}
 
-			CHARGER_SetUSBLockout(CHG_USB_IN_LOCK);
-			CHARGER_UsbInCurrentLimitStepDown();
+			CHARGER_SetRPi5vInputEnable(false);
+			CHARGER_RPi5vInCurrentLimitStepDown();
 			MS_TIME_COUNTER_INIT(pow5vPresentCounter);
 		}
 
@@ -385,7 +385,10 @@ void POWERSOURCE_5VIoDetection_Task(void)
 			{
 				// turn on usb in if pmos is cutoff
 				pow5vInDetStatus = POW_5V_IN_DETECTION_STATUS_PRESENT;
-				CHARGER_SetUSBLockout(CHG_USB_IN_UNLOCK);
+
+				// Enable RPi 5v as charging source
+				CHARGER_SetRPi5vInputEnable(true);
+
 				MS_TIME_COUNTER_INIT(pow5vPresentCounter);
 			}
 			else
@@ -414,14 +417,14 @@ void POWERSOURCE_5VIoDetection_Task(void)
 				MS_TIME_COUNTER_INIT(pow5vPresentCounter);
 
 				// Reduce current limit for the USB (5V Rail in)
-				CHARGER_UsbInCurrentLimitStepDown();
+				CHARGER_RPi5vInCurrentLimitStepDown();
 			}
 
 			// Set status to power not present
 			pow5vInDetStatus = POW_5V_IN_DETECTION_STATUS_NOT_PRESENT;
 
 			// Tell charger not to use USB (5V) as input
-			ChargerSetUSBLockout(CHG_USB_IN_LOCK);
+			CHARGER_SetRPi5vInputEnable(CHG_USB_IN_LOCK);
 
 			// TODO - not sure of this yet
 			if (pow5VChgLoadMaximumReached > 1)
@@ -444,7 +447,7 @@ void POWERSOURCE_5VIoDetection_Task(void)
 			pow5vInDetStatus = POW_5V_IN_DETECTION_STATUS_PRESENT;
 
 			// Tell charger to use USB (5V) as input
-			ChargerSetUSBLockout(CHG_USB_IN_UNLOCK);
+			CHARGER_SetRPi5vInputEnable(true);
 
 			MS_TIME_COUNTER_INIT(pow5vPresentCounter);
 		}
@@ -458,7 +461,7 @@ void POWERSOURCE_5VIoDetection_Task(void)
 		{
 			if (pow5VChgLoadMaximumReached > 1u)
 			{
-				CHARGER_UsbInCurrentLimitStepUp();
+				CHARGER_RPi5vInCurrentLimitStepUp();
 				pow5VChgLoadMaximumReached = 2u;
 			}
 			else if (pow5VChgLoadMaximumReached == 0u)
@@ -470,7 +473,7 @@ void POWERSOURCE_5VIoDetection_Task(void)
 		{
 			// this means input is disconnected, and flag can be cleared
 			pow5VChgLoadMaximumReached = 0u;
-			CHARGER_UsbInCurrentLimitSetMin();
+			CHARGER_RPi5vInCurrentLimitSetMin();
 		}
 	}
 }
@@ -743,9 +746,9 @@ void POWERSOURCE_ProcessVIN(const uint8_t chargerInStatus)
 
 void POWERSOURCE_Process5VRail(const uint8_t chargerUSBStatus)
 {
-	const usbInLockoutStatus = CHARGER_GetRPi5vInLockStatus();
+	const bool rpi5vChargeEnable = CHARGER_GetRPi5vInputEnable();
 
-	if (usbInLockoutStatus == CHG_USB_IN_UNLOCK)
+	if (true == rpi5vChargeEnable)
 	{
 		if (chargerUSBStatus == 0x03u)
 		{

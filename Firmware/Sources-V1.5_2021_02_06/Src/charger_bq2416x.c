@@ -50,8 +50,6 @@
 
 extern uint8_t resetStatus;
 
-uint8_t chargerNeedPoll = 0;
-
 extern I2C_HandleTypeDef hi2c2;
 static uint32_t readTimeCounter = 0;
 
@@ -77,7 +75,8 @@ int8_t CHARGER_UpdateChgCurrentAndTermCurrent(void);
 int8_t CHARGER_UpdateVinDPM(void);
 int8_t CHARGER_UpdateTempRegulationControlStatus(void);
 int8_t CHARGER_UpdateControlStatus(void);
-int8_t CHARGER_UpdateUSBInLockout(void);
+int8_t CHARGER_UpdateRPi5VInLockout(void);
+int8_t CHARGER_UpdateRegulationVoltage(void);
 
 static CHARGER_USBInLockoutStatus_T m_rpi5VInputDisable = CHG_USB_IN_UNKNOWN;
 static CHARGER_USBInCurrentLimit_T m_rpi5VCurrentLimit = CHG_IUSB_LIMIT_150MA; // current limit code as defined in datasheet
@@ -95,6 +94,7 @@ static uint8_t m_nextRegReadAddr;
 static uint32_t m_lastWDTResetTime;
 
 static bool m_interrupt;
+static bool m_chargerNeedPoll;
 
 
 void CHARGER_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
@@ -125,23 +125,27 @@ void CHARGER_WDT_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 }
 
 
-int8_t ChargerUpdateRegulationVoltage()
+int8_t CHARGER_UpdateRegulationVoltage(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
 	const uint8_t batteryTemperature = FUELGUAGE_GetBatteryTemperature();
 	const BatteryTempSenseConfig_T tempSensorConfig = FUELGUAGE_GetBatteryTempSensorCfg();
 
-	regsw[3] &= ~(0xFEu);
+	int8_t newRegVol;
 
-	regsw[3] |= (false == CHRG_CONFIG_INPUTS_IN_LIMITED_1pt5A) ? 0x02u : 0u;
+	// Clear everything except the d+/d- detection.
+	regsw[CHG_REG_CONTROL_BATTERY] &= CHGR_CB_DPDN_EN_bm;
+
+	// Set input current limit
+	regsw[CHG_REG_CONTROL_BATTERY] |= (false == CHRG_CONFIG_INPUTS_IN_LIMITED_1pt5A) ?
+										CHGR_CB_IN_LIMIT_2pt5A :
+										CHGR_CB_IN_LIMIT_1pt5A;
 
 	if (currentBatProfile != NULL)
 	{
-		int16_t newRegVol;
-
-		if ( (batteryTemperature > currentBatProfile->tWarm) && (tempSensorConfig != BAT_TEMP_SENSE_CONFIG_NOT_USED) )
+		if ( (batteryTemperature > currentBatProfile->tWarm) && (BAT_TEMP_SENSE_CONFIG_NOT_USED != tempSensorConfig) )
 		{
-			newRegVol = (int16_t)(currentBatProfile->regulationVoltage) - (140/20);
+			newRegVol = ((int8_t)currentBatProfile->regulationVoltage) - (140/20);
 			newRegVol = newRegVol < 0 ? 0 : newRegVol;
 		}
 		else
@@ -149,17 +153,16 @@ int8_t ChargerUpdateRegulationVoltage()
 			newRegVol = currentBatProfile->regulationVoltage;
 		}
 
-		regsw[3] |= newRegVol << 2;
+		regsw[CHG_REG_CONTROL_BATTERY] |= newRegVol << CHGR_CB_BATT_REGV_Pos;
 	}
 	else
 	{
-		if (0 != regsStatusRW[0x03])
+		if (0u != regsStatusRW[CHG_REG_CONTROL_BATTERY])
 		{
 			return 0;
 		}
 
 	}
-
 
 	// if there were errors in previous transfers read state from register
 	if (regsStatusRW[CHG_REG_CONTROL_BATTERY] )
@@ -172,7 +175,7 @@ int8_t ChargerUpdateRegulationVoltage()
 
 
 	// If update required
-	if ( (regsw[3]&0xFF) != (regs[3]&0xFF) )
+	if ( (regsw[CHG_REG_CONTROL_BATTERY] & 0xFFu) != (regs[CHG_REG_CONTROL_BATTERY] & 0xFFu) )
 	{
 		// write regulation voltage register
 		if (false == CHARGER_UpdateDeviceRegister(CHG_REG_CONTROL_BATTERY, regsw[CHG_REG_CONTROL_BATTERY]))
@@ -249,7 +252,7 @@ void CHARGER_Init(void)
 	// read states
 	HAL_I2C_Mem_Read(&hi2c2, 0xD6, 0, 1, regs, 8, 1000);
 
-	CHARGER_UpdateUSBInLockout();
+	CHARGER_UpdateRPi5VInLockout();
 	CHARGER_UpdateTempRegulationControlStatus();
 
 	CHARGER_UpdateLocalRegister(CHG_REG_SUPPLY_STATUS);
@@ -273,11 +276,11 @@ void CHARGER_Task(void)
 {
 	uint32_t sysTime;
 
-	chargerNeedPoll = 0;
+	m_chargerNeedPoll = false;
 
-	if (CHARGER_UpdateUSBInLockout() != 0)
+	if (CHARGER_UpdateRPi5VInLockout() != 0)
 	{
-		chargerNeedPoll = 1;
+		m_chargerNeedPoll = true;
 		return;
 	}
 
@@ -286,36 +289,36 @@ void CHARGER_Task(void)
 		// update status on interrupt
 		CHARGER_UpdateLocalRegister(CHG_REG_SUPPLY_STATUS);
 		m_interrupt = false;
-		chargerNeedPoll = 1;
+		m_chargerNeedPoll = true;
 	}
 
 	if (CHARGER_UpdateControlStatus() != 0)
 	{
-		chargerNeedPoll = 1;
+		m_chargerNeedPoll = true;
 		return;
 	}
 
 	if (CHARGER_UpdateRegulationVoltage() != 0)
 	{
-		chargerNeedPoll = 1;
+		m_chargerNeedPoll = true;
 		return;
 	}
 
 	if (CHARGER_UpdateTempRegulationControlStatus() != 0)
 	{
-		chargerNeedPoll = 1;
+		m_chargerNeedPoll = true;
 		return;
 	}
 
 	if (0u != CHARGER_UpdateChgCurrentAndTermCurrent())
 	{
-		chargerNeedPoll = 1;
+		m_chargerNeedPoll = true;
 		return;
 	}
 
 	if (0u != CHARGER_UpdateVinDPM())
 	{
-		chargerNeedPoll = 1;
+		m_chargerNeedPoll = true;
 		return;
 	}
 
@@ -390,10 +393,27 @@ void ChargerTriggerNTCMonitor(NTC_MonitorTemperature_T temp)
 }
 
 
-void CHARGER_SetRPi5vLockout(const CHARGER_USBInLockoutStatus_T status)
+void CHARGER_SetRPi5vInputEnable(bool enable)
 {
-	// Notify update required (if required?)
-	chargerNeedPoll |= (0u != CHARGER_UpdateUSBInLockout()) ? 0x01 : 0u;
+	if (enable)
+	{
+		m_chargerInputsConfig |= CHGR_INPUTS_CONFIG_ENABLE_RPI5V_IN_bm;
+	}
+	else
+	{
+		m_chargerInputsConfig &= ~(CHGR_INPUTS_CONFIG_ENABLE_RPI5V_IN_bm);
+	}
+
+	m_chargerNeedPoll = (0u != CHARGER_UpdateRPi5VInLockout()) ?
+							true :
+							m_chargerNeedPoll;
+}
+
+
+bool CHARGER_GetRPi5vInputEnable()
+{
+	// TODO - This should probably be the actual setting from the device registers
+	return CHGR_CONFIG_INPUTS_RPI5V_ENABLED;
 }
 
 
@@ -767,12 +787,11 @@ int8_t CHARGER_UpdateControlStatus(void)
 }
 
 
-int8_t CHARGER_UpdateUSBInLockout()
+int8_t CHARGER_UpdateRPi5VInLockout(void)
 {
 	const PowerSourceStatus_T pow5vInDetStatus = POWERSOURCE_Get5VRailStatus();
 
 	regsw[CHG_REG_BATTERY_STATUS] = (true == CHRG_CONFIG_INPUTS_NOBATT_ENABLED) ? CHGR_BS_EN_NOBAT_OP : 0u;
-
 
 	// If RPi is powered by itself and host allows charging from RPi 5v and the battery checks out ok...
 	if ( (true == CHGR_CONFIG_INPUTS_RPI5V_ENABLED)
@@ -821,6 +840,24 @@ CHARGER_USBInLockoutStatus_T CHARGER_GetRPi5vInLockStatus(void)
 void CHARGER_SetInterrupt(void)
 {
 	m_interrupt = true;
+}
+
+
+bool CHARGER_RequirePoll(void)
+{
+	return m_chargerNeedPoll;
+}
+
+
+ChargerStatus_T CHARGER_GetStatus(void)
+{
+	return m_chargerStatus;
+}
+
+
+bool CHARGER_GetNoBatteryTurnOnEnable(void)
+{
+	return CHRG_CONFIG_INPUTS_NOBATT_ENABLED;
 }
 
 

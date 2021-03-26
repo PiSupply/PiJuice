@@ -58,15 +58,9 @@
 
 #define OWN1_I2C_ADDRESS		0x14
 #define OWN2_I2C_ADDRESS		0x68
-#define SMBUS_TIMEOUT_DEFAULT                 ((uint32_t)0x80618061)
-#define I2C_MAX_RECEIVE_SIZE	((int16_t)255)
+#define SMBUS_TIMEOUT_DEFAULT	((uint32_t)0x80618061)
+#define I2C_MAX_RECEIVE_SIZE	((int16_t)255)		/* int? */
 
-#define NEED_EVENT_POLL()		((chargerNeedPoll \
-								|| extiFlag \
-								|| rtcWakeupEventFlag \
-								|| commandReceivedFlag \
-								|| POW_SOURCE_NEED_POLL() \
-								|| alarmEventFlag ))
 
 /* Private variables ---------------------------------------------------------*/
 #if defined(RTOS_FREERTOS)
@@ -133,11 +127,15 @@ static void MX_TIM17_Init(void);
 static void MX_IWDG_Init(void);
 //static void MX_WWDG_Init(void);
 
+
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
-void MemInit(uint8_t *buffer, uint8_t val, int32_t size) {
+
+void MemInit(uint8_t *buffer, uint8_t val, int32_t size)
+{
 	while((--size) > 0) buffer[size] = val;
 }
+
 
 typedef  void (*pFunction)(void);
 pFunction Jump_To_Start;
@@ -157,6 +155,7 @@ void ButtonDualLongPressEventCb(void) {
 }
 
 uint8_t extiFlag = 0;
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   if (GPIO_Pin == GPIO_PIN_0)
@@ -182,6 +181,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   }
 }
 
+
 static uint16_t i2cAddrMatchCode = 0;
 volatile static uint8_t i2cTransferDirection = 0;
 static int16_t readCmdCode = 0;
@@ -190,10 +190,9 @@ static uint8_t       aSlaveReceiveBuffer[256]  = {0};
 uint8_t      slaveTransmitBuffer[256]      = {0};
 __IO static uint8_t  ubSlaveReceiveIndex       = 0;
 uint32_t      uwTransferDirection       = 0;
-//__IO uint32_t uwTransferInitiated       = 0;
-//__IO uint32_t uwTransferEnded           = 0;
 volatile uint8_t tstFlagi2c=0;
 uint16_t dataLen;
+
 
 void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
@@ -210,6 +209,7 @@ void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *hi2c)
 	}
 }
 
+
 void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c1)
 {
     ubSlaveReceiveIndex++;
@@ -219,6 +219,7 @@ void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c1)
     }
     tstFlagi2c=2;
 }
+
 
 void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, uint16_t AddrMatchCode)
 {
@@ -265,6 +266,7 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
 	MS_TIME_COUNTER_INIT(lastHostCommandTimer);
 }
 
+
 void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c)
 {
 	tstFlagi2c=7;
@@ -300,157 +302,20 @@ void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c)
 	tstFlagi2c=8;
 }
 
+
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 {
-	// Error_Handler() function is called when error occurs.
-	// 1- When Slave don't acknowledge it's address, Master restarts communication.
-	// 2- When Master don't acknowledge the last data transferred, Slave don't care in this example.
-	/*if (HAL_I2C_GetError(hi2c) != HAL_I2C_ERROR_AF)
-	{
-		Error_Handler();
-	}*/
 	// Clear OVR flag
 	__HAL_I2C_CLEAR_FLAG(hi2c, I2C_FLAG_AF);
-	/*ubSlaveReceiveIndex=0;
-	HAL_I2C_EnableListen_IT(hi2c1);*/
-	//hi2c1->Instance->ICR=0xFFFF;
-	/*uint32_t cr=hi2c1->Instance->CR1;
-	cr &= 0xFFFFFFFE;
-	hi2c1->Instance->CR1=cr;
-	DelayUs(1);
-	cr = 0xFFFFFFFF;
-	hi2c1->Instance->CR1=cr;*/
 }
+
 
 static uint32_t lowPowerDealyTimer;
 static GPIO_InitTypeDef i2c_GPIO_InitStruct;
 
-#if defined(RTOS_FREERTOS)
-/* First define the portSUPPRESS_TICKS_AND_SLEEP() macro.  The parameter is the
-time, in ticks, until the kernel next needs to execute. */
-//#define vPortSuppressTicksAndSleep( xIdleTime ) vApplicationSleep( xIdleTime )
-volatile int secPass,subPass;
-/* Define the function that is called by portSUPPRESS_TICKS_AND_SLEEP(). */
-void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime )
+
+void WaitInterrupt()
 {
-unsigned long ulLowPowerTimeBeforeSleep, ulLowPowerTimeAfterSleep;
-eSleepModeStatus eSleepStatus;
-
-	commandReceivedFlag = 0;
-    /* Read the current time from a time source that will remain operational
-    while the microcontroller is in a low power state. */
-    //ulLowPowerTimeBeforeSleep = ulGetExternalTime();
-
-    /* Stop the timer that is generating the tick interrupt. */
-	//HAL_SuspendTick(); //prvStopTickInterruptTimer();
-	//LedSetRGB(1, 0, 0, 0);
-    /* Enter a critical section that will not effect interrupts bringing the MCU
-    out of sleep mode. */
-	//portDISABLE_INTERRUPTS(); //disable_interrupts();
-
-    /* Ensure it is still ok to enter the sleep mode. */
-    eSleepStatus = eTaskConfirmSleepModeStatus();
-
-    if( eSleepStatus == eAbortSleep )
-    {
-        /* A task has been moved out of the Blocked state since this macro was
-        executed, or a context siwth is being held pending.  Do not enter a
-        sleep state.  Restart the tick and exit the critical section. */
-    	HAL_ResumeTick(); //prvStartTickInterruptTimer();
-        //portENABLE_INTERRUPTS(); //enable_interrupts();
-    }
-    else
-    {
-
-        if (0) //( eSleepStatus == eNoTasksWaitingTimeout )
-        {
-            /* It is not necessary to configure an interrupt to bring the
-            microcontroller out of its low power state at a fixed time in the
-            future. */
-            //prvSleep();
-        }
-        else
-        {
-            /* Configure an interrupt to bring the microcontroller out of its low
-            power state at the time the kernel next needs to execute.  The
-            interrupt must be generated from a source that remains operational
-            when the microcontroller is in a low power state. */
-            //vSetWakeTimeInterrupt( xExpectedIdleTime );
-#if 1
-            /* Enter the low power state. */
-            //prvSleep();
-    		AnalogStop();
-
-    		static RTC_TimeTypeDef start;
-    		HAL_RTC_GetTime(&hrtc, &start, RTC_FORMAT_BIN);
-
-    		LedStop();
-    		if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 8000, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
-    		{
-    			Error_Handler();
-    		}
-    		LedSetRGB(LED2, 0, 0, 0);
-    		i2c_GPIO_InitStruct.Pin = GPIO_PIN_7;
-    		i2c_GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-    		i2c_GPIO_InitStruct.Pull = GPIO_NOPULL;
-    	    HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
-    	    __disable_irq(); //portENTER_CRITICAL(); // __disable_irq()
-    	    HAL_SuspendTick();
-    	    __HAL_RCC_GPIOA_CLK_DISABLE(); __HAL_RCC_GPIOB_CLK_DISABLE(); __HAL_RCC_GPIOF_CLK_DISABLE();
-    	    portDISABLE_INTERRUPTS();
-    		//HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
-    		HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
-
-    		__HAL_RCC_GPIOA_CLK_ENABLE(); __HAL_RCC_GPIOB_CLK_ENABLE(); __HAL_RCC_GPIOF_CLK_ENABLE();
-    		i2c_GPIO_InitStruct.Pin       = GPIO_PIN_7;
-    		i2c_GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
-    		i2c_GPIO_InitStruct.Pull      = GPIO_NOPULL;//GPIO_PULLUP;
-    		i2c_GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
-    		i2c_GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
-    		HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
-    		//DelayUs(1000);
-    		HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
-
-    		static RTC_TimeTypeDef end;
-    		HAL_RTC_GetTime(&hrtc, &end, RTC_FORMAT_BIN);
-    		secPass = end.Seconds-start.Seconds;
-    		subPass = end.SubSeconds-start.SubSeconds;
-
-    		//PowerSourceExitLowPower();
-    		AnalogStart();
-    		DelayUs(150);
-    		TimeTickCb(4000);
-    		LedStart();
-#else
-    		vApplicationIdleHook();
-#endif
-            /* Determine how long the microcontroller was actually in a low power
-            state for, which will be less than xExpectedIdleTime if the
-            microcontroller was brought out of low power mode by an interrupt
-            other than that configured by the vSetWakeTimeInterrupt() call.
-            Note that the scheduler is suspended before
-            portSUPPRESS_TICKS_AND_SLEEP() is called, and resumed when
-            portSUPPRESS_TICKS_AND_SLEEP() returns.  Therefore no other tasks will
-            execute until this function completes. */
-             //ulLowPowerTimeAfterSleep = ulGetExternalTime();
-
-            /* Correct the kernels tick count to account for the time the
-            microcontroller spent in its low power state. */
-            vTaskStepTick( 4000 ); // vTaskStepTick( ulLowPowerTimeAfterSleep - ulLowPowerTimeBeforeSleep );
-            LedSetRGB(LED2, 0, 0, 50);
-        }
-
-        /* Exit the critical section - it might be possible to do this immediately
-        after the prvSleep() calls. */
-        __enable_irq();//portEXIT_CRITICAL();//portENABLE_INTERRUPTS(); //enable_interrupts();
-        //LedSetRGB(1, 0, 0, 255);
-        /* Restart the timer that is generating the tick interrupt. */
-        HAL_ResumeTick(); //prvStartTickInterruptTimer();
-    }
-}
-#endif
-void WaitInterrupt() {
-
 	commandReceivedFlag = 0;
 
 	if (state == STATE_LOWPOWER) {
@@ -496,130 +361,6 @@ void WaitInterrupt() {
 	}
 }
 
-#if defined(RTOS_FREERTOS)
-int ledflag = 2;
-void StartDefaultTask(void *argument)
-{
-  /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
-  {
-
-
-	  // Do not disturb i2c transfer if this is i2c interrupt wakeup
-	  if ( MS_TIME_COUNT(mainPollMsCounter) >= TICK_PERIOD_MS || NEED_EVENT_POLL() ) {
-
-		//PowerSource5vIoDetectionTask();
-		//AnalogTask();
-		//ChargerTask();
-		//FuelGaugeTask();
-		//BatteryTask();
-		//PowerSourceTask();
-		if (alarmEventFlag) {
-			EvaluateAlarm();
-			alarmEventFlag = 0;
-		}
-		//LedTask();
-		//if (MS_TIME_COUNT(mainPollMsCounter) > 98) {
-			//ButtonTask();
-			//LoadCurrentSenseTask();
-			//PowerManagementTask();
-
-		//}
-		if ( (hi2c2.ErrorCode&(HAL_I2C_ERROR_TIMEOUT | HAL_I2C_ERROR_BERR | HAL_I2C_ERROR_ARLO)) || hi2c2.State != HAL_I2C_STATE_READY || hi2c2.XferCount) {
-			HAL_I2C_DeInit(&hi2c2);
-			MX_I2C2_Init();
-			chargerI2cErrorCounter = 1;
-		}
-		if (chargerI2cErrorCounter > 10) {
-			HAL_I2C_DeInit(&hi2c2);
-			MX_I2C2_Init();
-			chargerI2cErrorCounter = 1;
-		}
-
-		if ( NEED_EVENT_POLL() ) {
-			state = STATE_RUN;
-		} else if ( ((GetLoadCurrent() <= 50 ) || (Get5vIoVoltage() < 4600 && !POW_VSYS_OUTPUT_EN_STATUS()) )
-				&& MS_TIME_COUNT(lastHostCommandTimer) > 5000
-				&& MS_TIME_COUNT(lowPowerDealyTimer) >= 22
-				&& MS_TIME_COUNT(lastWakeupTimer) > 20000
-				&& chargerStatus == CHG_NO_VALID_SOURCE
-				&& !IsButtonActive()
-				) {
-			state = STATE_LOWPOWER;
-		} else {
-			state = STATE_NORMAL;
-		}
-
-		if ( extiFlag == 2 ) {
-			MS_TIME_COUNTER_INIT(lastHostCommandTimer);
-		}
-		extiFlag = 0;
-
-	    // Refresh IWDG: reload counter
-	   /* if (HAL_IWDG_Refresh(&hiwdg) != HAL_OK)
-	    {
-	      Error_Handler(); // Refresh Error
-	    }*/
-	    //__HAL_IWDG_RELOAD_COUNTER(&hiwdg); // use for testing
-
-		MS_TIME_COUNTER_INIT(mainPollMsCounter);
-		osDelay(20);
-	  } else if (state == STATE_LOWPOWER) {
-		  osDelay(4100);//vApplicationIdleHook(); //WaitInterrupt();
-		  osDelay(10);
-	  }
-
-	  /*if (ledflag) {
-		  osDelay(500);
-		uint8_t ledBlink[] = {5, 100, 0, 80, 5, 0, 80, 0, 3};
-		//LedCmdSetBlink(LED1, ledBlink, 9);
-		LedCmdSetBlink(LED2, ledBlink, 9);
-		//ledflag = 0;
-	  }*/
-  }
-  /* USER CODE END 5 */
-}
-#endif
-
-static uint8_t failCrc = 0u;
-static uint8_t failRX = 0u;
-static uint8_t goodRX = 0u;
-static volatile uint16_t lastTransactionTime = 0u;
-
-void i2cCallbackTest(const I2CDRV_Device_t * const p_device)
-{
-	crc_t crc;
-
-	lastTransactionTime = (HAL_GetTick() - p_device->transactTime);
-
-	if (p_device->event == I2CDRV_EVENT_RX_COMPLETE)
-	{
-		crc = crc_8_init(0x16u);
-		crc = crc_8_update(crc, p_device->data, 4u);
-
-		if (crc == (crc_t)p_device->data[4u])
-		{
-			asm volatile ("nop");
-			goodRX++;
-		}
-		else
-		{
-			asm volatile ("nop");
-			failCrc++;
-		}
-	}
-	else
-	{
-		asm volatile ("nop");
-		failRX++;
-	}
-}
-
-
-int8_t FUELGUAGE_IcInit(void);
-static volatile uint8_t badcount = 0u;
-static volatile uint8_t goodcount = 0u;
 
 int main(void)
 {
@@ -740,19 +481,21 @@ int main(void)
 
 	executionState = EXECUTION_STATE_NORMAL; // after initialization indicate it for future wd resets
 
-#if defined(RTOS_FREERTOS)
-	/* Start scheduler */
-	osKernelStart();
 
-	while (1)
-	{
-	}
-#else
+	bool needEventPoll;
+
 	/* Infinite loop */
 	while (1)
 	{
+		needEventPoll = CHARGER_RequirePoll()
+							|| extiFlag
+							|| rtcWakeupEventFlag
+							|| commandReceivedFlag
+							|| POW_SOURCE_NEED_POLL()
+							|| alarmEventFlag;
+
 	  // Do not disturb i2c transfer if this is i2c interrupt wakeup
-	  if ( MS_TIME_COUNT(mainPollMsCounter) >= TICK_PERIOD_MS || NEED_EVENT_POLL() )
+	  if (MS_TIME_COUNT(mainPollMsCounter) >= TICK_PERIOD_MS || needEventPoll)
 	  {
 
 		POWERSOURCE_5VIoDetection_Task();
@@ -775,9 +518,16 @@ int main(void)
 		LoadCurrentSenseTask();
 		PowerManagementTask();
 
+		needEventPoll = CHARGER_RequirePoll()
+							|| extiFlag
+							|| rtcWakeupEventFlag
+							|| commandReceivedFlag
+							|| POW_SOURCE_NEED_POLL()
+							|| alarmEventFlag;
 
-		if ( NEED_EVENT_POLL() )
+		if (true == needEventPoll)
 		{
+			// Wait for interrupt will drop through
 			state = STATE_RUN;
 		}
 		else if ( ( (ANALOG_Get5VRailMa() <= 50) || ((ANALOG_Get5VRailMv() < 4600u) && IODRV_ReadPinValue(IODRV_PIN_EXTVS_EN)) )
@@ -813,9 +563,10 @@ int main(void)
 
 		MS_TIME_COUNTER_INIT(mainPollMsCounter);
 	  }
+
 	  WaitInterrupt();
+
 	}
-#endif
 }
 
 /** System Clock Configuration

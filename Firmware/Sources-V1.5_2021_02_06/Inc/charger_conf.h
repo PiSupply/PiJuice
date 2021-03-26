@@ -78,6 +78,14 @@
 #define CHGR_CTRL_CHG_DISABLE			(1u << 1u)
 #define CHGR_CTRL_HZ_MODE				(1u << 0u)
 
+#define CHGR_CB_DPDN_EN_bm				(1u << 0u)
+#define CHGR_CB_IN_LIMIT_bm				(1u << 1u)
+#define CHGR_CB_BATT_REGV_Pos			2u
+#define CHGR_CB_BATT_REGV_Msk			(0x3Fu << CHGR_CB_BATT_REGV_Pos)
+
+#define CHGR_CB_BATT_REGV_RESOLUTION	20u
+#define CHGR_CB_IN_LIMIT_2pt5A			CHGR_CB_IN_LIMIT_bm
+#define CHGR_CB_IN_LIMIT_1pt5A			0u
 
 #define CHGR_ST_NTC_2XTMR_EN_bm			(1u << 7u)
 #define CHGR_ST_NTC_TMR_Pos				(5u)
