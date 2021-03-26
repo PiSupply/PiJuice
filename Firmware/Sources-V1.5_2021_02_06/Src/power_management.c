@@ -77,6 +77,7 @@ void PowerManagementInit(void)
 
 	const uint32_t sysTime = HAL_GetTick();
 	const bool noBatteryTurnOn = CHARGER_GetNoBatteryTurnOnEnable();
+	const bool chargerHasInput = CHARGER_IsChargeSourceAvailable();
 
 	uint16_t var = 0u;
 
@@ -102,7 +103,7 @@ void PowerManagementInit(void)
 			}
 		}
 
-		if (CHARGER_IS_INPUT_PRESENT())
+		if (true == chargerHasInput)
 		{	/* Charger is connected */
 			delayedTurnOnFlag = noBatteryTurnOn;
 		}
@@ -201,17 +202,6 @@ int8_t ResetHost(void)
 	return 1;
 }
 
-/*static int8_t WakeUpHost(void) {
-	if (	MS_TIME_COUNT(lastHostCommandTimer) > 15000
-			|| (!POW_5V_BOOST_EN_STATUS() && power5vIoStatus == POW_SOURCE_NOT_PRESENT) //  Host is non powered
-		) {
-		return ResetHost();
-	} else {
-		// it is already running
-		return 0;
-	}
-	return 1;
-}*/
 
 void BUTTON_PowerOnEventCb(const Button_T * const p_button)
 {
@@ -273,57 +263,12 @@ void PowerMngmtHostPollEvent(void) {
 	watchdogTimer = watchdogExpirePeriod;
 }
 
-#if defined(RTOS_FREERTOS)
-static void PowerManagementTask(void *argument) {
 
-  for (;;) {
-	if (MS_TIME_COUNT(powerMngmtTaskMsCounter) >= 900/*(state == STATE_LOWPOWER?2000:500)*/) {
-		MS_TIME_COUNTER_INIT(powerMngmtTaskMsCounter);
-
-		if ( ( (batteryRsoc >= wakeupOnCharge && CHARGER_IS_INPUT_PRESENT() && CHARGER_IS_BATTERY_PRESENT()) || rtcWakeupEventFlag || ioWakeupEvent)
-				&& !delayedPowerOffCounter
-				&& MS_TIME_COUNT(lastHostCommandTimer) > 15000
-				&& MS_TIME_COUNT(lastWakeupTimer) > 30000 ) {
-			if ( WakeUpHost() == 0 ) {
-				wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
-				rtcWakeupEventFlag = 0;
-				delayedPowerOffCounter = 0;
-				ioWakeupEvent = 0;
-			}
-		}
-
-		if (watchdogExpirePeriod && MS_TIME_COUNT(lastHostCommandTimer) > watchdogTimer) {
-			if ( WakeUpHost() == 0 ) {
-				wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
-				watchdogExpiredFlag = 1;
-				rtcWakeupEventFlag = 0;
-				ioWakeupEvent = 0;
-				delayedPowerOffCounter = 0;
-			}
-			watchdogTimer += watchdogExpirePeriod;
-		}
-	}
-
-	if ( delayedTurnOnFlag && MS_TIME_COUNT(delayedTurnOnTimer) >= 100 ) {
-		Turn5vBoost(1);
-		delayedTurnOnFlag = 0;
-	}
-
-	if ( delayedPowerOffCounter && delayedPowerOffCounter <= HAL_GetTick() ) {
-		if (POW_5V_BOOST_EN_STATUS() && (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_PRESENT)) {
-			Turn5vBoost(0);
-		}
-		delayedPowerOffCounter = 0;
-	}
-
-	osDelay(20);
-  }
-}
-#else
 void PowerManagementTask(void)
 {
-	const bool chargerPresent = CHARGER_IS_INPUT_PRESENT();
 	const uint32_t sysTime = HAL_GetTick();
+	const bool chargerHasInput = CHARGER_IsChargeSourceAvailable();
+	const bool chargerHasBattery = CHARGER_IsBatteryPresent();
 	const uint16_t batteryRsoc = FUELGUAGE_GetSocPt1();
 
 	bool boostConverterEnabled;
@@ -333,7 +278,7 @@ void PowerManagementTask(void)
 	{
 		MS_TIMEREF_INIT(powerMngmtTaskMsCounter, sysTime);
 
-		isWakeupOnCharge = (batteryRsoc >= wakeupOnCharge) && (chargerPresent) && (CHARGER_IS_BATTERY_PRESENT());
+		isWakeupOnCharge = (batteryRsoc >= wakeupOnCharge) && (true == chargerHasInput) && (true == chargerHasBattery);
 
 		if ( ( isWakeupOnCharge || rtcWakeupEventFlag || ioWakeupEvent ) // there is wake-up trigger
 				&& 	!delayedPowerOffCounter // deny wake-up during shutdown
@@ -439,16 +384,18 @@ void PowerManagementTask(void)
 		}
 	}
 
-	if ( (false == chargerPresent) && (WAKEUP_ONCHARGE_DISABLED_VAL == wakeupOnCharge) && (WAKEUPONCHARGE_NV_INITIALISED) ) {
+	if ( (false == chargerHasInput) && (WAKEUP_ONCHARGE_DISABLED_VAL == wakeupOnCharge) && (WAKEUPONCHARGE_NV_INITIALISED) )
+	{
 		// setup wake-up on charge if charging stopped, power source removed
 		wakeupOnCharge = (wakeupOnChargeConfig&0x7F) <= 100 ? (wakeupOnChargeConfig&0x7F) * 10 : WAKEUP_ONCHARGE_DISABLED_VAL;
 	}
 }
-#endif
+
 
 void InputSourcePresenceChangeCb(uint8_t event) {
 
 }
+
 
 void PowerMngmtSchedulePowerOff(uint8_t delayCode) {
 	if (delayCode <= 250u) {

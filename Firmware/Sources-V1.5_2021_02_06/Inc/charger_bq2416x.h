@@ -10,7 +10,7 @@
 
 #include <battery.h>
 #include "stdint.h"
-
+/*
 #define BAT_REG_VOLTAGE	(regs[3] >> 2)
 #define CHARGE_CURRENT	((((int16_t)(regs[5] >> 3) * 75 + 550) / 5 + 1) >> 1)
 #define CHARGE_TERMINATION_CURRENT	((((int16_t)(regs[5] && 0x07) * 50 + 50) / 5 + 1) >> 1)
@@ -22,7 +22,7 @@
 #define CHRGER_TS_FAULT_STATUS() 	((regs[7u]&0x06u)>>1u)
 #define CHARGER_IS_INPUT_PRESENT() ((regs[0]&0x70)&&((regs[0]&0x70)<(6*16)))
 #define CHARGER_FAULT_STATUS() (regs[0]&0x07)
-
+*/
 
 typedef enum
 {
@@ -80,22 +80,14 @@ typedef enum ChargerUsbInCurrentLimit_T
 } CHARGER_USBInCurrentLimit_T;
 
 
+typedef enum
+{
+	CHARGER_INPUT_NORMAL = 0u,
+	CHARGER_INPUT_OVP = 1u,
+	CHARGER_INPUT_WEAK = 2u,
+	CHARGER_INPUT_UVP = 3u
+} CHARGER_InputStatus_t;
 
-extern uint8_t regs[8];
-/*
-void ChargerTriggerNTCMonitor(NTC_MonitorTemperature_T temp);
-void ChargerSetUSBLockout(CHARGER_USBInLockoutStatus_T status);
-void SetChargeCurrentReq(uint8_t current);
-void SetChargeTerminationCurrentReq(uint8_t current);
-void SetBatRegulationVoltageReq(uint8_t voltageCode);
-void ChargerSetBatProfileReq(const BatteryProfile_T* batProfile);
-void ChargerUsbInCurrentLimitStepUp(void);
-void ChargerUsbInCurrentLimitSetMin(void);
-void ChargerUsbInCurrentLimitStepDown(void);
-void ChargerWriteInputsConfig(uint8_t config);
-uint8_t ChargerReadInputsConfig(void);
-void ChargerWriteChargingConfig(uint8_t config);
-uint8_t ChargerReadChargingConfig(void);*/
 
 void CHARGER_Init(void);
 void CHARGER_Task(void);
@@ -117,5 +109,13 @@ void CHARGER_RPi5vInCurrentLimitStepUp(void);
 
 bool CHARGER_RequirePoll(void);
 bool CHARGER_GetNoBatteryTurnOnEnable(void);
+
+bool CHARGER_IsChargeSourceAvailable(void);
+bool CHARGER_IsBatteryPresent(void);
+bool CHARGER_HasTempSensorFault(void);
+uint8_t CHARGER_GetTempFault(void);
+CHARGER_InputStatus_t CHARGER_GetInputStatus(uint8_t channel);
+bool CHARGER_IsDPMActive(void);
+uint8_t CHARGER_GetFaultStatus(void);
 
 #endif /* CHARGER_BQ2416X_H_ */

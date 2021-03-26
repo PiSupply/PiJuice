@@ -466,6 +466,7 @@ void CmdServerDefaultReadWrite(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 static uint8_t IsEventFault(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const bool chargerTempSensorFault = CHARGER_HasTempSensorFault();
 
 	uint8_t ev = 0;
 	ev |= (0u != powerOffBtnEventFlag);
@@ -474,7 +475,7 @@ static uint8_t IsEventFault(void)
 	ev |= (0u != watchdogExpiredFlag);
 	/* Not sure of intention of this one, 0x20 slots into read status so will leave it. */
 	ev |= (currentBatProfile == NULL) ? (1<<5u) : 0u;
-	ev |= (0u != CHRGER_TS_FAULT_STATUS());
+	ev |= chargerTempSensorFault;
 	return ev;
 }
 
@@ -499,21 +500,24 @@ void CmdServerReadStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 void CmdServerReadWriteEventFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const uint8_t chargerTempFault = CHARGER_GetTempFault();
 
-	if (dir == MASTER_CMD_DIR_READ) {
+	if (dir == MASTER_CMD_DIR_READ)
+	{
 		uint8_t ev = 0;
+
 		ev |= powerOffBtnEventFlag;
 		ev |= forcedPowerOffFlag << 1;
-		//forcedPowerOffFlag = 0;
 		ev |= forcedVSysOutputOffFlag << 2;
-		//forcedVSysOutputOffFlag = 0;
 		ev |= watchdogExpiredFlag << 3;
-		//watchdogExpiredFlag = 0;
 		ev |= (currentBatProfile == NULL) ? 0x20 : 0;
-		ev |= CHRGER_TS_FAULT_STATUS() << 6;
+		ev |= (chargerTempFault << 6u);
+
 		pData[0] = ev;
 		*dataLen = 1;
-	} else {
+	}
+	else
+	{
 		powerOffBtnEventFlag = powerOffBtnEventFlag && (pData[1] & 0x01);
 		forcedPowerOffFlag = forcedPowerOffFlag && (pData[1] & 0x02);
 		forcedVSysOutputOffFlag = forcedVSysOutputOffFlag && (pData[1] & 0x04);
@@ -1179,17 +1183,18 @@ void CmdServerReadBoardFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLe
 {
 	const bool fuelguageOnline = FUELGUAGE_IsOnline();
 	const bool tempSensorFault = FUELGUAGE_IsNtcOK();
+	const uint8_t chargerFault = CHARGER_GetFaultStatus();
 
 	if (dir == MASTER_CMD_DIR_READ)
 	{
 		// bit 0 charger i2c fault
-		pData[0] = 0u;
+		pData[0u] = 0u;
 		// bit 1-3 charger fault status
-		pData[0] |= ((CHARGER_FAULT_STATUS()) << 1) & 0xE0;
+		pData[0u] |= (chargerFault << 1u);
 		// bit 4 fuel gauge i2c fault
-		pData[0] |= (true == fuelguageOnline) ? 0x10u : 0u;
+		pData[0u] |= (true == fuelguageOnline) ? 0x10u : 0u;
 		// bit 5 fuel gauge temp sense fault (bad sensor connection)
-		pData[0] |= (true == tempSensorFault) ? 0x20u : 0u;
+		pData[0u] |= (true == tempSensorFault) ? 0x20u : 0u;
 
 		*dataLen = 1u;
 	}

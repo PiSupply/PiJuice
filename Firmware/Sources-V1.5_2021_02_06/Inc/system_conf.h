@@ -168,7 +168,7 @@
 #define ADC_SAMPLE_PERIOD_MS		0u
 
 #define I2CDRV_MAX_DEVICES			2u
-#define I2CDRV_MAX_BUFFER_SIZE		5u
+#define I2CDRV_MAX_BUFFER_SIZE		12u		/* Big enough to read all registers from charger */
 
 #define FUELGUAGE_I2C_ADDR			0x16u
 #define FUELGUAGE_I2C_PORTNO		1u
@@ -182,5 +182,9 @@
 
 #define CHARGER_I2C_ADDR			0xD6u
 #define CHARGER_I2C_PORTNO			1u
+
+#define CHARGER_INPUT_VIN			0u
+#define CHARGER_INPUT_RPI			1u
+#define CHARGER_INPUT_CHANNELS		2u
 
 #endif /* SYSTEM_CONF_H_ */

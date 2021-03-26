@@ -61,8 +61,8 @@ static bool m_ldoEnabled;
 static PowerSourceStatus_T m_powerInStatus = POW_SOURCE_NOT_PRESENT;
 static PowerSourceStatus_T m_power5vIoStatus = POW_SOURCE_NOT_PRESENT;
 
-static void POWERSOURCE_ProcessVIN(const uint8_t chargerInStatus);
-static void POWERSOURCE_Process5VRail(const uint8_t chargerUSBStatus);
+static void POWERSOURCE_ProcessVIN(void);
+static void POWERSOURCE_Process5VRail(void);
 static void POWERSOURCE_CheckPowerValid(void);
 
 static PowerRegulatorConfig_T m_powerRegulatorConfig = POW_REGULATOR_MODE_POW_DET;
@@ -78,6 +78,7 @@ void POWERSOURCE_Init(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
 	const uint32_t sysTime = HAL_GetTick();
+	const bool chargerHasPowerIn = CHARGER_IsChargeSourceAvailable();
 
 	m_boostConverterEnabled = IODRV_ReadPinValue(IODRV_PIN_POW_EN);
 	m_vsysEnabled = IODRV_ReadPinValue(IODRV_PIN_EXTVS_EN);
@@ -123,12 +124,16 @@ void POWERSOURCE_Init(void)
 
 	vBatMv = ANALOG_GetBatteryMv();
 
+
 	// powerEnableState
 	// maintain regulator state before reset
 	if ( true == m_boostConverterEnabled )
 	{
 		// if there is mcu power-on, but reg was on, it can be power lost fault condition, check sources
-		if ( (executionState == EXECUTION_STATE_POWER_RESET) && (vBatMv < m_vbatPowerOffThreshold) && (false != CHARGER_INSTAT()))
+		if ( (executionState == EXECUTION_STATE_POWER_RESET)
+				&& (vBatMv < m_vbatPowerOffThreshold)
+				&& (false == chargerHasPowerIn)
+				)
 		{
 			POWERSOURCE_Set5vBoostEnable(false);
 			forcedPowerOffFlag = 1u;
@@ -171,7 +176,7 @@ void POWERSOURCE_Init(void)
 	// Restore previous Vsys enable
 	if ( (true == m_vsysEnabled) && (EXECUTION_STATE_POWER_ON != executionState) )
 	{
-		if ( (EXECUTION_STATE_POWER_RESET == executionState)  && (vBatMv < m_vbatPowerOffThreshold) && (CHARGER_INSTAT()) )
+		if ( (EXECUTION_STATE_POWER_RESET == executionState)  && (vBatMv < m_vbatPowerOffThreshold) && (chargerHasPowerIn) )
 		{
 			// Disable vsys
 			IODRV_SetPin(IODRV_PIN_EXTVS_EN, false);
@@ -202,6 +207,7 @@ void POWERSOURCE_CheckPowerValid(void)
 	const uint16_t aVddMv = ANALOG_GetAVDDMv();
 	const uint16_t vBattMv = ANALOG_GetBatteryMv();
 	const uint16_t batteryADCValue = ADC_GetAverageValue(ANALOG_CHANNEL_VBAT);
+	const bool chargerHasPowerIn = CHARGER_IsChargeSourceAvailable();
 
 	if ( true == m_boostConverterEnabled )
 	{
@@ -216,7 +222,7 @@ void POWERSOURCE_CheckPowerValid(void)
 		// if no sources connected, turn off 5V regulator and system switch when battery voltage drops below minimum
 		if ( (batteryADCValue < GetAdcWDGThreshold())
 				&& (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_PRESENT)
-				&& (false != CHARGER_INSTAT())
+				&& (true == chargerHasPowerIn)
 				)
 		{
 			if (true == m_vsysEnabled)
@@ -481,8 +487,8 @@ void POWERSOURCE_5VIoDetection_Task(void)
 
 void POWERSOURCE_Task(void)
 {
-	POWERSOURCE_ProcessVIN(CHARGER_INSTAT());
-	POWERSOURCE_Process5VRail(CHARGER_USBSTAT());
+	POWERSOURCE_ProcessVIN();
+	POWERSOURCE_Process5VRail();
 }
 
 
@@ -723,17 +729,20 @@ PowerSourceStatus_T POWERSOURCE_Get5VRailStatus(void)
 }
 
 
-void POWERSOURCE_ProcessVIN(const uint8_t chargerInStatus)
+void POWERSOURCE_ProcessVIN(void)
 {
-	if (chargerInStatus == 0x03u)
+	const CHARGER_InputStatus_t vinStatus = CHARGER_GetInputStatus(CHARGER_INPUT_VIN);
+	const uint8_t chargerDPMActive = CHARGER_IsDPMActive();
+
+	if (vinStatus == CHARGER_INPUT_UVP)
 	{
 		m_powerInStatus = POW_SOURCE_NOT_PRESENT;
 	}
-	else if ( (chargerInStatus == 0x01u) || (chargerInStatus == 0x02u) )
+	else if ( (vinStatus == CHARGER_INPUT_OVP) || (vinStatus == CHARGER_INPUT_WEAK) )
 	{
 		m_powerInStatus = POW_SOURCE_BAD;
 	}
-	else if (CHARGER_IS_DPM_MODE_ACTIVE())
+	else if (true == chargerDPMActive)
 	{
 		m_powerInStatus = POW_SOURCE_WEAK;
 	}
@@ -744,17 +753,18 @@ void POWERSOURCE_ProcessVIN(const uint8_t chargerInStatus)
 }
 
 
-void POWERSOURCE_Process5VRail(const uint8_t chargerUSBStatus)
+void POWERSOURCE_Process5VRail(void)
 {
 	const bool rpi5vChargeEnable = CHARGER_GetRPi5vInputEnable();
+	const CHARGER_InputStatus_t rpi5vChargeStatus = CHARGER_GetInputStatus(CHARGER_INPUT_RPI);
 
 	if (true == rpi5vChargeEnable)
 	{
-		if (chargerUSBStatus == 0x03u)
+		if (rpi5vChargeStatus == CHARGER_INPUT_UVP)
 		{
 			m_power5vIoStatus = POW_SOURCE_NOT_PRESENT;
 		}
-		else if ( chargerUSBStatus == 0x01u || chargerUSBStatus == 0x02u)
+		else if ( rpi5vChargeStatus == CHARGER_INPUT_OVP || rpi5vChargeStatus == CHARGER_INPUT_WEAK)
 		{
 			m_power5vIoStatus = POW_SOURCE_BAD;
 		}

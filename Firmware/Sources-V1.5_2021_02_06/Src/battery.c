@@ -479,6 +479,7 @@ void BatteryTask(void)
 	const uint16_t batteryVoltageMv = FUELGUAGE_GetBatteryMv();
 	const uint16_t batteryRsocPt1 = FUELGUAGE_GetSocPt1();
 	const ChargerStatus_T chargerStatus = CHARGER_GetStatus();
+	const bool chargerBatteryDetected = CHARGER_IsBatteryPresent();
 
 	uint8_t r, g, b, paramB;
 
@@ -550,7 +551,7 @@ void BatteryTask(void)
 		}
 	}
 
-	if (!CHARGER_IS_BATTERY_PRESENT() || (batteryVoltageMv < 2500u))
+	if ( (false == chargerBatteryDetected) || (batteryVoltageMv < 2500u) )
 	{
 		m_batteryStatus = BAT_STATUS_NOT_PRESENT;
 	}

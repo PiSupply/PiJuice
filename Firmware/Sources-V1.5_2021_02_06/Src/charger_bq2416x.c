@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "main.h"
 
 #include "system_conf.h"
@@ -39,37 +41,23 @@
 #define CHRG_CONFIG_INPUTS_DPM					((m_chargerInputsConfig >> CHGR_INPUTS_CONFIG_CHARGER_DPM_Pos) & 0x07u)
 
 
-#define CHG_READ_PERIOD_MS 	90  // ms
-#define WD_RESET_TRSH_MS 	(30000 / 3)
+#define CHG_READ_PERIOD_MS 				90  // ms
+#define CHARGER_WDT_RESET_PERIOD_MS 	(30000 / 3)
 
-#define BQ2416X_OTG_LOCK_BIT	0X08
-#define BQ2416X_NOBATOP_BIT		0X01
-
-//#define CHARGER_VIN_DPM_IN		0X00
-#define CHARGER_VIN_DPM_USB		6//0X07
+#define CHARGER_VIN_DPM_USB				6//0X07
 
 extern uint8_t resetStatus;
 
-extern I2C_HandleTypeDef hi2c2;
-static uint32_t readTimeCounter = 0;
 
-uint8_t regs[8] = {0x00, 0x00, 0x8C, 0x14, 0x40, 0x32, 0x00, 0x98};
-static uint8_t regsw[8] = {0x08, 0x08, 0x1C, 0x02, 0x00, 0x00, 0x38, 0xC0};
-static uint8_t regsStatusRW[8] = {0x00}; // 0 - no read write errors, bit0 1 - read error, bit1 1 - write error
-//static uint8_t regswMask[8] = {0x08, 0x0A, 0x7F, 0xFF, 0x00, 0xFF, 0x3F, 0xE9}; // write and read verify masks
-
-uint8_t chargerI2cErrorCounter = 0;
-
-uint8_t powerSourcePresent __attribute__((section("no_init")));
-
-uint8_t noBatteryOperationEnabled = 0;
-
-int16_t chargerSetProfileDataReq = 0;
+static uint8_t regs[8u] = {0x00, 0x00, 0x8C, 0x14, 0x40, 0x32, 0x00, 0x98};
+static uint8_t regsw[8u] = {0x08, 0x08, 0x1C, 0x02, 0x00, 0x00, 0x38, 0xC0};
+static uint8_t regsStatusRW[8u] = {0x00}; // 0 - no read write errors, bit0 1 - read error, bit1 1 - write error
 
 
 void ChargerSetInputsConfig(uint8_t config);
 bool CHARGER_UpdateLocalRegister(const uint8_t regAddress);
 bool CHARGER_UpdateDeviceRegister(const uint8_t regAddress, const uint8_t value);
+bool CHARGER_UpdateAllLocalRegisters(void);
 bool CHARGER_ReadDeviceRegister(const uint8_t regAddress);
 int8_t CHARGER_UpdateChgCurrentAndTermCurrent(void);
 int8_t CHARGER_UpdateVinDPM(void);
@@ -78,21 +66,21 @@ int8_t CHARGER_UpdateControlStatus(void);
 int8_t CHARGER_UpdateRPi5VInLockout(void);
 int8_t CHARGER_UpdateRegulationVoltage(void);
 
+
 static CHARGER_USBInLockoutStatus_T m_rpi5VInputDisable = CHG_USB_IN_UNKNOWN;
 static CHARGER_USBInCurrentLimit_T m_rpi5VCurrentLimit = CHG_IUSB_LIMIT_150MA; // current limit code as defined in datasheet
 
 static bool m_i2cSuccess;
 static uint8_t m_i2cReadRegResult;
 
-
 static uint8_t m_chargingConfig;
 static uint8_t m_chargerInputsConfig;
 
 static ChargerStatus_T m_chargerStatus = CHG_NA;
 
+static uint32_t m_lastWDTResetTimeMs;
+static uint32_t m_lastRegReadTimeMs;
 static uint8_t m_nextRegReadAddr;
-static uint32_t m_lastWDTResetTime;
-
 static bool m_interrupt;
 static bool m_chargerNeedPoll;
 
@@ -114,13 +102,28 @@ void CHARGER_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 	}
 }
 
+
+void CHARGER_ReadAll_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
+{
+	if (p_i2cdrvDevice->event == I2CDRV_EVENT_RX_COMPLETE)
+	{
+		memcpy(regs, &p_i2cdrvDevice->data[2u], CHARGER_REGISTER_COUNT);
+		m_i2cSuccess = true;
+	}
+	else
+	{
+		m_i2cSuccess = false;
+	}
+}
+
+
 void CHARGER_WDT_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 {
 	const uint32_t sysTime = HAL_GetTick();
 
 	if (p_i2cdrvDevice->event == I2CDRV_EVENT_TX_COMPLETE)
 	{
-		m_lastWDTResetTime = sysTime;
+		m_lastWDTResetTimeMs = sysTime;
 	}
 }
 
@@ -230,27 +233,23 @@ void CHARGER_Init(void)
 		}
 	}
 
-	MS_TIMEREF_INIT(readTimeCounter, sysTime);
-	MS_TIMEREF_INIT(m_lastWDTResetTime, sysTime);
+	MS_TIMEREF_INIT(m_lastRegReadTimeMs, sysTime);
+	MS_TIMEREF_INIT(m_lastWDTResetTimeMs, sysTime);
 
-	regsw[1] |= 0x08; // lockout usbin
-	HAL_I2C_Mem_Write(&hi2c2, 0xD6, 1, 1, &regsw[1], 1, 1);
+	regsw[CHG_REG_BATTERY_STATUS] |= CHGR_BS_OTG_LOCK_bm;
+	CHARGER_UpdateDeviceRegister(CHG_REG_BATTERY_STATUS, regsw[CHG_REG_BATTERY_STATUS]);
 
 	// NOTE: do not place in high impedance mode, it will disable VSys mosfet, and no power to mcu
 	regsw[2] |= 0x02; // set control register, disable charging initially
-	//regsw[2] &= ~0x04; // disable termination
 	regsw[2] |= 0x20; // Set USB limit 500mA
-	HAL_I2C_Mem_Write(&hi2c2, 0xD6, 2, 1, &regsw[2], 1, 1);
 
-	// reset timer
-	//regsw[0] = chargerInputsPrecedence << 3;
-	//chReg = regsw[0] | 0x80;
-	//HAL_I2C_Mem_Write(&hi2c2, 0xD6, 0, 1, &chReg, 1, 1);
+	regsw[CHG_REG_CONTROL] |= (CHGR_CTRL_CHG_DISABLE | CHGR_CTRL_IUSB_LIMIT_500MA);
+	CHARGER_UpdateDeviceRegister(CHG_REG_CONTROL, regsw[CHG_REG_CONTROL]);
 
 	DelayUs(500);
 
-	// read states
-	HAL_I2C_Mem_Read(&hi2c2, 0xD6, 0, 1, regs, 8, 1000);
+	// Initialise all values from the device
+	CHARGER_UpdateAllLocalRegisters();
 
 	CHARGER_UpdateRPi5VInLockout();
 	CHARGER_UpdateTempRegulationControlStatus();
@@ -259,8 +258,6 @@ void CHARGER_Init(void)
 	CHARGER_UpdateLocalRegister(CHG_REG_BATTERY_STATUS);
 
 	m_chargerStatus = (regs[CHG_REG_SUPPLY_STATUS] >> CHGR_SC_STAT_Pos) & 0x07u;
-
-	powerSourcePresent = CHARGER_IS_INPUT_PRESENT();
 
 	m_nextRegReadAddr = 0u;
 
@@ -324,8 +321,7 @@ void CHARGER_Task(void)
 
 	sysTime = HAL_GetTick();
 
-
-	if (MS_TIMEREF_TIMEOUT(m_lastWDTResetTime, sysTime, WD_RESET_TRSH_MS))
+	if (MS_TIMEREF_TIMEOUT(m_lastWDTResetTimeMs, sysTime, CHARGER_WDT_RESET_PERIOD_MS))
 	{
 		// reset timer
 		// NOTE: reset bit must be 0 in write register image to prevent resets for other write access
@@ -344,9 +340,8 @@ void CHARGER_Task(void)
 
 	}
 
-
 	// Periodically read register states from charger
-	if (MS_TIME_COUNT(readTimeCounter) >= CHG_READ_PERIOD_MS)
+	if (MS_TIME_COUNT(m_lastRegReadTimeMs) >= CHG_READ_PERIOD_MS)
 	{
 		if (CHARGER_UpdateLocalRegister(m_nextRegReadAddr))
 		{
@@ -359,7 +354,7 @@ void CHARGER_Task(void)
 
 		m_chargerStatus = (regs[CHG_REG_SUPPLY_STATUS] >> CHGR_SC_STAT_Pos) & 0x07u;
 
-		MS_TIME_COUNTER_INIT(readTimeCounter);
+		MS_TIME_COUNTER_INIT(m_lastRegReadTimeMs);
 	}
 
 }
@@ -543,6 +538,34 @@ bool CHARGER_ReadDeviceRegister(const uint8_t regAddress)
 
 	transactGood = I2CDRV_Transact(CHARGER_I2C_PORTNO, CHARGER_I2C_ADDR, &regAddress, 1u,
 						I2CDRV_TRANSACTION_RX, CHARGER_I2C_Callback,
+						1000u, sysTime
+						);
+
+	if (false == transactGood)
+	{
+		return false;
+	}
+
+	while(false == I2CDRV_IsReady(FUELGUAGE_I2C_PORTNO))
+	{
+		// Wait for transfer
+	}
+
+	// m_i2cReadRegResult has the data!
+	return m_i2cSuccess;
+}
+
+
+bool CHARGER_UpdateAllLocalRegisters(void)
+{
+	const uint32_t sysTime = HAL_GetTick();
+	bool transactGood;
+	uint8_t regAddress = 0u;
+
+	m_i2cSuccess = false;
+
+	transactGood = I2CDRV_Transact(CHARGER_I2C_PORTNO, CHARGER_I2C_ADDR, &regAddress, CHARGER_REGISTER_COUNT,
+						I2CDRV_TRANSACTION_RX, CHARGER_ReadAll_I2C_Callback,
 						1000u, sysTime
 						);
 
@@ -861,4 +884,55 @@ bool CHARGER_GetNoBatteryTurnOnEnable(void)
 }
 
 
+bool CHARGER_IsChargeSourceAvailable(void)
+{
+	const uint8_t instat = (regs[CHG_REG_SUPPLY_STATUS] & CHGR_SC_STAT_Msk);
 
+	// TODO- Supply status register might be better for this.
+	return (instat > CHGR_SC_STAT_NO_SOURCE) && (instat <= CHGR_SC_STAT_CHARGE_DONE);
+}
+
+
+bool CHARGER_IsBatteryPresent(void)
+{
+	return (regs[CHG_REG_BATTERY_STATUS] & CHGR_BS_BATSTAT_Msk) == CHGR_BS_BATSTAT_NORMAL;
+}
+
+
+bool CHARGER_HasTempSensorFault(void)
+{
+	return (regs[CHG_REG_SAFETY_NTC] & CHGR_ST_NTC_FAULT_Msk) != CHGR_ST_NTC_TS_FAULT_NONE;
+}
+
+
+uint8_t CHARGER_GetTempFault(void)
+{
+	return (regs[CHG_REG_SAFETY_NTC] >> CHGR_ST_NTC_FAULT_Pos);
+}
+
+
+CHARGER_InputStatus_t CHARGER_GetInputStatus(uint8_t inputChannel)
+{
+	uint8_t channelPos;
+
+	if (inputChannel < CHARGER_INPUT_CHANNELS)
+	{
+		channelPos = (CHARGER_INPUT_RPI == inputChannel) ? CHGR_BS_USBSTAT_Pos : CHGR_BS_INSTAT_Pos;
+
+		return (regs[CHG_REG_BATTERY_STATUS] >> channelPos) & 0x03u;
+	}
+
+	return CHARGER_INPUT_UVP;
+}
+
+
+bool CHARGER_IsDPMActive(void)
+{
+	return (0u != (regs[CHG_REG_DPPM_STATUS] & CHGR_VDPPM_DPM_ACTIVE));
+}
+
+
+uint8_t CHARGER_GetFaultStatus(void)
+{
+	return (regs[CHG_REG_SUPPLY_STATUS] >> CHGR_SC_FLT_Pos) & 0x7u;
+}

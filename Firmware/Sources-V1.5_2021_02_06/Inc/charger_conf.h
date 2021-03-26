@@ -16,25 +16,26 @@
 /* Bit definitions for Status/Control Register */
 #define CHGR_SC_TMR_RST_bm				(1u << 7u)
 #define CHGR_SC_STAT_Pos				(4u)
-#define CHGR_SC_STAT_Msk				(7u << CHGREG_SC_STAT_Pos)
-#define CHGR_SC_STAT_NO_SOURCE			(0u << CHGREG_SC_STAT_Pos)
-#define CHGR_SC_STAT_IN_READY			(1u << CHGREG_SC_STAT_Pos)
-#define CHGR_SC_STAT_USB_READY			(2u << CHGREG_SC_STAT_Pos)
-#define CHGR_SC_STAT_IN_CHARGING		(3u << CHGREG_SC_STAT_Pos)
-#define CHGR_SC_STAT_USB_CHARGING		(4u << CHGREG_SC_STAT_Pos)
-#define CHGR_SC_STAT_CHARGE_DONE		(5u << CHGREG_SC_STAT_Pos)
-#define CHGR_SC_STAT_FAULT				(7u << CHGREG_SC_STAT_Pos)
+#define CHGR_SC_STAT_Msk				(7u << CHGR_SC_STAT_Pos)
+#define CHGR_SC_STAT_NO_SOURCE			(0u << CHGR_SC_STAT_Pos)
+#define CHGR_SC_STAT_IN_READY			(1u << CHGR_SC_STAT_Pos)
+#define CHGR_SC_STAT_USB_READY			(2u << CHGR_SC_STAT_Pos)
+#define CHGR_SC_STAT_IN_CHARGING		(3u << CHGR_SC_STAT_Pos)
+#define CHGR_SC_STAT_USB_CHARGING		(4u << CHGR_SC_STAT_Pos)
+#define CHGR_SC_STAT_CHARGE_DONE		(5u << CHGR_SC_STAT_Pos)
+#define CHGR_SC_STAT_FAULT				(7u << CHGR_SC_STAT_Pos)
 #define CHGR_SUPPLY_SEL_bm				(1u << 3u)
-#define CHGR_SC_FLT_Msk					(7u << CHGREG_SC_FLT_Pos)
+
 #define CHGR_SC_FLT_Pos					(0u)
-#define CHGR_SC_FLT_NONE				(0u << CHGREG_SC_FLT_Pos)
-#define CHGR_SC_FLT_THERMAL_SHUTDOWN	(1u << CHGREG_SC_FLT_Pos)
-#define CHGR_SC_FLT_BATTERY_TEMP		(2u << CHGREG_SC_FLT_Pos)
-#define CHGR_SC_FLT_WATCHDOGT_EXPIRED	(3u << CHGREG_SC_FLT_Pos)
-#define CHGR_SC_FLT_SAFETYT_EXPIRED		(4u << CHGREG_SC_FLT_Pos)
-#define CHGR_SC_FLT_IN_SUPPLY			(5u << CHGREG_SC_FLT_Pos)
-#define CHGR_SC_FLT_USB_SUPPLY			(6u << CHGREG_SC_FLT_Pos)
-#define CHGR_SC_FLT_BATTERY				(7u << CHGREG_SC_FLT_Pos)
+#define CHGR_SC_FLT_Msk					(7u << CHGR_SC_FLT_Pos)
+#define CHGR_SC_FLT_NONE				(0u << CHGR_SC_FLT_Pos)
+#define CHGR_SC_FLT_THERMAL_SHUTDOWN	(1u << CHGR_SC_FLT_Pos)
+#define CHGR_SC_FLT_BATTERY_TEMP		(2u << CHGR_SC_FLT_Pos)
+#define CHGR_SC_FLT_WATCHDOGT_EXPIRED	(3u << CHGR_SC_FLT_Pos)
+#define CHGR_SC_FLT_SAFETYT_EXPIRED		(4u << CHGR_SC_FLT_Pos)
+#define CHGR_SC_FLT_IN_SUPPLY			(5u << CHGR_SC_FLT_Pos)
+#define CHGR_SC_FLT_USB_SUPPLY			(6u << CHGR_SC_FLT_Pos)
+#define CHGR_SC_FLT_BATTERY				(7u << CHGR_SC_FLT_Pos)
 
 #define CHGR_SC_FLT_SUPPLY_PREF_USB		(CHGR_SUPPLY_SEL_bm)
 
@@ -86,6 +87,11 @@
 #define CHGR_CB_BATT_REGV_RESOLUTION	20u
 #define CHGR_CB_IN_LIMIT_2pt5A			CHGR_CB_IN_LIMIT_bm
 #define CHGR_CB_IN_LIMIT_1pt5A			0u
+
+
+#define CHGR_VDPPM_DPM_STATUS_bm		(1u << 6u)
+
+#define CHGR_VDPPM_DPM_ACTIVE			CHGR_VDPPM_DPM_STATUS_bm
 
 #define CHGR_ST_NTC_2XTMR_EN_bm			(1u << 7u)
 #define CHGR_ST_NTC_TMR_Pos				(5u)
