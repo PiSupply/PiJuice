@@ -314,7 +314,7 @@ void POWERSOURCE_5VIoDetection_Task(void)
 				if (pow5vInDetStatus != POW_5V_IN_DETECTION_STATUS_NOT_PRESENT)
 				{
 					MS_TIME_COUNTER_INIT(pow5vPresentCounter);
-					ChargerUsbInCurrentLimitStepDown();
+					CHARGER_UsbInCurrentLimitStepDown();
 				}
 
 				pow5vInDetStatus = POW_5V_IN_DETECTION_STATUS_NOT_PRESENT;
@@ -325,7 +325,7 @@ void POWERSOURCE_5VIoDetection_Task(void)
 				}
 
 				// Tell charger to not use USB (5V) input
-				ChargerSetUSBLockout(CHG_USB_IN_LOCK);
+				CHARGER_SetUSBLockout(CHG_USB_IN_LOCK);
 
 				// Turn off LDO?
 				POWERSOURCE_SetLDOEnable(false);
@@ -340,8 +340,8 @@ void POWERSOURCE_5VIoDetection_Task(void)
 				pow5VChgLoadMaximumReached --;
 			}
 
-			ChargerSetUSBLockout(CHG_USB_IN_LOCK);
-			ChargerUsbInCurrentLimitStepDown();
+			CHARGER_SetUSBLockout(CHG_USB_IN_LOCK);
+			CHARGER_UsbInCurrentLimitStepDown();
 			MS_TIME_COUNTER_INIT(pow5vPresentCounter);
 		}
 
@@ -385,7 +385,7 @@ void POWERSOURCE_5VIoDetection_Task(void)
 			{
 				// turn on usb in if pmos is cutoff
 				pow5vInDetStatus = POW_5V_IN_DETECTION_STATUS_PRESENT;
-				ChargerSetUSBLockout(CHG_USB_IN_UNLOCK);
+				CHARGER_SetUSBLockout(CHG_USB_IN_UNLOCK);
 				MS_TIME_COUNTER_INIT(pow5vPresentCounter);
 			}
 			else
@@ -414,7 +414,7 @@ void POWERSOURCE_5VIoDetection_Task(void)
 				MS_TIME_COUNTER_INIT(pow5vPresentCounter);
 
 				// Reduce current limit for the USB (5V Rail in)
-				ChargerUsbInCurrentLimitStepDown();
+				CHARGER_UsbInCurrentLimitStepDown();
 			}
 
 			// Set status to power not present
@@ -458,7 +458,7 @@ void POWERSOURCE_5VIoDetection_Task(void)
 		{
 			if (pow5VChgLoadMaximumReached > 1u)
 			{
-				ChargerUsbInCurrentLimitStepUp();
+				CHARGER_UsbInCurrentLimitStepUp();
 				pow5VChgLoadMaximumReached = 2u;
 			}
 			else if (pow5VChgLoadMaximumReached == 0u)
@@ -470,7 +470,7 @@ void POWERSOURCE_5VIoDetection_Task(void)
 		{
 			// this means input is disconnected, and flag can be cleared
 			pow5VChgLoadMaximumReached = 0u;
-			ChargerUsbInCurrentLimitSetMin();
+			CHARGER_UsbInCurrentLimitSetMin();
 		}
 	}
 }
@@ -743,6 +743,8 @@ void POWERSOURCE_ProcessVIN(const uint8_t chargerInStatus)
 
 void POWERSOURCE_Process5VRail(const uint8_t chargerUSBStatus)
 {
+	const usbInLockoutStatus = CHARGER_GetRPi5vInLockStatus();
+
 	if (usbInLockoutStatus == CHG_USB_IN_UNLOCK)
 	{
 		if (chargerUSBStatus == 0x03u)

@@ -157,20 +157,26 @@ void ButtonDualLongPressEventCb(void) {
 }
 
 uint8_t extiFlag = 0;
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
   if (GPIO_Pin == GPIO_PIN_0)
   {
 	  // CH_INT
-	  chargerInterruptFlag = 1;
+	  CHARGER_SetInterrupt();
 	  extiFlag = 1;
-  } else if (GPIO_Pin == GPIO_PIN_7)
+  }
+  else if (GPIO_Pin == GPIO_PIN_7)
   {
 	  // I2C SDA
 	  extiFlag = 2;
-  } else if (GPIO_Pin == GPIO_PIN_8) {
+  }
+  else if (GPIO_Pin == GPIO_PIN_8)
+  {
 	  extiFlag = 4;
 	  ioWakeupEvent = 1;
-  } else {
+  }
+  else
+  {
 	  // SW1, SW2, SW3
 	  extiFlag = 3;
   }
@@ -698,7 +704,7 @@ int main(void)
 	BUTTON_Init();
 
 
-	ChargerInit();
+	CHARGER_Init();
 	POWERSOURCE_Init();
 	FUELGUAGE_Init();
 	PowerManagementInit();
@@ -746,52 +752,39 @@ int main(void)
 	while (1)
 	{
 	  // Do not disturb i2c transfer if this is i2c interrupt wakeup
-	  if ( MS_TIME_COUNT(mainPollMsCounter) >= TICK_PERIOD_MS || NEED_EVENT_POLL() ) {
+	  if ( MS_TIME_COUNT(mainPollMsCounter) >= TICK_PERIOD_MS || NEED_EVENT_POLL() )
+	  {
 
 		POWERSOURCE_5VIoDetection_Task();
 
-		ChargerTask();
+		CHARGER_Task();
 		FUELGUAGE_Task();
 		BatteryTask();
 		POWERSOURCE_Task();
-		if (alarmEventFlag || __HAL_RTC_ALARM_GET_FLAG(&hrtc, RTC_FLAG_ALRAF) != RESET) {
+
+		if (alarmEventFlag || __HAL_RTC_ALARM_GET_FLAG(&hrtc, RTC_FLAG_ALRAF) != RESET)
+		{
 			EvaluateAlarm();
 			alarmEventFlag = 0;
 			__HAL_RTC_ALARM_CLEAR_FLAG(&hrtc, RTC_FLAG_ALRAF);
 		}
+
 		LedTask();
 
-		//if (MS_TIME_COUNT(mainPollMsCounter) > 98) {
-			BUTTON_Task();
-			LoadCurrentSenseTask();
-			PowerManagementTask();
+		BUTTON_Task();
+		LoadCurrentSenseTask();
+		PowerManagementTask();
 
-		//}
-
-		if ( (hi2c2.ErrorCode&(HAL_I2C_ERROR_TIMEOUT | HAL_I2C_ERROR_BERR | HAL_I2C_ERROR_ARLO)) || hi2c2.State != HAL_I2C_STATE_READY || hi2c2.XferCount)
-		{
-			HAL_I2C_DeInit(&hi2c2);
-			MX_I2C2_Init();
-			chargerI2cErrorCounter = 1;
-		}
-
-		if (chargerI2cErrorCounter > 10)
-		{
-			HAL_I2C_DeInit(&hi2c2);
-			MX_I2C2_Init();
-			chargerI2cErrorCounter = 1;
-		}
 
 		if ( NEED_EVENT_POLL() )
 		{
 			state = STATE_RUN;
 		}
-		//else if ( ((ANALOG_Get5VRailMa() <= 50) || ((ANALOG_Get5VRailMv() < 4600u) && (false == POW_VSYS_OUTPUT_EN_STATUS()) ) )
-		else if ( ((ANALOG_Get5VRailMa() <= 50) || ((ANALOG_Get5VRailMv() < 4600u) && IODRV_ReadPinValue(IODRV_PIN_EXTVS_EN)) )
+		else if ( ( (ANALOG_Get5VRailMa() <= 50) || ((ANALOG_Get5VRailMv() < 4600u) && IODRV_ReadPinValue(IODRV_PIN_EXTVS_EN)) )
 				&& MS_TIME_COUNT(lastHostCommandTimer) > 5000u
 				&& MS_TIME_COUNT(lowPowerDealyTimer) >= 22u
 				&& MS_TIME_COUNT(lastWakeupTimer) > 20000u
-				&& chargerStatus == CHG_NO_VALID_SOURCE
+				&& CHARGER_GetStatus() == CHG_NO_VALID_SOURCE
 				&& !BUTTON_IsButtonActive()
 				)
 		{
@@ -802,12 +795,14 @@ int main(void)
 			state = STATE_NORMAL;
 		}
 
+
 		if ( extiFlag == 2 )
 		{
 			MS_TIME_COUNTER_INIT(lastHostCommandTimer);
 		}
 
 		extiFlag = 0;
+
 
 	    // Refresh IWDG: reload counter
 	    if (HAL_IWDG_Refresh(&hiwdg) != HAL_OK)

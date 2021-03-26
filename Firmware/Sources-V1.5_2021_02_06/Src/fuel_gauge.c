@@ -40,7 +40,7 @@ bool FUELGUAGE_IcInit(void);
 // ----------------------------------------------------------------------------
 // Variables that only have scope in this module:
 
-static uint16_t m_i2cReadResult;
+static uint8_t m_i2cReadResult;
 static bool m_i2cSuccess;
 static FUELGUAGE_Status_t m_deviceStatus;
 static uint16_t m_batteryMv;
@@ -425,11 +425,11 @@ bool FUELGUAGE_ReadWord(const uint8_t cmd, uint16_t *const word)
 }
 
 
-bool FUELGUAGE_WriteWord(const uint8_t cmd, const uint16_t word)
+bool FUELGUAGE_WriteWord(const uint8_t memAddress, const uint16_t value)
 {
 	const uint32_t sysTime = HAL_GetTick();
 	bool transactGood;
-	uint8_t writeData[5u] = { cmd, word, (word >> 8u), 0u, 0u};
+	uint8_t writeData[4u] = { memAddress, (uint8_t)(value & 0xFFu), (uint8_t)(value >> 8u), 0u};
 
 	crc_t crc = crc_8_init(FUELGUAGE_I2C_ADDR);
 	crc = crc_8_update(crc, writeData, 3u);
@@ -438,7 +438,7 @@ bool FUELGUAGE_WriteWord(const uint8_t cmd, const uint16_t word)
 
 	m_i2cSuccess = false;
 
-	transactGood = I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, &cmd, 4u,
+	transactGood = I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, writeData, 4u,
 						I2CDRV_TRANSACTION_TX, FUELGUAGE_I2C_Callback,
 						1000u, sysTime
 						);

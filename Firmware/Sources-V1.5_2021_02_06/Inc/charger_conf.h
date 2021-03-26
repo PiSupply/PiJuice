@@ -1,6 +1,9 @@
 #ifndef CHARGER_CONF_H_
 #define CHARGER_CONF_H_
 
+#define CHARGER_REGISTER_COUNT			8u
+#define CHARGER_LAST_REGISTER			(CHARGER_REGISTER_COUNT - 1u)
+
 #define CHG_REG_SUPPLY_STATUS			0u
 #define CHG_REG_BATTERY_STATUS			1u
 #define CHG_REG_CONTROL					2u
@@ -33,6 +36,7 @@
 #define CHGR_SC_FLT_USB_SUPPLY			(6u << CHGREG_SC_FLT_Pos)
 #define CHGR_SC_FLT_BATTERY				(7u << CHGREG_SC_FLT_Pos)
 
+#define CHGR_SC_FLT_SUPPLY_PREF_USB		(CHGR_SUPPLY_SEL_bm)
 
 /* Bit definitions for Battery/Supply Status Register */
 #define CHGR_BS_INSTAT_Pos				(6u)
@@ -73,5 +77,25 @@
 #define CHGR_CTRL_TE					(1u << 2u)
 #define CHGR_CTRL_CHG_DISABLE			(1u << 1u)
 #define CHGR_CTRL_HZ_MODE				(1u << 0u)
+
+
+#define CHGR_ST_NTC_2XTMR_EN_bm			(1u << 7u)
+#define CHGR_ST_NTC_TMR_Pos				(5u)
+#define CHGR_ST_NTC_TMR_Msk				(3u << CHGR_ST_NTC_TMR_Pos)
+#define CHGR_ST_NTC_TS_EN_bm			(1u << 3u)
+#define CHGR_ST_NTC_FAULT_Pos			(1u)
+#define CHGR_ST_NTC_FAULT_Msk			(3u << CHGR_ST_NTC_FAULT_Pos)
+#define CHGR_ST_NTC_LOW_CHARGE_bm		(1u)
+
+
+#define CHGR_ST_NTC_SFTMR_DISABLE		(CHGR_ST_NTC_TMR_Msk)
+#define CHGR_ST_NTC_SFTMR_9HOUR			(2u << CHGR_ST_NTC_TMR_Pos)
+#define CHGR_ST_NTC_SFTMR_6HOUR			(1u << CHGR_ST_NTC_TMR_Pos)
+#define CHGR_ST_NTC_SFTMR_27MIN			(0u << CHGR_ST_NTC_TMR_Pos)
+
+#define CHGR_ST_NTC_TS_FAULT_NONE		(0u << CHGR_ST_NTC_FAULT_Pos)
+#define CHGR_ST_NTC_TS_FAULT_SUSPEND	(1u << CHGR_ST_NTC_FAULT_Pos)
+#define CHGR_ST_NTC_TS_FAULT_COLD		(2u << CHGR_ST_NTC_FAULT_Pos)
+#define CHGR_ST_NTC_TS_FAULT_WARM		(3u << CHGR_ST_NTC_FAULT_Pos)
 
 #endif /* CHARGER_CONF_H_ */

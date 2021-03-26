@@ -66,7 +66,7 @@ typedef enum ChargerUSBInLockoutStatus_T
 	CHG_USB_IN_UNKNOWN,
 	CHG_USB_IN_LOCK,
 	CHG_USB_IN_UNLOCK
-} ChargerUSBInLockoutStatus_T;
+} CHARGER_USBInLockoutStatus_T;
 
 
 typedef enum ChargerUsbInCurrentLimit_T
@@ -77,24 +77,14 @@ typedef enum ChargerUsbInCurrentLimit_T
 	CHG_IUSB_LIMIT_800MA,
 	CHG_IUSB_LIMIT_900MA,
 	CHG_IUSB_LIMIT_1500MA,
-} ChargerUsbInCurrentLimit_T;
+} CHARGER_USBInCurrentLimit_T;
 
 
 
 extern uint8_t regs[8];
-
-extern ChargerStatus_T chargerStatus;
-extern uint8_t chargerNeedPoll;
-extern ChargerUSBInLockoutStatus_T usbInLockoutStatus;
-extern uint8_t chargerI2cErrorCounter;
-extern uint8_t chargerInterruptFlag;
-
-void ChargerInit();
-#if !defined(RTOS_FREERTOS)
-void ChargerTask(void);
-#endif
+/*
 void ChargerTriggerNTCMonitor(NTC_MonitorTemperature_T temp);
-void ChargerSetUSBLockout(ChargerUSBInLockoutStatus_T status);
+void ChargerSetUSBLockout(CHARGER_USBInLockoutStatus_T status);
 void SetChargeCurrentReq(uint8_t current);
 void SetChargeTerminationCurrentReq(uint8_t current);
 void SetBatRegulationVoltageReq(uint8_t voltageCode);
@@ -105,6 +95,22 @@ void ChargerUsbInCurrentLimitStepDown(void);
 void ChargerWriteInputsConfig(uint8_t config);
 uint8_t ChargerReadInputsConfig(void);
 void ChargerWriteChargingConfig(uint8_t config);
-uint8_t ChargerReadChargingConfig(void);
+uint8_t ChargerReadChargingConfig(void);*/
+
+void CHARGER_Init(void);
+void CHARGER_Task(void);
+
+void CHARGER_SetInputsConfig(const uint8_t config);
+uint8_t CHARGER_GetInputsConfig(void);
+void CHARGER_SetChargeEnableConfig(const uint8_t config);
+uint8_t CHARGER_GetChargeEnableConfig(void);
+
+ChargerStatus_T CHARGER_GetStatus(void);
+void CHARGER_SetInterrupt(void);
+
+void CHARGER_SetRPi5vLockout(const CHARGER_USBInLockoutStatus_T status);
+void CHARGER_RPi5vInCurrentLimitSetMin(void);
+void CHARGER_RPi5vInCurrentLimitStepDown(void);
+void CHARGER_RPi5vInCurrentLimitStepUp(void);
 
 #endif /* CHARGER_BQ2416X_H_ */

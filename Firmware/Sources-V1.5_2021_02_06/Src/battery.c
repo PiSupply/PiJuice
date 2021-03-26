@@ -478,6 +478,7 @@ void BatteryTask(void)
 {
 	const uint16_t batteryVoltageMv = FUELGUAGE_GetBatteryMv();
 	const uint16_t batteryRsocPt1 = FUELGUAGE_GetSocPt1();
+	const ChargerStatus_T chargerStatus = CHARGER_GetStatus();
 
 	uint8_t r, g, b, paramB;
 
@@ -500,7 +501,6 @@ void BatteryTask(void)
 			batProfileStatus = BATTERY_INVALID_PROFILE_ID;
 		}
 
-		ChargerSetBatProfileReq(m_p_activeBatteryProfile);
 		POWERSOURCE_UpdateBatteryProfile(m_p_activeBatteryProfile);
 		FUELGUAGE_SetBatteryProfile(m_p_activeBatteryProfile);
 	}
@@ -534,9 +534,9 @@ void BatteryTask(void)
 			}
 		}
 
-		ChargerSetBatProfileReq(m_p_activeBatteryProfile);
 		POWERSOURCE_UpdateBatteryProfile(m_p_activeBatteryProfile);
 		FUELGUAGE_SetBatteryProfile(m_p_activeBatteryProfile);
+
 	}
 	else if (2u == writeCustomProfileReq)
 	{

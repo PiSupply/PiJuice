@@ -691,12 +691,16 @@ void CmdServerReadWriteBatRegVoltage(uint8_t dir, uint8_t *pData, uint16_t *data
 	}
 }*/
 
-void CmdServerReadWriteChargingConfig(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		ChargerWriteChargingConfig(pData[1]);
-	} else {
-		pData[0] = ChargerReadChargingConfig();
-		*dataLen = 1;
+void CmdServerReadWriteChargingConfig(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		CHARGER_SetChargeEnableConfig(pData[1u]);
+	}
+	else
+	{
+		pData[0u] = CHARGER_GetChargeEnableConfig();
+		*dataLen = 1u;
 	}
 }
 
@@ -857,20 +861,28 @@ void CmdServerReadWriteAlarm(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	}*/
 }
 
-void CmdServerReadWriteRtcAlarmCtrlStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
+void CmdServerReadWriteRtcAlarmCtrlStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
 		RtcWriteControlStatus(pData+1, *dataLen);
-	} else {
+	}
+	else
+	{
 		RtcReadControlStatus(pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteInputsConfig(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		ChargerWriteInputsConfig(pData[1]);
-	} else {
-		pData[0] = ChargerReadInputsConfig();
-		*dataLen = 1;
+void CmdServerReadWriteInputsConfig(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		CHARGER_SetInputsConfig(pData[1u]);
+	}
+	else
+	{
+		pData[0u] = CHARGER_GetInputsConfig();
+		*dataLen = 1u;
 	}
 }
 
@@ -1171,7 +1183,7 @@ void CmdServerReadBoardFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLe
 	if (dir == MASTER_CMD_DIR_READ)
 	{
 		// bit 0 charger i2c fault
-		pData[0] = (hi2c2.ErrorCode || chargerI2cErrorCounter) & 0x01;
+		pData[0] = 0u;
 		// bit 1-3 charger fault status
 		pData[0] |= ((CHARGER_FAULT_STATUS()) << 1) & 0xE0;
 		// bit 4 fuel gauge i2c fault
