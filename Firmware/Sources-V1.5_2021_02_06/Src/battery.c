@@ -46,11 +46,12 @@ typedef enum
 #define UNPACK_CAPACITY_U16(v)		((v==0xFFFF) ? 0xFFFFFFFF : (uint32_t)(v&0x7FFF) << (((v&0x8000) >> 15)*7))
 
 
+// TODO - Get this properly.
 extern PowerState_T state;
 
 static BATTERY_SetProfileStatus_t m_setProfileRequest = BATTERY_DONT_SET_PROFILE;
 
-static BATTERY_WriteCustomProfileRequest_t m_writeCustomProfileRequest = 0;
+static BATTERY_WriteCustomProfileRequest_t m_writeCustomProfileRequest = BATTERY_CUSTOM_PROFILE_NO_WRITE;
 static BatteryProfile_T m_tempBatteryProfile;
 
 
@@ -86,17 +87,24 @@ BATTERY_ProfileStatus_t m_batteryProfileStatus = BATTERY_PROFILE_STATUS_STORED_P
 
 static const BatteryProfile_T * m_p_activeBatteryProfile = NULL;
 static BatteryStatus_T m_batteryStatus = BAT_STATUS_NOT_PRESENT;
-static uint32_t chargeLedTaskMsCounter;
+static uint32_t m_lastChargeLedTaskTimeMs;
+static uint32_t m_lastBatteryUpdateTimeMs;
 
 static void BATTERY_InitProfile(uint8_t initProfileId);
 static bool BATTERY_ReadEEProfileData(void);
 static bool BATTERY_ReadExtendedEEProfileData(void);
-void BATTERY_WriteEEProfileData(const BatteryProfile_T *batProfile);
-void BATTERY_WriteExtendedEEProfileData(const BatteryProfile_T *batProfile);
+static void BATTERY_WriteEEProfileData(const BatteryProfile_T *batProfile);
+static void BATTERY_WriteExtendedEEProfileData(const BatteryProfile_T *batProfile);
 
-void BATTERY_SetNewProfile(const uint8_t newProfile);
-void BATTERY_WriteCustomProfile(const BatteryProfile_T * newProfile);
-void BATTERY_WriteCustomProfileExtended(const BatteryProfile_T * newProfile);
+static void BATTERY_SetNewProfile(const uint8_t newProfile);
+static void BATTERY_WriteCustomProfile(const BatteryProfile_T * newProfile);
+static void BATTERY_WriteCustomProfileExtended(const BatteryProfile_T * newProfile);
+
+static void BATTERY_UpdateBatteryStatus(const uint16_t battMv,
+									const ChargerStatus_T chargerStatus, const bool batteryPresent)
+
+static void BATTERY_UpdateLeds(const uint16_t batteryRsocPt1,
+						const ChargerStatus_T chargerStatus, const PowerState_T powerState);
 
 
 void BATTERY_Init(void)
@@ -118,7 +126,8 @@ void BATTERY_Init(void)
 }
 
 
-void BATTERY_UpdateBatteryStatus(const uint16_t battMv, const ChargerStatus_T chargerStatus, const bool batteryPresent)
+void BATTERY_UpdateBatteryStatus(const uint16_t battMv,
+									const ChargerStatus_T chargerStatus, const bool batteryPresent)
 {
 	if ( (false == batteryPresent) || (battMv < 2500u) )
 	{
@@ -139,7 +148,8 @@ void BATTERY_UpdateBatteryStatus(const uint16_t battMv, const ChargerStatus_T ch
 }
 
 
-void BATTERY_UpdateLeds(uint16_t batteryRsocPt1, ChargerStatus_T chargerStatus, PowerState_T powerState)
+void BATTERY_UpdateLeds(const uint16_t batteryRsocPt1,
+						const ChargerStatus_T chargerStatus, const PowerState_T powerState)
 {
 	uint8_t r, g, b, paramB;
 
@@ -199,6 +209,7 @@ void BATTERY_Task(void)
 		m_setProfileRequest = BATTERY_DONT_SET_PROFILE;
 	}
 
+
 	if (BATTERY_CUSTOM_PROFILE_WRITE_STANDARD == m_writeCustomProfileRequest)
 	{
 		BATTERY_WriteCustomProfile(&m_tempBatteryProfile);
@@ -210,11 +221,18 @@ void BATTERY_Task(void)
 		m_writeCustomProfileRequest = BATTERY_CUSTOM_PROFILE_NO_WRITE;
 	}
 
-	BATTERY_UpdateBatteryStatus(batteryVoltageMv, chargerStatus, chargerBatteryDetected);
 
-	if (MS_TIME_COUNT(chargeLedTaskMsCounter) >= 900u)
+	if (MS_TIME_COUNT(m_lastBatteryUpdateTimeMs) > BATTERY_UPDATE_STATUS_PERIOD_MS)
 	{
-		MS_TIME_COUNTER_INIT(chargeLedTaskMsCounter);
+		MS_TIME_COUNTER_INIT(m_lastBatteryUpdateTimeMs);
+
+		BATTERY_UpdateBatteryStatus(batteryVoltageMv, chargerStatus, chargerBatteryDetected);
+	}
+
+
+	if (MS_TIME_COUNT(m_lastChargeLedTaskTimeMs) >= BATTERY_CHARGE_LED_UPDATE_PERIOD_MS)
+	{
+		MS_TIME_COUNTER_INIT(m_lastChargeLedTaskTimeMs);
 
 		BATTERY_UpdateLeds(batteryRsocPt1, chargerStatus, powerState);
 	}

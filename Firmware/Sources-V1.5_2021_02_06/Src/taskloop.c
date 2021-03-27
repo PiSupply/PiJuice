@@ -20,6 +20,7 @@ void TASKLOOP_Run(void)
 
 	CHARGER_Task();
 	FUELGUAGE_Task();
+	BATTERY_Task();
 
 	m_lastTaskloopOpTime = MS_TIMEREF_DIFF(loopStartTIme, HAL_GetTick());
 }
