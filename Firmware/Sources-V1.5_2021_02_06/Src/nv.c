@@ -6,13 +6,16 @@
  */
 #include "nv.h"
 
+
 static int16_t nvSaveParmeterReq = -1;
 static uint16_t nvSaveParmeterValue = 0xFFFF;
 uint16_t nvInitFlag = 0xFFFF;
 
+
 uint16_t VirtAddVarTab[NV_VAR_NUM] = {
 	NV_VAR_LIST
 };
+
 
 void NvInit(void){
 	/* Unlock the Flash Program Erase controller */
@@ -23,6 +26,7 @@ void NvInit(void){
 
 	EE_ReadVariable(NV_START_ID, &nvInitFlag);
 }
+
 
 void NvEreaseAllVariables(void) {
 	int32_t i;
@@ -36,11 +40,13 @@ void NvEreaseAllVariables(void) {
 	//EE_Init();
 }
 
+
 void NvSetDataInitialized(void) {
 	if (!NV_IS_DATA_INITIALIZED) {
 		EE_WriteVariable(NV_START_ID, 0);
 	}
 }
+
 
 void NvTask(void) {
 
@@ -50,23 +56,34 @@ void NvTask(void) {
 	}
 }
 
+
 void NvSaveParameterReq(NvVarId_T id, uint16_t value) {
 	nvSaveParmeterReq = id;
 	nvSaveParmeterValue = value;
 }
 
-uint16_t NvReadVariableU8(uint16_t VirtAddress, uint8_t *pVar) {
+
+uint16_t NvReadVariableU8(uint16_t VirtAddress, uint8_t *pVar)
+{
 	uint16_t var = 0;
 	uint16_t succ = EE_ReadVariable(VirtAddress, &var);
-	if (succ==0) {
-		if (NV_IS_VARIABLE_VALID(var)) {
+
+	if (succ==0)
+	{
+		if (NV_IS_VARIABLE_VALID(var))
+		{
 			*pVar = var&0xFF;
 			return NV_READ_VARIABLE_SUCCESS;
-		} else if ((var&0xFF) == (var>>8)) {
+		}
+		else if ((var&0xFF) == (var>>8))
+		{
 			return NV_VARIABLE_NON_STORED;
-		} else
+		}
+		else
 			return NV_INVALID_VARIABLE;
-	} else {
+	}
+	else
+	{
 		return succ;
 	}
 }

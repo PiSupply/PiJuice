@@ -10,6 +10,7 @@ void TASKLOOP_Init(void)
 {
 	CHARGER_Init();
 	FUELGUAGE_Init();
+	BATTERY_Init();
 }
 
 

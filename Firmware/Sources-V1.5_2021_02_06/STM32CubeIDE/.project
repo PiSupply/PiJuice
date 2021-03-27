@@ -62,6 +62,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/battery.h</locationURI>
 		</link>
 		<link>
+			<name>Inc/battery_profiles.h</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/battery_profiles.h</location>
+		</link>
+		<link>
 			<name>Inc/button.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/button.h</locationURI>

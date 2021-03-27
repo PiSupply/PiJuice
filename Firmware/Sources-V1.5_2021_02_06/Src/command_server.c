@@ -465,7 +465,7 @@ void CmdServerDefaultReadWrite(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 
 static uint8_t IsEventFault(void)
 {
-	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const bool chargerTempSensorFault = CHARGER_HasTempSensorFault();
 
 	uint8_t ev = 0;
@@ -499,7 +499,7 @@ void CmdServerReadStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 
 void CmdServerReadWriteEventFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
-	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const uint8_t chargerTempFault = CHARGER_GetTempFault();
 
 	if (dir == MASTER_CMD_DIR_READ)
@@ -708,28 +708,39 @@ void CmdServerReadWriteChargingConfig(uint8_t dir, uint8_t *pData, uint16_t *dat
 	}
 }
 
-void CmdServerReadWriteBatProfile(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		BatteryWriteCustomProfileReq(&pData[1], *dataLen-1);
-	} else {
-		BatteryReadCurrentProfile(pData, dataLen);
+void CmdServerReadWriteBatProfile(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		BATTERY_WriteCustomProfileData(&pData[1u], *dataLen - 1u);
+	}
+	else
+	{
+		BATTERY_ReadActiveProfileData(pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteBatExtendedProfile(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		BatteryWriteCustomExtendedProfileReq(&pData[1], *dataLen-1);
-	} else {
-		BatteryReadCurrentExtendedProfile(pData, dataLen);
+void CmdServerReadWriteBatExtendedProfile(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		BATTERY_WriteCustomProfileExtendedData(&pData[1], *dataLen-1);
+	}
+	else
+	{
+		BATTERY_ReadActiveProfileExtendedData(pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteBatteryProfileId(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		if (BatterySetProfileReq(pData[1]) == 0) {
-		}
-	} else {
-		BatteryReadProfileStatus(pData, dataLen);
+void CmdServerReadWriteBatteryProfileId(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (MASTER_CMD_DIR_WRITE == dir)
+	{
+		BATTERY_SetProfileReq(pData[1u]);
+	}
+	else
+	{
+		BATTERY_ReadProfileStatus(pData, dataLen);
 	}
 }
 

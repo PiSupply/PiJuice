@@ -141,7 +141,7 @@ void SocEvaluateDirectDynVoltage(uint16_t batVolt, int32_t dt)
 
 void SocEvaluateFuelGaugeIc(const uint16_t previousRSoc, const uint16_t newRsoc, const uint32_t timeDeltaMs)
 {
-	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 
 	int16_t socDelta = previousRSoc - newRsoc;
 	int32_t deltaFactor = (int32_t)socDelta * timeDeltaMs * currentBatProfile->capacity;
@@ -315,7 +315,7 @@ uint16_t FUELGUAGE_GetBatteryMv(void)
 
 bool FUELGUAGE_IcInit(void)
 {
-	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	uint16_t tempU16;
 
 	m_icInitState = 0u;

@@ -76,7 +76,7 @@ void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc)
 
 void POWERSOURCE_Init(void)
 {
-	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const uint32_t sysTime = HAL_GetTick();
 	const bool chargerHasPowerIn = CHARGER_IsChargeSourceAvailable();
 

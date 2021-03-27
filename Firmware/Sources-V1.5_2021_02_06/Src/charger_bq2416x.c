@@ -717,7 +717,7 @@ void CHARGER_UpdateRPi5VInLockout(void)
 
 void CHARGER_UpdateControlStatus(void)
 {
-	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const uint8_t batteryTemp = FUELGUAGE_GetBatteryTemperature();
 	const BatteryTempSenseConfig_T tempSensorConfig = FUELGUAGE_GetBatteryTempSensorCfg();
 
@@ -759,7 +759,7 @@ void CHARGER_UpdateControlStatus(void)
 
 void CHARGER_UpdateRegulationVoltage(void)
 {
-	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const uint8_t batteryTemperature = FUELGUAGE_GetBatteryTemperature();
 	const BatteryTempSenseConfig_T tempSensorConfig = FUELGUAGE_GetBatteryTempSensorCfg();
 
@@ -795,7 +795,7 @@ void CHARGER_UpdateRegulationVoltage(void)
 
 void CHARGER_UpdateChgCurrentAndTermCurrent(void)
 {
-	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 
 	if (currentBatProfile!=NULL)
 	{
@@ -825,7 +825,7 @@ void CHARGER_UpdateVinDPM(void)
 
 void CHARGER_UpdateTempRegulationControlStatus(void)
 {
-	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfile();
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const uint8_t batteryTemp = FUELGUAGE_GetBatteryTemperature();
 	const BatteryTempSenseConfig_T tempSensorConfig = FUELGUAGE_GetBatteryTempSensorCfg();
 

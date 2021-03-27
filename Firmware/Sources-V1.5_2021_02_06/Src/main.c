@@ -450,7 +450,7 @@ int main(void)
 #endif
 
 	LoadCurrentSenseInit();
-	BatteryInit();
+	BATTERY_Init();
 	BUTTON_Init();
 
 
@@ -511,7 +511,7 @@ int main(void)
 
 		CHARGER_Task();
 		FUELGUAGE_Task();
-		BatteryTask();
+		BATTERY_Task();
 		POWERSOURCE_Task();
 
 		if (alarmEventFlag || __HAL_RTC_ALARM_GET_FLAG(&hrtc, RTC_FLAG_ALRAF) != RESET)
