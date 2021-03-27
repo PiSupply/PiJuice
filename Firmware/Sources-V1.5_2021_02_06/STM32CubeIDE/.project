@@ -102,9 +102,9 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/execution.h</locationURI>
 		</link>
 		<link>
-			<name>Inc/fuel_gauge.h</name>
+			<name>Inc/fuel_gauge_lc709203f.h</name>
 			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Inc/fuel_gauge.h</locationURI>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/fuel_gauge_lc709203f.h</location>
 		</link>
 		<link>
 			<name>Inc/fuelguage_conf.h</name>
@@ -267,9 +267,9 @@
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Core/Src/freertos.c</locationURI>
 		</link>
 		<link>
-			<name>Src/fuel_gauge.c</name>
+			<name>Src/fuel_gauge_lc709203f.c</name>
 			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Src/fuel_gauge.c</locationURI>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Src/fuel_gauge_lc709203f.c</location>
 		</link>
 		<link>
 			<name>Src/i2cdrv.c</name>

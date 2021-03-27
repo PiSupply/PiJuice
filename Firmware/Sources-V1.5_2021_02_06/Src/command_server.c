@@ -15,7 +15,7 @@
 #include "command_server.h"
 #include "stddef.h"
 #include "nv.h"
-#include "fuel_gauge.h"
+#include "fuel_gauge_lc709203f.h"
 #include "charger_bq2416x.h"
 #include "analog.h"
 #include "battery.h"

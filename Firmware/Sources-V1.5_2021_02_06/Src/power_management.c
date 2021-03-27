@@ -11,7 +11,7 @@
 #include "nv.h"
 #include "power_management.h"
 #include "charger_bq2416x.h"
-#include "fuel_gauge.h"
+#include "fuel_gauge_lc709203f.h"
 #include "time_count.h"
 #include "power_source.h"
 #include "button.h"

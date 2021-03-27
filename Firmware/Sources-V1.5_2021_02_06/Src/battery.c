@@ -10,7 +10,7 @@
 #include "nv.h"
 #include "charger_bq2416x.h"
 #include "config_switch_resistor.h"
-#include "fuel_gauge.h"
+#include "fuel_gauge_lc709203f.h"
 #include "power_source.h"
 #include "time_count.h"
 #include "led.h"

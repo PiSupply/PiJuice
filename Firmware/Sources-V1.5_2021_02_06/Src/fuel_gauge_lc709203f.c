@@ -24,7 +24,7 @@
 #include "crc.h"
 #include "util.h"
 
-#include "fuel_gauge.h"
+#include "fuel_gauge_lc709203f.h"
 #include "fuelguage_conf.h"
 
 
@@ -40,9 +40,9 @@ bool FUELGUAGE_IcInit(void);
 // ----------------------------------------------------------------------------
 // Variables that only have scope in this module:
 
-static uint8_t m_i2cReadResult;
-static bool m_i2cSuccess;
-static FUELGUAGE_Status_t m_deviceStatus;
+static uint16_t m_fuelgaugeI2CReadResult;
+static bool m_fuelgaugeI2CSuccess;
+static FUELGUAGE_Status_t m_fuelgaugeIcStatus;
 static uint16_t m_batteryMv;
 static uint8_t m_icInitState;
 static uint16_t m_lastSocPt1;
@@ -54,7 +54,7 @@ static uint8_t m_temperatureMode = FUEL_GAUGE_TEMP_MODE_THERMISTOR;
 static int16_t m_dischargeRate;
 static uint16_t m_fuelguageIcId;
 static bool m_thermistorGood;
-static uint32_t m_lastFuelGuageTaskTimeMs;
+static uint32_t m_lastFuelGaugeTaskTimeMs;
 
 
 void FUELGUAGE_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
@@ -67,22 +67,22 @@ void FUELGUAGE_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 
 		if (crc == p_i2cdrvDevice->data[4u])
 		{
-			m_i2cReadResult = (uint16_t)p_i2cdrvDevice->data[2u] | (p_i2cdrvDevice->data[3u] << 8u);
+			m_fuelgaugeI2CReadResult = (uint16_t)p_i2cdrvDevice->data[2u] | (p_i2cdrvDevice->data[3u] << 8u);
 
-			m_i2cSuccess = true;
+			m_fuelgaugeI2CSuccess = true;
 		}
 		else
 		{
-			m_i2cSuccess = false;
+			m_fuelgaugeI2CSuccess = false;
 		}
 	}
 	else if (p_i2cdrvDevice->event == I2CDRV_EVENT_TX_COMPLETE)
 	{
-		m_i2cSuccess = true;
+		m_fuelgaugeI2CSuccess = true;
 	}
 	else
 	{
-		m_i2cSuccess = false;
+		m_fuelgaugeI2CSuccess = false;
 	}
 }
 
@@ -108,7 +108,7 @@ void FUELGUAGE_Init(void)
 	// Try and talk to the fuel guage ic.
 	if (true == FUELGUAGE_IcInit())
 	{
-		m_deviceStatus = FUELGUAGE_STATUS_ONLINE;
+		m_fuelgaugeIcStatus = FUELGUAGE_STATUS_ONLINE;
 
 		if (true == FUELGUAGE_ReadWord(FG_MEM_ADDR_ITE, &tempU16))
 		{
@@ -124,12 +124,12 @@ void FUELGUAGE_Init(void)
 	}
 	else
 	{
-		m_deviceStatus = FUELGUAGE_STATUS_OFFLINE;
+		m_fuelgaugeIcStatus = FUELGUAGE_STATUS_OFFLINE;
 		m_lastSocPt1 = 0u;
 		m_batteryMv = 0u;
 	}
 
-	MS_TIMEREF_INIT(m_lastFuelGuageTaskTimeMs, sysTime);
+	MS_TIMEREF_INIT(m_lastFuelGaugeTaskTimeMs, sysTime);
 
 }
 
@@ -164,28 +164,27 @@ void FUELGUAGE_Task(void)
 	uint16_t tempU16;
 	uint32_t socTimeDiff;
 
-
-	if (MS_TIMEREF_TIMEOUT(m_lastFuelGuageTaskTimeMs, sysTime, FUELGUAGE_TASK_PERIOD_MS))
+	if (MS_TIMEREF_TIMEOUT(m_lastFuelGaugeTaskTimeMs, sysTime, FUELGUAGE_TASK_PERIOD_MS))
 	{
 		if (battMv < FUELGUAGE_MIN_BATT_MV)
 		{
 			// If the battery voltage is less than the device operating limit then don't even bother!
-			m_deviceStatus = FUELGUAGE_STATUS_OFFLINE;
+			m_fuelgaugeIcStatus = FUELGUAGE_STATUS_OFFLINE;
 			m_lastSocPt1 = 0u;
 			m_batteryMv = 0u;
 
 			return;
 		}
 
-		if ( (FUELGUAGE_STATUS_OFFLINE == m_deviceStatus) )
+		if ( (FUELGUAGE_STATUS_OFFLINE == m_fuelgaugeIcStatus) )
 		{
 			if (true == FUELGUAGE_IcInit())
 			{
-				m_deviceStatus = FUELGUAGE_STATUS_ONLINE;
+				m_fuelgaugeIcStatus = FUELGUAGE_STATUS_ONLINE;
 			}
 		}
 
-		if ( (FUELGUAGE_STATUS_ONLINE == m_deviceStatus))
+		if ( (FUELGUAGE_STATUS_ONLINE == m_fuelgaugeIcStatus))
 		{
 			if (true == FUELGUAGE_ReadWord(FG_MEM_ADDR_CELL_MV, &tempU16))
 			{
@@ -286,7 +285,7 @@ bool FUELGUAGE_IsNtcOK(void)
 
 bool FUELGUAGE_IsOnline(void)
 {
-	return FUELGUAGE_STATUS_ONLINE == m_deviceStatus;
+	return FUELGUAGE_STATUS_ONLINE == m_fuelgaugeIcStatus;
 }
 
 
@@ -402,7 +401,7 @@ bool FUELGUAGE_ReadWord(const uint8_t cmd, uint16_t *const word)
 	const uint32_t sysTime = HAL_GetTick();
 	bool transactGood;
 
-	m_i2cSuccess = false;
+	m_fuelgaugeI2CSuccess = false;
 
 	transactGood = I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, &cmd, 3u,
 						I2CDRV_TRANSACTION_RX, FUELGUAGE_I2C_Callback,
@@ -419,9 +418,9 @@ bool FUELGUAGE_ReadWord(const uint8_t cmd, uint16_t *const word)
 		// Wait for transfer
 	}
 
-	*word = m_i2cReadResult;
+	*word = m_fuelgaugeI2CReadResult;
 
-	return m_i2cSuccess;
+	return m_fuelgaugeI2CSuccess;
 }
 
 
@@ -436,7 +435,7 @@ bool FUELGUAGE_WriteWord(const uint8_t memAddress, const uint16_t value)
 
 	writeData[3u] = (uint8_t)crc;
 
-	m_i2cSuccess = false;
+	m_fuelgaugeI2CSuccess = false;
 
 	transactGood = I2CDRV_Transact(FUELGUAGE_I2C_PORTNO, FUELGUAGE_I2C_ADDR, writeData, 4u,
 						I2CDRV_TRANSACTION_TX, FUELGUAGE_I2C_Callback,
@@ -453,5 +452,5 @@ bool FUELGUAGE_WriteWord(const uint8_t memAddress, const uint16_t value)
 		// Wait for transfer
 	}
 
-	return m_i2cSuccess;
+	return m_fuelgaugeI2CSuccess;
 }

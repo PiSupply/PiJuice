@@ -39,7 +39,7 @@
 #include "crc.h"
 
 #include "charger_bq2416x.h"
-#include "fuel_gauge.h"
+#include "fuel_gauge_lc709203f.h"
 #include "power_source.h"
 #include "command_server.h"
 #include "led.h"
@@ -53,6 +53,7 @@
 #include "execution.h"
 
 #include "osloop.h"
+#include "taskloop.h"
 #include "adc.h"
 #include "i2cdrv.h"
 
@@ -418,6 +419,14 @@ int main(void)
 	while (false == ADC_GetFilterReady())
 	{
 		asm volatile ("nop");
+	}
+
+	TASKLOOP_Init();
+
+	while (1)
+	{
+		TASKLOOP_Run();
+		HAL_Delay(10u);
 	}
 
 	if (!resetStatus) MS_TIME_COUNTER_INIT(lastHostCommandTimer);

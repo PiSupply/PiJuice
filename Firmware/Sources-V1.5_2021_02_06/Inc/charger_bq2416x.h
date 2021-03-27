@@ -89,6 +89,13 @@ typedef enum
 } CHARGER_InputStatus_t;
 
 
+typedef enum
+{
+	CHARGER_STATUS_OFFLINE = 0u,
+	CHARGER_STATUS_ONLINE = 1u,
+} CHARGER_DeviceStatus_t;
+
+
 void CHARGER_Init(void);
 void CHARGER_Task(void);
 

@@ -12,7 +12,7 @@
 #include "nv.h"
 #include "adc.h"
 #include "analog.h"
-#include "fuel_gauge.h"
+#include "fuel_gauge_lc709203f.h"
 #include "time_count.h"
 #include "load_current_sense.h"
 #include "execution.h"

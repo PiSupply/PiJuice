@@ -61,12 +61,13 @@
 #define CHGR_BS_BATSTAT_OVP				(1u << CHGR_BS_BATSTAT_Pos)
 #define CHGR_BS_BATSTAT_NOT_PRESENT		(2u << CHGR_BS_BATSTAT_Pos)
 
+#define CHGR_BS_EN_NOBAT_OP_bm			(1u << 0u)
 #define CHGR_BS_EN_NOBAT_OP				(1u)
 
 
 /* Bit definitions for Control Register */
-#define CHGR_CTRL_RESET					(1u << 7u)
-#define CHGR_CTRL_IUSB_LIMIT_Pos		(6u)
+#define CHGR_CTRL_RESET_bm					(1u << 7u)
+#define CHGR_CTRL_IUSB_LIMIT_Pos		(4u)
 #define CHGR_CTRL_IUSB_LIMIT_Msk		(7u << CHGR_CTRL_IUSB_LIMIT_Pos)
 #define CHGR_CTRL_IUSB_LIMIT_100MA		(0u << CHGR_CTRL_IUSB_LIMIT_Pos)
 #define CHGR_CTRL_IUSB_LIMIT_150MA		(1u << CHGR_CTRL_IUSB_LIMIT_Pos)
@@ -93,6 +94,12 @@
 
 #define CHGR_VDPPM_DPM_ACTIVE			CHGR_VDPPM_DPM_STATUS_bm
 
+#define CHGR_VDPPM_USB_VDDPM_Pos		(3u)
+#define CHGR_VDPPM_USB_VDDPM_Msk		(7u << 3u)
+
+#define CHGR_VDPPM_VIN_VDDPM_Pos		(0u)
+#define CHGR_VDPPM_VIN_VDDPM_Msk		(7u << 3u)
+
 #define CHGR_ST_NTC_2XTMR_EN_bm			(1u << 7u)
 #define CHGR_ST_NTC_TMR_Pos				(5u)
 #define CHGR_ST_NTC_TMR_Msk				(3u << CHGR_ST_NTC_TMR_Pos)
@@ -111,5 +118,7 @@
 #define CHGR_ST_NTC_TS_FAULT_SUSPEND	(1u << CHGR_ST_NTC_FAULT_Pos)
 #define CHGR_ST_NTC_TS_FAULT_COLD		(2u << CHGR_ST_NTC_FAULT_Pos)
 #define CHGR_ST_NTC_TS_FAULT_WARM		(3u << CHGR_ST_NTC_FAULT_Pos)
+
+#define CHGR_REGISTER_ALLBITS			0xFFu
 
 #endif /* CHARGER_CONF_H_ */
