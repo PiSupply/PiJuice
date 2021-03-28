@@ -202,6 +202,12 @@ void IODRV_Init(uint32_t sysTime)
 }
 
 
+void IODRV_Shutdown(void)
+{
+
+}
+
+
 // ****************************************************************************
 /*!
  * IODRV_Service performs periodic updates for this module

@@ -20,21 +20,6 @@
 #include "util.h"
 
 
-#if defined(RTOS_FREERTOS)
-#include "cmsis_os.h"
-
-static void AnalogTask(void *argument);
-
-static osThreadId_t analogTaskHandle;
-
-static const osThreadAttr_t analogTask_attributes = {
-	.name = "analogTask",
-	.priority = (osPriority_t) osPriorityNormal,
-	.stack_size = 128
-};
-#endif
-
-
 ADC_AnalogWDGConfTypeDef analogWDGConfig;
 
 static uint32_t tempCalcCounter;
@@ -49,6 +34,12 @@ void ANALOG_Init(uint32_t sysTime)
 
 	// Initialise thermister period
 	MS_TIMEREF_INIT(tempCalcCounter, sysTime);
+}
+
+
+void ANALOG_Shutdown(void)
+{
+
 }
 
 

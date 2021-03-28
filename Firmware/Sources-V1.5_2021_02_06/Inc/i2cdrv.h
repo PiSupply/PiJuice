@@ -47,6 +47,7 @@ typedef void (*I2CDRV_EventCb_t)(const I2CDRV_Device_t * const p_i2cdevice);
 
 void I2CDRV_Init(uint32_t sysTime);
 void I2CDRV_Service(uint32_t sysTime);
+void I2CDRV_Shutdown(void);
 
 bool I2CDRV_IsReady(uint8_t devIdx);
 bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,

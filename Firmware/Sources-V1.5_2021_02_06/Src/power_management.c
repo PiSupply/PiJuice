@@ -270,6 +270,7 @@ void PowerManagementTask(void)
 	const bool chargerHasInput = CHARGER_IsChargeSourceAvailable();
 	const bool chargerHasBattery = CHARGER_IsBatteryPresent();
 	const uint16_t batteryRsoc = FUELGUAGE_GetSocPt1();
+	const PowerSourceStatus_T pow5vInDetStatus = POWERSOURCE_Get5VRailStatus();
 
 	bool boostConverterEnabled;
 	bool isWakeupOnCharge;
@@ -325,7 +326,7 @@ void PowerManagementTask(void)
 
 	if ( (0u != delayedPowerOffCounter) && (delayedPowerOffCounter <= sysTime) )
 	{
-		if ((true == boostConverterEnabled) && (POW_5V_IN_DETECTION_STATUS_PRESENT != pow5vInDetStatus))
+		if ((true == boostConverterEnabled) && (POW_SOURCE_NORMAL != pow5vInDetStatus))
 		{
 			POWERSOURCE_Set5vBoostEnable(false);
 		}

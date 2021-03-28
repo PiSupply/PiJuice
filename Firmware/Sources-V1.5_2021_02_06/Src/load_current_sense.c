@@ -93,8 +93,9 @@ int32_t GetLoadCurrent(void)
 {
 	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
 	int32_t result = pow5vIoResLoadCurrent - m_resLoadCurrCalib;
+	const PowerSourceStatus_T pow5vInDetStatus = POWERSOURCE_Get5VRailStatus();
 
-	if ( pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_NOT_PRESENT )
+	if (pow5vInDetStatus == POW_SOURCE_NOT_PRESENT)
 	{
 		if (true == boostConverterEnabled)
 		{

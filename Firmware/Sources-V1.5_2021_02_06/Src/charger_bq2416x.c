@@ -697,7 +697,7 @@ void CHARGER_UpdateRPi5VInLockout(void)
 
 	// If RPi is powered by itself and host allows charging from RPi 5v and the battery checks out ok...
 	if ( (true == CHGR_CONFIG_INPUTS_RPI5V_ENABLED)
-			&& (pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_PRESENT)
+			&& (pow5vInDetStatus == POW_SOURCE_NORMAL)
 			&& ((m_registersIn[CHG_REG_BATTERY_STATUS] & CHGR_BS_BATSTAT_Msk) == CHGR_BS_BATSTAT_NORMAL)
 			)
 	{

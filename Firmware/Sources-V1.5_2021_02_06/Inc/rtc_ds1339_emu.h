@@ -17,7 +17,8 @@ uint8_t RtcGetPointer();
 uint8_t RtcSetPointer(uint8_t val);
 
 void RtcInit(void);
-void EvaluateAlarm(void);
+void RTC_EvaluateAlarm(void);
+bool RTC_GetAlarmState(void);
 void RtcReadAlarm1(uint8_t *buffer, uint8_t extended);
 void RtcWriteAlarm1(uint8_t *buffer, uint8_t extended);
 void RtcWriteTime(uint8_t *buffer, uint8_t extended);

@@ -10,12 +10,13 @@
 
 #include "battery.h"
 
-#define POW_5V_IN_DETECTION_STATUS_UNKNOWN		0
-#define POW_5V_IN_DETECTION_STATUS_NOT_PRESENT	1
-#define POW_5V_IN_DETECTION_STATUS_PRESENT	2
-#define POW_5V_TURN_ON_TIMEOUT	40
 
-#define POW_SOURCE_NEED_POLL() 			(pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_PRESENT || MS_TIME_COUNT(pow5vOnTimeout) <= POW_5V_TURN_ON_TIMEOUT)
+typedef enum
+{
+	RPI5V_DETECTION_STATUS_UNKNOWN = 0u,
+	RPI5V_DETECTION_STATUS_UNPOWERED = 1u,
+	RPI5V_DETECTION_STATUS_POWERED = 2u
+} POWERSOURCE_RPi5VStatus_t;
 
 
 extern uint32_t pow5vOnTimeout;
@@ -57,8 +58,11 @@ void POWERSOURCE_UpdateBatteryProfile(const BatteryProfile_T* batProfile);
 
 PowerSourceStatus_T POWERSOURCE_GetVInStatus(void);
 PowerSourceStatus_T POWERSOURCE_Get5VRailStatus(void);
+//POWERSOURCE_RPi5VStatus_t POWERSOURCE_GetRPi5VPowerStatus(void);
 
 void POWERSOURCE_SetRegulatorConfig(const uint8_t * const data, const uint8_t len);
 void POWERSOURCE_GetRegulatorConfig(uint8_t * const data, uint16_t * const len);
+
+bool POWERSOURCE_NeedPoll(void);
 
 #endif /* POWER_SOURCE_H_ */

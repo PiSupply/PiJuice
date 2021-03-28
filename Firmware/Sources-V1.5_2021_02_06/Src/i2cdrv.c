@@ -152,6 +152,10 @@ void I2CDRV_Init(const uint32_t sysTime)
 }
 
 
+void I2CDRV_Shutdown(void)
+{
+	I2C2->CR1 &= ~I2C_CR1_PE;
+}
 
 
 // ****************************************************************************

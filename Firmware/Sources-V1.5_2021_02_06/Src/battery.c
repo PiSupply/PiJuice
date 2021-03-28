@@ -101,7 +101,7 @@ static void BATTERY_WriteCustomProfile(const BatteryProfile_T * newProfile);
 static void BATTERY_WriteCustomProfileExtended(const BatteryProfile_T * newProfile);
 
 static void BATTERY_UpdateBatteryStatus(const uint16_t battMv,
-									const ChargerStatus_T chargerStatus, const bool batteryPresent)
+									const ChargerStatus_T chargerStatus, const bool batteryPresent);
 
 static void BATTERY_UpdateLeds(const uint16_t batteryRsocPt1,
 						const ChargerStatus_T chargerStatus, const PowerState_T powerState);
@@ -123,73 +123,6 @@ void BATTERY_Init(void)
 	{
 		BATTERY_InitProfile((uint8_t)(var & 0xFFu));
 	}
-}
-
-
-void BATTERY_UpdateBatteryStatus(const uint16_t battMv,
-									const ChargerStatus_T chargerStatus, const bool batteryPresent)
-{
-	if ( (false == batteryPresent) || (battMv < 2500u) )
-	{
-		m_batteryStatus = BAT_STATUS_NOT_PRESENT;
-	}
-	else if (chargerStatus == CHG_CHARGING_FROM_IN)
-	{
-		m_batteryStatus = BAT_STATUS_CHARGING_FROM_IN;
-	}
-	else if (chargerStatus == CHG_CHARGING_FROM_USB)
-	{
-		m_batteryStatus = BAT_STATUS_CHARGING_FROM_5V_IO;
-	}
-	else
-	{
-		m_batteryStatus = BAT_STATUS_NORMAL;
-	}
-}
-
-
-void BATTERY_UpdateLeds(const uint16_t batteryRsocPt1,
-						const ChargerStatus_T chargerStatus, const PowerState_T powerState)
-{
-	uint8_t r, g, b, paramB;
-
-	if (batteryRsocPt1 > 500u)
-	{
-		r = 0u;
-		g = LedGetParamG(LED_CHARGE_STATUS);//60;
-	}
-	else if (batteryRsocPt1 > 150u)
-	{
-		r = LedGetParamR(LED_CHARGE_STATUS);//50;
-		g = LedGetParamG(LED_CHARGE_STATUS);//60;
-	}
-	else
-	{
-		r = LedGetParamR(LED_CHARGE_STATUS);//50;
-		g = 0u;
-	}
-
-	paramB = LedGetParamB(LED_CHARGE_STATUS);
-
-	if ( (m_batteryStatus == BAT_STATUS_CHARGING_FROM_IN) || (m_batteryStatus == BAT_STATUS_CHARGING_FROM_5V_IO) )
-	{
-		// b did = 0!
-		//b = b ? 0 : paramB;
-		b = paramB;
-	}
-	else if (chargerStatus == CHG_CHARGE_DONE)
-	{
-		b = paramB;
-	}
-	else
-	{
-		b = 0;
-	}
-
-	if (state == STATE_LOWPOWER)
-		LedFunctionSetRGB(LED_CHARGE_STATUS, r>>2, g>>2, b);
-	else
-		LedFunctionSetRGB(LED_CHARGE_STATUS, r, g, b);
 }
 
 
@@ -752,4 +685,71 @@ void BATTERY_WriteCustomProfileExtended(const BatteryProfile_T * newProfile)
 	{
 		FUELGUAGE_SetBatteryProfile(m_p_activeBatteryProfile);
 	}
+}
+
+
+void BATTERY_UpdateBatteryStatus(const uint16_t battMv,
+									const ChargerStatus_T chargerStatus, const bool batteryPresent)
+{
+	if ( (false == batteryPresent) || (battMv < 2500u) )
+	{
+		m_batteryStatus = BAT_STATUS_NOT_PRESENT;
+	}
+	else if (chargerStatus == CHG_CHARGING_FROM_IN)
+	{
+		m_batteryStatus = BAT_STATUS_CHARGING_FROM_IN;
+	}
+	else if (chargerStatus == CHG_CHARGING_FROM_USB)
+	{
+		m_batteryStatus = BAT_STATUS_CHARGING_FROM_5V_IO;
+	}
+	else
+	{
+		m_batteryStatus = BAT_STATUS_NORMAL;
+	}
+}
+
+
+void BATTERY_UpdateLeds(const uint16_t batteryRsocPt1,
+						const ChargerStatus_T chargerStatus, const PowerState_T powerState)
+{
+	uint8_t r, g, b, paramB;
+
+	if (batteryRsocPt1 > 500u)
+	{
+		r = 0u;
+		g = LedGetParamG(LED_CHARGE_STATUS);//60;
+	}
+	else if (batteryRsocPt1 > 150u)
+	{
+		r = LedGetParamR(LED_CHARGE_STATUS);//50;
+		g = LedGetParamG(LED_CHARGE_STATUS);//60;
+	}
+	else
+	{
+		r = LedGetParamR(LED_CHARGE_STATUS);//50;
+		g = 0u;
+	}
+
+	paramB = LedGetParamB(LED_CHARGE_STATUS);
+
+	if ( (m_batteryStatus == BAT_STATUS_CHARGING_FROM_IN) || (m_batteryStatus == BAT_STATUS_CHARGING_FROM_5V_IO) )
+	{
+		// b did = 0!
+		//b = b ? 0 : paramB;
+		b = paramB;
+	}
+	else if (chargerStatus == CHG_CHARGE_DONE)
+	{
+		b = paramB;
+	}
+	else
+	{
+		b = 0;
+	}
+
+	if (state == STATE_LOWPOWER)
+		LedFunctionSetRGB(LED_CHARGE_STATUS, r>>2, g>>2, b);
+	else
+		LedFunctionSetRGB(LED_CHARGE_STATUS, r, g, b);
 }

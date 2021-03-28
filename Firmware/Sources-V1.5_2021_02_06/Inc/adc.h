@@ -11,6 +11,8 @@
 
 void ADC_Init(const uint32_t sysTime);
 void ADC_Service(const uint32_t sysTime);
+void ADC_Shutdown(void);
+
 uint16_t ADC_GetInstantValue(const uint8_t channel);
 uint16_t ADC_GetAverageValue(const uint8_t channel);
 uint16_t ADC_CalibrateValue(const uint16_t value);

@@ -155,7 +155,17 @@ void ButtonDualLongPressEventCb(void) {
 	}
 }
 
-uint8_t extiFlag = 0;
+
+typedef enum
+{
+	EXTI_EVENT_NONE = 0u,
+	EXTI_EVENT_CHARGER = 1u,
+	EXTI_EVENT_I2C = 2u,
+	EXTI_EVENT_USER = 3u,
+	EXTI_EVENT_IO2 = 4u,
+} EXTI_EventStatus_t;
+
+EXTI_EventStatus_t m_extiEvent = 0;
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
@@ -163,22 +173,22 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   {
 	  // CH_INT
 	  CHARGER_SetInterrupt();
-	  extiFlag = 1;
+	  m_extiEvent = EXTI_EVENT_CHARGER;
   }
   else if (GPIO_Pin == GPIO_PIN_7)
   {
 	  // I2C SDA
-	  extiFlag = 2;
+	  m_extiEvent = EXTI_EVENT_I2C;
   }
   else if (GPIO_Pin == GPIO_PIN_8)
   {
-	  extiFlag = 4;
+	  m_extiEvent = EXTI_EVENT_IO2;
 	  ioWakeupEvent = 1;
   }
   else
   {
 	  // SW1, SW2, SW3
-	  extiFlag = 3;
+	  m_extiEvent = EXTI_EVENT_USER;
   }
 }
 
@@ -311,7 +321,8 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 }
 
 
-static uint32_t lowPowerDealyTimer;
+static uint32_t m_lowPowerDelayTimer;
+
 static GPIO_InitTypeDef i2c_GPIO_InitStruct;
 
 
@@ -319,45 +330,63 @@ void WaitInterrupt()
 {
 	commandReceivedFlag = 0;
 
-	if (state == STATE_LOWPOWER) {
+	if (state == STATE_LOWPOWER)
+	{
 		HAL_SuspendTick();
-		AnalogStop();
 
+		// Stop the background tasks
+		OSLOOP_Shutdown();
+
+		// Stop the led module
 		LedStop();
+
+		// Enable wake up from rtc
 		if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 8000, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
 		{
 			Error_Handler();
 		}
 
+		// Enable wake up from host
 		i2c_GPIO_InitStruct.Pin = GPIO_PIN_7;
 		i2c_GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
 		i2c_GPIO_InitStruct.Pull = GPIO_NOPULL;
 	    HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
 
+	    // Shutdown
 		HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
 		//HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 
+		// Revert GPIOB.7 back to i2c mode
 		i2c_GPIO_InitStruct.Pin       = GPIO_PIN_7;
 		i2c_GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
 		i2c_GPIO_InitStruct.Pull      = GPIO_NOPULL;//GPIO_PULLUP;
 		i2c_GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
 		i2c_GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
 		HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
-		//DelayUs(1000);
+
+		// Disable interrupt from rtc
 		HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
 
-		//PowerSourceExitLowPower();
-		AnalogStart();
-		DelayUs(150);
+		// Restart background tasks
+		OSLOOP_Init();
+
+		while(false == ADC_GetFilterReady())
+		{
+			// Wait for ADC to become ready
+		}
+
+		// Not sure why timer has increased by 4seconds.
 		TimeTickCb(4000);
+
+		// Restart LED module
 		LedStart();
+
 		HAL_ResumeTick();
 
-		MS_TIME_COUNTER_INIT(lowPowerDealyTimer);
-		//LedSetRGB(LED2, 100, 100, 100);
-	} else if (state == STATE_NORMAL) {
-		//state = STATE_NORMAL;
-		//HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+		MS_TIME_COUNTER_INIT(m_lowPowerDelayTimer);
+	}
+	else if (state == STATE_NORMAL)
+	{
 		HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 	}
 }
@@ -420,19 +449,19 @@ int main(void)
 	{
 		asm volatile ("nop");
 	}
-
+/*
 	TASKLOOP_Init();
 
 	while (1)
 	{
 		TASKLOOP_Run();
 		HAL_Delay(10u);
-	}
+	}*/
 
 	if (!resetStatus) MS_TIME_COUNTER_INIT(lastHostCommandTimer);
 
 	MS_TIME_COUNTER_INIT(mainPollMsCounter);
-	MS_TIME_COUNTER_INIT(lowPowerDealyTimer);
+	MS_TIME_COUNTER_INIT(m_lowPowerDelayTimer);
 
 	MX_IWDG_Init();
 
@@ -452,8 +481,6 @@ int main(void)
 	LoadCurrentSenseInit();
 	BATTERY_Init();
 	BUTTON_Init();
-
-
 	CHARGER_Init();
 	POWERSOURCE_Init();
 	FUELGUAGE_Init();
@@ -497,29 +524,23 @@ int main(void)
 	while (1)
 	{
 		needEventPoll = CHARGER_RequirePoll()
-							|| extiFlag
+							|| (EXTI_EVENT_NONE != m_extiEvent)
 							|| rtcWakeupEventFlag
 							|| commandReceivedFlag
-							|| POW_SOURCE_NEED_POLL()
-							|| alarmEventFlag;
+							|| POWERSOURCE_NeedPoll()
+							|| RTC_GetAlarmState();
 
 	  // Do not disturb i2c transfer if this is i2c interrupt wakeup
 	  if (MS_TIME_COUNT(mainPollMsCounter) >= TICK_PERIOD_MS || needEventPoll)
 	  {
-
-		POWERSOURCE_5VIoDetection_Task();
+		  MS_TIME_COUNTER_INIT(mainPollMsCounter);
 
 		CHARGER_Task();
 		FUELGUAGE_Task();
 		BATTERY_Task();
 		POWERSOURCE_Task();
 
-		if (alarmEventFlag || __HAL_RTC_ALARM_GET_FLAG(&hrtc, RTC_FLAG_ALRAF) != RESET)
-		{
-			EvaluateAlarm();
-			alarmEventFlag = 0;
-			__HAL_RTC_ALARM_CLEAR_FLAG(&hrtc, RTC_FLAG_ALRAF);
-		}
+		RTC_EvaluateAlarm();
 
 		LedTask();
 
@@ -528,11 +549,11 @@ int main(void)
 		PowerManagementTask();
 
 		needEventPoll = CHARGER_RequirePoll()
-							|| extiFlag
+							|| (EXTI_EVENT_NONE != m_extiEvent)
 							|| rtcWakeupEventFlag
 							|| commandReceivedFlag
-							|| POW_SOURCE_NEED_POLL()
-							|| alarmEventFlag;
+							|| POWERSOURCE_NeedPoll()
+							|| RTC_GetAlarmState();
 
 		if (true == needEventPoll)
 		{
@@ -541,10 +562,10 @@ int main(void)
 		}
 		else if ( ( (ANALOG_Get5VRailMa() <= 50) || ((ANALOG_Get5VRailMv() < 4600u) && IODRV_ReadPinValue(IODRV_PIN_EXTVS_EN)) )
 				&& MS_TIME_COUNT(lastHostCommandTimer) > 5000u
-				&& MS_TIME_COUNT(lowPowerDealyTimer) >= 22u
+				&& MS_TIME_COUNT(m_lowPowerDelayTimer) >= 22u
 				&& MS_TIME_COUNT(lastWakeupTimer) > 20000u
-				&& CHARGER_GetStatus() == CHG_NO_VALID_SOURCE
-				&& !BUTTON_IsButtonActive()
+				&& (CHG_NO_VALID_SOURCE == CHARGER_GetStatus())
+				&& (false == BUTTON_IsButtonActive())
 				)
 		{
 			state = STATE_LOWPOWER;
@@ -555,22 +576,18 @@ int main(void)
 		}
 
 
-		if ( extiFlag == 2 )
+		if (EXTI_EVENT_I2C == m_extiEvent)
 		{
 			MS_TIME_COUNTER_INIT(lastHostCommandTimer);
 		}
 
-		extiFlag = 0;
-
+		m_extiEvent = EXTI_EVENT_NONE;
 
 	    // Refresh IWDG: reload counter
 	    if (HAL_IWDG_Refresh(&hiwdg) != HAL_OK)
 	    {
 	      Error_Handler(); // Refresh Error
 	    }
-	    //__HAL_IWDG_RELOAD_COUNTER(&hiwdg); // use for testing
-
-		MS_TIME_COUNTER_INIT(mainPollMsCounter);
 	  }
 
 	  WaitInterrupt();

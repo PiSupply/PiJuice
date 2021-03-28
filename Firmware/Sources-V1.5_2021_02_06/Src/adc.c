@@ -72,6 +72,12 @@ void ADC_Init(const uint32_t sysTime)
 }
 
 
+void ADC_Shutdown(void)
+{
+	HAL_ADC_Stop_DMA(&hadc);
+}
+
+
 // ****************************************************************************
 /*!
  * ADC_Service performs periodic updates for this module

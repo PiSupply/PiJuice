@@ -43,6 +43,8 @@ typedef struct
 
 void IODRV_Init(uint32_t sysTime);
 void IODRV_Service(uint32_t sysTime);
+void IODRV_Shutdown(void);
+
 uint16_t IODRV_ReadPinValue(uint8_t pin);
 bool IODRV_ReadPinOutputState(uint8_t pin);
 const IODRV_Pin_t * IODRV_GetPinInfo(uint8_t pin);

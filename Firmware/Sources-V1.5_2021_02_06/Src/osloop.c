@@ -82,7 +82,7 @@ void OSLOOP_Init(void)
 
 	GPIO_InitTypeDef GPIO_InitStruct;
 
-	//Configure GPIOB output pins
+	//Configure GPIOB output pins - temporary to show osloop is running
 	GPIO_InitStruct.Pin = GPIO_PIN_14;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -128,13 +128,12 @@ void OSLOOP_Service(void)
 void OSLOOP_Shutdown(void)
 {
 	// Shutdown all modules for low power
+	ADC_Shutdown();
+	IODRV_Shutdown();
+	ANALOG_Shutdown();
+	I2CDRV_Shutdown();
 }
 
-
-void OSLOOP_Restart(void)
-{
-	// Restart all modules from low power
-}
 
 // ****************************************************************************
 /*!

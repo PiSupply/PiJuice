@@ -29,7 +29,7 @@ static const uint8_t binHour24ToBcdAmPm[24] = {0x12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 
 static uint8_t weekDaysSelection __attribute__((section("no_init")));
 static uint32_t hoursSelection __attribute__((section("no_init")));
 static uint8_t minutesStep __attribute__((section("no_init")));
-uint8_t alarmEventFlag __attribute__((section("no_init")));
+static bool m_alarmEventFlag __attribute__((section("no_init")));
 
 extern uint8_t resetStatus;
 
@@ -44,7 +44,7 @@ void RtcInit(void) {
 		weekDaysSelection = 0xFF;
 		hoursSelection = 0xFFFFFFFF;
 		minutesStep = 0;
-		alarmEventFlag = 0;
+		m_alarmEventFlag = false;
 		int i;
 		for (i = 0; i < 17; i++) rtc_buffer[i] = 0;//rtcBufferInit[i];
 	}
@@ -60,20 +60,25 @@ void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *phrtc)
 	// if alarm 1 interrupt enabled activate int signal
 	//if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
 		//HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
-	alarmEventFlag = 1;
+	m_alarmEventFlag = true;
 }
 
-void EvaluateAlarm(void)
+
+void RTC_EvaluateAlarm(void)
 {
 	static volatile RTC_TimeTypeDef sTime;
 	static RTC_DateTypeDef dateConf;
 	uint32_t tempReg;
-	//static volatile uint8_t min;
-	// if alarm 1 interrupt enabled activate int signal
-	//if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
-		//HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
+
+	if ( (false == m_alarmEventFlag) && (RESET == __HAL_RTC_ALARM_GET_FLAG(&hrtc, RTC_FLAG_ALRAF)) )
+	{
+		return;
+	}
+
+	__HAL_RTC_ALARM_CLEAR_FLAG(&hrtc, RTC_FLAG_ALRAF);
 
 		uint8_t weekDayMatch = 0;
+
 		if (weekDaysSelection != 0xFF || !(sAlarm.AlarmMask&0x80000000)) {
 			//HAL_RTC_GetDate(&hrtc, &dateConf, RTC_FORMAT_BIN);
 			tempReg = hrtc.Instance->DR;
@@ -135,6 +140,13 @@ void EvaluateAlarm(void)
 		}
 	//}
 }
+
+
+bool RTC_GetAlarmState(void)
+{
+	return m_alarmEventFlag;
+}
+
 
 void RtcDs1339ProcessRequest(uint8_t dir, uint8_t command, uint8_t *pData, uint16_t *dataLen) {
 	uint8_t i;
