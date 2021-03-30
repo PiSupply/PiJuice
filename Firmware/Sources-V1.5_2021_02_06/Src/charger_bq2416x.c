@@ -796,6 +796,8 @@ void CHARGER_UpdateControlStatus(void)
 			((CHGR_BS_USBSTAT_UVP | CHGR_BS_INSTAT_UVP) !=
 					(m_registersIn[CHG_REG_BATTERY_STATUS] & (CHGR_BS_INSTAT_Msk | CHGR_BS_USBSTAT_Msk)));
 
+	const BatteryStatus_T batteryStatus = BATTERY_GetStatus();
+
 
 	if ((m_registersIn[CHG_REG_BATTERY_STATUS] & CHGR_BS_INSTAT_Msk) > CHGR_BS_INSTAT_OVP)
 	{
@@ -807,8 +809,13 @@ void CHARGER_UpdateControlStatus(void)
 	}
 
 
-	// Enable STAT output, Enable charge current termination
+	// Enable STAT output.
 	m_registersOut[CHG_REG_CONTROL] |= (CHGR_CTRL_EN_STAT_bm);// | CHGR_CTRL_TE);
+
+	if ( (BAT_STATUS_NOT_PRESENT != batteryStatus) )
+	{
+		m_registersOut[CHG_REG_CONTROL] |= CHGR_CTRL_TE_bm;
+	}
 
 
 	// Disable charging if configured not, battery profile is not set or temperature is out of working range
@@ -841,6 +848,7 @@ void CHARGER_UpdateRegulationVoltage(void)
 	const int8_t batteryTemperature = FUELGUAGE_GetBatteryTemperature();
 	const BatteryTempSenseConfig_T tempSensorConfig = FUELGUAGE_GetBatteryTempSensorCfg();
 	const BatteryStatus_T batteryStatus = BATTERY_GetStatus();
+	const uint8_t minRegVol = ((FUELGUAGE_GetBatteryMv() - CHGR_CB_BATT_REGV_BASE_MV) / CHGR_CB_BATT_REGV_RESOLUTION) + 1u;
 
 	int8_t newRegVol;
 
@@ -867,10 +875,10 @@ void CHARGER_UpdateRegulationVoltage(void)
 			newRegVol = currentBatProfile->regulationVoltage;
 		}
 
-		// Check to make sure its a positive value
-		if (newRegVol < 0u)
+		// Check to make sure its at least the current battery voltage or bad stuff happens
+		if (newRegVol < (int8_t)minRegVol)
 		{
-			newRegVol = 0u;
+			newRegVol = (int8_t)minRegVol;
 		}
 
 		// Check to make sure the value doesn't exceed the maximum allowed set
@@ -897,7 +905,7 @@ void CHARGER_UpdateChgCurrentAndTermCurrent(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 
-	if (currentBatProfile!=NULL)
+	if (currentBatProfile != NULL)
 	{
 		m_registersOut[CHG_REG_TERMI_FASTCHARGEI] =
 				(((currentBatProfile->chargeCurrent > 26u) ? 26u : currentBatProfile->chargeCurrent & 0x1F) << 3u)
