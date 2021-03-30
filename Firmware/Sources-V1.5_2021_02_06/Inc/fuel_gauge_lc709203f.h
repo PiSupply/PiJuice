@@ -43,12 +43,12 @@ void FUELGUAGE_Task(void);
 
 void FUELGUAGE_SetConfig(const uint8_t * const data, const uint16_t len);
 void FUELGUAGE_GetConfig(uint8_t * const data, uint16_t * const len);
-void FUELGUAGE_SetBatteryProfile(const BatteryProfile_T *batProfile);
+void FUELGUAGE_UpdateBatteryProfile(void);
 int16_t FUELGUAGE_GetBatteryMa(void);
 uint16_t FUELGUAGE_GetBatteryMv(void);
 BatteryTempSenseConfig_T FUELGUAGE_GetBatteryTempSensorCfg(void);
 uint16_t FUELGUAGE_GetSocPt1(void);
-uint8_t FUELGUAGE_GetBatteryTemperature(void);
+int8_t FUELGUAGE_GetBatteryTemperature(void);
 uint16_t FUELGUAGE_GetIcId(void);
 bool FUELGUAGE_IsNtcOK(void);
 bool FUELGUAGE_IsOnline(void);

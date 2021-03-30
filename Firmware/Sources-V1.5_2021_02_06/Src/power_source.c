@@ -41,12 +41,15 @@ volatile int32_t adcDmaPos = -1;
 
 static uint16_t m_vbatPowerOffThreshold;
 
-uint8_t pow5VChgLoadMaximumReached = 0;
+//uint8_t pow5VChgLoadMaximumReached = 0;
+
+uint8_t m_rpiVLowCount;
+
 uint32_t pow5vPresentCounter;
 
-static uint32_t pow5vDetTimeCount;
-
 static uint32_t m_boostOnTimeMs;
+static uint32_t m_lastRPiPowerDetectTimeMs;
+static uint32_t m_rpiDetTimeMs;
 
 static uint32_t forcedPowerOffCounter __attribute__((section("no_init")));
 static uint8_t m_vsysSwitchLimit __attribute__((section("no_init")));
@@ -63,7 +66,7 @@ static void POWERSOURCE_ProcessVIN(void);
 static void POWERSOURCE_Process5VRail(void);
 static void POWERSOURCE_CheckPowerValid(void);
 static void POWERSOURCE_RPi5vDetect(void);
-static void POWERSOURCE_RPi5vProcess(void);
+static void POWERSOURCE_RPi5vRailProcess(void);
 
 static PowerRegulatorConfig_T m_powerRegulatorConfig = POW_REGULATOR_MODE_POW_DET;
 
@@ -102,7 +105,7 @@ void POWERSOURCE_Init(void)
 	MS_TIMEREF_INIT(pow5vPresentCounter, sysTime);
 
 	// Stamp the time from when the module was initialised
-	MS_TIMEREF_INIT(pow5vDetTimeCount, sysTime);
+	MS_TIMEREF_INIT(m_lastRPiPowerDetectTimeMs, sysTime);
 
 	EE_ReadVariable(POWER_REGULATOR_CONFIG_NV_ADDR, &var);
 
@@ -203,6 +206,8 @@ void POWERSOURCE_Task(void)
 	POWERSOURCE_RPi5vDetect();
 	POWERSOURCE_ProcessVIN();
 	POWERSOURCE_Process5VRail();
+
+	POWERSOURCE_CheckPowerValid();
 }
 
 
@@ -386,7 +391,7 @@ void POWERSOURCE_Set5vBoostEnable(const bool enabled)
 		IODRV_SetPin(IODRV_PIN_POW_EN, false);
 
 		// TODO - Need to find out what this does
-		MS_TIME_COUNTER_INIT(pow5vDetTimeCount);
+		MS_TIME_COUNTER_INIT(m_lastRPiPowerDetectTimeMs);
 
 		m_boostConverterEnabled = false;
 
@@ -532,222 +537,109 @@ void POWERSOURCE_CheckPowerValid(void)
 }
 
 
-// Process the power to the RPi
-static void POWERSOURCE_RPi5vProcess(void)
+// Adjust the charge rate if the rail is low
+static void POWERSOURCE_RPi5vRailProcess(void)
 {
+	const BatteryStatus_T batteryStatus = BATTERY_GetStatus();
+	const uint16_t vBattMv = ANALOG_GetBatteryMv();
+	const uint16_t v5RailMv = ANALOG_Get5VRailMv();
 
+	const ChargerStatus_T chargerStatus = CHARGER_GetStatus();
+	const uint8_t chargeLevel = CHARGER_GetRPiChargeInputLevel();
+
+
+	// If running on battery, test to make sure there is enough power to supply the system
+	if ( (false == POWER_SOURCE_PRESENT) )
+	{
+		// If battery is low terminal voltage,
+		// Note: if there is no power source and no battery, what does that mean?!
+		if ( (BAT_STATUS_NOT_PRESENT != batteryStatus) && (vBattMv < m_vbatPowerOffThreshold) )
+		{
+			POWERSOURCE_Set5vBoostEnable(false);
+			forcedPowerOffFlag = 1;
+		}
+	}
 }
 
 
 // Try and determine if the 5v comes from the RPi
 void POWERSOURCE_RPi5vDetect(void)
 {
-	const uint16_t v5RailMv = ANALOG_Get5VRailMv();
-	const uint16_t vBattMv = ANALOG_GetBatteryMv();
 	const uint32_t sysTime = HAL_GetTick();
-	const BatteryStatus_T batteryStatus = BATTERY_GetStatus();
-
-	uint16_t powdetADCValue;
+	const uint16_t v5RailMv = ANALOG_Get5VRailMv();
 
 	uint8_t i;
-
-	uint8_t fetCutoffCount = 0;
-	uint8_t fetActiveCount = 0;
 
 	// Check to see if the boost converter has just switched on.
 	if (false == MS_TIMEREF_TIMEOUT(m_boostOnTimeMs, sysTime, POWERSOURCE_STABLISE_TIME_MS))
 	{
-		// Not sure about this, is it looking to see if the power source has been removed?
-		if ( (false == POWER_SOURCE_PRESENT) && MS_TIMEREF_TIMEOUT(m_boostOnTimeMs, sysTime, 0u) )
-		{
-			// If battery is low terminal voltage
-			if ( (BAT_STATUS_NOT_PRESENT != batteryStatus) && (vBattMv < m_vbatPowerOffThreshold) )
-			{
-				POWERSOURCE_Set5vBoostEnable(false);
-				forcedPowerOffFlag = 1;
-			}
-		}
-
 		// Wait for 5V to become stable after turn on timeout
 		return;
 	}
 
-	POWERSOURCE_CheckPowerValid();
+	// Check to see if its time to have a look at the RPi power - probably should do this all the time!
+	if (false == MS_TIMEREF_TIMEOUT(m_lastRPiPowerDetectTimeMs, sysTime, POWERSROUCE_RPI5V_DETECT_PERIOD_MS))
+	{
+		return;
+	}
+
 
 	// If the boost converter is enabled
-	if (true == m_boostConverterEnabled)
+	if ( (true == m_boostConverterEnabled) )
 	{
-		if (true == m_ldoEnabled)
+		if (false == m_ldoEnabled)
 		{
-			powdetADCValue = ADC_GetAverageValue(ANALOG_CHANNEL_POW_DET);
-
-			if ( powdetADCValue < POW_5V_IO_DET_ADC_THRESHOLD)
-			{
-				// Fet is being turned on
-				if (m_rpi5VInDetStatus != RPI5V_DETECTION_STATUS_UNPOWERED)
-				{
-					MS_TIME_COUNTER_INIT(pow5vPresentCounter);
-					CHARGER_RPi5vInCurrentLimitStepDown();
-				}
-
-				m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_UNPOWERED;
-
-				if (pow5VChgLoadMaximumReached > 1)
-				{
-					pow5VChgLoadMaximumReached --;
-				}
-
-				// Tell charger to not use USB (5V) input
-				CHARGER_SetRPi5vInputEnable(false);
-
-				// Turn off LDO?
-				POWERSOURCE_SetLDOEnable(false);
-			}
-		}
-		else if (m_rpi5VInDetStatus != RPI5V_DETECTION_STATUS_UNPOWERED)
-		{
+			// Can't tell if the RPi is powered without the LDO!
 			m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_UNKNOWN;
-
-			if (pow5VChgLoadMaximumReached > 1u)
-			{
-				pow5VChgLoadMaximumReached --;
-			}
-
-			CHARGER_SetRPi5vInputEnable(false);
-			CHARGER_RPi5vInCurrentLimitStepDown();
-			MS_TIME_COUNTER_INIT(pow5vPresentCounter);
+			MS_TIMEREF_INIT(m_rpiDetTimeMs, sysTime);
 		}
-
-
-		if ( (m_rpi5VInDetStatus != RPI5V_DETECTION_STATUS_POWERED) && (MS_TIME_COUNT(pow5vDetTimeCount) > 95u) )
+		else
 		{
-			MS_TIME_COUNTER_INIT(pow5vDetTimeCount);
-
-			if (false == m_ldoEnabled)
+			if (v5RailMv > POWERSOURCE_LDO_MV)
 			{
-				POWERSOURCE_SetLDOEnable(true);
-			}
-
-			// find out if PMOS goes to cutoff or active state
-			i = 200u;
-
-			while ( (i-- > 0u) && (fetActiveCount < 3u) )
-			{
-				// Was 120us but the ADC doesn't read that fast now!
-				DelayUs(1000u);
-
-				powdetADCValue = ADC_GetInstantValue(ANALOG_CHANNEL_POW_DET);
-
-			    if (powdetADCValue >= POW_5V_IO_DET_ADC_THRESHOLD)
-			    {
-			    	// Fet is being turned off
-			    	fetCutoffCount++;
-			    	fetActiveCount = 0;
-			    }
-			    else
-			    {
-			    	// Fet is being driven
-			    	fetCutoffCount = 0;
-			    	fetActiveCount++;
-			    }
-
-			    POWERSOURCE_CheckPowerValid();
-			}
-
-			if (fetCutoffCount >= 200u)
-			{
-				// turn on usb in if pmos is cutoff
-				m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_POWERED;
-
-				// Enable RPi 5v as charging source
-				CHARGER_SetRPi5vInputEnable(true);
-
-				MS_TIME_COUNTER_INIT(pow5vPresentCounter);
+				if ( (RPI5V_DETECTION_STATUS_POWERED != m_rpi5VInDetStatus)
+						&& (true == MS_TIMEREF_TIMEOUT(m_rpiDetTimeMs, sysTime, POWERSOURCE_RPI5V_POWERED_MS)) )
+				{
+					// If the voltage on the rail is more than the LDO can supply then the RPi is probably powered
+					m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_POWERED;
+				}
 			}
 			else
 			{
-				if (fetActiveCount >= 3)
-				{
-					MeasurePMOSLoadCurrent();
-					m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_UNPOWERED;
-				}
+				m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_UNPOWERED;
 
-				POWERSOURCE_SetLDOEnable(false);
+				MS_TIMEREF_INIT(m_rpiDetTimeMs, sysTime);
 			}
+		}
+
+		return;
+	}
+	else if (v5RailMv > POWERSOURCE_RPI_UNDER_MV)
+	{
+		if ( (RPI5V_DETECTION_STATUS_POWERED != m_rpi5VInDetStatus)
+				&& (true == MS_TIMEREF_TIMEOUT(m_rpiDetTimeMs, sysTime, POWERSOURCE_RPI5V_POWERED_MS)) )
+		{
+			// If the voltage on the rail is more than the LDO can supply then the RPi is probably powered
+			m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_POWERED;
+		}
+
+		if (v5RailMv <= POWERSOURCE_RPI_LOW_MV)
+		{
+			if (m_rpiVLowCount < POWERSOURCE_RPI_VLOW_MAX_COUNT)
+			{
+				m_rpiVLowCount++;
+			}
+		}
+		else
+		{
+			m_rpiVLowCount = 0u;
 		}
 	}
 	else
 	{
-		// LDO regulator is set to 4.79V
-		if (v5RailMv < 4800u)
-		{
-			// RPi power in is either low or not powered
+		MS_TIMEREF_INIT(m_rpiDetTimeMs, sysTime);
 
-			// If previously powered or unknown
-			if (RPI5V_DETECTION_STATUS_UNPOWERED != m_rpi5VInDetStatus)
-			{
-				// Note edge time
-				MS_TIME_COUNTER_INIT(pow5vPresentCounter);
-
-				// Reduce current limit for the USB (5V Rail in)
-				CHARGER_RPi5vInCurrentLimitStepDown();
-			}
-
-			// Set status to power not present
-			m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_UNPOWERED;
-
-			// Tell charger not to use USB (5V) as input
-			CHARGER_SetRPi5vInputEnable(CHG_USB_IN_LOCK);
-
-			// TODO - not sure of this yet
-			if (pow5VChgLoadMaximumReached > 1)
-			{
-				pow5VChgLoadMaximumReached --;
-			}
-		}
-		else if ( (m_rpi5VInDetStatus != RPI5V_DETECTION_STATUS_POWERED) && (MS_TIME_COUNT(pow5vDetTimeCount) > 500u) )
-		{
-
-			// Enable boost converter
-			IODRV_SetPin(IODRV_PIN_POW_EN, true);
-
-			// TODO - Previous code turned now on watchdog timer and called analog start
-
-			// Enable LDO
-			POWERSOURCE_SetLDOEnable(true);
-
-			// Set 5V to status present
-			m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_POWERED;
-
-			// Tell charger to use USB (5V) as input
-			CHARGER_SetRPi5vInputEnable(true);
-
-			MS_TIME_COUNTER_INIT(pow5vPresentCounter);
-		}
-	}
-
-	if (MS_TIME_COUNT(pow5vPresentCounter) > 800u)
-	{
-		MS_TIME_COUNTER_INIT(pow5vPresentCounter);
-
-		if (m_rpi5VInDetStatus == RPI5V_DETECTION_STATUS_POWERED )
-		{
-			if (pow5VChgLoadMaximumReached > 1u)
-			{
-				CHARGER_RPi5vInCurrentLimitStepUp();
-				pow5VChgLoadMaximumReached = 2u;
-			}
-			else if (pow5VChgLoadMaximumReached == 0u)
-			{
-				pow5VChgLoadMaximumReached = 3u;
-			}
-		}
-		else if (m_rpi5VInDetStatus == RPI5V_DETECTION_STATUS_UNPOWERED)
-		{
-			// this means input is disconnected, and flag can be cleared
-			pow5VChgLoadMaximumReached = 0u;
-			CHARGER_RPi5vInCurrentLimitSetMin();
-		}
+		m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_UNPOWERED;
 	}
 }
 
@@ -781,31 +673,39 @@ void POWERSOURCE_Process5VRail(void)
 	const bool rpi5vChargeEnable = CHARGER_GetRPi5vInputEnable();
 	const CHARGER_InputStatus_t rpi5vChargeStatus = CHARGER_GetInputStatus(CHARGER_INPUT_RPI);
 
-	if (true == rpi5vChargeEnable)
-	{
-		if (rpi5vChargeStatus == CHARGER_INPUT_UVP)
-		{
-			m_power5vIoStatus = POW_SOURCE_NOT_PRESENT;
-		}
-		else if ( rpi5vChargeStatus == CHARGER_INPUT_OVP || rpi5vChargeStatus == CHARGER_INPUT_WEAK)
-		{
-			m_power5vIoStatus = POW_SOURCE_BAD;
-		}
-		else if (1u == pow5VChgLoadMaximumReached)
-		{
-			m_power5vIoStatus = POW_SOURCE_WEAK;
-		}
-		else
-		{
-			m_power5vIoStatus = POW_SOURCE_NORMAL;
-		}
-	}
-	else if (RPI5V_DETECTION_STATUS_POWERED != m_rpi5VInDetStatus)
+
+	if (RPI5V_DETECTION_STATUS_POWERED != m_rpi5VInDetStatus)
 	{
 		m_power5vIoStatus = POW_SOURCE_NOT_PRESENT;
+
+		CHARGER_SetRPi5vInputEnable(false);
 	}
 	else
 	{
 		m_power5vIoStatus = POW_SOURCE_NORMAL;
+
+		if (true == rpi5vChargeEnable)
+		{
+			if (rpi5vChargeStatus == CHARGER_INPUT_UVP)
+			{
+				m_power5vIoStatus = POW_SOURCE_NOT_PRESENT;
+			}
+			else if ( rpi5vChargeStatus == CHARGER_INPUT_OVP || rpi5vChargeStatus == CHARGER_INPUT_WEAK)
+			{
+				m_power5vIoStatus = POW_SOURCE_BAD;
+			}
+			else if (0u != m_rpiVLowCount)
+			{
+				m_power5vIoStatus = POW_SOURCE_WEAK;
+			}
+			else
+			{
+				m_power5vIoStatus = POW_SOURCE_NORMAL;
+			}
+		}
+		else
+		{
+			CHARGER_SetRPi5vInputEnable(true);
+		}
 	}
 }

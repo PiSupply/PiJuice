@@ -49,7 +49,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPort = IODRV_PIN_IO1_GPIO,
 				.canConfigure = true,
 				.invert_bm = IODRV_PIN_IO1_INVERT_bm,
-				.analogConversionFactor = ADC_TO_MV_K
+				.analogConversionFactor = ADC_TO_MV_K,
+				.index = IODRV_PIN_IO1
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -57,7 +58,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_IO2_GPIO_PIN_Pos,
 				.gpioPort = IODRV_PIN_IO2_GPIO,
 				.invert_bm = IODRV_PIN_IO2_INVERT_bm,
-				.canConfigure = true
+				.canConfigure = true,
+				.index = IODRV_PIN_IO2
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -65,7 +67,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_SW1_GPIO_PIN_Pos,
 				.gpioPort = IODRV_PIN_SW1_GPIO,
 				.invert_bm = IODRV_PIN_SW1_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = false,
+				.index = IODRV_PIN_SW1
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -73,7 +76,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_SW2_GPIO_PIN_Pos,
 				.gpioPort = IODRV_PIN_SW2_GPIO,
 				.invert_bm = IODRV_PIN_SW2_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = false,
+				.index = IODRV_PIN_SW2
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -81,7 +85,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_SW3_GPIO_PIN_Pos,
 				.gpioPort = IODRV_PIN_SW3_GPIO,
 				.invert_bm = IODRV_PIN_SW3_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = false,
+				.index = IODRV_PIN_SW3
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -89,7 +94,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_POWDET_EN_PIN_Pos,
 				.gpioPort = IODRV_PIN_POWDET_EN_GPIO,
 				.invert_bm = IODRV_PIN_POWDET_EN_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = false,
+				.index = IODRV_PIN_POWDET_EN
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -97,7 +103,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_POW_EN_PIN_Pos,
 				.gpioPort = IODRV_PIN_POW_EN_GPIO,
 				.invert_bm = IODRV_PIN_POW_EN_INVERT_bm,
-				.canConfigure = true
+				.canConfigure = true,
+				.index = IODRV_PIN_POW_EN
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -105,7 +112,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_EXTVS_EN_PIN_Pos,
 				.gpioPort = IODRV_PIN_EXTVS_EN_GPIO,
 				.invert_bm = IODRV_PIN_EXTVS_INVERT_bm,
-				.canConfigure = true
+				.canConfigure = true,
+				.index = IODRV_PIN_EXTVS_EN
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -113,7 +121,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_TS_CTR1_PIN_Pos,
 				.gpioPort = IODRV_PIN_TS_CTR1_GPIO,
 				.invert_bm = IODRV_PIN_TS_CTR1_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = false,
+				.index = IODRV_PIN_TS_CTR1
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -121,7 +130,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_TS_CTR2_PIN_Pos,
 				.gpioPort = IODRV_PIN_TS_CTR2_GPIO,
 				.invert_bm = IODRV_PIN_TS_CTR2_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = false,
+				.index = IODRV_PIN_TS_CTR2
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -129,7 +139,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_CH_INT_PIN_Pos,
 				.gpioPort = IODRV_PIN_CH_INT_GPIO,
 				.invert_bm = IODRV_PIN_CH_INT_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = false,
+				.index = IODRV_PIN_CH_INT
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -137,7 +148,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_ESYSLIM_PIN_Pos,
 				.gpioPort = IODRV_PIN_ESYSLIM_GPIO,
 				.invert_bm = IODRV_PIN_ESYSLIM_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = false,
+				.index = IODRV_PIN_ESYSLIM
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -145,7 +157,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_BGINT_PIN_Pos,
 				.gpioPort = IODRV_PIN_BGINT_GPIO,
 				.invert_bm = IODRV_PIN_BGINT_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = false,
+				.index = IODRV_PIN_BGINT
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -153,7 +166,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_EE_A_PIN_Pos,
 				.gpioPort = IODRV_PIN_EE_A_GPIO,
 				.invert_bm = IODRV_PIN_EE_A_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = false,
+				.index = IODRV_PIN_EE_A
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -161,7 +175,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_EE_WP_PIN_Pos,
 				.gpioPort = IODRV_PIN_EE_WP_GPIO,
 				.invert_bm = IODRV_PIN_EE_WP_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = false,
+				.index = IODRV_PIN_EE_WP
 		},
 		{
 				.adcChannel = MAX_ANALOG_CHANNELS,
@@ -169,7 +184,8 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_RUN_PIN_Pos,
 				.gpioPort = IODRV_PIN_RUN_GPIO,
 				.invert_bm = IODRV_PIN_RUN_INVERT_bm,
-				.canConfigure = false
+				.canConfigure = false,
+				.index = IODRV_PIN_RUN
 		}
 };
 
@@ -413,6 +429,13 @@ const IODRV_Pin_t * IODRV_GetPinInfo(uint8_t pin)
 	}
 
 	return &m_pins[pin];
+}
+
+
+void IORDV_ClearPinEdges(const uint8_t pinIdx)
+{
+	m_pins[pinIdx].lastNegPulseWidthTimeMs = 0u;
+	m_pins[pinIdx].lastPosPulseWidthTimeMs = 0u;
 }
 
 // ----------------------------------------------------------------------------

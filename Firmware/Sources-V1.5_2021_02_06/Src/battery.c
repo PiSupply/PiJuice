@@ -131,7 +131,7 @@ void BATTERY_Task(void)
 	const uint16_t batteryVoltageMv = FUELGUAGE_GetBatteryMv();
 	const uint16_t batteryRsocPt1 = FUELGUAGE_GetSocPt1();
 	const ChargerStatus_T chargerStatus = CHARGER_GetStatus();
-	const bool chargerBatteryDetected = CHARGER_IsBatteryPresent();
+	const bool chargerBatteryDetected = (CHARGER_BATTERY_NOT_PRESENT != CHARGER_GetBatteryStatus());
 	const PowerState_T powerState = state;
 
 
@@ -395,6 +395,9 @@ void BATTERY_InitProfile(uint8_t initProfileId)
 		m_p_activeBatteryProfile = NULL;
 		m_batteryProfileStatus = BATTERY_PROFILE_STATUS_STORED_PROFILE_ID_INVALID;
 	}
+
+	// Make sure the charger knows about the profile
+	CHARGER_UpdateBatteryProfile();
 }
 
 
@@ -622,7 +625,8 @@ void BATTERY_SetNewProfile(const uint8_t newProfile)
 	}
 
 	POWERSOURCE_UpdateBatteryProfile(m_p_activeBatteryProfile);
-	FUELGUAGE_SetBatteryProfile(m_p_activeBatteryProfile);
+	FUELGUAGE_UpdateBatteryProfile();
+	CHARGER_UpdateBatteryProfile();
 }
 
 
@@ -671,7 +675,8 @@ void BATTERY_WriteCustomProfile(const BatteryProfile_T * newProfile)
 	}
 
 	POWERSOURCE_UpdateBatteryProfile(m_p_activeBatteryProfile);
-	FUELGUAGE_SetBatteryProfile(m_p_activeBatteryProfile);
+	FUELGUAGE_UpdateBatteryProfile();
+	CHARGER_UpdateBatteryProfile();
 }
 
 
@@ -683,7 +688,9 @@ void BATTERY_WriteCustomProfileExtended(const BatteryProfile_T * newProfile)
 
 	if (m_batteryProfileStatus == BATTERY_CUSTOM_PROFILE_ID)
 	{
-		FUELGUAGE_SetBatteryProfile(m_p_activeBatteryProfile);
+		// TODO - Nothing now uses this extended data in fuelgauge as the ocv -> soc calculation is done by the IC.
+		// - Decide what to do.
+		FUELGUAGE_UpdateBatteryProfile();
 	}
 }
 

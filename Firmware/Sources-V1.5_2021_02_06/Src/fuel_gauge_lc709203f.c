@@ -55,6 +55,7 @@ static int16_t m_dischargeRate;
 static uint16_t m_fuelguageIcId;
 static bool m_thermistorGood;
 static uint32_t m_lastFuelGaugeTaskTimeMs;
+static bool m_updateBatteryProfile;
 
 
 void FUELGUAGE_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
@@ -162,6 +163,7 @@ void FUELGUAGE_Task(void)
 	const uint16_t battMv = ANALOG_GetBatteryMv();
 
 	uint16_t tempU16;
+	int16_t tempS16;
 	uint32_t socTimeDiff;
 
 	if (MS_TIMEREF_TIMEOUT(m_lastFuelGaugeTaskTimeMs, sysTime, FUELGUAGE_TASK_PERIOD_MS))
@@ -176,7 +178,7 @@ void FUELGUAGE_Task(void)
 			return;
 		}
 
-		if ( (FUELGUAGE_STATUS_OFFLINE == m_fuelgaugeIcStatus) )
+		if ( (FUELGUAGE_STATUS_OFFLINE == m_fuelgaugeIcStatus) || m_updateBatteryProfile )
 		{
 			if (true == FUELGUAGE_IcInit())
 			{
@@ -210,7 +212,16 @@ void FUELGUAGE_Task(void)
 			{
 				if (true == FUELGUAGE_ReadWord(FG_MEM_ADDR_CELL_TEMP, &tempU16))
 				{
-					m_batteryTemperaturePt1 = ((int16_t)tempU16 - CELL_TEMP_OFS);
+					tempS16 = ((int16_t)tempU16 - CELL_TEMP_OFS);
+
+					if (tempS16 < 0)
+					{
+						m_batteryTemperaturePt1 = mcuTemperature * 10;
+					}
+					else
+					{
+						m_batteryTemperaturePt1 = tempS16;
+					}
 				}
 			}
 			else
@@ -224,14 +235,9 @@ void FUELGUAGE_Task(void)
 }
 
 
-void FUELGUAGE_SetBatteryProfile(const BatteryProfile_T *batProfile)
+void FUELGUAGE_UpdateBatteryProfile(void)
 {
-	if ( (NULL != batProfile) && (0xFFFFu != batProfile->ntcB) )
-	{
-		//FUELGUAGE_WriteWord(FG_MEM_ADDR_THERMB, batProfile->ntcB);
-	}
-
-	//FuelGaugeDvInit();
+	m_updateBatteryProfile = true;
 }
 
 
@@ -289,7 +295,7 @@ bool FUELGUAGE_IsOnline(void)
 }
 
 
-uint8_t FUELGUAGE_GetBatteryTemperature(void)
+int8_t FUELGUAGE_GetBatteryTemperature(void)
 {
 	return m_batteryTemperaturePt1 / 10;
 }

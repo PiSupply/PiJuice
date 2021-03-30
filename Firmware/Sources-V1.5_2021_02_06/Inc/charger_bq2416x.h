@@ -31,6 +31,7 @@ typedef enum
 	CHG_USB_READY = 2u,
 	CHG_CHARGING_FROM_IN = 3u,
 	CHG_CHARGING_FROM_USB = 4u,
+	CHG_CHARGING_FROM_RPI = 4u,
 	CHG_CHARGE_DONE = 5u,
 	CHG_NA = 6u,
 	CHG_FAULT = 7u
@@ -91,6 +92,14 @@ typedef enum
 
 typedef enum
 {
+	CHARGER_BATTERY_NORMAL = 0u,
+	CHARGER_BATTERY_OVP = 1u,
+	CHARGER_BATTERY_NOT_PRESENT = 2u
+} CHARGER_BatteryStatus_t;
+
+
+typedef enum
+{
 	CHARGER_STATUS_OFFLINE = 0u,
 	CHARGER_STATUS_ONLINE = 1u,
 } CHARGER_DeviceStatus_t;
@@ -113,16 +122,20 @@ bool CHARGER_GetRPi5vInputEnable(void);
 void CHARGER_RPi5vInCurrentLimitSetMin(void);
 void CHARGER_RPi5vInCurrentLimitStepDown(void);
 void CHARGER_RPi5vInCurrentLimitStepUp(void);
+uint8_t CHARGER_GetRPiChargeInputLevel(void);
 
 bool CHARGER_RequirePoll(void);
 bool CHARGER_GetNoBatteryTurnOnEnable(void);
 
 bool CHARGER_IsChargeSourceAvailable(void);
 bool CHARGER_IsBatteryPresent(void);
+CHARGER_BatteryStatus_t CHARGER_GetBatteryStatus(void);
+
 bool CHARGER_HasTempSensorFault(void);
 uint8_t CHARGER_GetTempFault(void);
 CHARGER_InputStatus_t CHARGER_GetInputStatus(uint8_t channel);
 bool CHARGER_IsDPMActive(void);
 uint8_t CHARGER_GetFaultStatus(void);
+void CHARGER_UpdateBatteryProfile(void);
 
 #endif /* CHARGER_BQ2416X_H_ */

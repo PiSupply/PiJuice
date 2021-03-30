@@ -4,9 +4,10 @@
 
 #include "system_conf.h"
 #include "i2cdrv.h"
+#include "iodrv.h"
 #include "util.h"
 
-
+#include "battery.h"
 #include "charger_bq2416x.h"
 #include "charger_conf.h"
 
@@ -41,10 +42,11 @@
 #define CHRG_CONFIG_INPUTS_DPM					((m_chargerInputsConfig >> CHGR_INPUTS_CONFIG_CHARGER_DPM_Pos) & 0x07u)
 
 
-#define CHG_READ_PERIOD_MS 				90  // ms
-#define CHARGER_WDT_RESET_PERIOD_MS 	(30000 / 3)
+#define CHG_READ_PERIOD_MS 						90u  // ms
+#define CHARGER_WDT_TIMOUT_PERIOD_MS			30000u
+#define CHARGER_WDT_RESET_PERIOD_MS 			1000u
+#define CHARGER_VIN_DPM_USB						6u
 
-#define CHARGER_VIN_DPM_USB				6//0X07
 
 extern uint8_t resetStatus;
 
@@ -82,7 +84,6 @@ void CHARGER_KickDeviceWatchdog(const uint32_t sysTime);
 
 static bool CHARGER_CheckForPoll(void);
 
-
 static CHARGER_USBInLockoutStatus_T m_rpi5VInputDisable = CHG_USB_IN_UNKNOWN;
 static CHARGER_USBInCurrentLimit_T m_rpi5VCurrentLimit = CHG_IUSB_LIMIT_150MA; // current limit code as defined in datasheet
 
@@ -99,6 +100,7 @@ static uint32_t m_lastWDTResetTimeMs;
 static uint32_t m_lastRegReadTimeMs;
 static bool m_interrupt;
 static bool m_chargerNeedPoll;
+static bool m_updateBatteryProfile;
 
 
 void CHARGER_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
@@ -193,6 +195,7 @@ void CHARGER_Init(void)
 		}
 		else
 		{
+			// Set enable charge if unprogrammed
 			m_chargingConfig = CHARGING_CONFIG_CHARGE_EN_bm;
 		}
 	}
@@ -202,7 +205,7 @@ void CHARGER_Init(void)
 	MS_TIMEREF_INIT(m_lastWDTResetTimeMs, sysTime);
 
 
-	// Initialise all values from the device
+	// Initialise all values from the device, most likely going to be default and a watchdog timeout
 	CHARGER_UpdateAllLocalRegisters();
 
 
@@ -219,8 +222,8 @@ void CHARGER_Init(void)
 
 	// Disable charging and set current limit from RPi to 500mA
 	// High impedance mode is not enabled or we might not get any power!
-	m_registersOut[CHG_REG_CONTROL] = (CHGR_CTRL_CHG_DISABLE | CHGR_CTRL_IUSB_LIMIT_500MA);
-	CHARGER_UpdateDeviceRegister(CHG_REG_CONTROL, m_registersOut[CHG_REG_CONTROL], CHGR_REGISTER_ALLBITS);
+	m_registersOut[CHG_REG_CONTROL] = (CHGR_CTRL_CHG_DISABLE_bm | CHGR_CTRL_IUSB_LIMIT_500MA);
+	CHARGER_UpdateDeviceRegister(CHG_REG_CONTROL, m_registersOut[CHG_REG_CONTROL], m_registersWriteMask[CHG_REG_CONTROL]);
 
 
 	DelayUs(500);
@@ -232,12 +235,30 @@ void CHARGER_Init(void)
 	CHARGER_UpdateLocalRegister(CHG_REG_SUPPLY_STATUS);
 	CHARGER_UpdateLocalRegister(CHG_REG_BATTERY_STATUS);
 
+
 	m_chargerStatus = (m_registersIn[CHG_REG_SUPPLY_STATUS] >> CHGR_SC_STAT_Pos) & 0x07u;
+
 }
 
 
 __weak void InputSourcePresenceChangeCb(uint8_t event) {
 	UNUSED(event);
+}
+
+
+void CHARGER_UpdateSettings(void)
+{
+	// Setting was changed, process the lot!
+	CHARGER_UpdateSupplyPreference();
+	CHARGER_UpdateRPi5VInLockout();
+	CHARGER_UpdateControlStatus();
+	CHARGER_UpdateRegulationVoltage();
+
+	CHARGER_UpdateTempRegulationControlStatus();
+	CHARGER_UpdateChgCurrentAndTermCurrent();
+	CHARGER_UpdateVinDPM();
+
+	m_chargerNeedPoll = false;
 }
 
 
@@ -251,8 +272,18 @@ __weak void InputSourcePresenceChangeCb(uint8_t event) {
 // ****************************************************************************
 void CHARGER_Task(void)
 {
-	const uint16_t battMv = ANALOG_GetBatteryMv();
-	uint32_t sysTime = HAL_GetTick();
+	const BatteryStatus_T batteryStatus = BATTERY_GetStatus();
+	const uint32_t sysTime = HAL_GetTick();
+	uint8_t tempReg;
+	const IODRV_Pin_t * p_pin = IODRV_GetPinInfo(2u);
+
+
+	if (p_pin->lastPosPulseWidthTimeMs > 200u)
+	{
+		IORDV_ClearPinEdges(2u);
+
+		m_chargingConfig ^= CHARGING_CONFIG_CHARGE_EN_bm;
+	}
 
 
 	if (MS_TIMEREF_TIMEOUT(m_lastWDTResetTimeMs, sysTime, CHARGER_WDT_RESET_PERIOD_MS))
@@ -264,20 +295,38 @@ void CHARGER_Task(void)
 	}
 
 
+	// If there's an over voltage detection on the battery manual says to toggle HiZ bit.
+	// This could occur because of battery insertion or power source insertion
+	// Also check that the battery info hasn't been updated
+	// Also make sure there is a battery connected!
+	if ( (batteryStatus != BAT_STATUS_NOT_PRESENT) &&
+			( (CHGR_BS_BATSTAT_OVP == (m_registersIn[CHG_REG_BATTERY_STATUS] & CHGR_BS_BATSTAT_Msk)) ||
+					m_updateBatteryProfile ) )
+	{
+		// Clear the battery update flag
+		m_updateBatteryProfile = false;
+
+		// Get previously written setting (ignore anything new for now)
+		tempReg = (m_registersIn[CHG_REG_CONTROL] & m_registersWriteMask[CHG_REG_CONTROL]);
+
+		// Set high-z mode to ensure safe setting of battery regulation voltage
+		tempReg |= CHGR_CTRL_HZ_MODE_bm;
+		CHARGER_UpdateDeviceRegister(CHG_REG_CONTROL, tempReg, m_registersWriteMask[CHG_REG_CONTROL]);
+
+		// Read the value back or updating regulation voltage won't know it's in high-z mode
+		CHARGER_UpdateLocalRegister(CHG_REG_CONTROL);
+
+		// Set the batvreg value
+		CHARGER_UpdateRegulationVoltage();
+
+		// High z will be changed back when the registers are updated
+		m_chargerNeedPoll = true;
+	}
+
+
 	if (true == m_chargerNeedPoll)
 	{
-		// Setting was changed, process the lot!
-		CHARGER_UpdateSupplyPreference();
-		CHARGER_UpdateRPi5VInLockout();
-		CHARGER_UpdateControlStatus();
-		CHARGER_UpdateRegulationVoltage();
-		CHARGER_UpdateTempRegulationControlStatus();
-		CHARGER_UpdateChgCurrentAndTermCurrent();
-		CHARGER_UpdateVinDPM();
-
-		m_chargerNeedPoll = false;
-
-		sysTime = HAL_GetTick();
+		CHARGER_UpdateSettings();
 
 		// Ensure the registers get updated
 		MS_TIMEREF_INIT(m_lastRegReadTimeMs, sysTime - CHG_READ_PERIOD_MS);
@@ -296,8 +345,7 @@ void CHARGER_Task(void)
 			MS_TIME_COUNTER_INIT(m_lastRegReadTimeMs);
 		}
 
-
-		// TODO - Not sure about this yet
+		// TODO - Not sure about this yet, does fix the watchdog reset issue
 		m_chargerNeedPoll = CHARGER_CheckForPoll();
 	}
 }
@@ -353,6 +401,13 @@ bool CHARGER_GetRPi5vInputEnable()
 }
 
 
+CHARGER_USBInLockoutStatus_T CHARGER_GetRPi5vInLockStatus(void)
+{
+	return m_rpi5VInputDisable;
+}
+
+
+
 void CHARGER_RPi5vInCurrentLimitStepUp(void)
 {
 	if (m_rpi5VCurrentLimit < CHG_IUSB_LIMIT_1500MA)
@@ -374,6 +429,13 @@ void CHARGER_RPi5vInCurrentLimitStepDown(void)
 void CHARGER_RPi5vInCurrentLimitSetMin(void)
 {
 	m_rpi5VCurrentLimit = CHG_IUSB_LIMIT_150MA;
+}
+
+
+uint8_t CHARGER_GetRPiChargeInputLevel(void)
+{
+	// TODO - read actual register?
+	return (uint8_t)m_rpi5VCurrentLimit;
 }
 
 
@@ -438,17 +500,16 @@ uint8_t CHARGER_GetChargeEnableConfig(void)
 }
 
 
-
-CHARGER_USBInLockoutStatus_T CHARGER_GetRPi5vInLockStatus(void)
-{
-	return m_rpi5VInputDisable;
-}
-
-
 void CHARGER_SetInterrupt(void)
 {
 	// Flag went up
 	m_interrupt = true;
+}
+
+
+void CHARGER_UpdateBatteryProfile(void)
+{
+	m_updateBatteryProfile = true;
 }
 
 
@@ -482,6 +543,12 @@ bool CHARGER_IsChargeSourceAvailable(void)
 bool CHARGER_IsBatteryPresent(void)
 {
 	return (m_registersIn[CHG_REG_BATTERY_STATUS] & CHGR_BS_BATSTAT_Msk) == CHGR_BS_BATSTAT_NORMAL;
+}
+
+
+CHARGER_BatteryStatus_t CHARGER_GetBatteryStatus(void)
+{
+	return ((m_registersIn[CHG_REG_BATTERY_STATUS] >> CHGR_BS_BATSTAT_Pos) & 0x3u);
 }
 
 
@@ -677,13 +744,18 @@ void CHARGER_KickDeviceWatchdog(const uint32_t sysTime)
 
 void CHARGER_UpdateSupplyPreference(void)
 {
-	const uint8_t writeMask =
 
-	m_registersOut[CHG_REG_SUPPLY_STATUS] &= ~(CHGR_SUPPLY_SEL_bm);
+	if (true == CHGR_CONFIG_INPUTS_RPI5V_PREFERRED)
+	{
+		m_registersOut[CHG_REG_SUPPLY_STATUS] |= CHGR_SC_FLT_SUPPLY_PREF_USB;
+	}
+	else
+	{
+		m_registersOut[CHG_REG_SUPPLY_STATUS] &= ~(CHGR_SUPPLY_SEL_bm);
+	}
 
-	m_registersOut[CHG_REG_SUPPLY_STATUS] |= (true == CHGR_CONFIG_INPUTS_RPI5V_PREFERRED) ? CHGR_SC_FLT_SUPPLY_PREF_USB : 0u;
-
-	CHARGER_UpdateDeviceRegister(CHG_REG_CONTROL_BATTERY, m_registersIn[CHG_REG_SUPPLY_STATUS], writeMask);
+	CHARGER_UpdateDeviceRegister(CHG_REG_SUPPLY_STATUS, m_registersOut[CHG_REG_SUPPLY_STATUS],
+									m_registersWriteMask[CHG_REG_SUPPLY_STATUS]);
 }
 
 
@@ -720,37 +792,43 @@ void CHARGER_UpdateControlStatus(void)
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const uint8_t batteryTemp = FUELGUAGE_GetBatteryTemperature();
 	const BatteryTempSenseConfig_T tempSensorConfig = FUELGUAGE_GetBatteryTempSensorCfg();
+	const bool inputSourcePresent =
+			((CHGR_BS_USBSTAT_UVP | CHGR_BS_INSTAT_UVP) !=
+					(m_registersIn[CHG_REG_BATTERY_STATUS] & (CHGR_BS_INSTAT_Msk | CHGR_BS_USBSTAT_Msk)));
 
-	// usb in current limit code, Enable STAT output, Enable charge current termination
-	m_registersOut[CHG_REG_CONTROL] = ((m_rpi5VCurrentLimit << CHGR_CTRL_IUSB_LIMIT_Pos) & CHGR_CTRL_IUSB_LIMIT_Msk)
-									| CHGR_CTRL_EN_STAT
-									| CHGR_CTRL_TE;
 
-	if (currentBatProfile != NULL)
+	if ((m_registersIn[CHG_REG_BATTERY_STATUS] & CHGR_BS_INSTAT_Msk) > CHGR_BS_INSTAT_OVP)
 	{
-		if ( CHARGE_DISABLED
-			|| ( (tempSensorConfig != BAT_TEMP_SENSE_CONFIG_NOT_USED)
-						&& ((batteryTemp >= currentBatProfile->tHot) || (batteryTemp <= currentBatProfile->tCold))
-					)
-			)
-		{
-			// disable charging
-			m_registersOut[CHG_REG_CONTROL] |= CHGR_CTRL_CHG_DISABLE;
-			m_registersOut[CHG_REG_CONTROL] &= ~(CHGR_CTRL_HZ_MODE); // clear high impedance mode
-		}
-		else
-		{
-			// enable charging
-			m_registersOut[CHG_REG_CONTROL] &= ~(CHGR_CTRL_CHG_DISABLE);
-			m_registersOut[CHG_REG_CONTROL] &= ~(CHGR_CTRL_HZ_MODE); // clear high impedance mode
-		}
+		m_registersOut[CHG_REG_CONTROL] = 0u;
 	}
 	else
 	{
-		// disable charging
-		m_registersOut[CHG_REG_CONTROL] |= CHGR_CTRL_CHG_DISABLE;
-		m_registersOut[CHG_REG_CONTROL] &= ~(CHGR_CTRL_HZ_MODE); // clear high impedance mode
+		m_registersOut[CHG_REG_CONTROL] = (m_rpi5VCurrentLimit << CHGR_CTRL_IUSB_LIMIT_Pos) & CHGR_CTRL_IUSB_LIMIT_Msk;
 	}
+
+
+	// Enable STAT output, Enable charge current termination
+	m_registersOut[CHG_REG_CONTROL] |= (CHGR_CTRL_EN_STAT_bm);// | CHGR_CTRL_TE);
+
+
+	// Disable charging if configured not, battery profile is not set or temperature is out of working range
+	if ( CHARGE_DISABLED || (currentBatProfile == NULL) || (false == inputSourcePresent) ||
+			( (tempSensorConfig != BAT_TEMP_SENSE_CONFIG_NOT_USED)
+					&& ((batteryTemp >= currentBatProfile->tHot) || (batteryTemp <= currentBatProfile->tCold))
+				)
+		)
+	{
+		// disable charging
+		m_registersOut[CHG_REG_CONTROL] |= CHGR_CTRL_CHG_DISABLE_bm;
+	}
+
+
+	// Enable high-z mode if no input source is present
+	if (false == inputSourcePresent)
+	{
+		m_registersOut[CHG_REG_CONTROL] |= CHGR_CTRL_HZ_MODE_bm;
+	}
+
 
 	CHARGER_UpdateDeviceRegister(CHG_REG_CONTROL, m_registersOut[CHG_REG_CONTROL],
 									m_registersWriteMask[CHG_REG_CONTROL]);
@@ -760,33 +838,55 @@ void CHARGER_UpdateControlStatus(void)
 void CHARGER_UpdateRegulationVoltage(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
-	const uint8_t batteryTemperature = FUELGUAGE_GetBatteryTemperature();
+	const int8_t batteryTemperature = FUELGUAGE_GetBatteryTemperature();
 	const BatteryTempSenseConfig_T tempSensorConfig = FUELGUAGE_GetBatteryTempSensorCfg();
+	const BatteryStatus_T batteryStatus = BATTERY_GetStatus();
 
 	int8_t newRegVol;
 
-	// Clear everything except the d+/d- detection.
-	m_registersOut[CHG_REG_CONTROL_BATTERY] &= CHGR_CB_DPDN_EN_bm;
+	m_registersOut[CHG_REG_CONTROL_BATTERY] = 0u;
 
 	// Set input current limit
 	m_registersOut[CHG_REG_CONTROL_BATTERY] |= (false == CHRG_CONFIG_INPUTS_IN_LIMITED_1pt5A) ?
 										CHGR_CB_IN_LIMIT_2pt5A :
 										CHGR_CB_IN_LIMIT_1pt5A;
 
-	if (currentBatProfile != NULL)
+
+	// Check for valid battery profile, a battery present and the device set to high-z mode
+	if ( (currentBatProfile != NULL) &&
+			(BAT_STATUS_NOT_PRESENT != batteryStatus) &&
+			(CHGR_CTRL_HZ_MODE_bm == (m_registersIn[CHG_REG_CONTROL] & CHGR_CTRL_HZ_MODE_bm))
+			)
 	{
 		if ( (batteryTemperature > currentBatProfile->tWarm) && (BAT_TEMP_SENSE_CONFIG_NOT_USED != tempSensorConfig) )
 		{
 			newRegVol = ((int8_t)currentBatProfile->regulationVoltage) - (140/20);
-			newRegVol = newRegVol < 0 ? 0 : newRegVol;
 		}
 		else
 		{
 			newRegVol = currentBatProfile->regulationVoltage;
 		}
 
-		m_registersOut[CHG_REG_CONTROL_BATTERY] |= newRegVol << CHGR_CB_BATT_REGV_Pos;
+		// Check to make sure its a positive value
+		if (newRegVol < 0u)
+		{
+			newRegVol = 0u;
+		}
+
+		// Check to make sure the value doesn't exceed the maximum allowed set
+		if (newRegVol > CHGR_CB_BATT_REGV_MAX_SET)
+		{
+			newRegVol = CHGR_CB_BATT_REGV_MAX_SET;
+		}
+
+		m_registersOut[CHG_REG_CONTROL_BATTERY] |= ((uint8_t)newRegVol << CHGR_CB_BATT_REGV_Pos);
 	}
+	else
+	{
+		// Keep to whatever the charging IC has overriden the value to
+		m_registersOut[CHG_REG_CONTROL_BATTERY] |= (m_registersIn[CHG_REG_CONTROL_BATTERY] & CHGR_CB_BATT_REGV_Msk);
+	}
+
 
 	CHARGER_UpdateDeviceRegister(CHG_REG_CONTROL_BATTERY, m_registersOut[CHG_REG_CONTROL_BATTERY],
 									m_registersWriteMask[CHG_REG_CONTROL_BATTERY]);
@@ -849,6 +949,9 @@ void CHARGER_UpdateTempRegulationControlStatus(void)
 }
 
 
+static volatile uint8_t lastChgUpdate;
+
+
 bool CHARGER_CheckForPoll(void)
 {
 	uint8_t i = CHARGER_REGISTER_COUNT;
@@ -857,9 +960,12 @@ bool CHARGER_CheckForPoll(void)
 	{
 		if ((m_registersIn[i] & m_registersWriteMask[i]) != m_registersOut[i])
 		{
+			lastChgUpdate = i;
 			return true;
 		}
 	}
+
+	lastChgUpdate = 0xFFu;
 
 	return false;
 }

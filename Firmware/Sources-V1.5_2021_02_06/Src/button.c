@@ -154,7 +154,9 @@ void BUTTON_Task(void)
  * BUTTON_EVENT_LONG_PRESS2 is raised if the button is held and the button.longPressTime2 is exceeded.
  *
  * In all cases: Events are not registered if actions are not allocated to the function.
- * In all cases: Events are always raised if the previous priority is exceeded with exception of BUTTON_EVENT_SINGLE_PRESS.
+ * In all cases: Events are ALWAYS raised if the previous priority is exceeded with exception of BUTTON_EVENT_SINGLE_PRESS.
+ *
+ * Things get a bit sketchy if the event is cleared and the button is held.
  *
  * Activity is cleared after 30 seconds.
  *
@@ -191,6 +193,7 @@ void BUTTON_ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 			p_button->event = BUTTON_EVENT_NONE;
 			oldEv = BUTTON_EVENT_NONE;
 		}
+
 		// The pulse is cleared after one day in the IODRV module
 		// This check ensures that the 47 day roll over does not cause a phantom
 		// button press as the button will have appeared to have been pressed
@@ -236,6 +239,7 @@ void BUTTON_ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 			p_button->event = BUTTON_EVENT_LONG_PRESS1;
 		}
 		else if ( ((lastEdgeMs + previousButtonCycleTimeMs) < p_button->doublePressTime)
+				&& (previousButtonCycleTimeMs > 0u)
 				&& (BUTTON_EVENT_NO_FUNC != p_button->doublePressFunc))
 		{
 			// Raise double press event
@@ -278,6 +282,9 @@ void BUTTON_ClearEvent(const uint8_t buttonIndex)
 	if (buttonIndex < BUTTON_MAX_BUTTONS)
 	{
 		m_buttons[buttonIndex].event = BUTTON_EVENT_NONE;
+
+		// Ensure the event doesn't get re-triggered
+		IORDV_ClearPinEdges(m_buttons[buttonIndex].p_pinInfo->index);
 	}
 }
 

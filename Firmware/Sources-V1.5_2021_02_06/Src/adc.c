@@ -28,6 +28,7 @@
 
 static uint16_t m_adcVals[MAX_ANALOG_CHANNELS];
 static AVE_FILTER_U16_t	m_aveFilters[MAX_ANALOG_CHANNELS];
+static AVE_FILTER_S32_t m_currentSenseFilter;
 static uint32_t m_lastAdcStartTime;
 
 static uint16_t m_adcIntRefCal;
@@ -59,6 +60,8 @@ void ADC_Init(const uint32_t sysTime)
 	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_IO1], sysTime, FILTER_PERIOD_MS_IO1);
 	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_MPUTEMP], sysTime, FILTER_PERIOD_MS_MPUTEMP);
 	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_INTREF], sysTime, FILTER_PERIOD_MS_INTREF);
+
+	AVE_FILTER_S32_InitPeriodic(&m_currentSenseFilter, sysTime, FILTER_PERIOD_MS_CS1 * 8u);
 
 	m_aveFilterReady = false;
 
@@ -110,6 +113,11 @@ void ADC_Service(const uint32_t sysTime)
 					AVE_FILTER_U16_UpdatePeriodic(&m_aveFilters[i], m_adcVals[i], sysTime);
 				}
 			}
+
+			AVE_FILTER_S32_UpdatePeriodic(&m_currentSenseFilter,
+					(int32_t)(m_aveFilters[ANALOG_CHANNEL_CS1].total - m_aveFilters[ANALOG_CHANNEL_CS2].total),
+					sysTime
+					);
 
 			if (0u == m_aveFilters[0].nextValueIdx)
 			{

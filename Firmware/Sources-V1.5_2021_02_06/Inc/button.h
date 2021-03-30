@@ -49,6 +49,7 @@ typedef struct
 	ButtonEvent_T event;
 	uint8_t staticLongPressEvent;
 	const IODRV_Pin_t * p_pinInfo;
+	uint8_t pressCount;
 	uint8_t index;
 } Button_T;
 

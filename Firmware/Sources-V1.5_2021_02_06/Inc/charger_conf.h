@@ -48,11 +48,11 @@
 #define CHGR_BS_INSTAT_UVP				(3u << CHGR_BS_INSTAT_Pos)
 
 #define CHGR_BS_USBSTAT_Pos				(4u)
-#define CHGR_BS_USBSTAT_Msk				(3u << CHGR_BS_INSTAT_Pos)
-#define CHGR_BS_USBSTAT_NORMAL			(0u << CHGR_BS_INSTAT_Pos)
-#define CHGR_BS_USBSTAT_OVP				(1u << CHGR_BS_INSTAT_Pos)
-#define CHGR_BS_USBSTAT_WEAK			(2u << CHGR_BS_INSTAT_Pos)
-#define CHGR_BS_USBSTAT_UVP				(3u << CHGR_BS_INSTAT_Pos)
+#define CHGR_BS_USBSTAT_Msk				(3u << CHGR_BS_USBSTAT_Pos)
+#define CHGR_BS_USBSTAT_NORMAL			(0u << CHGR_BS_USBSTAT_Pos)
+#define CHGR_BS_USBSTAT_OVP				(1u << CHGR_BS_USBSTAT_Pos)
+#define CHGR_BS_USBSTAT_WEAK			(2u << CHGR_BS_USBSTAT_Pos)
+#define CHGR_BS_USBSTAT_UVP				(3u << CHGR_BS_USBSTAT_Pos)
 
 #define CHGR_BS_OTG_LOCK_bm				(1u << 3u)
 #define CHGR_BS_BATSTAT_Pos				(1u)
@@ -75,15 +75,22 @@
 #define CHGR_CTRL_IUSB_LIMIT_800MA		(3u << CHGR_CTRL_IUSB_LIMIT_Pos)
 #define CHGR_CTRL_IUSB_LIMIT_900MA		(4u << CHGR_CTRL_IUSB_LIMIT_Pos)
 #define CHGR_CTRL_IUSB_LIMIT_1500MA		(5u << CHGR_CTRL_IUSB_LIMIT_Pos)
-#define CHGR_CTRL_EN_STAT				(1u << 3u)
-#define CHGR_CTRL_TE					(1u << 2u)
-#define CHGR_CTRL_CHG_DISABLE			(1u << 1u)
-#define CHGR_CTRL_HZ_MODE				(1u << 0u)
+#define CHGR_CTRL_EN_STAT_bm			(1u << 3u)
+#define CHGR_CTRL_TE_bm					(1u << 2u)
+#define CHGR_CTRL_CHG_DISABLE_bm		(1u << 1u)
+#define CHGR_CTRL_HZ_MODE_bm			(1u << 0u)
 
 #define CHGR_CB_DPDN_EN_bm				(1u << 0u)
 #define CHGR_CB_IN_LIMIT_bm				(1u << 1u)
 #define CHGR_CB_BATT_REGV_Pos			2u
 #define CHGR_CB_BATT_REGV_Msk			(0x3Fu << CHGR_CB_BATT_REGV_Pos)
+
+
+#define CHGR_REGV_MAX_SET_MV			4440u
+#define CHGR_CB_BATT_REGV_BASE_MV		3500u
+#define CHGR_CB_BATT_REGV_MAX_SETV_MV	(CHGR_REGV_MAX_SET_MV - CHGR_CB_BATT_REGV_BASE_MV)
+#define CHGR_CB_BATT_REGV_MAX_SET		(CHGR_CB_BATT_REGV_MAX_SETV_MV / CHGR_CB_BATT_REGV_RESOLUTION)
+
 
 #define CHGR_CB_BATT_REGV_RESOLUTION	20u
 #define CHGR_CB_IN_LIMIT_2pt5A			CHGR_CB_IN_LIMIT_bm

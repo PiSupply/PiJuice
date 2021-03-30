@@ -268,7 +268,7 @@ void PowerManagementTask(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
 	const bool chargerHasInput = CHARGER_IsChargeSourceAvailable();
-	const bool chargerHasBattery = CHARGER_IsBatteryPresent();
+	const bool chargerHasBattery = (CHARGER_BATTERY_NOT_PRESENT != CHARGER_GetBatteryStatus());
 	const uint16_t batteryRsoc = FUELGUAGE_GetSocPt1();
 	const PowerSourceStatus_T pow5vInDetStatus = POWERSOURCE_Get5VRailStatus();
 
@@ -304,19 +304,23 @@ void PowerManagementTask(void)
 			}
 		}
 
-		if (watchdogExpirePeriod && MS_TIMEREF_DIFF(lastHostCommandTimer, sysTime) > watchdogTimer) {
-			if ( ResetHost() == 0 ) {
+		if (watchdogExpirePeriod && MS_TIMEREF_DIFF(lastHostCommandTimer, sysTime) > watchdogTimer)
+		{
+			if ( ResetHost() == 0 )
+			{
 				wakeupOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 				watchdogExpiredFlag = 1;
 				rtcWakeupEventFlag = 0;
 				ioWakeupEvent = 0;
 				delayedPowerOffCounter = 0;
 			}
+
 			watchdogTimer += watchdogExpirePeriod;
 		}
 	}
 
-	if ( delayedTurnOnFlag && (MS_TIMEREF_TIMEOUT(delayedTurnOnTimer, sysTime, 100u)) ) {
+	if ( delayedTurnOnFlag && (MS_TIMEREF_TIMEOUT(delayedTurnOnTimer, sysTime, 100u)) )
+	{
 		POWERSOURCE_Set5vBoostEnable(true);
 		delayedTurnOnFlag = 0;
 		MS_TIME_COUNTER_INIT(lastWakeupTimer);
