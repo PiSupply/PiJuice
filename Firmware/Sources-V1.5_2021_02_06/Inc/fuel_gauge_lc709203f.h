@@ -25,7 +25,7 @@ typedef enum BatteryTempSenseConfig_T {
 
 
 typedef enum RsocMeasurementConfig_T {
-	RSOC_MEASUREMENT_AUTO_DETECT = 0u,
+	RSOC_MEASUREMENT_FROM_IC = 0u,
 	RSOC_MEASUREMENT_DIRECT_DV = 1u,
 	RSOC_MEASUREMENT_CONFIG_TYPES
 } RsocMeasurementConfig_T;

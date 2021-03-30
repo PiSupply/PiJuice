@@ -568,8 +568,6 @@ void POWERSOURCE_RPi5vDetect(void)
 	const uint32_t sysTime = HAL_GetTick();
 	const uint16_t v5RailMv = ANALOG_Get5VRailMv();
 
-	uint8_t i;
-
 	// Check to see if the boost converter has just switched on.
 	if (false == MS_TIMEREF_TIMEOUT(m_boostOnTimeMs, sysTime, POWERSOURCE_STABLISE_TIME_MS))
 	{

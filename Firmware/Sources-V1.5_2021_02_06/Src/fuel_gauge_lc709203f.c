@@ -48,7 +48,7 @@ static uint8_t m_icInitState;
 static uint16_t m_lastSocPt1;
 static uint32_t m_lastSocTimeMs;
 static int16_t m_batteryTemperaturePt1;
-static RsocMeasurementConfig_T m_rsocMeasurementConfig = RSOC_MEASUREMENT_AUTO_DETECT;
+static RsocMeasurementConfig_T m_rsocMeasurementConfig = RSOC_MEASUREMENT_FROM_IC;
 static BatteryTempSenseConfig_T m_tempSensorConfig = BAT_TEMP_SENSE_CONFIG_AUTO_DETECT;
 static uint8_t m_temperatureMode = FUEL_GAUGE_TEMP_MODE_THERMISTOR;
 static int16_t m_dischargeRate;
@@ -97,8 +97,8 @@ void FUELGUAGE_Init(void)
 
 	if (NV_READ_VARIABLE_SUCCESS == NvReadVariableU8(FUEL_GAUGE_CONFIG_NV_ADDR, &config))
 	{
-		m_tempSensorConfig = (uint8_t)(config & 0x07u);
-		m_rsocMeasurementConfig = (uint8_t)(config >> 4u) & 0x03u;
+		m_tempSensorConfig = (uint8_t)(config & 0x7u);
+		m_rsocMeasurementConfig = (uint8_t)(config >> 4u) & 0x3u;
 	}
 
 	if (EXECUTION_STATE_NORMAL != executionState)
@@ -193,18 +193,25 @@ void FUELGUAGE_Task(void)
 				m_batteryMv = tempU16;
 			}
 
-			if (true == FUELGUAGE_ReadWord(FG_MEM_ADDR_ITE, &tempU16))
+			if (RSOC_MEASUREMENT_DIRECT_DV == m_rsocMeasurementConfig)
 			{
-				if (m_lastSocPt1 != tempU16)
+				// Estimate soc
+			}
+			else
+			{
+				if (true == FUELGUAGE_ReadWord(FG_MEM_ADDR_ITE, &tempU16))
 				{
+					if (m_lastSocPt1 != tempU16)
+					{
 
-					socTimeDiff = MS_TIMEREF_DIFF(m_lastSocTimeMs, HAL_GetTick());
+						socTimeDiff = MS_TIMEREF_DIFF(m_lastSocTimeMs, HAL_GetTick());
 
-					SocEvaluateFuelGaugeIc(m_lastSocPt1, tempU16, socTimeDiff);
+						SocEvaluateFuelGaugeIc(m_lastSocPt1, tempU16, socTimeDiff);
 
-					m_lastSocPt1 = tempU16;
+						m_lastSocPt1 = tempU16;
 
-					MS_TIMEREF_INIT(m_lastSocTimeMs, sysTime);
+						MS_TIMEREF_INIT(m_lastSocTimeMs, sysTime);
+					}
 				}
 			}
 
@@ -265,7 +272,7 @@ void FUELGUAGE_SetConfig(const uint8_t * const data, const uint16_t len)
 	else
 	{
 		m_tempSensorConfig = BAT_TEMP_SENSE_CONFIG_AUTO_DETECT;
-		m_rsocMeasurementConfig = RSOC_MEASUREMENT_AUTO_DETECT;
+		m_rsocMeasurementConfig = RSOC_MEASUREMENT_FROM_IC;
 	}
 }
 
@@ -350,7 +357,11 @@ bool FUELGUAGE_IcInit(void)
 		m_icInitState++;
 
 		// set change of the parameter
-		if (false == FUELGUAGE_WriteWord(FG_MEM_ADDR_PARAM_NO_SET, BATT_PROFILE_1))
+		if (false == FUELGUAGE_WriteWord(FG_MEM_ADDR_PARAM_NO_SET,
+				(currentBatProfile->chemistry == BAT_CHEMISTRY_LIPO_GRAPHENE) ?
+						BATT_PROFILE_0 :
+						BATT_PROFILE_1)
+				)
 		{
 			return false;
 		}
@@ -383,6 +394,12 @@ bool FUELGUAGE_IcInit(void)
 		}
 
 		m_temperatureMode = FUEL_GAUGE_TEMP_MODE_THERMISTOR;
+
+		// IC only calculates for LIPO chemistry, override the setting
+		if ( (currentBatProfile->chemistry != BAT_CHEMISTRY_LIPO) || (currentBatProfile->chemistry != BAT_CHEMISTRY_LIPO_GRAPHENE) )
+		{
+			m_rsocMeasurementConfig = RSOC_MEASUREMENT_DIRECT_DV;
+		}
 
 		m_icInitState++;
 
