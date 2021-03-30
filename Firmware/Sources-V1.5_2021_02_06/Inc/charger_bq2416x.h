@@ -128,6 +128,8 @@ bool CHARGER_RequirePoll(void);
 bool CHARGER_GetNoBatteryTurnOnEnable(void);
 
 bool CHARGER_IsChargeSourceAvailable(void);
+bool CHARGER_IsCharging(void);
+
 bool CHARGER_IsBatteryPresent(void);
 CHARGER_BatteryStatus_t CHARGER_GetBatteryStatus(void);
 

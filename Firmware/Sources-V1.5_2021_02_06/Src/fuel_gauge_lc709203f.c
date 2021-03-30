@@ -91,6 +91,7 @@ void FUELGUAGE_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 void FUELGUAGE_Init(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
+	const bool batteryAtOCV = (false == CHARGER_IsCharging()) && CHARGER_IsChargeSourceAvailable();
 
 	uint16_t tempU16;
 	uint8_t config;
@@ -106,7 +107,8 @@ void FUELGUAGE_Init(void)
 		// FuelGaugeDvInit();
 	}
 
-	// Try and talk to the fuel guage ic.
+	// Try and talk to the fuel guage ic
+	// Note: SOC might not be correctly evaluated if the battery is being charged or discharged
 	if (true == FUELGUAGE_IcInit())
 	{
 		m_fuelgaugeIcStatus = FUELGUAGE_STATUS_ONLINE;
@@ -178,6 +180,7 @@ void FUELGUAGE_Task(void)
 			return;
 		}
 
+
 		if ( (FUELGUAGE_STATUS_OFFLINE == m_fuelgaugeIcStatus) || m_updateBatteryProfile )
 		{
 			if (true == FUELGUAGE_IcInit())
@@ -185,6 +188,7 @@ void FUELGUAGE_Task(void)
 				m_fuelgaugeIcStatus = FUELGUAGE_STATUS_ONLINE;
 			}
 		}
+
 
 		if ( (FUELGUAGE_STATUS_ONLINE == m_fuelgaugeIcStatus))
 		{
@@ -215,13 +219,15 @@ void FUELGUAGE_Task(void)
 				}
 			}
 
+
 			if (m_temperatureMode == FUEL_GAUGE_TEMP_MODE_THERMISTOR)
 			{
 				if (true == FUELGUAGE_ReadWord(FG_MEM_ADDR_CELL_TEMP, &tempU16))
 				{
 					tempS16 = ((int16_t)tempU16 - CELL_TEMP_OFS);
 
-					if (tempS16 < 0)
+					// Check for a sane number
+					if (tempS16 < (int16_t)(mcuTemperature - 10))
 					{
 						m_batteryTemperaturePt1 = mcuTemperature * 10;
 					}
@@ -233,7 +239,6 @@ void FUELGUAGE_Task(void)
 			}
 			else
 			{
-				// TODO - fix conversion!!
 				m_batteryTemperaturePt1 = mcuTemperature * 10;
 				FUELGUAGE_WriteWord(0x08, m_batteryTemperaturePt1 + CELL_TEMP_OFS);
 			}
@@ -396,7 +401,7 @@ bool FUELGUAGE_IcInit(void)
 		m_temperatureMode = FUEL_GAUGE_TEMP_MODE_THERMISTOR;
 
 		// IC only calculates for LIPO chemistry, override the setting
-		if ( (currentBatProfile->chemistry != BAT_CHEMISTRY_LIPO) || (currentBatProfile->chemistry != BAT_CHEMISTRY_LIPO_GRAPHENE) )
+		if ( (currentBatProfile->chemistry != BAT_CHEMISTRY_LIPO) && (currentBatProfile->chemistry != BAT_CHEMISTRY_LIPO_GRAPHENE) )
 		{
 			m_rsocMeasurementConfig = RSOC_MEASUREMENT_DIRECT_DV;
 		}

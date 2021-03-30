@@ -45,11 +45,10 @@ static uint16_t m_vbatPowerOffThreshold;
 
 uint8_t m_rpiVLowCount;
 
-uint32_t pow5vPresentCounter;
-
 static uint32_t m_boostOnTimeMs;
 static uint32_t m_lastRPiPowerDetectTimeMs;
 static uint32_t m_rpiDetTimeMs;
+static uint32_t m_lastPowerProcessTime;
 
 static uint32_t forcedPowerOffCounter __attribute__((section("no_init")));
 static uint8_t m_vsysSwitchLimit __attribute__((section("no_init")));
@@ -62,11 +61,11 @@ static PowerSourceStatus_T m_powerInStatus = POW_SOURCE_NOT_PRESENT;
 static PowerSourceStatus_T m_power5vIoStatus = POW_SOURCE_NOT_PRESENT;
 static POWERSOURCE_RPi5VStatus_t m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_UNKNOWN;
 
-static void POWERSOURCE_ProcessVIN(void);
-static void POWERSOURCE_Process5VRail(void);
+static void POWERSOURCE_ProcessVINStatus(void);
+static void POWERSOURCE_Process5VRailStatus(void);
 static void POWERSOURCE_CheckPowerValid(void);
 static void POWERSOURCE_RPi5vDetect(void);
-static void POWERSOURCE_RPi5vRailProcess(void);
+static void POWERSOURCE_Process5VRailPower(void);
 
 static PowerRegulatorConfig_T m_powerRegulatorConfig = POW_REGULATOR_MODE_POW_DET;
 
@@ -101,10 +100,8 @@ void POWERSOURCE_Init(void)
 		m_boostOnTimeMs = UINT32_MAX;
 	}
 
-	// Allows a bit of time before the 5VRail is scrutinised
-	MS_TIMEREF_INIT(pow5vPresentCounter, sysTime);
-
-	// Stamp the time from when the module was initialised
+	// Setup module timers
+	MS_TIMEREF_INIT(m_lastPowerProcessTime, sysTime);
 	MS_TIMEREF_INIT(m_lastRPiPowerDetectTimeMs, sysTime);
 
 	EE_ReadVariable(POWER_REGULATOR_CONFIG_NV_ADDR, &var);
@@ -204,8 +201,11 @@ void POWERSOURCE_Init(void)
 void POWERSOURCE_Task(void)
 {
 	POWERSOURCE_RPi5vDetect();
-	POWERSOURCE_ProcessVIN();
-	POWERSOURCE_Process5VRail();
+
+	POWERSOURCE_ProcessVINStatus();
+	POWERSOURCE_Process5VRailStatus();
+
+	POWERSOURCE_Process5VRailPower();
 
 	POWERSOURCE_CheckPowerValid();
 }
@@ -538,15 +538,19 @@ void POWERSOURCE_CheckPowerValid(void)
 
 
 // Adjust the charge rate if the rail is low
-static void POWERSOURCE_RPi5vRailProcess(void)
+static void POWERSOURCE_Process5VRailPower(void)
 {
+	const uint32_t sysTime = HAL_GetTick();
 	const BatteryStatus_T batteryStatus = BATTERY_GetStatus();
 	const uint16_t vBattMv = ANALOG_GetBatteryMv();
-	const uint16_t v5RailMv = ANALOG_Get5VRailMv();
-
 	const ChargerStatus_T chargerStatus = CHARGER_GetStatus();
-	const uint8_t chargeLevel = CHARGER_GetRPiChargeInputLevel();
 
+	if (false == MS_TIMEREF_TIMEOUT(m_lastPowerProcessTime, sysTime, POWERSOURCE_5VRAIL_PROCESS_PERIOD_MS))
+	{
+		return;
+	}
+
+	MS_TIMEREF_INIT(m_lastPowerProcessTime, sysTime);
 
 	// If running on battery, test to make sure there is enough power to supply the system
 	if ( (false == POWER_SOURCE_PRESENT) )
@@ -557,6 +561,25 @@ static void POWERSOURCE_RPi5vRailProcess(void)
 		{
 			POWERSOURCE_Set5vBoostEnable(false);
 			forcedPowerOffFlag = 1;
+		}
+	}
+
+
+	if (m_rpi5VInDetStatus != RPI5V_DETECTION_STATUS_POWERED)
+	{
+		return;
+	}
+
+
+	if (CHG_CHARGING_FROM_RPI == chargerStatus)
+	{
+		if (m_rpiVLowCount > 0u)
+		{
+			CHARGER_RPi5vInCurrentLimitStepDown();
+		}
+		else
+		{
+			CHARGER_RPi5vInCurrentLimitStepUp();
 		}
 	}
 }
@@ -574,6 +597,7 @@ void POWERSOURCE_RPi5vDetect(void)
 		// Wait for 5V to become stable after turn on timeout
 		return;
 	}
+
 
 	// Check to see if its time to have a look at the RPi power - probably should do this all the time!
 	if (false == MS_TIMEREF_TIMEOUT(m_lastRPiPowerDetectTimeMs, sysTime, POWERSROUCE_RPI5V_DETECT_PERIOD_MS))
@@ -642,7 +666,7 @@ void POWERSOURCE_RPi5vDetect(void)
 }
 
 
-void POWERSOURCE_ProcessVIN(void)
+void POWERSOURCE_ProcessVINStatus(void)
 {
 	const CHARGER_InputStatus_t vinStatus = CHARGER_GetInputStatus(CHARGER_INPUT_VIN);
 	const uint8_t chargerDPMActive = CHARGER_IsDPMActive();
@@ -666,7 +690,7 @@ void POWERSOURCE_ProcessVIN(void)
 }
 
 
-void POWERSOURCE_Process5VRail(void)
+void POWERSOURCE_Process5VRailStatus(void)
 {
 	const bool rpi5vChargeEnable = CHARGER_GetRPi5vInputEnable();
 	const CHARGER_InputStatus_t rpi5vChargeStatus = CHARGER_GetInputStatus(CHARGER_INPUT_RPI);

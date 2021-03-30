@@ -56,6 +56,7 @@
 #include "taskloop.h"
 #include "adc.h"
 #include "i2cdrv.h"
+#include "util.h"
 
 #define OWN1_I2C_ADDRESS		0x14
 #define OWN2_I2C_ADDRESS		0x68
@@ -325,9 +326,32 @@ static uint32_t m_lowPowerDelayTimer;
 
 static GPIO_InitTypeDef i2c_GPIO_InitStruct;
 
+static uint32_t volatile elapsedSleepTime;
+
+RTC_AlarmTypeDef m_wakeupAlarm =
+{
+		.Alarm = RTC_ALARM_A,
+		.AlarmMask = RTC_ALARMMASK_HOURS | RTC_ALARMMASK_MINUTES | RTC_ALARMMASK_SECONDS,
+		.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_NONE,
+		.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_WEEKDAY
+};
+
+static volatile bool wakeupEvent;
+
+void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc)
+{
+	wakeupEvent = true;
+}
+
+static volatile uint32_t sleepTime, wakeTime, timeAsleepMs;
+
 
 void WaitInterrupt()
 {
+	extern __IO uint32_t uwTick;
+	RTC_TimeTypeDef sleepTime_rtc, wakeTime_rtc;
+	uint8_t tempU8;
+
 	commandReceivedFlag = 0;
 
 	if (state == STATE_LOWPOWER)
@@ -340,21 +364,49 @@ void WaitInterrupt()
 		// Stop the led module
 		LedStop();
 
-		// Enable wake up from rtc
-		if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 8000, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
-		{
-			Error_Handler();
-		}
-
 		// Enable wake up from host
 		i2c_GPIO_InitStruct.Pin = GPIO_PIN_7;
 		i2c_GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
 		i2c_GPIO_InitStruct.Pull = GPIO_NOPULL;
 	    HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
 
+	    HAL_RTC_GetTime(&hrtc, &sleepTime_rtc, RTC_FORMAT_BIN);
+	    (void)RTC->DR;
+
+	    wakeupEvent = false;
+
+	    HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 8192ul, RTC_WAKEUPCLOCK_RTCCLK_DIV16);
+
+#ifdef DEBUG
+
+	    while( (false == wakeupEvent) && (EXTI_EVENT_NONE == m_extiEvent) )
+	    {
+	    	// Wait for the rtc to do its thing
+	    }
+
+#else
 	    // Shutdown
 		HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
-		//HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+#endif
+
+		HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
+
+	    HAL_RTC_GetTime(&hrtc, &wakeTime_rtc, RTC_FORMAT_BIN);
+	    (void)RTC->DR;
+
+	    sleepTime = (sleepTime_rtc.Hours * 3600) + (sleepTime_rtc.Minutes * 60) + (sleepTime_rtc.Seconds);
+	    wakeTime = (wakeTime_rtc.Hours * 3600) + (wakeTime_rtc.Minutes * 60) + (wakeTime_rtc.Seconds);
+	    timeAsleepMs = (wakeTime - sleepTime) * 1000u;
+
+	    tempU8 = (uint8_t)(wakeTime_rtc.SubSeconds & 0xFFu);
+	    tempU8 -= (uint8_t)(sleepTime_rtc.SubSeconds & 0xFFu);
+
+	    // Add on the ms from the subseconds timer
+	    timeAsleepMs += UTIL_FixMul_U32_U16(257003ul, tempU8);
+
+	    uwTick += timeAsleepMs;
+
+	    HAL_ResumeTick();
 
 		// Revert GPIOB.7 back to i2c mode
 		i2c_GPIO_InitStruct.Pin       = GPIO_PIN_7;
@@ -364,8 +416,6 @@ void WaitInterrupt()
 		i2c_GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
 		HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
 
-		// Disable interrupt from rtc
-		HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
 
 		// Restart background tasks
 		OSLOOP_Init();
@@ -375,13 +425,10 @@ void WaitInterrupt()
 			// Wait for ADC to become ready
 		}
 
-		// Not sure why timer has increased by 4seconds.
-		TimeTickCb(4000);
-
 		// Restart LED module
 		LedStart();
 
-		HAL_ResumeTick();
+
 
 		MS_TIME_COUNTER_INIT(m_lowPowerDelayTimer);
 	}
@@ -465,19 +512,6 @@ int main(void)
 
 	MX_IWDG_Init();
 
-#if defined(RTOS_FREERTOS)
-	osKernelInitialize();
-	/* Create the thread(s) */
-	/* definition and creation of defaultTask */
-	const osThreadAttr_t defaultTask_attributes = {
-	.name = "defaultTask",
-	.priority = (osPriority_t) osPriorityNormal,
-	.stack_size = 128
-	};
-	/* add threads, ... */
-	defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-#endif
-
 	LoadCurrentSenseInit();
 	BATTERY_Init();
 	BUTTON_Init();
@@ -503,11 +537,17 @@ int main(void)
 	}*/
 
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET); // ee write protect
+
 	uint16_t var = 0;
+
 	EE_ReadVariable(ID_EEPROM_ADR_NV_ADDR, &var);
-	if ( (((~var)&0xFF) == (var>>8)) ) {
+
+	if ( (((~var)&0xFF) == (var>>8)) )
+	{
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, (var&0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-	} else {
+	}
+	else
+	{
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); // default ee Adr
 	}
 
@@ -515,10 +555,11 @@ int main(void)
 
 	HAL_I2C_EnableListen_IT(&hi2c1);
 
+	// TODO - figure out why the watchdog is resetting
 	executionState = EXECUTION_STATE_NORMAL; // after initialization indicate it for future wd resets
 
-
 	bool needEventPoll;
+	uint32_t sysTime;
 
 	/* Infinite loop */
 	while (1)
@@ -533,61 +574,69 @@ int main(void)
 	  // Do not disturb i2c transfer if this is i2c interrupt wakeup
 	  if (MS_TIME_COUNT(mainPollMsCounter) >= TICK_PERIOD_MS || needEventPoll)
 	  {
-		  MS_TIME_COUNTER_INIT(mainPollMsCounter);
+		  	MS_TIME_COUNTER_INIT(mainPollMsCounter);
 
-		CHARGER_Task();
-		FUELGUAGE_Task();
-		BATTERY_Task();
-		POWERSOURCE_Task();
+			CHARGER_Task();
+			FUELGUAGE_Task();
+			BATTERY_Task();
+			POWERSOURCE_Task();
 
-		RTC_EvaluateAlarm();
+			RTC_EvaluateAlarm();
 
-		LedTask();
+			LedTask();
 
-		BUTTON_Task();
-		LoadCurrentSenseTask();
-		PowerManagementTask();
+			BUTTON_Task();
+			LoadCurrentSenseTask();
+			PowerManagementTask();
 
-		needEventPoll = CHARGER_RequirePoll()
-							|| (EXTI_EVENT_NONE != m_extiEvent)
-							|| rtcWakeupEventFlag
-							|| commandReceivedFlag
-							|| POWERSOURCE_NeedPoll()
-							|| RTC_GetAlarmState();
+			CHARGER_Task();
 
-		if (true == needEventPoll)
-		{
-			// Wait for interrupt will drop through
-			state = STATE_RUN;
-		}
-		else if ( ( (ANALOG_Get5VRailMa() <= 50) || ((ANALOG_Get5VRailMv() < 4600u) && IODRV_ReadPinValue(IODRV_PIN_EXTVS_EN)) )
-				&& MS_TIME_COUNT(lastHostCommandTimer) > 5000u
-				&& MS_TIME_COUNT(m_lowPowerDelayTimer) >= 22u
-				&& MS_TIME_COUNT(lastWakeupTimer) > 20000u
-				&& (CHG_NO_VALID_SOURCE == CHARGER_GetStatus())
-				&& (false == BUTTON_IsButtonActive())
-				)
-		{
-			state = STATE_LOWPOWER;
-		}
-		else
-		{
-			state = STATE_NORMAL;
-		}
+			needEventPoll = CHARGER_RequirePoll()
+								|| (EXTI_EVENT_NONE != m_extiEvent)
+								|| rtcWakeupEventFlag
+								|| commandReceivedFlag
+								|| POWERSOURCE_NeedPoll()
+								|| RTC_GetAlarmState();
+
+			sysTime = HAL_GetTick();
+
+			if (true == needEventPoll)
+			{
+				// Wait for interrupt will drop through
+				state = STATE_RUN;
+			}
+			else if ( /*(
+						(ANALOG_Get5VRailMa() <= 50) ||
+						( (ANALOG_Get5VRailMv() < 4600u) && IODRV_ReadPinValue(IODRV_PIN_EXTVS_EN)) ) &&*/
+						MS_TIMEREF_TIMEOUT(lastHostCommandTimer, sysTime, 5000u) &&
+						MS_TIMEREF_TIMEOUT(m_lowPowerDelayTimer, sysTime, 22u) &&
+						MS_TIMEREF_TIMEOUT(lastWakeupTimer, sysTime, 5000u) &&
+						(CHG_NO_VALID_SOURCE == CHARGER_GetStatus()) &&
+						(false == BUTTON_IsButtonActive())
+						)
+			{
+				state = STATE_LOWPOWER;
+			}
+			else
+			{
+				state = STATE_NORMAL;
+			}
 
 
-		if (EXTI_EVENT_I2C == m_extiEvent)
-		{
-			MS_TIME_COUNTER_INIT(lastHostCommandTimer);
-		}
+			if (EXTI_EVENT_I2C == m_extiEvent)
+			{
+				MS_TIME_COUNTER_INIT(lastHostCommandTimer);
+			}
 
-		m_extiEvent = EXTI_EVENT_NONE;
+			m_extiEvent = EXTI_EVENT_NONE;
 
-	    // Refresh IWDG: reload counter
-	    if (HAL_IWDG_Refresh(&hiwdg) != HAL_OK)
-	    {
-	      Error_Handler(); // Refresh Error
-	    }
+/*
+			// Refresh IWDG: reload counter
+			if (HAL_IWDG_Refresh(&hiwdg) != HAL_OK)
+			{
+			  Error_Handler(); // Refresh Error
+			}*/
+
 	  }
 
 	  WaitInterrupt();
@@ -905,7 +954,6 @@ static void MX_I2C2_Init(void)
 /* RTC init function */
 static void MX_RTC_Init(void)
 {
-
   //RTC_TimeTypeDef sTime;
   //RTC_DateTypeDef sDate;
   //RTC_AlarmTypeDef sAlarm;
@@ -923,6 +971,7 @@ static void MX_RTC_Init(void)
   {
     Error_Handler();
   }
+
 
 // for testing/debug only
 #if 0
@@ -1171,17 +1220,17 @@ static void MX_IWDG_Init(void)
   //                     = 0.25s / (32/LsiFreq)
   //                      = LsiFreq / (32 * 4)
   //                      = LsiFreq / 128
-  hiwdg.Instance = IWDG;
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
-  hiwdg.Init.Reload    = 1300;//LSI_VALUE / 4; // 8 seconds
-  hiwdg.Init.Window    = IWDG_WINDOW_DISABLE;
+  //hiwdg.Instance 		= IWDG;
+  //hiwdg.Init.Prescaler 	= IWDG_PRESCALER_256;
+  //hiwdg.Init.Reload    	= 1300;	//LSI_VALUE / 4; // 8 seconds
+  //hiwdg.Init.Window    	= IWDG_WINDOW_DISABLE;
 
-  DelayUs(100);
-  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
-  {
+  //DelayUs(100);
+  //if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  //{
     // Initialization Error
-    Error_Handler();
-  }
+  //  Error_Handler();
+  //}
 /*
   IWDG->KR = 0x0000CCCC; // (1)
   DelayUs(100);

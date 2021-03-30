@@ -127,6 +127,9 @@ void OSLOOP_Service(void)
 
 void OSLOOP_Shutdown(void)
 {
+	// Stop the interrupt occuring
+	TIMER_OSLOOP->DIER &= ~(TIM_IT_UPDATE);
+
 	// Shutdown all modules for low power
 	ADC_Shutdown();
 	IODRV_Shutdown();

@@ -311,25 +311,33 @@ void RtcReadTime(uint8_t *buffer, uint8_t extended) {
 	}
 }
 
-void RtcReadAlarm1(uint8_t *buffer, uint8_t extended) {
+void RtcReadAlarm1(uint8_t *buffer, uint8_t extended)
+{
 	HAL_RTC_GetAlarm(&hrtc, &sAlarm, RTC_ALARM_A, RTC_FORMAT_BCD);
+
 	buffer[0] = sAlarm.AlarmTime.Seconds | (sAlarm.AlarmMask&0x80);
 	sAlarm.AlarmMask >>= 8;
 	buffer[1] = sAlarm.AlarmTime.Minutes | (sAlarm.AlarmMask&0x80);
 	sAlarm.AlarmMask >>= 8;
-	if (hrtc.Init.HourFormat == RTC_HOURFORMAT_12) {
+
+	if (hrtc.Init.HourFormat == RTC_HOURFORMAT_12)
+	{
 		buffer[2] = sAlarm.AlarmTime.Hours;
 		buffer[2] |= sAlarm.AlarmTime.TimeFormat == RTC_HOURFORMAT12_PM ? 0x20 : 0;
 		buffer[2] |= 0x40 | (sAlarm.AlarmMask&0x80);
-	} else {
+	}
+	else
+	{
 		buffer[2] = sAlarm.AlarmTime.Hours | (sAlarm.AlarmMask&0x80);
 	}
+
 	sAlarm.AlarmMask >>= 8;
 	buffer[3] = sAlarm.AlarmDateWeekDay;
 	buffer[3] |= (sAlarm.AlarmDateWeekDaySel == RTC_ALARMDATEWEEKDAYSEL_WEEKDAY) ? 0x40 : 0;
 	buffer[3] |= (sAlarm.AlarmMask&0x80);
 
-	if (extended) {
+	if (extended)
+	{
 		buffer[4] = hoursSelection;
 		buffer[5] = hoursSelection >> 8;
 		buffer[6] = hoursSelection >> 16;
@@ -339,11 +347,15 @@ void RtcReadAlarm1(uint8_t *buffer, uint8_t extended) {
 	}
 }
 
-void RtcWriteAlarm1(uint8_t *buffer, uint8_t extended) {
+void RtcWriteAlarm1(uint8_t *buffer, uint8_t extended)
+{
 	sAlarm.AlarmTime.Seconds = buffer[0] & 0x7F;
 	sAlarm.AlarmTime.Minutes = buffer[1] & 0x7F;
-	if (buffer[2] & 0x40) {
-		if (hrtc.Init.HourFormat != RTC_HOURFORMAT_12) {
+
+	if (buffer[2] & 0x40)
+	{
+		if (hrtc.Init.HourFormat != RTC_HOURFORMAT_12)
+		{
 			// convert hour format to 24 if different
 			uint8_t binHours = (buffer[2]&0x0F) + ((buffer[2]&0x10)?10:0);
 			if (buffer[2]&0x20) {
@@ -352,21 +364,29 @@ void RtcWriteAlarm1(uint8_t *buffer, uint8_t extended) {
 				if (binHours > 11) binHours = 0;
 			}
 			sAlarm.AlarmTime.Hours = binHour24ToBcd[binHours];
-		} else {
+		}
+		else
+		{
 			sAlarm.AlarmTime.Hours = buffer[2] & 0x1F;
 			sAlarm.AlarmTime.TimeFormat = buffer[2] & 0x20 ? RTC_HOURFORMAT12_PM : RTC_HOURFORMAT12_AM;
 		}
-	} else {
-		if (hrtc.Init.HourFormat != RTC_HOURFORMAT_24) {
+	}
+	else
+	{
+		if (hrtc.Init.HourFormat != RTC_HOURFORMAT_24)
+		{
 			// convert hour format to 12 if different
 			uint8_t binHours = (buffer[2]&0x0F) + ((buffer[2]&0x10)?10:0) + ((buffer[2]&0x20)?10:0);
 			uint8_t h = binHour24ToBcdAmPm[binHours];
 			sAlarm.AlarmTime.Hours = h & 0x1F;
 			sAlarm.AlarmTime.TimeFormat = h & 0x20 ? RTC_HOURFORMAT12_PM : RTC_HOURFORMAT12_AM;
-		} else {
+		}
+		else
+		{
 			sAlarm.AlarmTime.Hours = buffer[2]&0x3F;
 		}
 	}
+
 	sAlarm.AlarmDateWeekDaySel = (buffer[3] & 0x40) ? RTC_ALARMDATEWEEKDAYSEL_WEEKDAY : RTC_ALARMDATEWEEKDAYSEL_DATE;
 	sAlarm.AlarmDateWeekDay = buffer[3] & 0x3F;
 
@@ -378,7 +398,8 @@ void RtcWriteAlarm1(uint8_t *buffer, uint8_t extended) {
 	sAlarm.AlarmMask <<= 8;
 	sAlarm.AlarmMask |= buffer[0]&0x80;
 
-	if (extended) {
+	if (extended)
+	{
 		hoursSelection = buffer[6];
 		hoursSelection <<= 8;
 		hoursSelection |= buffer[5];
@@ -387,11 +408,14 @@ void RtcWriteAlarm1(uint8_t *buffer, uint8_t extended) {
 		minutesStep = buffer[7];
 		weekDaysSelection = buffer[8];
 
-		if (!(buffer[0] || buffer[1] || buffer[2] || buffer[3])) {
+		if (!(buffer[0] || buffer[1] || buffer[2] || buffer[3]))
+		{
 			HAL_RTC_DeactivateAlarm(&hrtc, RTC_ALARM_A);
 		}
 
-	} else {
+	}
+	else
+	{
 		hoursSelection = 0xFFFFFFFF;
 		weekDaysSelection = 0xFF;
 		minutesStep = 0;

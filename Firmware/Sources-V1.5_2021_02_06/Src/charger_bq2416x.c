@@ -540,6 +540,15 @@ bool CHARGER_IsChargeSourceAvailable(void)
 }
 
 
+bool CHARGER_IsCharging(void)
+{
+	const uint8_t instat = (m_registersIn[CHG_REG_SUPPLY_STATUS] & CHGR_SC_STAT_Msk);
+
+	// TODO- Supply status register might be better for this.
+	return (instat == CHGR_SC_STAT_IN_CHARGING) || (instat == CHGR_SC_STAT_USB_CHARGING);
+}
+
+
 bool CHARGER_IsBatteryPresent(void)
 {
 	return (m_registersIn[CHG_REG_BATTERY_STATUS] & CHGR_BS_BATSTAT_Msk) == CHGR_BS_BATSTAT_NORMAL;
@@ -765,7 +774,9 @@ void CHARGER_UpdateRPi5VInLockout(void)
 	// making these kind of decisions?
 	const PowerSourceStatus_T pow5vInDetStatus = POWERSOURCE_Get5VRailStatus();
 
-	m_registersOut[CHG_REG_BATTERY_STATUS] = (true == CHRG_CONFIG_INPUTS_NOBATT_ENABLED) ? CHGR_BS_EN_NOBAT_OP : 0u;
+	m_registersOut[CHG_REG_BATTERY_STATUS] = (true == CHRG_CONFIG_INPUTS_NOBATT_ENABLED) ?
+												CHGR_BS_EN_NOBAT_OP :
+												0u;
 
 	// If RPi is powered by itself and host allows charging from RPi 5v and the battery checks out ok...
 	if ( (true == CHGR_CONFIG_INPUTS_RPI5V_ENABLED)
