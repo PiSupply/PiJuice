@@ -8,13 +8,12 @@
 #ifndef LED_H_
 #define LED_H_
 
-#include "stdint.h"
+#define LED1	0u
+#define LED2	1u
 
-#define LED1	0
-#define LED2	1
-
-typedef enum LedFunction_T {
-	LED_NOT_USED = 0,
+typedef enum LedFunction_T
+{
+	LED_NOT_USED = 0u,
 	LED_CHARGE_STATUS,
 	LED_ON_OFF_STATUS,
 	LED_USER_LED,

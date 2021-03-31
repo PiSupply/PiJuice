@@ -37,11 +37,6 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>Inc/FreeRTOSConfig.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Inc/FreeRTOSConfig.h</locationURI>
-		</link>
-		<link>
 			<name>Inc/adc.h</name>
 			<type>1</type>
 			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/adc.h</location>
@@ -280,11 +275,6 @@
 			<name>Src/eeprom.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Src/eeprom.c</locationURI>
-		</link>
-		<link>
-			<name>Src/freertos.c</name>
-			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Core/Src/freertos.c</locationURI>
 		</link>
 		<link>
 			<name>Src/fuel_gauge_lc709203f.c</name>
