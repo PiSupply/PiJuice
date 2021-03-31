@@ -87,14 +87,6 @@ typedef enum BatteryStatus_T {
 } BatteryStatus_T;
 
 
-typedef enum {
-	STATE_INIT = 0u,
-	STATE_NORMAL = 1u,
-	STATE_RUN = 2u,
-	STATE_LOWPOWER = 3u
-} PowerState_T;
-
-
 void BATTERY_Init(void);
 void BATTERY_Task(void);
 

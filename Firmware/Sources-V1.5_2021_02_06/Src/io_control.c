@@ -27,7 +27,6 @@ uint16_t ioParam1[2] __attribute__((section("no_init")));
 uint16_t ioParam2[2] __attribute__((section("no_init")));
 uint16_t pwmLevel[2] __attribute__((section("no_init")));
 
-extern uint8_t resetStatus;
 
 /* TIM1 init function */
 void MX_TIM1_Init(void)
@@ -91,14 +90,6 @@ void MX_TIM1_Init(void)
   }
 
   HAL_TIM_MspPostInit(&htim1);
-
-  // Start channel 1
-  /*if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1) != HAL_OK)
-  {
-    // PWM Generation Error
-    Error_Handler();
-  }*/
-
 }
 
 /* TIM14 init function */
@@ -132,14 +123,6 @@ void MX_TIM14_Init(void)
   }
 
   HAL_TIM_MspPostInit(&htim14);
-
-  // Start channel 1
-  /*if (HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1) != HAL_OK)
-  {
-    // PWM Generation Error
-    Error_Handler();
-  }*/
-
 }
 
 void IoConfigure(uint8_t extIOPinIdx)
@@ -211,6 +194,10 @@ void IoNvReadConfig(uint8_t pin)
 
 void IoControlInit()
 {
+	// TODO - Move these!
+	MX_TIM1_Init();
+	MX_TIM14_Init();
+
 	if (EXECUTION_STATE_NORMAL != executionState)
 	{
 		IoNvReadConfig(1);

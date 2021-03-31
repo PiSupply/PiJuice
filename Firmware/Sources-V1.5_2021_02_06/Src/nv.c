@@ -6,18 +6,24 @@
  */
 #include "nv.h"
 
+#include "led.h"
+#include "execution.h"
 
 static int16_t nvSaveParmeterReq = -1;
 static uint16_t nvSaveParmeterValue = 0xFFFF;
 uint16_t nvInitFlag = 0xFFFF;
 
+void NV_EraseAllVariables(void);
 
-uint16_t VirtAddVarTab[NV_VAR_NUM] = {
+
+uint16_t VirtAddVarTab[NV_VAR_NUM] =
+{
 	NV_VAR_LIST
 };
 
 
-void NvInit(void){
+void NV_Init(void)
+{
 	/* Unlock the Flash Program Erase controller */
 	FLASH_Unlock();
 
@@ -28,16 +34,33 @@ void NvInit(void){
 }
 
 
-void NvEreaseAllVariables(void) {
+void NV_FactoryReset(void)
+{
+	// Reset to default
+	NV_EraseAllVariables();
+
+	executionState = EXECUTION_STATE_CONFIG_RESET;
+
+	while(1)
+	{
+	  LedSetRGB(LED1, 150, 0, 0);
+	  LedSetRGB(LED2, 150, 0, 0);
+	  HAL_Delay(500);
+	  LedSetRGB(LED1, 0, 0, 150);
+	  LedSetRGB(LED2, 0, 0, 150);
+	  HAL_Delay(500);
+	}
+}
+
+
+void NV_EraseAllVariables(void)
+{
 	int32_t i;
 
-	for (i=NV_START_ID;i<NV_VAR_NUM;i++) {
-		EE_WriteVariable(i, 0xFFFF);
+	for (i = NV_START_ID; i < NV_VAR_NUM; i++)
+	{
+		EE_WriteVariable(i, 0xFFFFu);
 	}
-
-	//FLASH_ErasePage(PAGE0_BASE_ADDRESS);
-	//FLASH_ErasePage(PAGE1_BASE_ADDRESS);
-	//EE_Init();
 }
 
 

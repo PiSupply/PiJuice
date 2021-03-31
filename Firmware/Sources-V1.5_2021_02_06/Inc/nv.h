@@ -142,11 +142,12 @@ typedef enum
 
 extern uint16_t nvInitFlag;
 
-void NvInit(void);
+void NV_Init(void);
 void NvSetDataInitialized(void);
 void NvTask(void);
 void NvSaveParameterReq(NvVarId_T id, uint16_t value);
-void NvEreaseAllVariables(void);
+
+void NV_FactoryReset(void);
 
 uint16_t EE_WriteVariable(uint16_t VirtAddress, uint16_t Data);
 

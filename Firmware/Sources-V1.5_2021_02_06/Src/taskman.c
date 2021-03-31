@@ -175,6 +175,11 @@ void TASKMAN_Run(void)
 
 }
 
+TASKMAN_RunState_t TASKMAN_GetRunState(void)
+{
+	return m_runState;
+}
+
 
 #ifdef DEBUG
 static volatile bool wakeupEvent;

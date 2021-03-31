@@ -17,6 +17,7 @@
 #include "fuel_gauge_lc709203f.h"
 #include "power_source.h"
 
+#include "taskman.h"
 #include "led.h"
 
 #include "battery.h"
@@ -44,10 +45,6 @@ typedef enum
 
 #define PACK_CAPACITY_U16(c)		((c==0xFFFFFFFF) ? 0xFFFF : (c >> ((c>=0x8000)*7)) | (c>=0x8000)*0x8000)
 #define UNPACK_CAPACITY_U16(v)		((v==0xFFFF) ? 0xFFFFFFFF : (uint32_t)(v&0x7FFF) << (((v&0x8000) >> 15)*7))
-
-
-// TODO - Get this properly.
-extern PowerState_T state;
 
 static BATTERY_SetProfileStatus_t m_setProfileRequest = BATTERY_DONT_SET_PROFILE;
 
@@ -104,7 +101,7 @@ static void BATTERY_UpdateBatteryStatus(const uint16_t battMv,
 									const ChargerStatus_T chargerStatus, const bool batteryPresent);
 
 static void BATTERY_UpdateLeds(const uint16_t batteryRsocPt1,
-						const ChargerStatus_T chargerStatus, const PowerState_T powerState);
+						const ChargerStatus_T chargerStatus, const TASKMAN_RunState_t runState);
 
 
 void BATTERY_Init(void)
@@ -132,7 +129,7 @@ void BATTERY_Task(void)
 	const uint16_t batteryRsocPt1 = FUELGUAGE_GetSocPt1();
 	const ChargerStatus_T chargerStatus = CHARGER_GetStatus();
 	const bool chargerBatteryDetected = (CHARGER_BATTERY_NOT_PRESENT != CHARGER_GetBatteryStatus());
-	const PowerState_T powerState = state;
+	const TASKMAN_RunState_t runState = TASKMAN_GetRunState();
 
 
 	if ((m_setProfileRequest & BATTERY_SET_REQUEST_MSK) == BATTERY_SET_PROFILE)
@@ -167,7 +164,7 @@ void BATTERY_Task(void)
 	{
 		MS_TIME_COUNTER_INIT(m_lastChargeLedTaskTimeMs);
 
-		BATTERY_UpdateLeds(batteryRsocPt1, chargerStatus, powerState);
+		BATTERY_UpdateLeds(batteryRsocPt1, chargerStatus, runState);
 	}
 }
 
@@ -718,7 +715,7 @@ void BATTERY_UpdateBatteryStatus(const uint16_t battMv,
 
 
 void BATTERY_UpdateLeds(const uint16_t batteryRsocPt1,
-						const ChargerStatus_T chargerStatus, const PowerState_T powerState)
+						const ChargerStatus_T chargerStatus, const TASKMAN_RunState_t runState)
 {
 	uint8_t r, g, b, paramB;
 
@@ -755,8 +752,12 @@ void BATTERY_UpdateLeds(const uint16_t batteryRsocPt1,
 		b = 0;
 	}
 
-	if (state == STATE_LOWPOWER)
+	if (TASKMAN_RUNSTATE_LOW_POWER == runState)
+	{
 		LedFunctionSetRGB(LED_CHARGE_STATUS, r>>2, g>>2, b);
+	}
 	else
+	{
 		LedFunctionSetRGB(LED_CHARGE_STATUS, r, g, b);
+	}
 }

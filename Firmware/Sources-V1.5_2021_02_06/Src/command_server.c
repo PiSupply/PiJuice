@@ -1176,15 +1176,19 @@ void CmdServerRunBootloader(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
   Jump_To_Bootloader();
 }
 
-extern void ButtonDualLongPressEventCb(void);
 
-void CmdServerReadWriteDefaultConfiguration(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		if (pData[1] == 0xaa && pData[2] == 0x55 && pData[3] == 0x0a && pData[4] == 0xa3 ) {
-			ButtonDualLongPressEventCb();
+void CmdServerReadWriteDefaultConfiguration(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		if (pData[1] == 0xaa && pData[2] == 0x55 && pData[3] == 0x0a && pData[4] == 0xa3 )
+		{
+			// TODO - look at this to make sure the world doesn't implode once initiated.
+			NV_FactoryReset();
 		}
 	}
 }
+
 
 void CmdServerReadFirmwareVersion(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_READ) {

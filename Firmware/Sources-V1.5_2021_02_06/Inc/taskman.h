@@ -11,4 +11,6 @@ typedef enum
 void TASKMAN_Init(void);
 void TASKMAN_Run(void);
 
+TASKMAN_RunState_t TASKMAN_GetRunState(void);
+
 #endif /* TASKLOOP_H_ */

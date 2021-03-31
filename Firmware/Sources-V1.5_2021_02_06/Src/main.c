@@ -32,31 +32,16 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "eeprom.h"
-
 #include "system_conf.h"
-#include "iodrv.h"
-#include "crc.h"
-
-#include "charger_bq2416x.h"
-#include "fuel_gauge_lc709203f.h"
-#include "power_source.h"
-#include "command_server.h"
-#include "led.h"
-#include "button.h"
-#include "analog.h"
-#include "time_count.h"
-#include "load_current_sense.h"
-#include "rtc_ds1339_emu.h"
-#include "power_management.h"
-#include "io_control.h"
-#include "execution.h"
 
 #include "osloop.h"
 #include "taskman.h"
+
+#include "execution.h"
+
+#include "eeprom.h"
+
 #include "adc.h"
-#include "i2cdrv.h"
-#include "util.h"
 
 
 /* Private variables ---------------------------------------------------------*/
@@ -68,7 +53,6 @@ DMA_HandleTypeDef hdma_i2c2_tx;
 
 I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
-//SMBUS_HandleTypeDef hsmbus;
 
 RTC_HandleTypeDef hrtc;
 
@@ -83,16 +67,7 @@ TIM_HandleTypeDef htim17;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
-/* Buffer used for I2C transfer */
-  //uint8_t i2cTrfBuffer[256];
-
-
-PowerState_T state = STATE_INIT;
-
 uint32_t executionState __attribute__((section("no_init"))); // used to indicate if there was unpredictable reset like watchdog expired
-
-
-extern uint8_t alarmEventFlag;
 
 /* USER CODE END PV */
 
@@ -117,39 +92,11 @@ static void MX_IWDG_Init(void);
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 
-void MemInit(uint8_t *buffer, uint8_t val, int32_t size)
-{
-	while((--size) > 0) buffer[size] = val;
-}
-
-
-typedef  void (*pFunction)(void);
-pFunction Jump_To_Start;
-
-
-void ButtonDualLongPressEventCb(void)
-{
-	// Reset to default
-	NvEreaseAllVariables();
-
-	executionState = EXECUTION_STATE_CONFIG_RESET;
-
-	while(1)
-	{
-	  LedSetRGB(LED1, 150, 0, 0);
-	  LedSetRGB(LED2, 150, 0, 0);
-	  HAL_Delay(500);
-	  LedSetRGB(LED1, 0, 0, 150);
-	  LedSetRGB(LED2, 0, 0, 150);
-	  HAL_Delay(500);
-	}
-}
-
-
 int main(void)
 {
-	//HAL_Init();
-	if (executionState != EXECUTION_STATE_NORMAL && executionState != EXECUTION_STATE_UPDATE && executionState != EXECUTION_STATE_CONFIG_RESET)
+	if ( (executionState != EXECUTION_STATE_NORMAL) &&
+			(executionState != EXECUTION_STATE_UPDATE) &&
+			(executionState != EXECUTION_STATE_CONFIG_RESET) )
 	{
 		if (__HAL_RCC_GET_FLAG(RCC_FLAG_PORRST))
 		{
@@ -163,43 +110,34 @@ int main(void)
 	}
 
 	__HAL_RCC_CLEAR_RESET_FLAGS();
-/*
-	if ( executionState == EXECUTION_STATE_NORMAL )
-	{
-		resetStatus = 1;
-	}
-	else
-	{
-		// initialize globals
-		resetStatus = 0;
-	}*/
-
 	__HAL_FLASH_PREFETCH_BUFFER_ENABLE();
 
 	HAL_MspInit();
 
-	NvInit();
+	NV_Init();
 
 	// Configure the system clock
 	SystemClock_Config();
 
 	// Initialize all configured peripherals
 	MX_GPIO_Init();
-	if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10) == GPIO_PIN_RESET && executionState == EXECUTION_STATE_POWER_RESET) {
+
+	if ( (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10) == GPIO_PIN_RESET) && (executionState == EXECUTION_STATE_POWER_RESET) )
+	{
 		executionState = EXECUTION_STATE_POWER_ON;
 	}
 
 	MX_DMA_Init();
 	MX_ADC_Init();
 	//MX_WWDG_Init();
-	MX_I2C1_Init();//MX_SMBUS_Init();//  // NOTE: need 48KHz clock to work on 400KHz
+	MX_I2C1_Init();
 	MX_I2C2_Init();
 	MX_RTC_Init();
 	MX_TIM3_Init();
 	MX_TIM15_Init();
 	MX_TIM17_Init();
-	MX_TIM1_Init();
-	MX_TIM14_Init();
+	//MX_TIM1_Init();
+	//MX_TIM14_Init();
 	MX_TIM6_Init();
 
 	HAL_InitTick(TICK_INT_PRIORITY);
@@ -215,8 +153,6 @@ int main(void)
 	TASKMAN_Init();
 
 	MX_IWDG_Init();
-
-	state = STATE_NORMAL;
 
 	// TODO - figure out why the watchdog is resetting
 	executionState = EXECUTION_STATE_NORMAL; // after initialization indicate it for future wd resets
