@@ -58,9 +58,15 @@ extern uint8_t resetStatus;
 extern uint8_t noBatteryTurnOn;
 
 static bool m_gpioPowerControl;
+
+static uint32_t m_lastWakeupTimer __attribute__((section("no_init")));
+
+
+#ifdef DETECT_RPI_PWRLED_GPIO26
 static bool m_rpiActive;
 static uint32_t m_rpiActiveTime;
-static uint32_t m_lastWakeupTimer __attribute__((section("no_init")));
+#endif
+
 
 void PowerManagementInit(void)
 {
@@ -126,8 +132,11 @@ void PowerManagementInit(void)
 	MS_TIMEREF_INIT(powerMngmtTaskMsCounter, sysTime);
 
 	m_gpioPowerControl = true;
+
+#ifdef DETECT_RPI_PWRLED_GPIO26
 	m_rpiActive = false;
 	MS_TIMEREF_INIT(m_rpiActiveTime, sysTime);
+#endif
 
 }
 
@@ -337,6 +346,7 @@ void PowerManagementTask(void)
 		LedSetRGB(LED2, 0u, 0u, 0u);
 	}
 
+#ifdef DETECT_RPI_PWRLED_GPIO26
 	if ( true == m_rpiActive )
 	{
 		if ( (true == m_gpioPowerControl) && MS_TIMEREF_TIMEOUT(m_delayedPowerOffTimeMs, sysTime, 2000u) )
@@ -384,6 +394,7 @@ void PowerManagementTask(void)
 			LedSetRGB(LED2, 0u, 100u, 0u);
 		}
 	}
+#endif
 
 	if ( (false == chargerHasInput) && (WAKEUP_ONCHARGE_DISABLED_VAL == wakeupOnCharge) && (WAKEUPONCHARGE_NV_INITIALISED) )
 	{
@@ -393,7 +404,8 @@ void PowerManagementTask(void)
 }
 
 
-void InputSourcePresenceChangeCb(uint8_t event) {
+void InputSourcePresenceChangeCb(uint8_t event)
+{
 
 }
 
@@ -406,7 +418,6 @@ void PowerMngmtSchedulePowerOff(uint8_t delayCode)
 
 		if (m_delayedPowerOffTimeMs == 0u)
 		{
-			/* TODO - BUGFIX! */
 			m_delayedPowerOffTimeMs = 1u; // 0 is used to indicate non active counter, so avoid that value.
 		}
 	}
