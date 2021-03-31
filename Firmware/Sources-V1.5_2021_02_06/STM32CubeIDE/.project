@@ -367,11 +367,6 @@
 			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Src/taskman.c</location>
 		</link>
 		<link>
-			<name>Src/time_count.c</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Src/time_count.c</locationURI>
-		</link>
-		<link>
 			<name>Src/util.c</name>
 			<type>1</type>
 			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Src/util.c</location>

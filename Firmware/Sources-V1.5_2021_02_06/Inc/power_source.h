@@ -33,10 +33,6 @@ typedef enum PowerRegulatorConfig_T {
 } PowerRegulatorConfig_T;
 
 
-extern uint8_t delayedPowerOff;
-extern uint8_t forcedPowerOffFlag;
-extern uint8_t forcedVSysOutputOffFlag;
-
 void PowerSourceExitLowPower(void);
 void PowerSourceEnterLowPower(void);
 

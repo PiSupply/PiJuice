@@ -7,8 +7,8 @@
 
 // ----------------------------------------------------------------------------
 // Include section - add all #includes here:
-#include <string.h>
-#include <stdint.h>
+#include "main.h"
+
 #include "time_count.h"
 #include "ave_filter.h"
 

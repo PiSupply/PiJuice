@@ -8,27 +8,29 @@
 #ifndef POWER_MANAGEMENT_H_
 #define POWER_MANAGEMENT_H_
 
+
 #define WAKEUP_ONCHARGE_DISABLED_VAL	0xFFFFu
 #define RPI_ACTLED_IO_PIN				1u
 #define GPIO_POWERCONTROL				1u
 
-typedef enum RunPinInstallationStatus_T {
+
+typedef enum
+{
 	RUN_PIN_NOT_INSTALLED = 0,
 	RUN_PIN_INSTALLED,
 } RunPinInstallationStatus_T;
 
 
 void PowerManagementInit(void);
-#if !defined(RTOS_FREERTOS)
 void PowerManagementTask(void);
-#endif
+
 void RunPinInstallationStatusSetConfigCmd(uint8_t data[], uint8_t len);
 void RunPinInstallationStatusGetConfigCmd(uint8_t data[], uint16_t *len);
 void PowerMngmtSchedulePowerOff(uint8_t dalayCode);
 void PowerMngmtConfigureWatchdogCmd(uint8_t data[], uint16_t len);
 void PowerMngmtGetWatchdogConfigurationCmd(uint8_t data[], uint16_t *len);
 void PowerMngmtHostPollEvent(void);
-//int8_t WakeUpHost(void);
+
 void PowerMngmtSetWakeupOnChargeCmd(uint8_t data[], uint16_t len);
 void PowerMngmtGetWakeupOnChargeCmd(uint8_t data[], uint16_t *len);
 
@@ -42,5 +44,6 @@ void POWERMAN_SetWakeupOnChargeData(const uint8_t * const data, const uint16_t l
 void POWERMAN_GetWakeupOnChargeData(uint8_t * const data, uint16_t * const len);
 void POWERMAN_ClearPowerButtonPressed(void);
 void POWERMAN_SetWakeupOnChargePt1(const uint16_t newValue);
+
 
 #endif /* POWER_MANAGEMENT_H_ */

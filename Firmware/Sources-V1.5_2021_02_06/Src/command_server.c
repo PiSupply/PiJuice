@@ -42,8 +42,6 @@ extern TIM_HandleTypeDef htim15;
 extern TIM_HandleTypeDef htim17;
 extern ADC_HandleTypeDef hadc;
 
-extern uint16_t wakeupOnCharge;
-extern uint8_t powerOffBtnEventFlag;
 
 extern void Error_Handler(void);
 

@@ -151,7 +151,7 @@ void TASKMAN_Run(void)
 
 
 		// Do not disturb i2c transfer if this is i2c interrupt wakeup
-		if (MS_TIME_COUNT(m_lastTaskRunTimeMs) >= TICK_PERIOD_MS || needEventPoll)
+		if ( (MS_TIME_COUNT(m_lastTaskRunTimeMs) >= TASKMAN_TASK_PERIOD_MS) || needEventPoll )
 		{
 			MS_TIME_COUNTER_INIT(m_lastTaskRunTimeMs);
 
