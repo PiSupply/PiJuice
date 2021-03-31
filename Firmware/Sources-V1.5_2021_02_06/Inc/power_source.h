@@ -53,6 +53,7 @@ void POWERSOURCE_UpdateBatteryProfile(const BatteryProfile_T* batProfile);
 
 PowerSourceStatus_T POWERSOURCE_GetVInStatus(void);
 PowerSourceStatus_T POWERSOURCE_Get5VRailStatus(void);
+POWERSOURCE_RPi5VStatus_t POWERSOURCE_GetRPi5VPowerStatus(void);
 
 void POWERSOURCE_SetRegulatorConfig(const uint8_t * const data, const uint8_t len);
 void POWERSOURCE_GetRegulatorConfig(uint8_t * const data, uint16_t * const len);

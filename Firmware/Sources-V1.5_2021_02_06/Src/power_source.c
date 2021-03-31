@@ -590,6 +590,7 @@ void POWERSOURCE_RPi5vDetect(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
 	const uint16_t v5RailMv = ANALOG_Get5VRailMv();
+	const POWERSOURCE_RPi5VStatus_t lastStatus = m_rpi5VInDetStatus;
 
 	// Check to see if the boost converter has just switched on.
 	if (false == MS_TIMEREF_TIMEOUT(m_boostOnTimeMs, sysTime, POWERSOURCE_STABLISE_TIME_MS))
@@ -663,6 +664,13 @@ void POWERSOURCE_RPi5vDetect(void)
 
 		m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_UNPOWERED;
 	}
+
+
+	// Make the charger do some work too.
+	if (lastStatus != m_rpi5VInDetStatus)
+	{
+		CHARGER_RefreshSettings();
+	}
 }
 
 
@@ -727,7 +735,14 @@ void POWERSOURCE_Process5VRailStatus(void)
 		}
 		else
 		{
-			CHARGER_SetRPi5vInputEnable(true);
+			if (0u != m_rpiVLowCount)
+			{
+				m_power5vIoStatus = POW_SOURCE_WEAK;
+			}
+			else
+			{
+				m_power5vIoStatus = POW_SOURCE_NORMAL;
+			}
 		}
 	}
 }

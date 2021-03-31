@@ -282,7 +282,10 @@ void CHARGER_Task(void)
 	{
 		IORDV_ClearPinEdges(2u);
 
-		m_chargingConfig ^= CHARGING_CONFIG_CHARGE_EN_bm;
+		//m_chargingConfig ^= CHARGING_CONFIG_CHARGE_EN_bm;
+		m_chargerInputsConfig ^= CHGR_INPUTS_CONFIG_ENABLE_NOBATT_bm;
+
+		m_chargerNeedPoll = true;
 	}
 
 
@@ -396,8 +399,7 @@ void CHARGER_SetRPi5vInputEnable(bool enable)
 
 bool CHARGER_GetRPi5vInputEnable()
 {
-	// TODO - This should probably be the actual setting from the device registers
-	return CHGR_CONFIG_INPUTS_RPI5V_ENABLED;
+	return (CHGR_SC_FLT_SUPPLY_PREF_USB == (m_registersIn[CHG_REG_SUPPLY_STATUS] & CHGR_SUPPLY_SEL_bm));
 }
 
 
@@ -504,6 +506,12 @@ void CHARGER_SetInterrupt(void)
 {
 	// Flag went up
 	m_interrupt = true;
+}
+
+
+void CHARGER_RefreshSettings(void)
+{
+	m_chargerNeedPoll = true;
 }
 
 
@@ -770,9 +778,7 @@ void CHARGER_UpdateSupplyPreference(void)
 
 void CHARGER_UpdateRPi5VInLockout(void)
 {
-	// TODO - Check for circular operation, also do we want this module to be
-	// making these kind of decisions?
-	const PowerSourceStatus_T pow5vInDetStatus = POWERSOURCE_Get5VRailStatus();
+	const POWERSOURCE_RPi5VStatus_t pow5vInDetStatus = POWERSOURCE_GetRPi5VPowerStatus();
 
 	m_registersOut[CHG_REG_BATTERY_STATUS] = (true == CHRG_CONFIG_INPUTS_NOBATT_ENABLED) ?
 												CHGR_BS_EN_NOBAT_OP :
@@ -780,7 +786,7 @@ void CHARGER_UpdateRPi5VInLockout(void)
 
 	// If RPi is powered by itself and host allows charging from RPi 5v and the battery checks out ok...
 	if ( (true == CHGR_CONFIG_INPUTS_RPI5V_ENABLED)
-			&& (pow5vInDetStatus == POW_SOURCE_NORMAL)
+			&& (pow5vInDetStatus == RPI5V_DETECTION_STATUS_POWERED)
 			&& ((m_registersIn[CHG_REG_BATTERY_STATUS] & CHGR_BS_BATSTAT_Msk) == CHGR_BS_BATSTAT_NORMAL)
 			)
 	{
@@ -968,9 +974,6 @@ void CHARGER_UpdateTempRegulationControlStatus(void)
 }
 
 
-static volatile uint8_t lastChgUpdate;
-
-
 bool CHARGER_CheckForPoll(void)
 {
 	uint8_t i = CHARGER_REGISTER_COUNT;
@@ -979,12 +982,9 @@ bool CHARGER_CheckForPoll(void)
 	{
 		if ((m_registersIn[i] & m_registersWriteMask[i]) != m_registersOut[i])
 		{
-			lastChgUpdate = i;
 			return true;
 		}
 	}
-
-	lastChgUpdate = 0xFFu;
 
 	return false;
 }

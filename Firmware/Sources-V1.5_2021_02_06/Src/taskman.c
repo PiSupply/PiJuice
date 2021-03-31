@@ -40,6 +40,7 @@ typedef enum
 
 
 static uint32_t m_lastTaskloopOpTimeUs = 0u;
+static uint32_t m_lastSleepTimeMs = 0u;
 static uint32_t m_lastTaskRunTimeMs;
 static uint32_t m_lowPowerDelayTimer;
 
@@ -95,6 +96,7 @@ void TASKMAN_Run(void)
 	bool needEventPoll;
 	uint32_t sysTime;
 
+	// Just starts the listener
 	HOSTCOMMS_Task();
 
 	while(true)
@@ -115,14 +117,14 @@ void TASKMAN_Run(void)
 		if (false == needEventPoll)
 		{
 			if ( /*(
-									(ANALOG_Get5VRailMa() <= 50) ||
-									( (ANALOG_Get5VRailMv() < 4600u) && IODRV_ReadPinValue(IODRV_PIN_EXTVS_EN)) ) &&*/
-									(lastHostCommandAge > 5000u) &&
-									MS_TIMEREF_TIMEOUT(m_lowPowerDelayTimer, sysTime, 22u) &&
-									(true == powerManagerCanShutdown) &&
-									(CHG_NO_VALID_SOURCE == CHARGER_GetStatus()) &&
-									(false == BUTTON_IsButtonActive())
-									)
+					(ANALOG_Get5VRailMa() <= 50) ||
+					( (ANALOG_Get5VRailMv() < 4600u) && IODRV_ReadPinValue(IODRV_PIN_EXTVS_EN)) ) &&*/
+					(lastHostCommandAge > 5000u) &&
+					MS_TIMEREF_TIMEOUT(m_lowPowerDelayTimer, sysTime, 22u) &&
+					(true == powerManagerCanShutdown) &&
+					(CHG_NO_VALID_SOURCE == CHARGER_GetStatus()) &&
+					(false == BUTTON_IsButtonActive())
+					)
 			{
 
 				m_runState = TASKMAN_RUNSTATE_LOW_POWER;
@@ -198,7 +200,7 @@ void TASKMAN_WaitInterrupt(void)
 	static GPIO_InitTypeDef i2c_GPIO_InitStruct;
 
 	RTC_TimeTypeDef sleepTime_rtc, wakeTime_rtc;
-	uint32_t sleepTime, wakeTime, timeAsleepMs;
+	uint32_t sleepTime, wakeTime;
 	uint8_t tempU8;
 
 	if (TASKMAN_RUNSTATE_LOW_POWER == m_runState)
@@ -243,15 +245,15 @@ void TASKMAN_WaitInterrupt(void)
 
 	    sleepTime = (sleepTime_rtc.Hours * 3600) + (sleepTime_rtc.Minutes * 60) + (sleepTime_rtc.Seconds);
 	    wakeTime = (wakeTime_rtc.Hours * 3600) + (wakeTime_rtc.Minutes * 60) + (wakeTime_rtc.Seconds);
-	    timeAsleepMs = (wakeTime - sleepTime) * 1000u;
+	    m_lastSleepTimeMs = (wakeTime - sleepTime) * 1000u;
 
 	    tempU8 = (uint8_t)(wakeTime_rtc.SubSeconds & 0xFFu);
 	    tempU8 -= (uint8_t)(sleepTime_rtc.SubSeconds & 0xFFu);
 
 	    // Add on the ms from the subseconds timer
-	    timeAsleepMs += UTIL_FixMul_U32_U16(257003ul, tempU8);
+	    m_lastSleepTimeMs += UTIL_FixMul_U32_U16(257003ul, tempU8);
 
-	    uwTick += timeAsleepMs;
+	    uwTick += m_lastSleepTimeMs;
 
 	    HAL_ResumeTick();
 
@@ -287,25 +289,25 @@ void TASKMAN_WaitInterrupt(void)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  if (GPIO_Pin == GPIO_PIN_0)
-  {
-	  // CH_INT
-	  CHARGER_SetInterrupt();
-	  m_extiEvent = EXTI_EVENT_CHARGER;
-  }
-  else if (GPIO_Pin == GPIO_PIN_7)
-  {
-	  // I2C SDA
-	  m_extiEvent = EXTI_EVENT_I2C;
-  }
-  else if (GPIO_Pin == GPIO_PIN_8)
-  {
-	  m_extiEvent = EXTI_EVENT_IO2;
-	  m_ioWakeupEvent = true;
-  }
-  else
-  {
-	  // SW1, SW2, SW3
-	  m_extiEvent = EXTI_EVENT_USER;
-  }
+	if (GPIO_Pin == GPIO_PIN_0)
+	{
+		// CH_INT
+		CHARGER_SetInterrupt();
+		m_extiEvent = EXTI_EVENT_CHARGER;
+	}
+	else if (GPIO_Pin == GPIO_PIN_7)
+	{
+		// I2C SDA
+		m_extiEvent = EXTI_EVENT_I2C;
+	}
+	else if (GPIO_Pin == GPIO_PIN_8)
+	{
+		m_extiEvent = EXTI_EVENT_IO2;
+		m_ioWakeupEvent = true;
+	}
+	else
+	{
+		// SW1, SW2, SW3
+		m_extiEvent = EXTI_EVENT_USER;
+	}
 }

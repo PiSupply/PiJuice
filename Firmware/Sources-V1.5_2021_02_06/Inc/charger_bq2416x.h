@@ -124,6 +124,7 @@ void CHARGER_RPi5vInCurrentLimitStepDown(void);
 void CHARGER_RPi5vInCurrentLimitStepUp(void);
 uint8_t CHARGER_GetRPiChargeInputLevel(void);
 
+void CHARGER_RefreshSettings(void);
 bool CHARGER_RequirePoll(void);
 bool CHARGER_GetNoBatteryTurnOnEnable(void);
 
