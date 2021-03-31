@@ -92,6 +92,7 @@ void TASKMAN_Run(void)
 {
 	bool powerManagerCanShutdown;
 	bool hostCommandActive;
+	bool rtcWakeEvent;
 	uint32_t lastHostCommandAge;
 	bool needEventPoll;
 	uint32_t sysTime;
@@ -106,10 +107,11 @@ void TASKMAN_Run(void)
 		powerManagerCanShutdown = POWERMAN_CanShutDown();
 		hostCommandActive = HOSTCOMMS_IsCommandActive();
 		lastHostCommandAge = HOSTCOMMS_GetLastCommandAgeMs(sysTime);
+		rtcWakeEvent = RTC_GetWakeEvent();
 
 		needEventPoll = CHARGER_RequirePoll()
 							|| (EXTI_EVENT_NONE != m_extiEvent)
-							|| rtcWakeupEventFlag
+							|| rtcWakeEvent
 							|| hostCommandActive
 							|| POWERSOURCE_NeedPoll()
 							|| RTC_GetAlarmState();
@@ -180,6 +182,18 @@ void TASKMAN_Run(void)
 TASKMAN_RunState_t TASKMAN_GetRunState(void)
 {
 	return m_runState;
+}
+
+
+bool TASKMAN_GetIOWakeEvent(void)
+{
+	return m_ioWakeupEvent;
+}
+
+
+void TASKMAN_ClearIOWakeEvent(void)
+{
+	m_ioWakeupEvent = false;
 }
 
 

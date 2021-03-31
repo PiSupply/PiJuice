@@ -7,7 +7,7 @@
 
 #include "main.h"
 
-#include "power_source.h"
+#include "power_management.h"
 #include "charger_bq2416x.h"
 #include "nv.h"
 #include "adc.h"
@@ -22,6 +22,8 @@
 
 #include "util.h"
 
+#include "power_source.h"
+
 
 #define POW_5V_IO_DET_ADC_THRESHOLD		2950u
 #define VBAT_TURNOFF_ADC_THRESHOLD		0u // mV unit
@@ -31,11 +33,8 @@
 											|| (m_power5vIoStatus == POW_SOURCE_WEAK) )
 
 
-uint8_t forcedPowerOffFlag __attribute__((section("no_init")));
-uint8_t forcedVSysOutputOffFlag __attribute__((section("no_init")));
-
-extern uint8_t resetStatus;
-extern uint16_t wakeupOnCharge;
+static bool m_forcedPowerOff __attribute__((section("no_init")));
+static bool m_forcedVSysOutputOff __attribute__((section("no_init")));
 
 volatile int32_t adcDmaPos = -1;
 
@@ -94,8 +93,8 @@ void POWERSOURCE_Init(void)
 	// initialize global variables after power-up
 	if (EXECUTION_STATE_NORMAL != executionState)
 	{
-		forcedPowerOffFlag = 0u;
-		forcedVSysOutputOffFlag = 0u;
+		m_forcedPowerOff = 0u;
+		m_forcedVSysOutputOff = 0u;
 		forcedPowerOffCounter = 0u;
 		m_boostOnTimeMs = UINT32_MAX;
 	}
@@ -138,8 +137,8 @@ void POWERSOURCE_Init(void)
 				)
 		{
 			POWERSOURCE_Set5vBoostEnable(false);
-			forcedPowerOffFlag = 1u;
-			wakeupOnCharge = 5u; // schedule wake up when there is enough energy
+			m_forcedPowerOff = true;
+			POWERMAN_SetWakeupOnChargePt1(5u); // schedule wake up when there is enough energy
 		}
 		else
 		{
@@ -179,7 +178,7 @@ void POWERSOURCE_Init(void)
 			IODRV_SetPin(IODRV_PIN_EXTVS_EN, false);
 			m_vsysEnabled = false;
 
-			forcedVSysOutputOffFlag = 1u;
+			m_forcedVSysOutputOff = true;
 		}
 		else
 		{
@@ -259,7 +258,7 @@ void POWERSOURCE_SetVSysSwitchState(uint8_t switchState)
 		m_vsysEnabled = false;
 	}
 
-	forcedVSysOutputOffFlag = 0u;
+	m_forcedVSysOutputOff = false;
 }
 
 
@@ -463,6 +462,30 @@ bool POWERSOURCE_NeedPoll(void)
 }
 
 
+bool POWERSOURCE_GetForcedPowerOffStatus(void)
+{
+	return m_forcedPowerOff;
+}
+
+
+bool POWERSOURCE_GetForcedVSysOutputOffStatus(void)
+{
+	return m_forcedVSysOutputOff;
+}
+
+
+void POWERSOURCE_ClearForcedPowerOff(void)
+{
+	m_forcedPowerOff = false;
+}
+
+
+void POWERSOURCE_ClearForcedVSysOutputOff(void)
+{
+	m_forcedVSysOutputOff = false;
+}
+
+
 void POWERSOURCE_CheckPowerValid(void)
 {
 	const uint16_t v5RailMv = ANALOG_Get5VRailMv();
@@ -484,7 +507,7 @@ void POWERSOURCE_CheckPowerValid(void)
 		{
 			//5V DCDC is in fault overcurrent state, turn it off to prevent draining battery
 			POWERSOURCE_Set5vBoostEnable(false);
-			forcedPowerOffFlag = 1u;;
+			m_forcedPowerOff = true;
 
 			return;
 		}
@@ -500,7 +523,7 @@ void POWERSOURCE_CheckPowerValid(void)
 				// Turn off Vsys and set forced off flag
 				IODRV_SetPin(IODRV_PIN_EXTVS_EN, false);
 				m_vsysEnabled = false;
-				forcedVSysOutputOffFlag = 1u;
+				m_forcedVSysOutputOff = true;
 
 				// Leave 2 ms for switch to react
 				MS_TIME_COUNTER_INIT(forcedPowerOffCounter);
@@ -513,8 +536,8 @@ void POWERSOURCE_CheckPowerValid(void)
 				POWERSOURCE_SetLDOEnable(false);
 				POWERSOURCE_Set5vBoostEnable(false);
 
-				forcedPowerOffFlag = 1u;
-				wakeupOnCharge = 5u; // schedule wake up when power is applied
+				m_forcedPowerOff = true;
+				POWERMAN_SetWakeupOnChargePt1(5u); // schedule wake up when power is applied
 
 				return;
 			}
@@ -529,7 +552,7 @@ void POWERSOURCE_CheckPowerValid(void)
 				)
 		{
 			IODRV_SetPin(IODRV_PIN_EXTVS_EN, false);
-			forcedVSysOutputOffFlag = 1u;
+			m_forcedVSysOutputOff = true;
 
 			return;
 		}
@@ -560,7 +583,7 @@ static void POWERSOURCE_Process5VRailPower(void)
 		if ( (BAT_STATUS_NOT_PRESENT != batteryStatus) && (vBattMv < m_vbatPowerOffThreshold) )
 		{
 			POWERSOURCE_Set5vBoostEnable(false);
-			forcedPowerOffFlag = 1;
+			m_forcedPowerOff = true;
 		}
 	}
 

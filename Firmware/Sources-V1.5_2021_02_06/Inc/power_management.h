@@ -17,10 +17,6 @@ typedef enum RunPinInstallationStatus_T {
 	RUN_PIN_INSTALLED,
 } RunPinInstallationStatus_T;
 
-extern RunPinInstallationStatus_T runPinInstallationStatus;
-extern uint8_t watchdogExpiredFlag;
-extern uint8_t rtcWakeupEventFlag;
-extern uint8_t ioWakeupEvent;
 
 void PowerManagementInit(void);
 #if !defined(RTOS_FREERTOS)
@@ -38,5 +34,13 @@ void PowerMngmtGetWakeupOnChargeCmd(uint8_t data[], uint16_t *len);
 
 bool POWERMAN_CanShutDown(void);
 uint8_t POWERMAN_GetPowerOffTime(void);
+bool POWERMAN_GetWatchdogExpired(void);
+void POWERMAN_ClearWatchdog(void);
+bool POWERMAN_GetPowerButtonPressedStatus(void);
+void POWERMAN_SetWakeupOnChargePt1(const uint16_t newValue);
+void POWERMAN_SetWakeupOnChargeData(const uint8_t * const data, const uint16_t len);
+void POWERMAN_GetWakeupOnChargeData(uint8_t * const data, uint16_t * const len);
+void POWERMAN_ClearPowerButtonPressed(void);
+void POWERMAN_SetWakeupOnChargePt1(const uint16_t newValue);
 
 #endif /* POWER_MANAGEMENT_H_ */

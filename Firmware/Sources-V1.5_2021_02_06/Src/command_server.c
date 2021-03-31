@@ -467,15 +467,21 @@ static uint8_t IsEventFault(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const bool chargerTempSensorFault = CHARGER_HasTempSensorFault();
+	const bool watchdogExpired = POWERMAN_GetWatchdogExpired();
+	const bool powerButtonEvent = POWERMAN_GetPowerButtonPressedStatus();
+	const bool forcedPowerOffEvent = POWERSOURCE_GetForcedPowerOffStatus();
+	const bool forcedVSysOutputOffEvent = POWERSOURCE_GetForcedVSysOutputOffStatus();
 
 	uint8_t ev = 0;
-	ev |= (0u != powerOffBtnEventFlag);
-	ev |= (0u != forcedPowerOffFlag);
-	ev |= (0u != forcedVSysOutputOffFlag);
-	ev |= (0u != watchdogExpiredFlag);
+
+	ev |= (true == powerButtonEvent);
+	ev |= (true == forcedPowerOffEvent);
+	ev |= (true == forcedVSysOutputOffEvent);
+	ev |= (true == watchdogExpired);
 	/* Not sure of intention of this one, 0x20 slots into read status so will leave it. */
 	ev |= (currentBatProfile == NULL) ? (1<<5u) : 0u;
 	ev |= chargerTempSensorFault;
+
 	return ev;
 }
 
@@ -501,27 +507,47 @@ void CmdServerReadWriteEventFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *d
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const uint8_t chargerTempFault = CHARGER_GetTempFault();
+	const bool watchdogExpired = POWERMAN_GetWatchdogExpired();
+	const bool powerButtonEvent = POWERMAN_GetPowerButtonPressedStatus();
+	const bool forcedPowerOffEvent = POWERSOURCE_GetForcedPowerOffStatus();
+	const bool forcedVSysOutputOffEvent = POWERSOURCE_GetForcedVSysOutputOffStatus();
+
+	uint8_t ev = 0u;
+
 
 	if (dir == MASTER_CMD_DIR_READ)
 	{
-		uint8_t ev = 0;
-
-		ev |= powerOffBtnEventFlag;
-		ev |= forcedPowerOffFlag << 1;
-		ev |= forcedVSysOutputOffFlag << 2;
-		ev |= watchdogExpiredFlag << 3;
+		ev |= (powerButtonEvent);
+		ev |= (forcedPowerOffEvent << 1u);
+		ev |= (forcedVSysOutputOffEvent << 2u);
+		ev |= (watchdogExpired << 3u);
 		ev |= (currentBatProfile == NULL) ? 0x20 : 0;
 		ev |= (chargerTempFault << 6u);
 
-		pData[0] = ev;
-		*dataLen = 1;
+		pData[0u] = ev;
+		*dataLen = 1u;
 	}
 	else
 	{
-		powerOffBtnEventFlag = powerOffBtnEventFlag && (pData[1] & 0x01);
-		forcedPowerOffFlag = forcedPowerOffFlag && (pData[1] & 0x02);
-		forcedVSysOutputOffFlag = forcedVSysOutputOffFlag && (pData[1] & 0x04);
-		watchdogExpiredFlag = watchdogExpiredFlag && (pData[1] & 0x08);
+		if (0u == (pData[1u] & 0x01u))
+		{
+			POWERMAN_ClearPowerButtonPressed();
+		}
+
+		if (0u == (pData[1u] & 0x02u))
+		{
+			POWERSOURCE_ClearForcedPowerOff();
+		}
+
+		if (0u == (pData[1u] & 0x04u))
+		{
+			POWERSOURCE_ClearForcedVSysOutputOff();
+		}
+
+		if (0u == (pData[1u] & 0x08u))
+		{
+			POWERMAN_ClearWatchdog();
+		}
 	}
 }
 
@@ -925,21 +951,26 @@ void CmdServerReadWriteVSysSwitchState(uint8_t dir, uint8_t *pData, uint16_t *da
 	}
 }
 
-void CmdServerReadWriteWakeupOnCharge(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		//wakeupOnCharge = (pData[1]&0x7F) <= 100 ? (pData[1]&0x7F) * 10 : 0xFFFF;
-		PowerMngmtSetWakeupOnChargeCmd(pData+1, *dataLen - 1);
-	} else {
-		//pData[0] = wakeupOnCharge <= 1000 ? wakeupOnCharge / 10 : 0xFF;
-		//*dataLen = 1;
-		PowerMngmtGetWakeupOnChargeCmd(pData, dataLen);
+void CmdServerReadWriteWakeupOnCharge(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		POWERMAN_SetWakeupOnChargeData(pData + 1u, *dataLen - 1u);
+	}
+	else
+	{
+		POWERMAN_GetWakeupOnChargeData(pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteButtonConfigurationSw1(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
+void CmdServerReadWriteButtonConfigurationSw1(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
 		BUTTON_SetConfiguarion(0, pData+1, *dataLen - 1);
-	} else {
+	}
+	else
+	{
 		BUTTON_GetConfiguarion(0, pData, dataLen);
 	}
 }

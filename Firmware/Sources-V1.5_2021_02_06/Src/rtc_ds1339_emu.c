@@ -21,24 +21,18 @@ RTC_AlarmTypeDef sAlarm;
 
 static uint8_t rtc_buffer[RTC_REGISTERS_NUM] __attribute__((section("no_init")));//= {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x07, 0, 0}; // rtc_bufferisters used for i2c master access
 static uint8_t rtc_buffer_ptr __attribute__((section("no_init")));
-//volatile uint8_t testRegAdr[50] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-//volatile uint8_t testRegAdrW = 0xFF;
-//volatile uint8_t testRegAdrI = 0;
+
 
 static const uint8_t binHour24ToBcd[24] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x20, 0x21, 0x22, 0x23};
 static const uint8_t binHour24ToBcdAmPm[24] = {0x12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0x10, 0x11, 0x32, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x30, 0x31};
+
 
 static uint8_t weekDaysSelection __attribute__((section("no_init")));
 static uint32_t hoursSelection __attribute__((section("no_init")));
 static uint8_t minutesStep __attribute__((section("no_init")));
 static bool m_alarmEventFlag __attribute__((section("no_init")));
+static bool m_rtcWakeEvent __attribute__((section("no_init")));
 
-extern uint8_t resetStatus;
-
-RtcCommand_T rtcCommands[] =
-{
-		//RtcReadWriteTime
-};
 
 void RtcInit(void)
 {
@@ -87,7 +81,8 @@ void RTC_EvaluateAlarm(void)
 
 		uint8_t weekDayMatch = 0;
 
-		if (weekDaysSelection != 0xFF || !(sAlarm.AlarmMask&0x80000000)) {
+		if (weekDaysSelection != 0xFF || !(sAlarm.AlarmMask&0x80000000))
+		{
 			//HAL_RTC_GetDate(&hrtc, &dateConf, RTC_FORMAT_BIN);
 			tempReg = hrtc.Instance->DR;
 			tempReg = 0;
@@ -95,64 +90,126 @@ void RTC_EvaluateAlarm(void)
 			tempReg = 0;
 			tempReg = hrtc.Instance->DR;
 			dateConf.WeekDay = (tempReg >> 13)&0x07;
-			if ( (0x01 << (dateConf.WeekDay)) & weekDaysSelection ) {
+
+			if ( (0x01 << (dateConf.WeekDay)) & weekDaysSelection )
+			{
 				weekDayMatch = 1;
 			}
-		} else {
+		}
+		else
+		{
 			weekDayMatch = 1;
 		}
 
-		if (weekDayMatch) {
-			if (hoursSelection != 0xFFFFFFFF || minutesStep > 1) {
+		if (weekDayMatch)
+		{
+			if (hoursSelection != 0xFFFFFFFF || minutesStep > 1)
+			{
+				// TODO - 3 times reading TR? DR not read.
 				tempReg = hrtc.Instance->TR;
 				tempReg = 0;
 				tempReg = hrtc.Instance->TR;
 				tempReg = 0;
 				tempReg = hrtc.Instance->TR;
-				//HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+
+
 				sTime.Minutes = ((tempReg >> 8)&0x0F) + ((tempReg >> 12)&0x07) * 10;
-				if ( minutesStep <= 1 || (sTime.Minutes % minutesStep) == 0 ) {
+
+				if ( minutesStep <= 1 || (sTime.Minutes % minutesStep) == 0 )
+				{
 					sTime.Hours = ((tempReg >> 16)&0x0F) + ((tempReg >> 20)&0x07) * 10;
 					sTime.TimeFormat = (uint8_t)((tempReg & (RTC_TR_PM)) >> 16);
-					if (hrtc.Init.HourFormat == RTC_HOURFORMAT_24) {
-						if ( (0x00000001 << sTime.Hours) & hoursSelection ) {
-							if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) ) rtcWakeupEventFlag = 1;
+
+					if (hrtc.Init.HourFormat == RTC_HOURFORMAT_24)
+					{
+						if ( (0x00000001 << sTime.Hours) & hoursSelection )
+						{
+							if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
+							{
+								m_rtcWakeEvent = true;
+							}
+
 							rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
 						}
-					} else if ( sTime.TimeFormat == RTC_HOURFORMAT12_AM ) {
-						if (sTime.Hours < 12) {
-							if ( (0x00000001 << sTime.Hours) & hoursSelection ) {
-								if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) ) rtcWakeupEventFlag = 1;
+					}
+					else if ( sTime.TimeFormat == RTC_HOURFORMAT12_AM )
+					{
+						if (sTime.Hours < 12)
+						{
+							if ( (0x00000001 << sTime.Hours) & hoursSelection )
+							{
+								if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
+								{
+									m_rtcWakeEvent = true;
+								}
+
 								rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
 							}
-						} else if ( 0x00000001 & hoursSelection ) {
-							if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) ) rtcWakeupEventFlag = 1;
+						}
+						else if ( 0x00000001 & hoursSelection )
+						{
+							if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
+							{
+								m_rtcWakeEvent = true;
+							}
+
 							rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
 						}
-					} else {
-						if (sTime.Hours < 12) {
-							if ( (0x00010000 << sTime.Hours) & hoursSelection ) {
-								if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) ) rtcWakeupEventFlag = 1;
+					}
+					else
+					{
+						if (sTime.Hours < 12)
+						{
+							if ( (0x00010000 << sTime.Hours) & hoursSelection )
+							{
+								if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
+								{
+									m_rtcWakeEvent = true;
+								}
+
 								rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
 							}
-						} else if ( 0x00010000 & hoursSelection ) {
-							if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) ) rtcWakeupEventFlag = 1;
+						}
+						else if ( 0x00010000 & hoursSelection )
+						{
+							if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
+							{
+								m_rtcWakeEvent = true;
+							}
+
 							rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
 						}
 					}
 				}
-			} else {
-				if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) ) rtcWakeupEventFlag = 1;
+			}
+			else
+			{
+				if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
+				{
+					m_rtcWakeEvent = true;
+				}
+
 				rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
 			}
 		}
-	//}
 }
 
 
 bool RTC_GetAlarmState(void)
 {
 	return m_alarmEventFlag;
+}
+
+
+bool RTC_GetWakeEvent(void)
+{
+	return m_rtcWakeEvent;
+}
+
+
+void RTC_ClearWakeEvent(void)
+{
+	m_rtcWakeEvent = false;
 }
 
 

@@ -59,5 +59,9 @@ void POWERSOURCE_SetRegulatorConfig(const uint8_t * const data, const uint8_t le
 void POWERSOURCE_GetRegulatorConfig(uint8_t * const data, uint16_t * const len);
 
 bool POWERSOURCE_NeedPoll(void);
+bool POWERSOURCE_GetForcedPowerOffStatus(void);
+bool POWERSOURCE_GetForcedVSysOutputOffStatus(void);
+void POWERSOURCE_ClearForcedPowerOff(void);
+void POWERSOURCE_ClearForcedVSysOutputOff(void);
 
 #endif /* POWER_SOURCE_H_ */

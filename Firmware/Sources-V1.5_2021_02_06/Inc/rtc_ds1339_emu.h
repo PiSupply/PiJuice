@@ -17,13 +17,16 @@ uint8_t RtcGetPointer();
 uint8_t RtcSetPointer(uint8_t val);
 
 void RtcInit(void);
-void RTC_EvaluateAlarm(void);
-bool RTC_GetAlarmState(void);
 void RtcReadAlarm1(uint8_t *buffer, uint8_t extended);
 void RtcWriteAlarm1(uint8_t *buffer, uint8_t extended);
 void RtcWriteTime(uint8_t *buffer, uint8_t extended);
 void RtcReadTime(uint8_t *buffer, uint8_t extended);
 void RtcReadControlStatus(uint8_t *buffer, uint16_t *dataLen);
 void RtcWriteControlStatus(uint8_t *buffer, uint16_t dataLen);
+
+void RTC_EvaluateAlarm(void);
+bool RTC_GetAlarmState(void);
+bool RTC_GetWakeEvent(void);
+void RTC_ClearWakeEvent(void);
 
 #endif /* RTC_DS1339_EMU_H_ */
