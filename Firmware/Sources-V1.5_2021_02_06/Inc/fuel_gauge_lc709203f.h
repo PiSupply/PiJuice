@@ -11,44 +11,46 @@
 #include "stdint.h"
 #include "battery.h"
 
-#define FUEL_GAUGE_TEMP_MODE_THERMISTOR 	1
-#define FUEL_GAUGE_TEMP_MODE_I2C		 	0
+#define FUEL_GAUGE_TEMP_MODE_THERMISTOR 	1u
+#define FUEL_GAUGE_TEMP_MODE_I2C		 	0u
 
-#define FUEL_GAUGE_TEMP_SENSE_FAULT_STATUS()	(ntcFaultFlag)
-#define FUEL_GAUGE_IC_FAULT_STATUS()			( rsocMeasurementConfig==RSOC_MEASUREMENT_AUTO_DETECT && fgIcId>0 && fgIcId<0xFFFF && (fuelGaugeI2cErrorCounter <= -5 || fuelGaugeI2cErrorCounter >= 5) )
 
 typedef enum BatteryTempSenseConfig_T {
 	BAT_TEMP_SENSE_CONFIG_NOT_USED = 0,
-	BAT_TEMP_SENSE_CONFIG_NTC,
-	BAT_TEMP_SENSE_CONFIG_ON_BOARD,
-	BAT_TEMP_SENSE_CONFIG_AUTO_DETECT,
-	BAT_TEMP_SENSE_CONFIG_END
+	BAT_TEMP_SENSE_CONFIG_NTC = 1u,
+	BAT_TEMP_SENSE_CONFIG_ON_BOARD = 2u,
+	BAT_TEMP_SENSE_CONFIG_AUTO_DETECT = 3u,
+	BAT_TEMP_SENSE_CONFIG_TYPES = 4u
 } BatteryTempSenseConfig_T;
 
+
 typedef enum RsocMeasurementConfig_T {
-	RSOC_MEASUREMENT_AUTO_DETECT = 0,
-	RSOC_MEASUREMENT_DIRECT_DV,
-	RSOC_MEASUREMENT_CONFIG_END
+	RSOC_MEASUREMENT_FROM_IC = 0u,
+	RSOC_MEASUREMENT_DIRECT_DV = 1u,
+	RSOC_MEASUREMENT_CONFIG_TYPES
 } RsocMeasurementConfig_T;
 
-extern uint16_t batteryVoltage;
-extern uint16_t batteryRsoc;
-extern int8_t batteryTemp;
-extern volatile int16_t batteryCurrent;
-extern int8_t fuelGaugeI2cErrorCounter;
-extern volatile uint8_t fuelGaugeTempMode;
-extern BatteryTempSenseConfig_T tempSensorConfig;
-extern uint16_t fgIcId;
-extern int8_t ntcFaultFlag;
-extern RsocMeasurementConfig_T rsocMeasurementConfig;
 
-void FuelGaugeInit(void);
-#if !defined(RTOS_FREERTOS)
-void FuelGaugeTask(void);
-#endif
-void FuelGaugeSetBatProfile(const BatteryProfile_T *batProfile);
-int8_t FuelGaugeSetConfig(uint8_t *data, uint16_t len);
-void FuelGaugeGetConfig(uint8_t data[], uint16_t *len);
-int8_t FuelGaugeIcPreInit(void);
+typedef enum
+{
+	FUELGUAGE_STATUS_OFFLINE = 0u,
+	FUELGUAGE_STATUS_ONLINE = 1u,
+} FUELGUAGE_Status_t;
+
+
+void FUELGUAGE_Init(void);
+void FUELGUAGE_Task(void);
+
+void FUELGUAGE_SetConfig(const uint8_t * const data, const uint16_t len);
+void FUELGUAGE_GetConfig(uint8_t * const data, uint16_t * const len);
+void FUELGUAGE_UpdateBatteryProfile(void);
+int16_t FUELGUAGE_GetBatteryMa(void);
+uint16_t FUELGUAGE_GetBatteryMv(void);
+BatteryTempSenseConfig_T FUELGUAGE_GetBatteryTempSensorCfg(void);
+uint16_t FUELGUAGE_GetSocPt1(void);
+int8_t FUELGUAGE_GetBatteryTemperature(void);
+uint16_t FUELGUAGE_GetIcId(void);
+bool FUELGUAGE_IsNtcOK(void);
+bool FUELGUAGE_IsOnline(void);
 
 #endif /* FUEL_GAUGE_LC709203F_H_ */

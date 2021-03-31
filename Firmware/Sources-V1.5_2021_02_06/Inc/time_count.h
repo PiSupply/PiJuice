@@ -11,12 +11,21 @@
 #include "stdint.h"
 #include "stm32f0xx_hal.h"
 
-#define TICK_PERIOD_MS		20
+#define TICK_PERIOD_MS				20
 
-//#define TIME_COUNTERS_MAX 	16
+//#define TIME_COUNTERS_MAX 		16
 
-#define MS_TIME_COUNTER_INIT(c)	(c=HAL_GetTick())
-#define MS_TIME_COUNT(c)	(HAL_GetTick()-c)
+#define MS_TIME_COUNTER_INIT(c)		(c=HAL_GetTick())
+#define MS_TIME_COUNT(c)			(HAL_GetTick()-c)
+
+#define MS_TIMEREF_INIT(ref,time)		(ref = time)
+#define MS_TIMEREF_DIFF(ref,time)		(time - ref)
+#define MS_TIMEREF_TIMEOUT(ref,time,timeout)	((time - ref) >= timeout)
+
+#define MS_ONE_SECOND	1000ul
+#define MS_ONE_MINUTE	60u * MS_ONE_SECOND
+#define MS_ONE_HOUR		60u * MS_ONE_MINUTE
+#define MS_ONE_DAY		24u * MS_ONE_HOUR
 
 //extern uint32_t ticks[TIME_COUNTERS_MAX];
 

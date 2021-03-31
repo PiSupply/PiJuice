@@ -29,12 +29,14 @@ void PowerManagementTask(void);
 void RunPinInstallationStatusSetConfigCmd(uint8_t data[], uint8_t len);
 void RunPinInstallationStatusGetConfigCmd(uint8_t data[], uint16_t *len);
 void PowerMngmtSchedulePowerOff(uint8_t dalayCode);
-uint8_t PowerMngmtGetPowerOffCounter(void);
 void PowerMngmtConfigureWatchdogCmd(uint8_t data[], uint16_t len);
 void PowerMngmtGetWatchdogConfigurationCmd(uint8_t data[], uint16_t *len);
 void PowerMngmtHostPollEvent(void);
 //int8_t WakeUpHost(void);
 void PowerMngmtSetWakeupOnChargeCmd(uint8_t data[], uint16_t len);
 void PowerMngmtGetWakeupOnChargeCmd(uint8_t data[], uint16_t *len);
+
+bool POWERMAN_CanShutDown(void);
+uint8_t POWERMAN_GetPowerOffTime(void);
 
 #endif /* POWER_MANAGEMENT_H_ */

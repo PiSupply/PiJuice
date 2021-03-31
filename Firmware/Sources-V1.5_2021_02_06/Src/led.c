@@ -10,30 +10,12 @@
 #include "nv.h"
 #include "time_count.h"
 
-#if defined(RTOS_FREERTOS)
-#include "cmsis_os.h"
-osThreadId_t ledTaskHandle[2];
-static void StartLedTask(void *argument);
-static uint8_t taskLed1;
-static uint8_t taskLed2;
-static const osThreadAttr_t ledTask_attributes = {
-.name = "ledTask1",
-.priority = (osPriority_t) osPriorityLow,
-.stack_size = 512
-};
-/*osMutexId osMutexHandle[2];
-const osMutexAttr_t ledMutex_attributes = {
-	.name = "LedMutex",
-	.attr_bits = osMutexRecursive | osMutexPrioInherit,//osMutexRobust,
-	.cb_mem = NULL,
-	.cb_size = 0
-};*/
-#endif
 
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim15;
 extern TIM_HandleTypeDef htim17;
 GPIO_InitTypeDef GPIO_InitStruct;
+
 
 typedef struct
 {
@@ -63,10 +45,10 @@ typedef struct
 
 } Led_T;
 
-static Led_T leds[2] = {
-
-	{ LED_CHARGE_STATUS, 60, 60, 100},
-	{ LED_USER_LED, 0, 0, 0 },
+static Led_T leds[2u] =
+{
+	{ LED_CHARGE_STATUS, .paramR = 60u, .paramG = 60u, .paramB = 100u},
+	{ LED_USER_LED, .paramR = 0u, .paramG = 0u, .paramB = 0u },
 };
 
 static const uint16_t pwm_table[] = {
@@ -104,7 +86,7 @@ static const uint16_t pwm_table[] = {
      4543,    3908,    3267,    2623,    1974,    1320,    662,    0
  };
 
-static uint8_t mutMem[64]  __attribute__((aligned(4)));
+//static uint8_t mutMem[64]  __attribute__((aligned(4)));
 void LedInit(void) {
 
 	/*HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET); //LED1B
@@ -208,17 +190,6 @@ void LedInit(void) {
 //	}else {
 //		LedSetRGB(LED2, 0, 0, 0);
 //	}
-#if defined(RTOS_FREERTOS)
-	taskLed1 = LED1;
-	ledTaskHandle[0] = osThreadNew(StartLedTask, &taskLed1, &ledTask_attributes);
-	//osMutexHandle[0] = osMutexNew(&ledMutex_attributes);
-	taskLed2 = LED2;
-	ledTaskHandle[1] = osThreadNew(StartLedTask, &taskLed2, &ledTask_attributes);
-	//osMutexHandle[1] = osMutexNew(&ledMutex_attributes);
-	uint8_t ledBlink[] = {5, 100, 0, 80, 100, 0, 80, 0, 50};
-	LedCmdSetBlink(LED1, ledBlink, 9);
-	//LedCmdSetBlink(LED2, ledBlink, 9);
-#endif
 }
 
 uint8_t LedGetParamR(uint8_t func) {
@@ -249,50 +220,6 @@ uint8_t LedGetParamB(uint8_t func) {
 	}
 }
 
-#if defined(RTOS_FREERTOS)
-static void StartLedTask(void *argument)
-{
-	portENTER_CRITICAL();
-	uint8_t n = *((uint8_t*)argument); //index of led
-	portEXIT_CRITICAL();
-
-	for(;;)
-	{
-
-	  //if (osMutexWait(osMutexHandle[n], osWaitForever) == osOK)
-	  {
-		while(leds[n].blinkCount) {
-
-			if ( (leds[n].blinkCount & 0x1) ) {
-				// odd count for off color
-				osDelay(leds[n].blinkPeriod2);
-				if (leds[n].blinkCount) leds[n].blinkCount --;
-				if (leds[n].blinkCount == 0) {
-					if (leds[n].blinkRepeat == 0xFF) {
-						leds[n].blinkCount = 256;
-					} else {
-						LedSetRGB(n, leds[n].r, leds[n].g, leds[n].b);
-					}
-				} else
-					LedSetRGB(n, leds[n].blinkR1, leds[n].blinkG1, leds[n].blinkB1);
-			} else {
-				// even count for on color
-				osDelay(leds[n].blinkPeriod1);
-				if (leds[n].blinkCount) {
-					leds[n].blinkCount --;
-					LedSetRGB(n, leds[n].blinkR2, leds[n].blinkG2, leds[n].blinkB2);
-				} else {
-					LedSetRGB(n, leds[n].r, leds[n].g, leds[n].b);
-				}
-			}
-		}
-		  //osDelay(10);//
-		  osThreadSuspend(ledTaskHandle[n]);//
-	  }
-
-	}
-}
-#else
 void ProcessBlink(uint8_t n) {
 	if (leds[n].blinkCount) {
 		if ( (leds[n].blinkCount & 0x1) ) {
@@ -320,11 +247,13 @@ void ProcessBlink(uint8_t n) {
 	}
 }
 
+
 void LedTask(void) {
 	ProcessBlink(0);
 	ProcessBlink(1);
 }
-#endif
+
+
 void LedSetRGB(uint8_t led, uint8_t r, uint8_t g, uint8_t b) {
 	if (led == 1) {
 		TIM15->CCR1 = 65535 - pwm_table[r];
@@ -336,6 +265,7 @@ void LedSetRGB(uint8_t led, uint8_t r, uint8_t g, uint8_t b) {
 		TIM3->CCR3 = 65535 - pwm_table[b];
 	}
 }
+
 
 void LedFunctionSetRGB(LedFunction_T func, uint8_t r, uint8_t g, uint8_t b) {
 	if (leds[0].func == func) {
@@ -357,6 +287,7 @@ void LedFunctionSetRGB(LedFunction_T func, uint8_t r, uint8_t g, uint8_t b) {
 	}
 }
 
+
 void LedStop(void) {
 	if ((htim3.Instance->CR1 & TIM_CR1_CEN) == 0) {
 		HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
@@ -366,28 +297,15 @@ void LedStop(void) {
 		HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
 		HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
 		HAL_TIM_PWM_Stop(&htim17, TIM_CHANNEL_1);
-
-		//Configure GPIOB output pins
-		/*GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_4|GPIO_PIN_5;
-		GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-		GPIO_InitStruct.Pull = GPIO_NOPULL;
-		GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-		HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-		HAL_GPIO_WritePin(GPIOB, GPIO_InitStruct.Pin, GPIO_PIN_RESET);*/
 	}
 }
 
+
 void LedStart(void) {
 	if ((htim3.Instance->CR1 & TIM_CR1_CEN) == TIM_CR1_CEN)
-		//Configure GPIOB PWM pins
-		/*GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_4|GPIO_PIN_5;
-		GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-		GPIO_InitStruct.Pull = GPIO_NOPULL;
-		GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-		GPIO_InitStruct.Alternate = GPIO_AF1_TIM3;
-		HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);*/
 		LedInit();
 }
+
 
 void LedSetConfiguarion(uint8_t led, uint8_t data[], uint8_t len) {
 	if (led > 1) return;
@@ -451,6 +369,7 @@ void LedSetConfiguarion(uint8_t led, uint8_t data[], uint8_t len) {
 
 }
 
+
 void LedGetConfiguarion(uint8_t led, uint8_t data[], uint16_t *len) {
 	if (led > 1) return;
 	data[0] = leds[led].func;
@@ -460,6 +379,7 @@ void LedGetConfiguarion(uint8_t led, uint8_t data[], uint16_t *len) {
 	*len = 4;
 }
 
+
 void LedCmdSetState(uint8_t led, uint8_t data[], uint8_t len) {
 	if (led > 1 || leds[led].func != LED_USER_LED) return;
 	leds[led].r = data[0];
@@ -468,6 +388,7 @@ void LedCmdSetState(uint8_t led, uint8_t data[], uint8_t len) {
 	LedSetRGB(led, data[0], data[1], data[2]);
 }
 
+
 void LedCmdGetState(uint8_t led, uint8_t data[], uint16_t *len) {
 	if (led > 1) return;
 	data[0] = leds[led].r;
@@ -475,6 +396,7 @@ void LedCmdGetState(uint8_t led, uint8_t data[], uint16_t *len) {
 	data[2] = leds[led].b;
 	*len = 3;
 }
+
 
 void LedCmdSetBlink(uint8_t led, uint8_t data[], uint8_t len) {
 	if (led > 1 || leds[led].func == LED_NOT_USED) return;
@@ -494,26 +416,18 @@ void LedCmdSetBlink(uint8_t led, uint8_t data[], uint8_t len) {
 	leds[led].blinkPeriod2 *= 10;
 
 
-#if defined(RTOS_FREERTOS)
-	if (leds[led].blinkRepeat) {
-		LedSetRGB(led, leds[led].blinkR1, leds[led].blinkG1, leds[led].blinkB1);
-		osThreadResume(ledTaskHandle[led]);
-		//osMutexRelease(osMutexHandle[led]);
-	} else {
-		LedSetRGB(led, leds[led].r, leds[led].g, leds[led].b);
-	}
-#else
 	if (leds[led].blinkRepeat) {
 		LedSetRGB(led, leds[led].blinkR1, leds[led].blinkG1, leds[led].blinkB1);
 		MS_TIME_COUNTER_INIT(leds[led].blinkTimer);
 	} else {
 		LedSetRGB(led, leds[led].r, leds[led].g, leds[led].b);
 	}
-#endif
 
 }
 
-void LedCmdGetBlink(uint8_t led, uint8_t data[], uint16_t *len) {
+
+void LedCmdGetBlink(uint8_t led, uint8_t data[], uint16_t *len)
+{
 	if (led > 1) return;
 
 	data[0] = leds[led].blinkRepeat < 255 ? leds[led].blinkCount >> 1 : 255;

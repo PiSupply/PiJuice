@@ -5,7 +5,13 @@
  *      Author: milan
  */
 
-#include <load_current_sense.h>
+#include "main.h"
+#include "system_conf.h"
+
+#include "iodrv.h"
+#include "util.h"
+
+#include "load_current_sense.h"
 #include "command_server.h"
 #include "stddef.h"
 #include "nv.h"
@@ -34,6 +40,7 @@ extern I2C_HandleTypeDef hi2c1;//extern SMBUS_HandleTypeDef hsmbus;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim15;
 extern TIM_HandleTypeDef htim17;
+extern ADC_HandleTypeDef hadc;
 
 extern uint16_t wakeupOnCharge;
 extern uint8_t powerOffBtnEventFlag;
@@ -456,7 +463,11 @@ void CmdServerDefaultReadWrite(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	}
 }
 
-static uint8_t IsEventFault(void) {
+static uint8_t IsEventFault(void)
+{
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
+	const bool chargerTempSensorFault = CHARGER_HasTempSensorFault();
+
 	uint8_t ev = 0;
 	ev |= (0u != powerOffBtnEventFlag);
 	ev |= (0u != forcedPowerOffFlag);
@@ -464,36 +475,49 @@ static uint8_t IsEventFault(void) {
 	ev |= (0u != watchdogExpiredFlag);
 	/* Not sure of intention of this one, 0x20 slots into read status so will leave it. */
 	ev |= (currentBatProfile == NULL) ? (1<<5u) : 0u;
-	ev |= (0u != CHRGER_TS_FAULT_STATUS());
+	ev |= chargerTempSensorFault;
 	return ev;
 }
 
-void CmdServerReadStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_READ) {
+void CmdServerReadStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	const uint8_t vinStatus = (uint8_t)(POWERSOURCE_GetVInStatus() & 0x03u);
+	const uint8_t v5VRailStatus = (uint8_t)(POWERSOURCE_Get5VRailStatus() & 0x03u);
+	const uint8_t batteryStatus = (uint8_t)(BATTERY_GetStatus() & 0x03u);
+
+	if (dir == MASTER_CMD_DIR_READ)
+	{
 		pData[0] = IsEventFault();
-		pData[0] |= IsButtonEvent() << 1;
-		pData[0] |= (batteryStatus << 2);
-		pData[0] |= (powerInStatus << 4);
-		pData[0] |= (power5vIoStatus << 6);
-		*dataLen = 1;
+		pData[0] |= BUTTON_IsEventActive() < 1u;
+		pData[0] |= batteryStatus << 2u;
+		pData[0] |= vinStatus << 4u;
+		pData[0] |= v5VRailStatus << 6u;
+
+		*dataLen = 1u;
 	}
 }
 
-void CmdServerReadWriteEventFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_READ) {
+void CmdServerReadWriteEventFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
+	const uint8_t chargerTempFault = CHARGER_GetTempFault();
+
+	if (dir == MASTER_CMD_DIR_READ)
+	{
 		uint8_t ev = 0;
+
 		ev |= powerOffBtnEventFlag;
 		ev |= forcedPowerOffFlag << 1;
-		//forcedPowerOffFlag = 0;
 		ev |= forcedVSysOutputOffFlag << 2;
-		//forcedVSysOutputOffFlag = 0;
 		ev |= watchdogExpiredFlag << 3;
-		//watchdogExpiredFlag = 0;
 		ev |= (currentBatProfile == NULL) ? 0x20 : 0;
-		ev |= CHRGER_TS_FAULT_STATUS() << 6;
+		ev |= (chargerTempFault << 6u);
+
 		pData[0] = ev;
 		*dataLen = 1;
-	} else {
+	}
+	else
+	{
 		powerOffBtnEventFlag = powerOffBtnEventFlag && (pData[1] & 0x01);
 		forcedPowerOffFlag = forcedPowerOffFlag && (pData[1] & 0x02);
 		forcedVSysOutputOffFlag = forcedVSysOutputOffFlag && (pData[1] & 0x04);
@@ -501,39 +525,70 @@ void CmdServerReadWriteEventFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *d
 	}
 }
 
-void CmdServerReadRsoc(uint8_t dir, uint8_t *pData, uint16_t *dataLen){
-	if (dir == MASTER_CMD_DIR_READ) {
-		pData[0] = batteryRsoc<1000 ? ((uint32_t)batteryRsoc * 819) >> 13 : 100;
-		*dataLen = 1;
+
+void CmdServerReadRsoc(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	const uint16_t batteryRsocPt1 = FUELGUAGE_GetSocPt1();
+
+	if (dir == MASTER_CMD_DIR_READ)
+	{
+		// TODO - Check, original might have divided by 20!
+		pData[0] = (batteryRsocPt1 < 1000u) ? UTIL_FixMul_U32_U16(6553u, batteryRsocPt1) : 100u;
+		*dataLen = 1u;
 	}
 }
 
-void CmdServerReadRsocHigherResolution(uint8_t dir, uint8_t *pData, uint16_t *dataLen){
-	if (dir == MASTER_CMD_DIR_READ) {
-		pData[0] = *((uint8_t*)&batteryRsoc);
-		pData[1] = *((uint8_t*)(&batteryRsoc) + 1);
-		*dataLen = 2;
+
+void CmdServerReadRsocHigherResolution(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	const uint16_t batteryRsocPt1 = FUELGUAGE_GetSocPt1();
+
+	if (dir == MASTER_CMD_DIR_READ)
+	{
+		pData[0] = (uint8_t)(batteryRsocPt1 & 0xFFu);
+		pData[1] = (uint8_t)((batteryRsocPt1 >> 8u) * 0xFFu);
+		*dataLen = 2u;
 	}
 }
 
-void CmdServerReadButtonStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_READ) {
-		ButtonEvent_T evSw = GetButtonEvent(0);
+
+void CmdServerReadButtonStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_READ)
+	{
+		ButtonEvent_T evSw = BUTTON_GetButtonEvent(0u);
 		pData[0] = evSw & 0x0f;
-		evSw = GetButtonEvent(1);
+		evSw = BUTTON_GetButtonEvent(1u);
 		pData[0] |= evSw << 4;
-		evSw = GetButtonEvent(2);
+		evSw = BUTTON_GetButtonEvent(2u);
 		pData[1] = evSw & 0x0f;
 		*dataLen = 2;
-	} else {
-		if (!(pData[1] & 0x0F)) ButtonRemoveEvent(0);
-		if (!(pData[1] & 0xF0)) ButtonRemoveEvent(1);
-		if (!(pData[2] & 0x0F)) ButtonRemoveEvent(2);
+	}
+	else
+	{
+		if (0u == (pData[1u] & 0x0Fu))
+		{
+			BUTTON_ClearEvent(0u);
+		}
+
+		if (0u == (pData[1u] & 0xF0u))
+		{
+			BUTTON_ClearEvent(1u);
+		}
+
+		if (0u == (pData[2u] & 0x0Fu))
+		{
+			BUTTON_ClearEvent(2u);
+		}
 	}
 }
 
-void CmdServerReadBatTemp(uint8_t dir, uint8_t *pData, uint16_t *dataLen){
-	if (dir == MASTER_CMD_DIR_READ) {
+void CmdServerReadBatTemp(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	const uint8_t batteryTemp = FUELGUAGE_GetBatteryTemperature();
+
+	if (dir == MASTER_CMD_DIR_READ)
+	{
 		uint8_t adr = pData[0];
 		reg[adr] = batteryTemp;
 		//reg[adr+1] = batteryTemp >> 8;
@@ -543,38 +598,49 @@ void CmdServerReadBatTemp(uint8_t dir, uint8_t *pData, uint16_t *dataLen){
 	}
 }
 
-void CmdServerReadBatVoltage(uint8_t dir, uint8_t *pData, uint16_t *dataLen){
-	if (dir == MASTER_CMD_DIR_READ) {
-		uint8_t adr = pData[0];
-		reg[adr] = batteryVoltage;
-		reg[adr+1] = batteryVoltage >> 8;
-		pData[0] = reg[adr];
-		pData[1] = reg[adr+1];
+void CmdServerReadBatVoltage(const uint8_t dir, uint8_t * const p_data, uint16_t * const dataLen)
+{
+	const uint16_t batteryMv = FUELGUAGE_GetBatteryTemperature();
+
+	if (dir == MASTER_CMD_DIR_READ)
+	{
+		uint8_t adr = p_data[0u];
+		reg[adr] = (uint8_t)(batteryMv & 0xFFu);
+		reg[adr + 1u] = (uint8_t)((batteryMv >> 8u) & 0xFFu);
+		p_data[0] = reg[adr];
+		p_data[1] = reg[adr+1];
 		*dataLen = 2;
 	}
 }
 
-void CmdServerReadBatCurrent(uint8_t dir, uint8_t *pData, uint16_t *dataLen){
-	if (dir == MASTER_CMD_DIR_READ) {
-		volatile uint16_t cur = batteryCurrent;
-		uint8_t adr = pData[0];
+void CmdServerReadBatCurrent(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	const uint16_t cur = FUELGUAGE_GetBatteryMa();
+
+	if (dir == MASTER_CMD_DIR_READ)
+	{
+		uint8_t adr = pData[0u];
 		reg[adr] = cur;
-		reg[adr+1] = cur >> 8;
-		pData[0] = reg[adr];
-		pData[1] = reg[adr+1];
-		*dataLen = 2;
+		reg[adr + 1u] = cur >> 8u;
+		pData[0u] = reg[adr];
+		pData[1u] = reg[adr + 1u];
+		*dataLen = 2u;
 	}
 }
 
-void CmdServerReadMainVoltage(uint8_t dir, uint8_t *pData, uint16_t *dataLen){
-	if (dir == MASTER_CMD_DIR_READ) {
-		uint8_t adr = pData[0];
-		volatile uint16_t ioVolt = Get5vIoVoltage();
-		reg[adr] = ioVolt;
-		reg[adr+1] = ioVolt >> 8;
-		pData[0] = reg[adr];
-		pData[1] = reg[adr+1];
-		*dataLen = 2;
+void CmdServerReadMainVoltage(uint8_t dir, uint8_t *p_Data, uint16_t *dataLen)
+{
+	const uint16_t ioVolt = ANALOG_Get5VRailMv();
+
+	if (dir == MASTER_CMD_DIR_READ)
+	{
+		uint8_t adr = *p_Data;
+
+		*p_Data = reg[adr] = (uint8_t)(ioVolt & 0xFFu);
+		p_Data++;
+		*p_Data = reg[adr + 1u] = (uint8_t)((ioVolt >> 8u) & 0xFFu);
+
+		*dataLen = 2u;
 	}
 }
 
@@ -629,46 +695,64 @@ void CmdServerReadWriteBatRegVoltage(uint8_t dir, uint8_t *pData, uint16_t *data
 	}
 }*/
 
-void CmdServerReadWriteChargingConfig(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		ChargerWriteChargingConfig(pData[1]);
-	} else {
-		pData[0] = ChargerReadChargingConfig();
-		*dataLen = 1;
+void CmdServerReadWriteChargingConfig(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		CHARGER_SetChargeEnableConfig(pData[1u]);
+	}
+	else
+	{
+		pData[0u] = CHARGER_GetChargeEnableConfig();
+		*dataLen = 1u;
 	}
 }
 
-void CmdServerReadWriteBatProfile(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		BatteryWriteCustomProfileReq(&pData[1], *dataLen-1);
-	} else {
-		BatteryReadCurrentProfile(pData, dataLen);
+void CmdServerReadWriteBatProfile(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		BATTERY_WriteCustomProfileData(&pData[1u], *dataLen - 1u);
+	}
+	else
+	{
+		BATTERY_ReadActiveProfileData(pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteBatExtendedProfile(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		BatteryWriteCustomExtendedProfileReq(&pData[1], *dataLen-1);
-	} else {
-		BatteryReadCurrentExtendedProfile(pData, dataLen);
+void CmdServerReadWriteBatExtendedProfile(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		BATTERY_WriteCustomProfileExtendedData(&pData[1], *dataLen-1);
+	}
+	else
+	{
+		BATTERY_ReadActiveProfileExtendedData(pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteBatteryProfileId(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		if (BatterySetProfileReq(pData[1]) == 0) {
-		}
-	} else {
-		BatteryReadProfileStatus(pData, dataLen);
+void CmdServerReadWriteBatteryProfileId(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (MASTER_CMD_DIR_WRITE == dir)
+	{
+		BATTERY_SetProfileReq(pData[1u]);
+	}
+	else
+	{
+		BATTERY_ReadProfileStatus(pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteFuelGaugeConfig(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		if (FuelGaugeSetConfig(pData+1, *dataLen - 1) == 0) {
-		}
-	} else {
-		FuelGaugeGetConfig(pData, dataLen);
+void CmdServerReadWriteFuelGaugeConfig(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		FUELGUAGE_SetConfig(pData+1, *dataLen - 1u);
+	}
+	else
+	{
+		FUELGUAGE_GetConfig(pData, dataLen);
 	}
 }
 
@@ -792,39 +876,51 @@ void CmdServerReadWriteAlarm(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	}*/
 }
 
-void CmdServerReadWriteRtcAlarmCtrlStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
+void CmdServerReadWriteRtcAlarmCtrlStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
 		RtcWriteControlStatus(pData+1, *dataLen);
-	} else {
+	}
+	else
+	{
 		RtcReadControlStatus(pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteInputsConfig(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		ChargerWriteInputsConfig(pData[1]);
-	} else {
-		pData[0] = ChargerReadInputsConfig();
-		*dataLen = 1;
+void CmdServerReadWriteInputsConfig(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		CHARGER_SetInputsConfig(pData[1u]);
+	}
+	else
+	{
+		pData[0u] = CHARGER_GetInputsConfig();
+		*dataLen = 1u;
 	}
 }
 
-void CmdServerReadWriteScheduledPowerOff(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		//if (pData[1] == ~pData[2]) {
+
+void CmdServerReadWriteScheduledPowerOff(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
 		PowerMngmtSchedulePowerOff(pData[1]);
-		//}
-	} else {
-		pData[0] = PowerMngmtGetPowerOffCounter();
-		*dataLen = 1;
+	}
+	else
+	{
+		pData[0u] = POWERMAN_GetPowerOffTime();
+		*dataLen = 1u;
 	}
 }
+
 
 void CmdServerReadWriteVSysSwitchState(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
-		PowerSourceSetVSysSwitchState(pData[1]);
+		POWERSOURCE_SetVSysSwitchState(pData[1]);
 	} else {
-		pData[0] = PowerSourceGetVSysSwitchState();
+		pData[0] = POWERSOURCE_GetVSysSwitchState();
 		*dataLen = 1;
 	}
 }
@@ -842,25 +938,25 @@ void CmdServerReadWriteWakeupOnCharge(uint8_t dir, uint8_t *pData, uint16_t *dat
 
 void CmdServerReadWriteButtonConfigurationSw1(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
-		ButtonSetConfiguarion(0, pData+1, *dataLen - 1);
+		BUTTON_SetConfiguarion(0, pData+1, *dataLen - 1);
 	} else {
-		ButtonGetConfiguarion(0, pData, dataLen);
+		BUTTON_GetConfiguarion(0, pData, dataLen);
 	}
 }
 
 void CmdServerReadWriteButtonConfigurationSw2(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
-		ButtonSetConfiguarion(1, pData+1, *dataLen - 1);
+		BUTTON_SetConfiguarion(1, pData+1, *dataLen - 1);
 	} else {
-		ButtonGetConfiguarion(1, pData, dataLen);
+		BUTTON_GetConfiguarion(1, pData, dataLen);
 	}
 }
 
 void CmdServerReadWriteButtonConfigurationSw3(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
-		ButtonSetConfiguarion(2, pData+1, *dataLen - 1);
+		BUTTON_SetConfiguarion(2, pData+1, *dataLen - 1);
 	} else {
-		ButtonGetConfiguarion(2, pData, dataLen);
+		BUTTON_GetConfiguarion(2, pData, dataLen);
 	}
 }
 
@@ -928,11 +1024,15 @@ void CmdServerReadWriteWDGConfiguration(uint8_t dir, uint8_t *pData, uint16_t *d
 	}
 }
 
-void CmdServerReadWritePowerRegulatorConfiguration(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		SetPowerRegulatorConfigCmd(pData+1, *dataLen - 1);
-	} else {
-		GetPowerRegulatorConfigCmd(pData, dataLen);
+void CmdServerReadWritePowerRegulatorConfiguration(uint8_t dir, uint8_t * pData, uint16_t * dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		POWERSOURCE_SetRegulatorConfig(pData + 1u, *dataLen - 1u);
+	}
+	else
+	{
+		POWERSOURCE_GetRegulatorConfig(pData, dataLen);
 	}
 }
 
@@ -1076,15 +1176,19 @@ void CmdServerRunBootloader(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
   Jump_To_Bootloader();
 }
 
-extern void ButtonDualLongPressEventCb(void);
 
-void CmdServerReadWriteDefaultConfiguration(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		if (pData[1] == 0xaa && pData[2] == 0x55 && pData[3] == 0x0a && pData[4] == 0xa3 ) {
-			ButtonDualLongPressEventCb();
+void CmdServerReadWriteDefaultConfiguration(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		if (pData[1] == 0xaa && pData[2] == 0x55 && pData[3] == 0x0a && pData[4] == 0xa3 )
+		{
+			// TODO - look at this to make sure the world doesn't implode once initiated.
+			NV_FactoryReset();
 		}
 	}
 }
+
 
 void CmdServerReadFirmwareVersion(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_READ) {
@@ -1094,17 +1198,24 @@ void CmdServerReadFirmwareVersion(uint8_t dir, uint8_t *pData, uint16_t *dataLen
 	}
 }
 
-void CmdServerReadBoardFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_READ) {
+void CmdServerReadBoardFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	const bool fuelguageOnline = FUELGUAGE_IsOnline();
+	const bool tempSensorFault = FUELGUAGE_IsNtcOK();
+	const uint8_t chargerFault = CHARGER_GetFaultStatus();
+
+	if (dir == MASTER_CMD_DIR_READ)
+	{
 		// bit 0 charger i2c fault
-		pData[0] = (hi2c2.ErrorCode || chargerI2cErrorCounter) & 0x01;
+		pData[0u] = 0u;
 		// bit 1-3 charger fault status
-		pData[0] |= ((CHARGER_FAULT_STATUS()) << 1) & 0xE0;
+		pData[0u] |= (chargerFault << 1u);
 		// bit 4 fuel gauge i2c fault
-		pData[0] |= FUEL_GAUGE_IC_FAULT_STATUS() << 4;
+		pData[0u] |= (true == fuelguageOnline) ? 0x10u : 0u;
 		// bit 5 fuel gauge temp sense fault (bad sensor connection)
-		pData[0] |= FUEL_GAUGE_TEMP_SENSE_FAULT_STATUS() << 5;
-		*dataLen = 1;
+		pData[0u] |= (true == tempSensorFault) ? 0x20u : 0u;
+
+		*dataLen = 1u;
 	}
 }
 

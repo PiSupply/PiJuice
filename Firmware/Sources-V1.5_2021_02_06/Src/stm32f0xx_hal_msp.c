@@ -34,11 +34,11 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f0xx_hal.h"
 
-static DMA_HandleTypeDef hdma_tx2;
-static DMA_HandleTypeDef hdma_rx2;
+extern DMA_HandleTypeDef hdma_i2c2_rx;
+extern DMA_HandleTypeDef hdma_i2c2_tx;
 
 extern void Error_Handler(void);
-
+extern DMA_HandleTypeDef hdma_adc;
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
@@ -78,8 +78,107 @@ void HAL_MspInit(void)
   /* USER CODE END MspInit 1 */
 #endif
 }
-static DMA_HandleTypeDef DmaHandle;
+
+
+/**
+* @brief ADC MSP Initialization
+* This function configures the hardware resources used in this example
+* @param hadc: ADC handle pointer
+* @retval None
+*/
 void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  if(hadc->Instance==ADC1)
+  {
+  /* USER CODE BEGIN ADC1_MspInit 0 */
+
+  /* USER CODE END ADC1_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_ADC1_CLK_ENABLE();
+
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    /**ADC GPIO Configuration
+    PA0     ------> ADC_IN0
+    PA1     ------> ADC_IN1
+    PA2     ------> ADC_IN2
+    PA3     ------> ADC_IN3
+    PA4     ------> ADC_IN4
+    PA5     ------> ADC_IN5
+    PA7     ------> ADC_IN7
+    */
+    GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_7;
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /* ADC1 DMA Init */
+    /* ADC Init */
+    hdma_adc.Instance = DMA1_Channel1;
+    hdma_adc.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    hdma_adc.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_adc.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_adc.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+    hdma_adc.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+    hdma_adc.Init.Mode = DMA_CIRCULAR;
+    hdma_adc.Init.Priority = DMA_PRIORITY_LOW;
+    if (HAL_DMA_Init(&hdma_adc) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_DMA1_REMAP(HAL_DMA1_CH1_ADC);
+
+    __HAL_LINKDMA(hadc,DMA_Handle,hdma_adc);
+
+  /* USER CODE BEGIN ADC1_MspInit 1 */
+
+  /* USER CODE END ADC1_MspInit 1 */
+  }
+
+}
+
+/**
+* @brief ADC MSP De-Initialization
+* This function freeze the hardware resources used in this example
+* @param hadc: ADC handle pointer
+* @retval None
+*/
+void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
+{
+  if(hadc->Instance==ADC1)
+  {
+  /* USER CODE BEGIN ADC1_MspDeInit 0 */
+
+  /* USER CODE END ADC1_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_ADC1_CLK_DISABLE();
+
+    /**ADC GPIO Configuration
+    PA0     ------> ADC_IN0
+    PA1     ------> ADC_IN1
+    PA2     ------> ADC_IN2
+    PA3     ------> ADC_IN3
+    PA4     ------> ADC_IN4
+    PA5     ------> ADC_IN5
+    PA7     ------> ADC_IN7
+    */
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_7);
+
+    /* ADC1 DMA DeInit */
+    HAL_DMA_DeInit(hadc->DMA_Handle);
+  /* USER CODE BEGIN ADC1_MspDeInit 1 */
+
+  /* USER CODE END ADC1_MspDeInit 1 */
+  }
+
+}
+
+
+static DMA_HandleTypeDef DmaHandle;
+void HAL_ADC_MspInit_old(ADC_HandleTypeDef* hadc)
 {
   GPIO_InitTypeDef GPIO_InitStruct;
   if(hadc->Instance==ADC1)
@@ -137,7 +236,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 
 }
 
-void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
+void HAL_ADC_MspDeInit_old(ADC_HandleTypeDef* hadc)
 {
 
   if(hadc->Instance==ADC1)
@@ -257,8 +356,8 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
   GPIO_InitTypeDef GPIO_InitStruct;
   if(hi2c->Instance==I2C1)
   {
-	  static DMA_HandleTypeDef hdma_tx;
-	  static DMA_HandleTypeDef hdma_rx;
+	  //static DMA_HandleTypeDef hdma_tx;
+	  //static DMA_HandleTypeDef hdma_rx;
 	  RCC_PeriphCLKInitTypeDef  RCC_PeriphCLKInitStruct;
 
 	  /*##-1- Configure the I2C clock source. The clock is derived from the SYSCLK #*/
@@ -336,80 +435,68 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
   }
   else if(hi2c->Instance==I2C2)
   {
-	  //RCC_PeriphCLKInitTypeDef  RCC_PeriphCLKInitStruct2;
+	  /* USER CODE BEGIN I2C2_MspInit 0 */
 
-	  /*##-1- Configure the I2C clock source. The clock is derived from the SYSCLK #*/
-	  /*RCC_PeriphCLKInitStruct2.PeriphClockSelection = RCC_PERIPHCLK_I2C2;
-	  RCC_PeriphCLKInitStruct2.I2c2ClockSelection = RCC_I2C2CLKSOURCE_SYSCLK;
-	  HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct2);*/
+	  /* USER CODE END I2C2_MspInit 0 */
 
-	  /*##-2- Enable peripherals and GPIO Clocks #################################*/
-	  /* Enable GPIO TX/RX clock */
-	  __HAL_RCC_GPIOB_CLK_ENABLE();
-	  /* Enable I2Cx clock */
-	  __HAL_RCC_I2C2_CLK_ENABLE();
+	    __HAL_RCC_GPIOB_CLK_ENABLE();
+	    /**I2C2 GPIO Configuration
+	    PB10     ------> I2C2_SCL
+	    PB11     ------> I2C2_SDA
+	    */
+	    GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11;
+	    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+	    GPIO_InitStruct.Pull = GPIO_PULLUP;
+	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	    GPIO_InitStruct.Alternate = GPIO_AF1_I2C2;
+	    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-	  /* Enable DMAx clock */
-	  __HAL_RCC_DMA1_CLK_ENABLE();
+	    /* Peripheral clock enable */
+	    __HAL_RCC_I2C2_CLK_ENABLE();
 
-	  /*##-3- Configure peripheral GPIO ##########################################*/
-	  /* I2C TX GPIO pin configuration  */
-	  GPIO_InitStruct.Pin       = GPIO_PIN_10;
-	  GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
-	  GPIO_InitStruct.Pull      = GPIO_PULLUP;
-	  GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
-	  GPIO_InitStruct.Alternate = GPIO_AF1_I2C2;
-	  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+	    /* I2C2 DMA Init */
+	    /* I2C2_RX Init */
+	    hdma_i2c2_rx.Instance = DMA1_Channel5;
+	    hdma_i2c2_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+	    hdma_i2c2_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+	    hdma_i2c2_rx.Init.MemInc = DMA_MINC_ENABLE;
+	    hdma_i2c2_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+	    hdma_i2c2_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+	    hdma_i2c2_rx.Init.Mode = DMA_NORMAL;
+	    hdma_i2c2_rx.Init.Priority = DMA_PRIORITY_LOW;
+	    if (HAL_DMA_Init(&hdma_i2c2_rx) != HAL_OK)
+	    {
+	      Error_Handler();
+	    }
 
-	  /* I2C RX GPIO pin configuration  */
-	  GPIO_InitStruct.Pin       = GPIO_PIN_11;
-	  GPIO_InitStruct.Alternate = GPIO_AF1_I2C2;
-	  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+	    __HAL_DMA1_REMAP(HAL_DMA1_CH5_I2C2_RX);
 
-	  /*##-4- Configure the DMA Channels #########################################*/
-	  /* Configure the DMA handler for Transmission process */
-	  hdma_tx2.Instance                 = DMA1_Channel4;
-	  hdma_tx2.Init.Direction           = DMA_MEMORY_TO_PERIPH;
-	  hdma_tx2.Init.PeriphInc           = DMA_PINC_DISABLE;
-	  hdma_tx2.Init.MemInc              = DMA_MINC_ENABLE;
-	  hdma_tx2.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-	  hdma_tx2.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
-	  hdma_tx2.Init.Mode                = DMA_NORMAL;
-	  hdma_tx2.Init.Priority            = DMA_PRIORITY_LOW;
+	    __HAL_LINKDMA(hi2c,hdmarx,hdma_i2c2_rx);
 
-	  HAL_DMA_Init(&hdma_tx2);
+	    /* I2C2_TX Init */
+	    hdma_i2c2_tx.Instance = DMA1_Channel4;
+	    hdma_i2c2_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+	    hdma_i2c2_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+	    hdma_i2c2_tx.Init.MemInc = DMA_MINC_ENABLE;
+	    hdma_i2c2_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+	    hdma_i2c2_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+	    hdma_i2c2_tx.Init.Mode = DMA_NORMAL;
+	    hdma_i2c2_tx.Init.Priority = DMA_PRIORITY_LOW;
+	    if (HAL_DMA_Init(&hdma_i2c2_tx) != HAL_OK)
+	    {
+	      Error_Handler();
+	    }
 
-	  /* Associate the initialized DMA handle to the the I2C handle */
-	  __HAL_LINKDMA(hi2c, hdmatx, hdma_tx2);
+	    __HAL_DMA1_REMAP(HAL_DMA1_CH4_I2C2_TX);
 
-	  /* Configure the DMA handler for Transmission process */
-	  hdma_rx2.Instance                 = DMA1_Channel5;
-	  hdma_rx2.Init.Direction           = DMA_PERIPH_TO_MEMORY;
-	  hdma_rx2.Init.PeriphInc           = DMA_PINC_DISABLE;
-	  hdma_rx2.Init.MemInc              = DMA_MINC_ENABLE;
-	  hdma_rx2.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-	  hdma_rx2.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
-	  hdma_rx2.Init.Mode                = DMA_NORMAL;
-	  hdma_rx2.Init.Priority            = DMA_PRIORITY_HIGH;
+	    __HAL_LINKDMA(hi2c,hdmatx,hdma_i2c2_tx);
 
-	  HAL_DMA_Init(&hdma_rx2);
+	    /* I2C2 interrupt Init */
+	    HAL_NVIC_SetPriority(I2C2_IRQn, 0, 0);
+	    HAL_NVIC_EnableIRQ(I2C2_IRQn);
+	  /* USER CODE BEGIN I2C2_MspInit 1 */
 
-	  /* Associate the initialized DMA handle to the the I2C handle */
-	  __HAL_LINKDMA(hi2c, hdmarx, hdma_rx2);
-
-	  /*##-5- Configure the NVIC for DMA #########################################*/
-	  /* NVIC configuration for DMA transfer complete interrupt (I2Cx_TX) */
-	  HAL_NVIC_SetPriority(DMA1_Channel4_5_IRQn, 0, 1);
-	  HAL_NVIC_EnableIRQ(DMA1_Channel4_5_IRQn);
-
-	  /* NVIC configuration for DMA transfer complete interrupt (I2Cx_RX) */
-	  HAL_NVIC_SetPriority(DMA1_Channel4_5_IRQn, 0, 0);
-	  HAL_NVIC_EnableIRQ(DMA1_Channel4_5_IRQn);
-
-	  /*##-6- Configure the NVIC for I2C ########################################*/
-	  /* NVIC for I2Cx */
-	  HAL_NVIC_SetPriority(I2C2_IRQn, 0, 1);
-	  HAL_NVIC_EnableIRQ(I2C2_IRQn);
+	  /* USER CODE END I2C2_MspInit 1 */
   }
 
 }
@@ -602,6 +689,20 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 
   /* USER CODE END TIM1_MspInit 1 */
   }
+  else if(htim_base->Instance==TIM6)
+  {
+  /* USER CODE BEGIN TIM6_MspInit 0 */
+
+  /* USER CODE END TIM6_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_TIM6_CLK_ENABLE();
+    /* TIM6 interrupt Init */
+    HAL_NVIC_SetPriority(TIM6_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(TIM6_IRQn);
+  /* USER CODE BEGIN TIM6_MspInit 1 */
+
+  /* USER CODE END TIM6_MspInit 1 */
+  }
   else if(htim_base->Instance==TIM17)
   {
   /* USER CODE BEGIN TIM17_MspInit 0 */
@@ -772,6 +873,20 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
   /* USER CODE END TIM17_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_TIM17_CLK_DISABLE();
+  }
+  else if(htim_base->Instance==TIM6)
+  {
+  /* USER CODE BEGIN TIM6_MspDeInit 0 */
+
+  /* USER CODE END TIM6_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_TIM6_CLK_DISABLE();
+
+    /* TIM6 interrupt DeInit */
+    HAL_NVIC_DisableIRQ(TIM6_IRQn);
+  /* USER CODE BEGIN TIM6_MspDeInit 1 */
+
+  /* USER CODE END TIM6_MspDeInit 1 */
   }
   else if(htim_base->Instance==TIM1)
   {

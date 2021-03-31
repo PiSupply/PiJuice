@@ -10,19 +10,13 @@
 
 #include "battery.h"
 
-#define POW_5V_IN_DETECTION_STATUS_UNKNOWN		0
-#define POW_5V_IN_DETECTION_STATUS_NOT_PRESENT	1
-#define POW_5V_IN_DETECTION_STATUS_PRESENT	2
-#define POW_5V_TURN_ON_TIMEOUT	40
+typedef enum
+{
+	RPI5V_DETECTION_STATUS_UNKNOWN = 0u,
+	RPI5V_DETECTION_STATUS_UNPOWERED = 1u,
+	RPI5V_DETECTION_STATUS_POWERED = 2u
+} POWERSOURCE_RPi5VStatus_t;
 
-#define POW_5V_BOOST_EN_STATUS()	 	(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10) == GPIO_PIN_SET)
-#define POW_SOURCE_NEED_POLL() 	(pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_PRESENT || MS_TIME_COUNT(pow5vOnTimeout) <= POW_5V_TURN_ON_TIMEOUT)
-#define POW_VSYS_OUTPUT_EN_STATUS()	 	(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_12) == GPIO_PIN_RESET)
-
-#define REGULATOR_5V_SWITCHING_STATUS_SUCCESS		0
-#define REGULATOR_5V_SWITCHING_STATUS_NO_ENERGY		1
-
-extern uint32_t pow5vOnTimeout;
 
 typedef enum PowerSourceStatus_T {
 	POW_SOURCE_NOT_PRESENT = 0,
@@ -32,32 +26,37 @@ typedef enum PowerSourceStatus_T {
 } PowerSourceStatus_T;
 
 typedef enum PowerRegulatorConfig_T {
-	POW_REGULATOR_MODE_POW_DET = 0,
-	POW_REGULATOR_MODE_LDO,
-	POW_REGULATOR_MODE_DCDC,
-	POW_REGULATOR_MODE_END
+	POW_REGULATOR_MODE_POW_DET = 0u,
+	POW_REGULATOR_MODE_LDO = 1u,
+	POW_REGULATOR_MODE_DCDC = 2u,
+	POW_REGULATOR_MODE_COUNT = 3u
 } PowerRegulatorConfig_T;
 
-extern PowerSourceStatus_T powerInStatus;
-extern PowerSourceStatus_T power5vIoStatus;
-extern uint8_t pow5vInDetStatus;
+
 extern uint8_t delayedPowerOff;
 extern uint8_t forcedPowerOffFlag;
 extern uint8_t forcedVSysOutputOffFlag;
 
-void PowerSourceInit(void);
-#if !defined(RTOS_FREERTOS)
-void PowerSourceTask(void);
-void PowerSource5vIoDetectionTask(void);
-#endif
 void PowerSourceExitLowPower(void);
 void PowerSourceEnterLowPower(void);
-void PowerSourceSetBatProfile(const BatteryProfile_T* batProfile);
-void PowerSourceSetVSysSwitchState(uint8_t state);
-uint8_t PowerSourceGetVSysSwitchState();
-int8_t Turn5vBoost(uint8_t onOff);
-void Power5VSetModeLDO(void);
-void SetPowerRegulatorConfigCmd(uint8_t data[], uint8_t len);
-void GetPowerRegulatorConfigCmd(uint8_t data[], uint16_t *len);
+
+void POWERSOURCE_Init(void);
+void POWERSOURCE_Task(void);
+void POWERSOURCE_5VIoDetection_Task(void);
+void POWERSOURCE_Set5vBoostEnable(const bool enabled);
+void POWERSOURCE_SetLDOEnable(const bool enabled);
+bool POWERSOURCE_IsVsysEnabled(void);
+bool POWERSOURCE_IsBoostConverterEnabled(void);
+void POWERSOURCE_SetVSysSwitchState(uint8_t state);
+uint8_t POWERSOURCE_GetVSysSwitchState(void);
+void POWERSOURCE_UpdateBatteryProfile(const BatteryProfile_T* batProfile);
+
+PowerSourceStatus_T POWERSOURCE_GetVInStatus(void);
+PowerSourceStatus_T POWERSOURCE_Get5VRailStatus(void);
+
+void POWERSOURCE_SetRegulatorConfig(const uint8_t * const data, const uint8_t len);
+void POWERSOURCE_GetRegulatorConfig(uint8_t * const data, uint16_t * const len);
+
+bool POWERSOURCE_NeedPoll(void);
 
 #endif /* POWER_SOURCE_H_ */
