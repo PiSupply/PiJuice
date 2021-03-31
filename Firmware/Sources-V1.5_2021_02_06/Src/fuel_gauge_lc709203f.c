@@ -91,7 +91,6 @@ void FUELGUAGE_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 void FUELGUAGE_Init(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
-	const bool batteryAtOCV = (false == CHARGER_IsCharging()) && CHARGER_IsChargeSourceAvailable();
 
 	uint16_t tempU16;
 	uint8_t config;

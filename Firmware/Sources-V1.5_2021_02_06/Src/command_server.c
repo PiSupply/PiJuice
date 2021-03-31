@@ -901,16 +901,20 @@ void CmdServerReadWriteInputsConfig(uint8_t dir, uint8_t *pData, uint16_t *dataL
 	}
 }
 
-void CmdServerReadWriteScheduledPowerOff(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		//if (pData[1] == ~pData[2]) {
+
+void CmdServerReadWriteScheduledPowerOff(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
 		PowerMngmtSchedulePowerOff(pData[1]);
-		//}
-	} else {
-		pData[0] = PowerMngmtGetPowerOffCounter();
-		*dataLen = 1;
+	}
+	else
+	{
+		pData[0u] = POWERMAN_GetPowerOffTime();
+		*dataLen = 1u;
 	}
 }
+
 
 void CmdServerReadWriteVSysSwitchState(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {

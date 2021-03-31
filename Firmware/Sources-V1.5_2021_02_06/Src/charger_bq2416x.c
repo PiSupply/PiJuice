@@ -19,6 +19,8 @@
 #include "power_source.h"
 #include "analog.h"
 
+#include "execution.h"
+
 
 #define CHARGING_CONFIG_CHARGE_EN_bm			0x01u
 #define CHARGE_ENABLED							(0u != (m_chargingConfig & CHARGING_CONFIG_CHARGE_EN_bm))
@@ -48,10 +50,9 @@
 #define CHARGER_VIN_DPM_USB						6u
 
 
-extern uint8_t resetStatus;
-
 static uint8_t m_registersIn[CHARGER_REGISTER_COUNT] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static uint8_t m_registersOut[CHARGER_REGISTER_COUNT] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
 
 // TODO - Make these defines in the charger conf header
 static uint8_t m_registersWriteMask[CHARGER_REGISTER_COUNT] =
@@ -94,7 +95,6 @@ static uint8_t m_chargingConfig;
 static uint8_t m_chargerInputsConfig;
 
 static ChargerStatus_T m_chargerStatus = CHG_NA;
-static CHARGER_DeviceStatus_t m_chargerIcStatus;
 
 static uint32_t m_lastWDTResetTimeMs;
 static uint32_t m_lastRegReadTimeMs;
@@ -167,7 +167,7 @@ void CHARGER_Init(void)
 
 
 	// If not just powered on...
-	if (!resetStatus)
+	if (EXECUTION_STATE_NORMAL != executionState)
 	{
 		EE_ReadVariable(CHARGER_INPUTS_CONFIG_NV_ADDR, &var);
 

@@ -97,6 +97,11 @@
 			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/crc.h</location>
 		</link>
 		<link>
+			<name>Inc/e2.h</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/e2.h</location>
+		</link>
+		<link>
 			<name>Inc/eeprom.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/eeprom.h</locationURI>
@@ -115,6 +120,11 @@
 			<name>Inc/fuelguage_conf.h</name>
 			<type>1</type>
 			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/fuelguage_conf.h</location>
+		</link>
+		<link>
+			<name>Inc/hostcomms.h</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/hostcomms.h</location>
 		</link>
 		<link>
 			<name>Inc/i2cdrv.h</name>
@@ -202,6 +212,11 @@
 			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/system_conf.h</location>
 		</link>
 		<link>
+			<name>Inc/taskman.h</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/taskman.h</location>
+		</link>
+		<link>
 			<name>Inc/time_count.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/time_count.h</locationURI>
@@ -257,6 +272,11 @@
 			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Src/crc.c</location>
 		</link>
 		<link>
+			<name>Src/e2.c</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Src/e2.c</location>
+		</link>
+		<link>
 			<name>Src/eeprom.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Src/eeprom.c</locationURI>
@@ -270,6 +290,11 @@
 			<name>Src/fuel_gauge_lc709203f.c</name>
 			<type>1</type>
 			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Src/fuel_gauge_lc709203f.c</location>
+		</link>
+		<link>
+			<name>Src/hostcomms.c</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Src/hostcomms.c</location>
 		</link>
 		<link>
 			<name>Src/i2cdrv.c</name>
@@ -335,6 +360,11 @@
 			<name>Src/stm32f0xx_it.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Src/stm32f0xx_it.c</locationURI>
+		</link>
+		<link>
+			<name>Src/taskman.c</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Src/taskman.c</location>
 		</link>
 		<link>
 			<name>Src/time_count.c</name>

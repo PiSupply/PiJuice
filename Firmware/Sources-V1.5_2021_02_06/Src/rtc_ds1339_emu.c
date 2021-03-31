@@ -12,6 +12,8 @@
 #include "stm32f0xx_hal.h"
 #include "power_management.h"
 
+#include "execution.h"
+
 #define RTC_REGISTERS_NUM	(0x3F+1) // free RAM reserved for compatibility with ds1307
 
 extern RTC_HandleTypeDef hrtc;
@@ -38,15 +40,21 @@ RtcCommand_T rtcCommands[] =
 		//RtcReadWriteTime
 };
 
-void RtcInit(void) {
-	//static  uint8_t rtcBufferInit[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-	if (!resetStatus) {
-		weekDaysSelection = 0xFF;
-		hoursSelection = 0xFFFFFFFF;
-		minutesStep = 0;
+void RtcInit(void)
+{
+	uint8_t i;
+
+	if (EXECUTION_STATE_NORMAL != executionState)
+	{
+		weekDaysSelection = 0xFFu;
+		hoursSelection = 0xFFFFFFFFul;
+		minutesStep = 0u;
 		m_alarmEventFlag = false;
-		int i;
-		for (i = 0; i < 17; i++) rtc_buffer[i] = 0;//rtcBufferInit[i];
+
+		for (i = 0u; i < 17u; i++)
+		{
+			rtc_buffer[i] = 0u;
+		}
 	}
 }
 

@@ -11,6 +11,8 @@
 #include "nv.h"
 
 #include "iodrv.h"
+#include "execution.h"
+
 #include "io_control.h"
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim);
@@ -188,29 +190,39 @@ void IoConfigure(uint8_t extIOPinIdx)
 	}
 }
 
-void IoNvReadConfig(uint8_t pin) {
+void IoNvReadConfig(uint8_t pin)
+{
 	uint16_t var;
 	EE_ReadVariable(IO_CONFIG1_NV_ADDR+(pin-1)*3, &var);
-	if (((~var)&0xFF) != (var>>8)) {
+
+	if (((~var)&0xFF) != (var>>8))
+	{
 		ioConfig[pin-1] = 0x80; // in case of nv write error, set to non configured
 		return;
-	} else {
+	}
+	else
+	{
 		ioConfig[pin-1] = var & 0xFF;
 	}
+
 	EE_ReadVariable(IO_CONFIG1_PARAM1_NV_ADDR+(pin-1)*3, &ioParam1[pin-1]);
 	EE_ReadVariable(IO_CONFIG1_PARAM2_NV_ADDR+(pin-1)*3, &ioParam2[pin-1]);
 }
 
-void IoControlInit() {
-	if (!resetStatus) { // on mcu power up
+void IoControlInit()
+{
+	if (EXECUTION_STATE_NORMAL != executionState)
+	{
 		IoNvReadConfig(1);
 		IoNvReadConfig(2);
 	}
+
 	IoConfigure(1);
 	IoConfigure(2);
 }
 
-void IoSetConfiguarion(uint8_t pin, uint8_t data[], uint8_t len) {
+void IoSetConfiguarion(uint8_t pin, uint8_t data[], uint8_t len)
+{
 
 	ioConfig[pin-1] = data[0];
 	ioParam1[pin-1] = data[2];
@@ -220,7 +232,8 @@ void IoSetConfiguarion(uint8_t pin, uint8_t data[], uint8_t len) {
 	ioParam2[pin-1] <<= 8;
 	ioParam2[pin-1] |= data[3];
 
-	if (data[0]&0x80) {
+	if (data[0]&0x80)
+	{
 		NvWriteVariableU8(IO_CONFIG1_NV_ADDR+(pin-1)*3, data[0]);
 		EE_WriteVariable(IO_CONFIG1_PARAM1_NV_ADDR+(pin-1)*3, ioParam1[pin-1]);
 		EE_WriteVariable(IO_CONFIG1_PARAM2_NV_ADDR+(pin-1)*3, ioParam2[pin-1]);
@@ -231,7 +244,8 @@ void IoSetConfiguarion(uint8_t pin, uint8_t data[], uint8_t len) {
 	IoConfigure(pin);
 }
 
-void IoGetConfiguarion(uint8_t pin, uint8_t data[], uint16_t *len) {
+void IoGetConfiguarion(uint8_t pin, uint8_t data[], uint16_t *len)
+{
 	data[0] = ioConfig[pin-1];
 	data[1] = ioParam1[pin-1] & 0xFF;
 	data[2] = (ioParam1[pin-1] >> 8) & 0xFF;

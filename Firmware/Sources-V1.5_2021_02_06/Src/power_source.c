@@ -92,7 +92,7 @@ void POWERSOURCE_Init(void)
 	uint16_t var = 0u;
 
 	// initialize global variables after power-up
-	if (!resetStatus)
+	if (EXECUTION_STATE_NORMAL != executionState)
 	{
 		forcedPowerOffFlag = 0u;
 		forcedVSysOutputOffFlag = 0u;
