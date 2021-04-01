@@ -50,10 +50,6 @@
 #define CHARGER_VIN_DPM_USB						6u
 
 
-static uint8_t m_registersIn[CHARGER_REGISTER_COUNT] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-static uint8_t m_registersOut[CHARGER_REGISTER_COUNT] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-
 // TODO - Make these defines in the charger conf header
 static uint8_t m_registersWriteMask[CHARGER_REGISTER_COUNT] =
 {
@@ -69,7 +65,7 @@ static uint8_t m_registersWriteMask[CHARGER_REGISTER_COUNT] =
 
 
 static bool CHARGER_UpdateLocalRegister(const uint8_t regAddress);
-bool CHARGER_UpdateDeviceRegister(const uint8_t regAddress, const uint8_t value, const uint8_t writeMask);
+static bool CHARGER_UpdateDeviceRegister(const uint8_t regAddress, const uint8_t value, const uint8_t writeMask);
 static bool CHARGER_UpdateAllLocalRegisters(void);
 static bool CHARGER_ReadDeviceRegister(const uint8_t regAddress);
 
@@ -81,9 +77,13 @@ static void CHARGER_UpdateControlStatus(void);
 static void CHARGER_UpdateRPi5VInLockout(void);
 static void CHARGER_UpdateRegulationVoltage(void);
 
-void CHARGER_KickDeviceWatchdog(const uint32_t sysTime);
+static void CHARGER_KickDeviceWatchdog(const uint32_t sysTime);
 
 static bool CHARGER_CheckForPoll(void);
+
+
+static uint8_t m_registersIn[CHARGER_REGISTER_COUNT] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static uint8_t m_registersOut[CHARGER_REGISTER_COUNT] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 static CHARGER_USBInLockoutStatus_T m_rpi5VInputDisable = CHG_USB_IN_UNKNOWN;
 static CHARGER_USBInCurrentLimit_T m_rpi5VCurrentLimit = CHG_IUSB_LIMIT_150MA; // current limit code as defined in datasheet
@@ -552,7 +552,6 @@ bool CHARGER_IsCharging(void)
 {
 	const uint8_t instat = (m_registersIn[CHG_REG_SUPPLY_STATUS] & CHGR_SC_STAT_Msk);
 
-	// TODO- Supply status register might be better for this.
 	return (instat == CHGR_SC_STAT_IN_CHARGING) || (instat == CHGR_SC_STAT_USB_CHARGING);
 }
 
