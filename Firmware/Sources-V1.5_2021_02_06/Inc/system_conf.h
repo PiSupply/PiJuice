@@ -120,7 +120,49 @@
 #define IODRV_PIN_RUN_PIN_Pos				13u
 #define IODRV_PIN_RUN_INVERT_bm				0u
 
-#define IODRV_MAX_IO_PINS					16u
+/* LED1 Red Drive */
+/* Output pushpull, input pulldown */
+#define IODRV_PIN_LED1_R					16u
+#define IODRV_PIN_LED1_R_GPIO				GPIOB
+#define IODRV_PIN_LED1_R_PIN_Pos			14u
+#define IODRV_PIN_LED1_R_INVERT_bm			0u
+
+/* LED1 Green Drive */
+/* Output pushpull, input pulldown */
+#define IODRV_PIN_LED1_G					17u
+#define IODRV_PIN_LED1_G_GPIO				GPIOB
+#define IODRV_PIN_LED1_G_PIN_Pos			15u
+#define IODRV_PIN_LED1_G_INVERT_bm			0u
+
+/* LED1 Blue Drive */
+/* Output pushpull, input pulldown */
+#define IODRV_PIN_LED1_B					18u
+#define IODRV_PIN_LED1_B_GPIO				GPIOB
+#define IODRV_PIN_LED1_B_PIN_Pos			9u
+#define IODRV_PIN_LED1_B_INVERT_bm			0u
+
+/* LED2 Red Drive */
+/* Output pushpull, input pulldown */
+#define IODRV_PIN_LED2_R					19u
+#define IODRV_PIN_LED2_R_GPIO				GPIOB
+#define IODRV_PIN_LED2_R_PIN_Pos			4u
+#define IODRV_PIN_LED2_R_INVERT_bm			0u
+
+/* LED2 Green Drive */
+/* Output pushpull, input pulldown */
+#define IODRV_PIN_LED2_G					20u
+#define IODRV_PIN_LED2_G_GPIO				GPIOB
+#define IODRV_PIN_LED2_G_PIN_Pos			5u
+#define IODRV_PIN_LED2_G_INVERT_bm			0u
+
+/* LED2 Blue Drive */
+/* Output pushpull, input pulldown */
+#define IODRV_PIN_LED2_B					21u
+#define IODRV_PIN_LED2_B_GPIO				GPIOB
+#define IODRV_PIN_LED2_B_PIN_Pos			0u
+#define IODRV_PIN_LED2_B_INVERT_bm			0u
+
+#define IODRV_MAX_IO_PINS					22u
 
 #define ANALOG_CHANNEL_CS1					0u
 #define ANALOG_CHANNEL_CS2					1u

@@ -10,6 +10,7 @@
 #include "nv.h"
 #include "time_count.h"
 #include "util.h"
+#include "iodrv.h"
 
 #include "led.h"
 #include "led_pwm_table.h"
@@ -72,6 +73,7 @@ static void LED_InitFunction(const uint8_t ledIdx);
 
 void LED_Init(const uint32_t sysTime)
 {
+	// Start pwm timer channels, also starts the timers
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
@@ -79,18 +81,44 @@ void LED_Init(const uint32_t sysTime)
 	HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim17, TIM_CHANNEL_1);
 
+
+	// Set all pins to drive push pull
+	IODRV_SetPinType(IODRV_PIN_LED1_R, IOTYPE_PWM_PUSHPULL);
+	IODRV_SetPinType(IODRV_PIN_LED1_G, IOTYPE_PWM_PUSHPULL);
+	IODRV_SetPinType(IODRV_PIN_LED1_B, IOTYPE_PWM_PUSHPULL);
+	IODRV_SetPinType(IODRV_PIN_LED2_R, IOTYPE_PWM_PUSHPULL);
+	IODRV_SetPinType(IODRV_PIN_LED2_G, IOTYPE_PWM_PUSHPULL);
+	IODRV_SetPinType(IODRV_PIN_LED2_B, IOTYPE_PWM_PUSHPULL);
+
+
+	/* TODO - Set these in cube MX and just toggle alt function */
+	IODRV_SetPinPullDir(IODRV_PIN_LED1_R, GPIO_PULLDOWN);
+	IODRV_SetPinPullDir(IODRV_PIN_LED1_G, GPIO_PULLDOWN);
+	IODRV_SetPinPullDir(IODRV_PIN_LED1_B, GPIO_PULLDOWN);
+	IODRV_SetPinPullDir(IODRV_PIN_LED2_R, GPIO_PULLDOWN);
+	IODRV_SetPinPullDir(IODRV_PIN_LED2_G, GPIO_PULLDOWN);
+	IODRV_SetPinPullDir(IODRV_PIN_LED2_B, GPIO_PULLDOWN);
+
+
+	// Initialise the led functions from NV memory
 	LED_InitFunction(LED_LED1_IDX);
 	LED_InitFunction(LED_LED2_IDX);
+}
 
 
-	if (leds[LED_LED1_IDX].func == LED_USER_LED)
-	{
-		LED_SetRGBLedPtr(&leds[LED_LED1_IDX], leds[LED_LED1_IDX].paramR, leds[LED_LED1_IDX].paramG, leds[LED_LED1_IDX].paramB);
-	}
-	else
-	{
-		LED_SetRGBLedPtr(&leds[LED_LED1_IDX], 0u, 0u, 0u);
-	}
+void LED_Shutdown(void)
+{
+	TIM3->CR1 &= ~(TIM_CR1_CEN);
+	TIM15->CR1 &= ~(TIM_CR1_CEN);
+	TIM17->CR1 &= ~(TIM_CR1_CEN);
+
+	// Make all pins pull down
+	IODRV_SetPinType(IODRV_PIN_LED1_R, IOTYPE_DIGIN);
+	IODRV_SetPinType(IODRV_PIN_LED1_G, IOTYPE_DIGIN);
+	IODRV_SetPinType(IODRV_PIN_LED1_B, IOTYPE_DIGIN);
+	IODRV_SetPinType(IODRV_PIN_LED2_R, IOTYPE_DIGIN);
+	IODRV_SetPinType(IODRV_PIN_LED2_G, IOTYPE_DIGIN);
+	IODRV_SetPinType(IODRV_PIN_LED2_B, IOTYPE_DIGIN);
 }
 
 
@@ -192,7 +220,7 @@ void LED_FunctionSetRGB(LedFunction_T func, uint8_t r, uint8_t g, uint8_t b)
 
 void LedStop(void)
 {
-	if ((htim3.Instance->CR1 & TIM_CR1_CEN) == 0)
+	if ((htim3.Instance->CR1 & TIM_CR1_CEN) == 0u)
 	{
 		HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
 		HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_2);
@@ -341,9 +369,9 @@ void LED_ProcessBlink(Led_T * const p_led, const uint32_t sysTime)
 		if (p_led->blinkCount & 0x1u)
 		{
 			// odd count for off colour
-			if (MS_TIME_COUNT(p_led->blinkTimer) >= p_led->blinkPeriod2)
+			if (MS_TIMEREF_TIMEOUT(p_led->blinkTimer, sysTime, p_led->blinkPeriod2))
 			{
-				MS_TIME_COUNTER_INIT(p_led->blinkTimer);
+				MS_TIMEREF_INIT(p_led->blinkTimer, sysTime);
 				p_led->blinkCount --;
 
 				if (p_led->blinkCount == 0u)
@@ -367,10 +395,10 @@ void LED_ProcessBlink(Led_T * const p_led, const uint32_t sysTime)
 		else
 		{
 			// even count for on colour
-			if (MS_TIME_COUNT(p_led->blinkTimer) >= p_led->blinkPeriod1)
+			if (MS_TIMEREF_TIMEOUT(p_led->blinkTimer, sysTime, p_led->blinkPeriod1))
 			{
 				LED_SetRGBLedPtr(p_led, p_led->blinkR2, p_led->blinkG2, p_led->blinkB2);
-				MS_TIME_COUNTER_INIT(p_led->blinkTimer);
+				MS_TIMEREF_INIT(p_led->blinkTimer, sysTime);
 				p_led->blinkCount--;
 			}
 		}

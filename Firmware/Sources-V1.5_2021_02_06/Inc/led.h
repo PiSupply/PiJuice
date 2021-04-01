@@ -22,6 +22,8 @@ typedef enum LedFunction_T
 void LED_Init(const uint32_t sysTime);
 void LED_Service(const uint32_t sysTime);
 
+void LED_Shutdown(void);
+
 void LedStop(void);
 void LedStart(void);
 

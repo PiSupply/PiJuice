@@ -29,6 +29,9 @@
 #include "hostcomms.h"
 
 
+#define TASKMAN_LOOP_TRACKER_COUNT		16u
+
+
 typedef enum
 {
 	EXTI_EVENT_NONE = 0u,
@@ -39,13 +42,14 @@ typedef enum
 } EXTI_EventStatus_t;
 
 
-static uint32_t m_lastTaskloopOpTimeUs = 0u;
+static uint32_t m_taskmanLoopTimeTrack[TASKMAN_LOOP_TRACKER_COUNT];
+static uint32_t m_taskloopTrackIdx = 0u;
+
 static uint32_t m_lastSleepTimeMs = 0u;
 static uint32_t m_lastTaskRunTimeMs;
 static uint32_t m_lowPowerDelayTimer;
 
 static TASKMAN_RunState_t m_runState;
-
 
 static EXTI_EventStatus_t m_extiEvent = 0;
 static bool m_ioWakeupEvent = false;
@@ -68,9 +72,6 @@ void TASKMAN_Init(void)
 	FUELGUAGE_Init();
 
 	PowerManagementInit();
-
-	// TODO - Move this to osloop
-	LED_Init(HAL_GetTick());
 
 	BUTTON_Init();
 
@@ -98,6 +99,7 @@ void TASKMAN_Run(void)
 	uint32_t lastHostCommandAge;
 	bool needEventPoll;
 	uint32_t sysTime;
+	uint32_t loopStartTIme;
 
 	// Just starts the listener
 	HOSTCOMMS_Task();
@@ -157,7 +159,7 @@ void TASKMAN_Run(void)
 		{
 			MS_TIME_COUNTER_INIT(m_lastTaskRunTimeMs);
 
-			const uint32_t loopStartTIme = TIMER_OSLOOP->CNT;
+			loopStartTIme = TIMER_OSLOOP->CNT;
 
 			CHARGER_Task();
 			FUELGUAGE_Task();
@@ -166,16 +168,13 @@ void TASKMAN_Run(void)
 
 			RTC_EvaluateAlarm();
 
-			// TODO - Move this to osloop
-			LED_Service(HAL_GetTick());
-
 			BUTTON_Task();
 			LoadCurrentSenseTask();
 			PowerManagementTask();
 
 			CHARGER_Task();
 
-			m_lastTaskloopOpTimeUs = MS_TIMEREF_DIFF(loopStartTIme,TIMER_OSLOOP->CNT);
+			m_taskmanLoopTimeTrack[m_taskloopTrackIdx] = (loopStartTIme - TIMER_OSLOOP->CNT);
 		}
 	}
 

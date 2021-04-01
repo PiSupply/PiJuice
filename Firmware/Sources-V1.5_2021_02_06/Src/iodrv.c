@@ -186,6 +186,60 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.invert_bm = IODRV_PIN_RUN_INVERT_bm,
 				.canConfigure = false,
 				.index = IODRV_PIN_RUN
+		},
+		{
+				.adcChannel = MAX_ANALOG_CHANNELS,
+				.gpioPin_bm = (1u << IODRV_PIN_LED1_R_PIN_Pos),
+				.gpioPin_pos = IODRV_PIN_LED1_R_PIN_Pos,
+				.gpioPort = IODRV_PIN_LED1_R_GPIO,
+				.invert_bm = IODRV_PIN_LED1_R_INVERT_bm,
+				.canConfigure = true,
+				.index = IODRV_PIN_LED1_R
+		},
+		{
+				.adcChannel = MAX_ANALOG_CHANNELS,
+				.gpioPin_bm = (1u << IODRV_PIN_LED1_G_PIN_Pos),
+				.gpioPin_pos = IODRV_PIN_LED1_G_PIN_Pos,
+				.gpioPort = IODRV_PIN_LED1_G_GPIO,
+				.invert_bm = IODRV_PIN_LED1_G_INVERT_bm,
+				.canConfigure = true,
+				.index = IODRV_PIN_LED1_G
+		},
+		{
+				.adcChannel = MAX_ANALOG_CHANNELS,
+				.gpioPin_bm = (1u << IODRV_PIN_LED1_B_PIN_Pos),
+				.gpioPin_pos = IODRV_PIN_LED1_B_PIN_Pos,
+				.gpioPort = IODRV_PIN_LED1_B_GPIO,
+				.invert_bm = IODRV_PIN_LED1_G_INVERT_bm,
+				.canConfigure = false,
+				.index = IODRV_PIN_LED1_B
+		},
+		{
+				.adcChannel = MAX_ANALOG_CHANNELS,
+				.gpioPin_bm = (1u << IODRV_PIN_LED2_R_PIN_Pos),
+				.gpioPin_pos = IODRV_PIN_LED2_R_PIN_Pos,
+				.gpioPort = IODRV_PIN_LED2_R_GPIO,
+				.invert_bm = IODRV_PIN_LED2_R_INVERT_bm,
+				.canConfigure = false,
+				.index = IODRV_PIN_LED2_R
+		},
+		{
+				.adcChannel = MAX_ANALOG_CHANNELS,
+				.gpioPin_bm = (1u << IODRV_PIN_LED2_G_PIN_Pos),
+				.gpioPin_pos = IODRV_PIN_LED2_G_PIN_Pos,
+				.gpioPort = IODRV_PIN_LED2_G_GPIO,
+				.invert_bm = IODRV_PIN_LED2_G_INVERT_bm,
+				.canConfigure = false,
+				.index = IODRV_PIN_LED2_G
+		},
+		{
+				.adcChannel = MAX_ANALOG_CHANNELS,
+				.gpioPin_bm = (1u << IODRV_PIN_LED2_B_PIN_Pos),
+				.gpioPin_pos = IODRV_PIN_LED2_B_PIN_Pos,
+				.gpioPort = IODRV_PIN_LED2_B_GPIO,
+				.invert_bm = IODRV_PIN_LED2_B_INVERT_bm,
+				.canConfigure = false,
+				.index = IODRV_PIN_LED2_B
 		}
 };
 

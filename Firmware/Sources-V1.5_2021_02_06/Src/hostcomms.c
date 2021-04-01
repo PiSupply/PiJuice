@@ -175,6 +175,11 @@ void HOSTCOMMS_Init(void)
 	uint16_t var = 0;
 
 	HAL_I2C_DisableListen_IT(&hi2c1);
+	I2C1->CR1 &= ~(I2C_CR1_PE);
+	I2C1->OAR1 = 0u;
+	I2C1->OAR2 = 0u;
+
+	m_listening = false;
 
 	if (executionState != EXECUTION_STATE_NORMAL)
 	{
@@ -185,30 +190,27 @@ void HOSTCOMMS_Init(void)
 	EE_ReadVariable(OWN_ADDRESS1_NV_ADDR, &var);
 	if ( (((~var)&0xFF) == (var>>8)) )
 	{
-		// Use NV address
-		hi2c1.Init.OwnAddress1 = var&0xFF;
+		I2C1->OAR1 = ((var & 0xFFu) << 1u) | I2C_OAR1_OA1EN;
 	}
 	else
 	{
 		// Use default address
-		hi2c1.Init.OwnAddress1 = OWN1_I2C_ADDRESS << 1;
+		I2C1->OAR1 = (OWN1_I2C_ADDRESS << 1u) | I2C_OAR1_OA1EN;
 	}
-
 
 	EE_ReadVariable(OWN_ADDRESS2_NV_ADDR, &var);
 
 	if ( (((~var)&0xFF) == (var>>8)) )
 	{
-		// Use NV address
-		hi2c1.Init.OwnAddress2 = var&0xFF;
+		// Note, this is not bit shifting address
+		I2C1->OAR2 = (var&0xFF) | I2C_OAR2_OA2EN;
 	}
 	else
 	{
-		// Use default address
-		hi2c1.Init.OwnAddress2 = OWN2_I2C_ADDRESS << 1;
+		I2C1->OAR2 = (OWN2_I2C_ADDRESS << 1u) | I2C_OAR2_OA2EN;
 	}
 
-	m_listening = false;
+	I2C1->CR1 |= I2C_CR1_PE;
 }
 
 

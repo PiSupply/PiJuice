@@ -40,8 +40,6 @@ volatile int32_t adcDmaPos = -1;
 
 static uint16_t m_vbatPowerOffThreshold;
 
-//uint8_t pow5VChgLoadMaximumReached = 0;
-
 uint8_t m_rpiVLowCount;
 
 static uint32_t m_boostOnTimeMs;

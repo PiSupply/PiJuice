@@ -15,11 +15,14 @@
 #include "iodrv.h"
 #include "analog.h"
 #include "i2cdrv.h"
+#include "led.h"
 
 
 // ----------------------------------------------------------------------------
 // Defines section - add all #defines here:
 
+
+#define OSLOOP_LOOP_TRACKER_COUNT		16u
 
 // ----------------------------------------------------------------------------
 // Function prototypes for functions that only have scope in this module:
@@ -30,7 +33,7 @@ void OSLOOP_Service(void);
 // ----------------------------------------------------------------------------
 // Variables that only have scope in this module:
 
-static volatile uint32_t m_osloopTimeTrack[100u];
+static volatile uint32_t m_osloopTimeTrack[OSLOOP_LOOP_TRACKER_COUNT];
 static uint32_t m_osloopTimeTrackIdx = 0u;
 
 
@@ -80,14 +83,7 @@ void OSLOOP_Init(void)
 	ANALOG_Init(sysTime);
 	I2CDRV_Init(sysTime);
 
-	GPIO_InitTypeDef GPIO_InitStruct;
-
-	//Configure GPIOB output pins - temporary to show osloop is running
-	GPIO_InitStruct.Pin = GPIO_PIN_14;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+	LED_Init(sysTime);
 
 	/* Start the os timer */
 	TIMER_OSLOOP->CR1 |= TIM_CR1_CEN;
@@ -106,6 +102,7 @@ void OSLOOP_Init(void)
 void OSLOOP_Service(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
+	const uint32_t timeIn = TIMER_OSLOOP->CNT;
 
 	ADC_Service(sysTime);
 	IODRV_Service(sysTime);
@@ -113,14 +110,14 @@ void OSLOOP_Service(void)
 
 	I2CDRV_Service(sysTime);
 
-	m_osloopTimeTrack[m_osloopTimeTrackIdx] = sysTime;
+	LED_Service(sysTime);
+
+	m_osloopTimeTrack[m_osloopTimeTrackIdx] = (timeIn - TIMER_OSLOOP->CNT);
 	m_osloopTimeTrackIdx++;
 
-	if (100u == m_osloopTimeTrackIdx)
+	if (OSLOOP_LOOP_TRACKER_COUNT == m_osloopTimeTrackIdx)
 	{
 		m_osloopTimeTrackIdx = 0u;
-
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);
 	}
 }
 
@@ -135,6 +132,8 @@ void OSLOOP_Shutdown(void)
 	IODRV_Shutdown();
 	ANALOG_Shutdown();
 	I2CDRV_Shutdown();
+
+	LED_Shutdown();
 }
 
 
