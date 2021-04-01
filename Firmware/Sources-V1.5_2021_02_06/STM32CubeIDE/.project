@@ -142,6 +142,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/led.h</locationURI>
 		</link>
 		<link>
+			<name>Inc/led_pwm_table.h</name>
+			<type>1</type>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/led_pwm_table.h</location>
+		</link>
+		<link>
 			<name>Inc/load_current_sense.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/load_current_sense.h</locationURI>
