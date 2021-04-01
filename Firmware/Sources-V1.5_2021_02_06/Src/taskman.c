@@ -94,7 +94,6 @@ void TASKMAN_Init(void)
 void TASKMAN_Run(void)
 {
 	bool powerManagerCanShutdown;
-	bool hostCommandActive;
 	bool rtcWakeEvent;
 	uint32_t lastHostCommandAge;
 	bool needEventPoll;
@@ -109,14 +108,13 @@ void TASKMAN_Run(void)
 		sysTime = HAL_GetTick();
 
 		powerManagerCanShutdown = POWERMAN_CanShutDown();
-		hostCommandActive = HOSTCOMMS_IsCommandActive();
 		lastHostCommandAge = HOSTCOMMS_GetLastCommandAgeMs(sysTime);
 		rtcWakeEvent = RTC_GetWakeEvent();
 
 		needEventPoll = CHARGER_RequirePoll()
 							|| (EXTI_EVENT_NONE != m_extiEvent)
+							|| lastHostCommandAge < 10u
 							|| rtcWakeEvent
-							|| hostCommandActive
 							|| POWERSOURCE_NeedPoll()
 							|| RTC_GetAlarmState();
 

@@ -267,7 +267,7 @@ void PowerManagementTask(void)
 	const bool chargerHasInput = CHARGER_IsChargeSourceAvailable();
 	const bool chargerHasBattery = (CHARGER_BATTERY_NOT_PRESENT != CHARGER_GetBatteryStatus());
 	const uint16_t batteryRsoc = FUELGUAGE_GetSocPt1();
-	const PowerSourceStatus_T pow5vInDetStatus = POWERSOURCE_Get5VRailStatus();
+	const POWERSOURCE_RPi5VStatus_t pow5vInDetStatus = POWERSOURCE_GetRPi5VPowerStatus();
 	const uint32_t lastHostCommandAgeMs = HOSTCOMMS_GetLastCommandAgeMs(sysTime);
 	const bool rtcWakeEvent = RTC_GetWakeEvent();
 	const bool ioWakeEvent = TASKMAN_GetIOWakeEvent();
@@ -282,7 +282,7 @@ void PowerManagementTask(void)
 		isWakeupOnCharge = (batteryRsoc >= m_wakeUpOnCharge) && (true == chargerHasInput) && (true == chargerHasBattery);
 
 		if ( ( isWakeupOnCharge || rtcWakeEvent || ioWakeEvent ) // there is wake-up trigger
-				&& 	(0u != m_delayedPowerOffTimeMs) // deny wake-up during shutdown
+				&& 	(0u == m_delayedPowerOffTimeMs) // deny wake-up during shutdown
 				&& 	(false == delayedTurnOnFlag)
 				&& 	( (lastHostCommandAgeMs >= 15000) && MS_TIMEREF_TIMEOUT(m_lastWakeupTimer, sysTime, 30000) )
 						//|| (!POW_5V_BOOST_EN_STATUS() && power5vIoStatus == POW_SOURCE_NOT_PRESENT) //  Host is non powered
@@ -332,7 +332,9 @@ void PowerManagementTask(void)
 
 	if ( (0u != m_delayedPowerOffTimeMs) && MS_TIMEREF_TIMEOUT(m_delayedPowerOffTimeMs, sysTime, 1u) )
 	{
-		if ((true == boostConverterEnabled) && (POW_SOURCE_NORMAL != pow5vInDetStatus))
+		// TODO - Check what happens with unknown status,
+		// maybe don't even bother checking as the thing will just be powered or not.
+		if ((true == boostConverterEnabled) && (RPI5V_DETECTION_STATUS_POWERED != pow5vInDetStatus))
 		{
 			POWERSOURCE_Set5vBoostEnable(false);
 		}

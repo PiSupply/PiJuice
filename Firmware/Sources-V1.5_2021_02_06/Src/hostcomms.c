@@ -33,9 +33,7 @@
 #define SMBUS_TIMEOUT_DEFAULT	((uint32_t)0x80618061)
 #define I2C_MAX_RECEIVE_SIZE	((int16_t)255)		/* int? */
 
-static bool m_commandReceivedFlag = false;
 static uint32_t m_lastHostCommandTimeMs __attribute__((section("no_init")));
-
 
 static uint16_t i2cAddrMatchCode = 0;
 volatile static uint8_t i2cTransferDirection = 0;
@@ -130,8 +128,7 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
 void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c)
 {
 	tstFlagi2c=7;
-	//uwTransferEnded = 1;
-	//uwTransferDirection = I2C_GET_DIR(hi2c);
+
 	if (uwTransferDirection == I2C_DIRECTION_TRANSMIT) {
 		dataLen = ubSlaveReceiveIndex;
 		readCmdCode = aSlaveReceiveBuffer[0];
@@ -140,18 +137,23 @@ void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c)
 				if (readCmdCode >= 0x80 && readCmdCode <= 0x8F) {
 					dataLen -= 1; // first is command
 					RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode - 0x80, aSlaveReceiveBuffer + 1, &dataLen);
-				} else {
-					CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, aSlaveReceiveBuffer, &dataLen);
-					m_commandReceivedFlag = true;
 				}
-			} else {
-				if ( readCmdCode <= 0x0F ) {
+				else
+				{
+					CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, aSlaveReceiveBuffer, &dataLen);
+				}
+			}
+			else
+			{
+				if ( readCmdCode <= 0x0F )
+				{
 					// rtc emulation range
 					dataLen -= 1; // first is command
 					RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode, aSlaveReceiveBuffer + 1, &dataLen);
-				} else {
+				}
+				else
+				{
 					CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, aSlaveReceiveBuffer, &dataLen);
-					m_commandReceivedFlag = true;
 				}
 			}
 		}
@@ -226,12 +228,6 @@ void HOSTCOMMS_Task(void)
 uint32_t HOSTCOMMS_GetLastCommandAgeMs(const uint32_t sysTime)
 {
 	return MS_TIMEREF_DIFF(m_lastHostCommandTimeMs, sysTime);
-}
-
-
-bool HOSTCOMMS_IsCommandActive(void)
-{
-	return m_commandReceivedFlag;
 }
 
 

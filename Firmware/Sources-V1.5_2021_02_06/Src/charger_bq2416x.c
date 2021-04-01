@@ -275,6 +275,7 @@ void CHARGER_Task(void)
 	const uint32_t sysTime = HAL_GetTick();
 	uint8_t tempReg;
 	const IODRV_Pin_t * p_pin = IODRV_GetPinInfo(2u);
+	const lastChargerStatus = m_chargerStatus;
 
 
 	if (p_pin->lastPosPulseWidthTimeMs > 200u)
@@ -347,8 +348,7 @@ void CHARGER_Task(void)
 			MS_TIME_COUNTER_INIT(m_lastRegReadTimeMs);
 		}
 
-		// TODO - Not sure about this yet, does fix the watchdog reset issue
-		m_chargerNeedPoll = CHARGER_CheckForPoll();
+		m_chargerNeedPoll = CHARGER_CheckForPoll() || (lastChargerStatus != m_chargerStatus);
 	}
 }
 

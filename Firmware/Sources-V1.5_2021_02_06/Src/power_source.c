@@ -485,14 +485,13 @@ void POWERSOURCE_CheckPowerValid(void)
 	const bool chargerHasPowerIn = CHARGER_IsChargeSourceAvailable();
 	const uint32_t sysTime = HAL_GetTick();
 
-	// 47day rollover issue will stop the routine being run but it'll only be for a brief time!
-	if (false == MS_TIMEREF_TIMEOUT(m_boostOnTimeMs, sysTime, POWERSOURCE_STABLISE_TIME_MS))
-	{
-		return;
-	}
-
 	if ( true == m_boostConverterEnabled )
 	{
+		if (false == MS_TIMEREF_TIMEOUT(m_boostOnTimeMs, sysTime, POWERSOURCE_STABLISE_TIME_MS))
+		{
+			return;
+		}
+
 		if ( (v5RailMv < 2000u) && (aVddMv > 2500u) )
 		{
 			//5V DCDC is in fault overcurrent state, turn it off to prevent draining battery
