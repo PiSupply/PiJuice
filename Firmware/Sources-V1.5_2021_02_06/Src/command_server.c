@@ -852,52 +852,6 @@ void CmdServerReadWriteAlarm(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 		RtcReadAlarm1(pData, 1);
 		*dataLen = 9;
 	}
-	/*RTC_AlarmTypeDef sAlarm;
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		if (!(pData[5]&0x80)) { // bit 7 alarm enabled when 0
-			sAlarm.AlarmTime.TimeFormat = RTC_HOURFORMAT12_AM;
-			sAlarm.AlarmTime.Hours = pData[1];
-			sAlarm.AlarmTime.Minutes = pData[2];
-			sAlarm.AlarmTime.Seconds = pData[3];
-			sAlarm.AlarmTime.SubSeconds = pData[4];
-			sAlarm.Alarm = RTC_ALARM_A;
-			sAlarm.AlarmDateWeekDaySel = pData[5] & 0x40 ? RTC_ALARMDATEWEEKDAYSEL_DATE : RTC_ALARMDATEWEEKDAYSEL_WEEKDAY; // bit 6 day if 1 weekday if 0
-			sAlarm.AlarmDateWeekDay = pData[5] & 0x40 ? pData[5] & 0x1F : pData[5] & 0x07;
-			sAlarm.AlarmMask = pData[6] ? (pData[6] < 32 ? 0x1U << pData[6] : RTC_ALARMMASK_ALL) : RTC_ALARMMASK_NONE;
-			sAlarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_NONE;
-			HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BIN);
-		} else {
-			HAL_RTC_DeactivateAlarm(&hrtc, RTC_ALARM_A);
-		}
-	} else {
-		HAL_RTC_GetAlarm(&hrtc, &sAlarm, RTC_ALARM_A, RTC_FORMAT_BIN);
-		uint8_t adr = pData[0];
-		pData[0] = sAlarm.AlarmTime.Hours;
-		reg[adr] = pData[0];
-		pData[1] = sAlarm.AlarmTime.Minutes;
-		reg[adr+1] = pData[1];
-		pData[2] = sAlarm.AlarmTime.Seconds;
-		reg[adr+2] = pData[2];
-		pData[3] = sAlarm.AlarmTime.SubSeconds;
-		reg[adr+3] = pData[3];
-		pData[4] = (hrtc.Instance->CR & (RTC_CR_ALRAE)) ? 0x00 : 0x80;
-		pData[4] |= (sAlarm.AlarmDateWeekDaySel == RTC_ALARMDATEWEEKDAYSEL_WEEKDAY) ? sAlarm.AlarmDateWeekDay : 0x40 | sAlarm.AlarmDateWeekDay;
-		reg[adr+4] = pData[4];
-		if (sAlarm.AlarmMask == RTC_ALARMMASK_ALL)
-			pData[5] = 0xFF;
-		else if (sAlarm.AlarmMask == RTC_ALARMMASK_SECONDS)
-			pData[5] = 7;
-		else if (sAlarm.AlarmMask == RTC_ALARMMASK_MINUTES)
-			pData[5] = 15;
-		else if (sAlarm.AlarmMask == RTC_ALARMMASK_HOURS)
-			pData[5] = 23;
-		else if (sAlarm.AlarmMask == RTC_ALARMMASK_DATEWEEKDAY)
-			pData[5] = 31;
-		else
-			pData[5] = 0;
-		reg[adr+5] = pData[5];
-		*dataLen = 6;
-	}*/
 }
 
 void CmdServerReadWriteRtcAlarmCtrlStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
@@ -965,27 +919,35 @@ void CmdServerReadWriteButtonConfigurationSw1(uint8_t dir, uint8_t *pData, uint1
 {
 	if (dir == MASTER_CMD_DIR_WRITE)
 	{
-		BUTTON_SetConfiguarion(0, pData+1, *dataLen - 1);
+		BUTTON_SetConfigurationData(0u, &pData[1u], *dataLen - 1u);
 	}
 	else
 	{
-		BUTTON_GetConfiguarion(0, pData, dataLen);
+		BUTTON_GetConfigurationData(0u, pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteButtonConfigurationSw2(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		BUTTON_SetConfiguarion(1, pData+1, *dataLen - 1);
-	} else {
-		BUTTON_GetConfiguarion(1, pData, dataLen);
+void CmdServerReadWriteButtonConfigurationSw2(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		BUTTON_SetConfigurationData(1u, &pData[1u], *dataLen - 1u);
+	}
+	else
+	{
+		BUTTON_GetConfigurationData(1u, pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteButtonConfigurationSw3(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		BUTTON_SetConfiguarion(2, pData+1, *dataLen - 1);
-	} else {
-		BUTTON_GetConfiguarion(2, pData, dataLen);
+void CmdServerReadWriteButtonConfigurationSw3(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		BUTTON_SetConfigurationData(2u, &pData[1u], *dataLen - 1u);
+	}
+	else
+	{
+		BUTTON_GetConfigurationData(2u, pData, dataLen);
 	}
 }
 

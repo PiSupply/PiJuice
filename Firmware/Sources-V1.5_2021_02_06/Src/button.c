@@ -301,9 +301,9 @@ bool BUTTON_IsButtonActive(void)
 }
 
 
-void BUTTON_SetConfiguarion(const uint8_t buttonIndex, const uint8_t * const data, const uint8_t len)
+void BUTTON_SetConfigurationData(const uint8_t buttonIndex, const uint8_t * const data, const uint8_t len)
 {
-	if (buttonIndex > BUTTON_MAX_BUTTONS)
+	if (buttonIndex > BUTTON_LAST_BUTTON_IDX)
 	{
 		return;
 	}
@@ -325,10 +325,11 @@ void BUTTON_SetConfiguarion(const uint8_t buttonIndex, const uint8_t * const dat
 }
 
 
-bool BUTTON_GetConfiguarion(const uint8_t buttonIndex, uint8_t * const data, uint16_t * const len)
+bool BUTTON_GetConfigurationData(const uint8_t buttonIndex, uint8_t * const data, uint16_t * const len)
 {
-	if (buttonIndex < BUTTON_MAX_BUTTONS)
+	if (buttonIndex > BUTTON_LAST_BUTTON_IDX)
 	{
+		*len = 0u;
 		return false;
 	}
 
