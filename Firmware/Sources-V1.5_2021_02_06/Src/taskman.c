@@ -100,9 +100,6 @@ void TASKMAN_Run(void)
 	uint32_t sysTime;
 	uint32_t loopStartTIme;
 
-	// Just starts the listener
-	HOSTCOMMS_Task();
-
 	while(true)
 	{
 		sysTime = HAL_GetTick();
@@ -169,6 +166,8 @@ void TASKMAN_Run(void)
 			BUTTON_Task();
 			LoadCurrentSenseTask();
 			PowerManagementTask();
+
+			HOSTCOMMS_Task();
 
 			CHARGER_Task();
 
@@ -238,7 +237,7 @@ void TASKMAN_WaitInterrupt(void)
 
 	    wakeupEvent = false;
 
-	    HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 8192ul, RTC_WAKEUPCLOCK_RTCCLK_DIV16);
+	    HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, TASKMAN_SLEEP_SETTING, RTC_WAKEUPCLOCK_RTCCLK_DIV16);
 
 #ifdef DEBUG
 

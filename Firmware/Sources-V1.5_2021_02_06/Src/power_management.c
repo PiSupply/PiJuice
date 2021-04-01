@@ -330,7 +330,8 @@ void PowerManagementTask(void)
 
 	boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
 
-	if ( (0u != m_delayedPowerOffTimeMs) && MS_TIMEREF_TIMEOUT(m_delayedPowerOffTimeMs, sysTime, 1u) )
+	// Time is set in the future, so need to work in int32 or it'll roll over
+	if ( (0u != m_delayedPowerOffTimeMs) && (int32_t)MS_TIMEREF_DIFF(m_delayedPowerOffTimeMs, sysTime) > 0)
 	{
 		// TODO - Check what happens with unknown status,
 		// maybe don't even bother checking as the thing will just be powered or not.
@@ -600,7 +601,8 @@ bool POWERMAN_CanShutDown(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
 
-	return MS_TIMEREF_TIMEOUT(m_lastWakeupTimer, sysTime, 5000u);
+	// Make sure pijuice does not sleep if starting up or just about to shutdown
+	return (MS_TIMEREF_TIMEOUT(m_lastWakeupTimer, sysTime, 5000u)) && (m_delayedPowerOffTimeMs == 0u);
 }
 
 

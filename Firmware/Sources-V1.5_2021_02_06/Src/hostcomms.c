@@ -47,6 +47,7 @@ static volatile uint8_t tstFlagi2c=0;
 static uint16_t 		dataLen;
 
 static bool m_listening;
+static bool m_i2cError;
 
 extern I2C_HandleTypeDef hi2c1;
 
@@ -169,6 +170,8 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 {
 	// Clear OVR flag
 	__HAL_I2C_CLEAR_FLAG(hi2c, I2C_FLAG_AF);
+
+	m_i2cError = true;
 }
 
 
@@ -221,6 +224,15 @@ void HOSTCOMMS_Task(void)
 	if (false == m_listening)
 	{
 		m_listening = (HAL_OK == HAL_I2C_EnableListen_IT(&hi2c1));
+	}
+
+	if (m_i2cError)
+	{
+		m_i2cError = false;
+		// TODO - Reset error if a thing
+/*
+		I2C1->CR1 &= ~(I2C_CR1_PE);
+		I2C1->CR1 |= I2C_CR1_PE;*/
 	}
 }
 
