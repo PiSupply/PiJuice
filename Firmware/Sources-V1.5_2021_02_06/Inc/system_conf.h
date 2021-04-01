@@ -201,4 +201,10 @@
 
 #define TASKMAN_TASK_PERIOD_MS				20u
 
+#define LED_COUNT							2u
+#define LED_LAST_LED_IDX					(LED_COUNT - 1u)
+
+#define LED_LED1_IDX						0u
+#define LED_LED2_IDX						1u
+
 #endif /* SYSTEM_CONF_H_ */

@@ -68,7 +68,9 @@ void TASKMAN_Init(void)
 	FUELGUAGE_Init();
 
 	PowerManagementInit();
-	LedInit();
+
+	// TODO - Move this to osloop
+	LED_Init(HAL_GetTick());
 
 	BUTTON_Init();
 
@@ -164,7 +166,8 @@ void TASKMAN_Run(void)
 
 			RTC_EvaluateAlarm();
 
-			LedTask();
+			// TODO - Move this to osloop
+			LED_Service(HAL_GetTick());
 
 			BUTTON_Task();
 			LoadCurrentSenseTask();

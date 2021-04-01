@@ -4,14 +4,19 @@
  *  Created on: 13.12.2016.
  *      Author: milan
  */
-#include "nv.h"
+
+#include "main.h"
+#include "system_conf.h"
+
 
 #include "led.h"
 #include "execution.h"
 
+#include "nv.h"
+
 static int16_t nvSaveParmeterReq = -1;
 static uint16_t nvSaveParmeterValue = 0xFFFF;
-uint16_t nvInitFlag = 0xFFFF;
+static uint16_t nvInitFlag = 0xFFFF;
 
 void NV_EraseAllVariables(void);
 
@@ -41,14 +46,17 @@ void NV_FactoryReset(void)
 
 	executionState = EXECUTION_STATE_CONFIG_RESET;
 
-	while(1)
+	while(true)
 	{
-	  LedSetRGB(LED1, 150, 0, 0);
-	  LedSetRGB(LED2, 150, 0, 0);
-	  HAL_Delay(500);
-	  LedSetRGB(LED1, 0, 0, 150);
-	  LedSetRGB(LED2, 0, 0, 150);
-	  HAL_Delay(500);
+		LED_SetRGB(LED_LED1_IDX, 150u, 0u, 0u);
+		LED_SetRGB(LED_LED2_IDX, 150u, 0u, 0u);
+
+		HAL_Delay(500u);
+
+		LED_SetRGB(LED_LED1_IDX, 0u, 0u, 150u);
+		LED_SetRGB(LED_LED2_IDX, 0u, 0u, 150u);
+
+		HAL_Delay(500u);
 	}
 }
 

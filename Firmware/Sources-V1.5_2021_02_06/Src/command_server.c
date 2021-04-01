@@ -989,53 +989,84 @@ void CmdServerReadWriteButtonConfigurationSw3(uint8_t dir, uint8_t *pData, uint1
 	}
 }
 
-void CmdServerReadWriteLedState1(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		LedCmdSetState(0, pData+1, *dataLen - 1);
-	} else {
-		LedCmdGetState(0, pData, dataLen);
+
+void CmdServerReadWriteLedState1(uint8_t dir, uint8_t * pData, uint16_t * dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		LED_SetStateData(LED_LED1_IDX, &pData[1u], *dataLen - 1u);
+	}
+	else
+	{
+		LED_GetStateData(LED_LED1_IDX, pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteLedState2(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		LedCmdSetState(1, pData+1, *dataLen - 1);
-	} else {
-		LedCmdGetState(1, pData, dataLen);
+
+void CmdServerReadWriteLedState2(uint8_t dir, uint8_t * pData, uint16_t * dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		LED_SetStateData(LED_LED2_IDX, &pData[1u], *dataLen - 1u);
+	}
+	else
+	{
+		LED_GetStateData(LED_LED2_IDX, pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteLedBlink1(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		LedCmdSetBlink(0, pData+1, *dataLen - 1);
-	} else {
-		LedCmdGetBlink(0, pData, dataLen);
+
+void CmdServerReadWriteLedBlink1(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		LED_SetBlinkData(LED_LED1_IDX, &pData[1u], *dataLen - 1u);
+	}
+	else
+	{
+		LED_GetBlinkData(LED_LED1_IDX, pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteLedBlink2(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		LedCmdSetBlink(1, pData+1, *dataLen - 1);
-	} else {
-		LedCmdGetBlink(1, pData, dataLen);
+
+void CmdServerReadWriteLedBlink2(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		LED_SetBlinkData(LED_LED2_IDX, &pData[1u], *dataLen - 1u);
+	}
+	else
+	{
+		LED_GetBlinkData(LED_LED2_IDX, pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteLedConfigurationLED1(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		LedSetConfiguarion(0, pData+1, *dataLen - 1);
-	} else {
-		LedGetConfiguarion(0, pData, dataLen);
+
+void CmdServerReadWriteLedConfigurationLED1(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		LED_SetConfigurationData(LED_LED1_IDX, &pData[1u], *dataLen - 1u);
+	}
+	else
+	{
+		LED_GetConfigurationData(LED_LED1_IDX, pData, dataLen);
 	}
 }
 
-void CmdServerReadWriteLedConfigurationLED2(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		LedSetConfiguarion(1, pData+1, *dataLen - 1);
-	} else {
-		LedGetConfiguarion(1, pData, dataLen);
+
+void CmdServerReadWriteLedConfigurationLED2(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		LED_SetConfigurationData(LED_LED2_IDX, &pData[1u], *dataLen - 1u);
+	}
+	else
+	{
+		LED_GetConfigurationData(LED_LED2_IDX, pData, dataLen);
 	}
 }
+
 
 void CmdServerReadWriteRunPinConfiguration(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
@@ -1045,6 +1076,7 @@ void CmdServerReadWriteRunPinConfiguration(uint8_t dir, uint8_t *pData, uint16_t
 	}
 }
 
+
 void CmdServerReadWriteWDGConfiguration(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
 		PowerMngmtConfigureWatchdogCmd(pData+1, *dataLen - 1);
@@ -1052,6 +1084,7 @@ void CmdServerReadWriteWDGConfiguration(uint8_t dir, uint8_t *pData, uint16_t *d
 		PowerMngmtGetWatchdogConfigurationCmd(pData, dataLen);
 	}
 }
+
 
 void CmdServerReadWritePowerRegulatorConfiguration(uint8_t dir, uint8_t * pData, uint16_t * dataLen)
 {

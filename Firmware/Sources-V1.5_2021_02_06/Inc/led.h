@@ -8,8 +8,6 @@
 #ifndef LED_H_
 #define LED_H_
 
-#define LED1	0u
-#define LED2	1u
 
 typedef enum LedFunction_T
 {
@@ -20,20 +18,23 @@ typedef enum LedFunction_T
 	LED_NUMBER
 } LedFunction_T;
 
-void LedInit(void);
-void LedTask(void);
-void LedSetRGB(uint8_t led, uint8_t r, uint8_t g, uint8_t b);
+
+void LED_Init(const uint32_t sysTime);
+void LED_Service(const uint32_t sysTime);
+
 void LedStop(void);
 void LedStart(void);
-void LedFunctionSetRGB(LedFunction_T func, uint8_t r, uint8_t g, uint8_t b);
-void LedSetConfiguarion(uint8_t led, uint8_t data[], uint8_t len);
-void LedGetConfiguarion(uint8_t led, uint8_t data[], uint16_t *len);
-void LedCmdSetState(uint8_t led, uint8_t data[], uint8_t len);
-void LedCmdGetState(uint8_t led, uint8_t data[], uint16_t *len);
-void LedCmdSetBlink(uint8_t led, uint8_t data[], uint8_t len);
-void LedCmdGetBlink(uint8_t led, uint8_t data[], uint16_t *len);
-uint8_t LedGetParamR(uint8_t led);
-uint8_t LedGetParamG(uint8_t led);
-uint8_t LedGetParamB(uint8_t led);
+
+void LED_SetRGB(const uint8_t ledIdx, const uint8_t r, const uint8_t g, const uint8_t b);
+void LED_FunctionSetRGB(const LedFunction_T func, const uint8_t r, const uint8_t g, const uint8_t b);
+void LED_SetConfigurationData(const uint8_t ledIdx, const uint8_t * const data, const uint8_t len);
+void LED_GetConfigurationData(const uint8_t ledIdx, uint8_t * const data, uint16_t * const len);
+void LED_SetStateData(const uint8_t ledIdx, const uint8_t * const data, const uint8_t len);
+void LED_GetStateData(const uint8_t ledIdx, uint8_t * const data, uint16_t * const len);
+void LED_SetBlinkData(const uint8_t ledIdx, const uint8_t * const data, const uint8_t len);
+void LED_GetBlinkData(const uint8_t ledIdx, uint8_t * const data, uint16_t * const len);
+uint8_t LED_GetParamR(const uint8_t ledIdx);
+uint8_t LED_GetParamG(const uint8_t ledIdx);
+uint8_t LED_GetParamB(const uint8_t ledIdx);
 
 #endif /* LED_H_ */

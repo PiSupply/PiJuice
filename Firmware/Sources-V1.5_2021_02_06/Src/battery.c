@@ -722,20 +722,20 @@ void BATTERY_UpdateLeds(const uint16_t batteryRsocPt1,
 	if (batteryRsocPt1 > 500u)
 	{
 		r = 0u;
-		g = LedGetParamG(LED_CHARGE_STATUS);//60;
+		g = LED_GetParamG(LED_CHARGE_STATUS);//60;
 	}
 	else if (batteryRsocPt1 > 150u)
 	{
-		r = LedGetParamR(LED_CHARGE_STATUS);//50;
-		g = LedGetParamG(LED_CHARGE_STATUS);//60;
+		r = LED_GetParamG(LED_CHARGE_STATUS);//50;
+		g = LED_GetParamG(LED_CHARGE_STATUS);//60;
 	}
 	else
 	{
-		r = LedGetParamR(LED_CHARGE_STATUS);//50;
+		r = LED_GetParamG(LED_CHARGE_STATUS);//50;
 		g = 0u;
 	}
 
-	paramB = LedGetParamB(LED_CHARGE_STATUS);
+	paramB = LED_GetParamG(LED_CHARGE_STATUS);
 
 	if ( (m_batteryStatus == BAT_STATUS_CHARGING_FROM_IN) || (m_batteryStatus == BAT_STATUS_CHARGING_FROM_5V_IO) )
 	{
@@ -754,10 +754,10 @@ void BATTERY_UpdateLeds(const uint16_t batteryRsocPt1,
 
 	if (TASKMAN_RUNSTATE_LOW_POWER == runState)
 	{
-		LedFunctionSetRGB(LED_CHARGE_STATUS, r>>2, g>>2, b);
+		LED_FunctionSetRGB(LED_CHARGE_STATUS, r>>2, g>>2, b);
 	}
 	else
 	{
-		LedFunctionSetRGB(LED_CHARGE_STATUS, r, g, b);
+		LED_FunctionSetRGB(LED_CHARGE_STATUS, r, g, b);
 	}
 }

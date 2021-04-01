@@ -341,7 +341,7 @@ void PowerManagementTask(void)
 		m_delayedPowerOffTimeMs = 0u;
 
 		/* Turn off led as it keeps flashing! */
-		LedSetRGB(LED2, 0u, 0u, 0u);
+		LED_SetRGB(LED_LED2_IDX, 0u, 0u, 0u);
 	}
 
 #ifdef DETECT_RPI_PWRLED_GPIO26

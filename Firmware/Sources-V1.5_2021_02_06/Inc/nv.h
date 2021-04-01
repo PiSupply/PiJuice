@@ -134,13 +134,13 @@
  BAT_R90H_NV_ADDR, \
  WATCHDOG_CONFIGH_NV_ADDR
 
+
 typedef enum
 {
- NV_VAR_LIST,
- NV_VAR_NUM
+	NV_VAR_LIST,
+	NV_VAR_NUM
 } NvVarId_T;
 
-extern uint16_t nvInitFlag;
 
 void NV_Init(void);
 void NvSetDataInitialized(void);
@@ -155,5 +155,6 @@ __STATIC_INLINE void NvWriteVariableU8(uint16_t VirtAddress, uint8_t var) {
 	EE_WriteVariable(VirtAddress, (uint16_t)(var | (((uint16_t)(~var))<<8)));
 }
 uint16_t NvReadVariableU8(uint16_t VirtAddress, uint8_t *pVar);
+
 
 #endif /* NV_H_ */
