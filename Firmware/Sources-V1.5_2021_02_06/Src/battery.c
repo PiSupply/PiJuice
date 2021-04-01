@@ -717,44 +717,45 @@ void BATTERY_UpdateBatteryStatus(const uint16_t battMv,
 void BATTERY_UpdateLeds(const uint16_t batteryRsocPt1,
 						const ChargerStatus_T chargerStatus, const TASKMAN_RunState_t runState)
 {
+	const Led_T * p_chargeLed = LED_FindHandleByFunction(LED_CHARGE_STATUS);
 	uint8_t r, g, b, paramB;
 
 	if (batteryRsocPt1 > 500u)
 	{
 		r = 0u;
-		g = LED_GetParamG(LED_CHARGE_STATUS);//60;
+		g = p_chargeLed->paramG;
 	}
 	else if (batteryRsocPt1 > 150u)
 	{
-		r = LED_GetParamG(LED_CHARGE_STATUS);//50;
-		g = LED_GetParamG(LED_CHARGE_STATUS);//60;
+		r = p_chargeLed->paramR;
+		g = p_chargeLed->paramG;
 	}
 	else
 	{
-		r = LED_GetParamG(LED_CHARGE_STATUS);//50;
+		r = p_chargeLed->paramR;
 		g = 0u;
 	}
 
-	paramB = LED_GetParamG(LED_CHARGE_STATUS);
+	paramB = p_chargeLed->paramB;
 
 	if ( (m_batteryStatus == BAT_STATUS_CHARGING_FROM_IN) || (m_batteryStatus == BAT_STATUS_CHARGING_FROM_5V_IO) )
 	{
-		// b did = 0!
-		//b = b ? 0 : paramB;
-		b = paramB;
+		// Alternate flash blue to show charging
+		b = p_chargeLed->b == 0 ? paramB : 0u;
 	}
 	else if (chargerStatus == CHG_CHARGE_DONE)
 	{
+		// Constant blue to show charge done
 		b = paramB;
 	}
 	else
 	{
-		b = 0;
+		b = 0u;
 	}
 
 	if (TASKMAN_RUNSTATE_LOW_POWER == runState)
 	{
-		LED_FunctionSetRGB(LED_CHARGE_STATUS, r>>2, g>>2, b);
+		LED_FunctionSetRGB(LED_CHARGE_STATUS, r / 4u, g / 4u, b);
 	}
 	else
 	{

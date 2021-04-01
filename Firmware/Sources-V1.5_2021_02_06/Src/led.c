@@ -19,40 +19,8 @@ extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim15;
 extern TIM_HandleTypeDef htim17;
 
-typedef struct
-{
-	LedFunction_T func;
-	uint8_t paramR;
-	uint8_t paramG;
-	uint8_t paramB;
 
-	uint8_t r;
-	uint8_t g;
-	uint8_t b;
-
-	uint8_t blinkRepeat;
-
-	uint8_t blinkR1;
-	uint8_t blinkG1;
-	uint8_t blinkB1;
-	uint16_t blinkPeriod1;
-
-	uint8_t blinkR2;
-	uint8_t blinkG2;
-	uint8_t blinkB2;
-	uint16_t blinkPeriod2;
-
-	uint16_t blinkCount;
-	uint32_t blinkTimer;
-
-	__IO uint32_t * pwmDrv_r;
-	__IO uint32_t * pwmDrv_g;
-	__IO uint32_t * pwmDrv_b;
-
-} Led_T;
-
-
-static Led_T leds[LED_COUNT] =
+static Led_T m_leds[LED_COUNT] =
 {
 	{ LED_CHARGE_STATUS, .paramR = 60u, .paramG = 60u, .paramB = 100u, .pwmDrv_r = &TIM3->CCR1, .pwmDrv_g = &TIM3->CCR2, .pwmDrv_b = &TIM3->CCR3},
 	{ LED_USER_LED, .paramR = 0u, .paramG = 0u, .paramB = 0u, .pwmDrv_r = &TIM15->CCR1, .pwmDrv_g = &TIM15->CCR2, .pwmDrv_b = &TIM17->CCR1 },
@@ -124,13 +92,13 @@ void LED_Shutdown(void)
 
 uint8_t LED_GetParamR(uint8_t func)
 {
-	if (leds[0].func == func)
+	if (m_leds[0].func == func)
 	{
-		return leds[0].paramR;
+		return m_leds[0].paramR;
 	}
-	else if (leds[1].func == func)
+	else if (m_leds[1].func == func)
 	{
-		return leds[1].paramR;
+		return m_leds[1].paramR;
 	}
 	else
 	{
@@ -141,13 +109,13 @@ uint8_t LED_GetParamR(uint8_t func)
 
 uint8_t LED_GetParamG(const uint8_t func)
 {
-	if (leds[0].func == func)
+	if (m_leds[0].func == func)
 	{
-		return leds[0].paramG;
+		return m_leds[0].paramG;
 	}
-	else if (leds[1].func == func)
+	else if (m_leds[1].func == func)
 	{
-		return leds[1].paramG;
+		return m_leds[1].paramG;
 	}
 	else
 	{
@@ -158,13 +126,13 @@ uint8_t LED_GetParamG(const uint8_t func)
 
 uint8_t LED_GetParamB(uint8_t func)
 {
-	if (leds[0].func == func)
+	if (m_leds[0].func == func)
 	{
-		return leds[0].paramB;
+		return m_leds[0].paramB;
 	}
-	else if (leds[1].func == func)
+	else if (m_leds[1].func == func)
 	{
-		return leds[1].paramB;
+		return m_leds[1].paramB;
 	}
 	else
 	{
@@ -175,8 +143,8 @@ uint8_t LED_GetParamB(uint8_t func)
 
 void LED_Service(const uint32_t sysTime)
 {
-	LED_ProcessBlink(&leds[LED_LED1_IDX], sysTime);
-	LED_ProcessBlink(&leds[LED_LED2_IDX], sysTime);
+	LED_ProcessBlink(&m_leds[LED_LED1_IDX], sysTime);
+	LED_ProcessBlink(&m_leds[LED_LED2_IDX], sysTime);
 }
 
 
@@ -187,7 +155,7 @@ void LED_SetRGB(const uint8_t ledIdx, const uint8_t r, const uint8_t g, const ui
 		return;
 	}
 
-	LED_SetRGBLedPtr(&leds[ledIdx], r, g, b);
+	LED_SetRGBLedPtr(&m_leds[ledIdx], r, g, b);
 }
 
 
@@ -196,7 +164,7 @@ void LED_FunctionSetRGB(LedFunction_T func, uint8_t r, uint8_t g, uint8_t b)
 {
 	uint8_t i = 0u;
 
-	while( (i < LED_COUNT) && (leds[i].func != func) )
+	while( (i < LED_COUNT) && (m_leds[i].func != func) )
 	{
 		i++;
 	}
@@ -206,7 +174,7 @@ void LED_FunctionSetRGB(LedFunction_T func, uint8_t r, uint8_t g, uint8_t b)
 		return;
 	}
 
-	Led_T * p_led = &leds[i];
+	Led_T * p_led = &m_leds[i];
 
 	p_led->r = r;
 	p_led->g = g;
@@ -215,6 +183,24 @@ void LED_FunctionSetRGB(LedFunction_T func, uint8_t r, uint8_t g, uint8_t b)
 	p_led->blinkRepeat = 0u;
 
 	LED_SetRGBLedPtr(p_led, r, g, b);
+}
+
+
+const Led_T * LED_FindHandleByFunction(const LedFunction_T func)
+{
+	uint8_t i = 0u;
+
+	while( (i < LED_COUNT) && (m_leds[i].func != func) )
+	{
+		i++;
+	}
+
+	if (i < LED_COUNT)
+	{
+		return &m_leds[i];
+	}
+
+	return NULL;
 }
 
 
@@ -268,10 +254,10 @@ void LED_GetConfigurationData(const uint8_t ledIdx, uint8_t * const data, uint16
 		return;
 	}
 
-	data[0u] = leds[ledIdx].func;
-	data[1u] = leds[ledIdx].paramR;
-	data[2u] = leds[ledIdx].paramG;
-	data[3u] = leds[ledIdx].paramB;
+	data[0u] = m_leds[ledIdx].func;
+	data[1u] = m_leds[ledIdx].paramR;
+	data[2u] = m_leds[ledIdx].paramG;
+	data[3u] = m_leds[ledIdx].paramB;
 
 	*len = 4u;
 }
@@ -279,16 +265,16 @@ void LED_GetConfigurationData(const uint8_t ledIdx, uint8_t * const data, uint16
 
 void LED_SetStateData(const uint8_t ledIdx, const uint8_t * const data, const uint8_t len)
 {
-	if ( (ledIdx > LED_LAST_LED_IDX) || (leds[ledIdx].func != LED_USER_LED) )
+	if ( (ledIdx > LED_LAST_LED_IDX) || (m_leds[ledIdx].func != LED_USER_LED) )
 	{
 		return;
 	}
 
-	leds[ledIdx].r = data[0u];
-	leds[ledIdx].g = data[1u];
-	leds[ledIdx].b = data[2u];
+	m_leds[ledIdx].r = data[0u];
+	m_leds[ledIdx].g = data[1u];
+	m_leds[ledIdx].b = data[2u];
 
-	LED_SetRGBLedPtr(&leds[ledIdx], data[0u], data[1u], data[2u]);
+	LED_SetRGBLedPtr(&m_leds[ledIdx], data[0u], data[1u], data[2u]);
 }
 
 
@@ -300,9 +286,9 @@ void LED_GetStateData(const uint8_t ledIdx, uint8_t * const data, uint16_t * con
 		return;
 	}
 
-	data[0u] = leds[ledIdx].r;
-	data[1u] = leds[ledIdx].g;
-	data[2u] = leds[ledIdx].b;
+	data[0u] = m_leds[ledIdx].r;
+	data[1u] = m_leds[ledIdx].g;
+	data[2u] = m_leds[ledIdx].b;
 
 	*len = 3u;
 }
@@ -310,30 +296,30 @@ void LED_GetStateData(const uint8_t ledIdx, uint8_t * const data, uint16_t * con
 
 void LED_SetBlinkData(const uint8_t ledIdx, const uint8_t * const data, const uint8_t len)
 {
-	if ( (ledIdx > LED_LAST_LED_IDX) || (leds[ledIdx].func == LED_NOT_USED) )
+	if ( (ledIdx > LED_LAST_LED_IDX) || (m_leds[ledIdx].func == LED_NOT_USED) )
 	{
 		return;
 	}
 
-	leds[ledIdx].blinkRepeat = data[0u];
-	leds[ledIdx].blinkCount = (uint16_t)(data[0u] * 2u);
-	leds[ledIdx].blinkR1 = data[1u];
-	leds[ledIdx].blinkG1 = data[2u];
-	leds[ledIdx].blinkB1 = data[3u];
-	leds[ledIdx].blinkPeriod1 = (uint16_t)(data[4u] * 10u);
-	leds[ledIdx].blinkR2 = data[5u];
-	leds[ledIdx].blinkG2 = data[6u];
-	leds[ledIdx].blinkB2 = data[7u];
-	leds[ledIdx].blinkPeriod2 = (uint16_t)(data[8u] * 10u);
+	m_leds[ledIdx].blinkRepeat = data[0u];
+	m_leds[ledIdx].blinkCount = (uint16_t)(data[0u] * 2u);
+	m_leds[ledIdx].blinkR1 = data[1u];
+	m_leds[ledIdx].blinkG1 = data[2u];
+	m_leds[ledIdx].blinkB1 = data[3u];
+	m_leds[ledIdx].blinkPeriod1 = (uint16_t)(data[4u] * 10u);
+	m_leds[ledIdx].blinkR2 = data[5u];
+	m_leds[ledIdx].blinkG2 = data[6u];
+	m_leds[ledIdx].blinkB2 = data[7u];
+	m_leds[ledIdx].blinkPeriod2 = (uint16_t)(data[8u] * 10u);
 
-	if (0u != leds[ledIdx].blinkRepeat)
+	if (0u != m_leds[ledIdx].blinkRepeat)
 	{
-		LED_SetRGBLedPtr(&leds[ledIdx], leds[ledIdx].blinkR1, leds[ledIdx].blinkG1, leds[ledIdx].blinkB1);
-		MS_TIME_COUNTER_INIT(leds[ledIdx].blinkTimer);
+		LED_SetRGBLedPtr(&m_leds[ledIdx], m_leds[ledIdx].blinkR1, m_leds[ledIdx].blinkG1, m_leds[ledIdx].blinkB1);
+		MS_TIME_COUNTER_INIT(m_leds[ledIdx].blinkTimer);
 	}
 	else
 	{
-		LED_SetRGBLedPtr(&leds[ledIdx], leds[ledIdx].r, leds[ledIdx].g, leds[ledIdx].b);
+		LED_SetRGBLedPtr(&m_leds[ledIdx], m_leds[ledIdx].r, m_leds[ledIdx].g, m_leds[ledIdx].b);
 	}
 
 }
@@ -348,15 +334,15 @@ void LED_GetBlinkData(const uint8_t ledIdx, uint8_t * const data, uint16_t * con
 		return;
 	}
 
-	data[0u] = (leds[ledIdx].blinkRepeat < 255u) ? (leds[ledIdx].blinkCount / 2u) : 255u;
-	data[1u] = leds[ledIdx].blinkR1;
-	data[2u] = leds[ledIdx].blinkG1;
-	data[3u] = leds[ledIdx].blinkB1;
-	data[4u] = (uint8_t)(leds[ledIdx].blinkPeriod1 / 10u);
-	data[5u] = leds[ledIdx].blinkR2;
-	data[6u] = leds[ledIdx].blinkG2;
-	data[7u] = leds[ledIdx].blinkB2;
-	data[8u] = (uint8_t)(leds[ledIdx].blinkPeriod2 / 10u);
+	data[0u] = (m_leds[ledIdx].blinkRepeat < 255u) ? (m_leds[ledIdx].blinkCount / 2u) : 255u;
+	data[1u] = m_leds[ledIdx].blinkR1;
+	data[2u] = m_leds[ledIdx].blinkG1;
+	data[3u] = m_leds[ledIdx].blinkB1;
+	data[4u] = (uint8_t)(m_leds[ledIdx].blinkPeriod1 / 10u);
+	data[5u] = m_leds[ledIdx].blinkR2;
+	data[6u] = m_leds[ledIdx].blinkG2;
+	data[7u] = m_leds[ledIdx].blinkB2;
+	data[8u] = (uint8_t)(m_leds[ledIdx].blinkPeriod2 / 10u);
 
 	*len = 9u;
 }
@@ -416,7 +402,7 @@ void LED_SetRGBLedPtr(Led_T * const p_led, const uint8_t r, const uint8_t g, con
 
 void LED_InitFunction(const uint8_t ledIdx)
 {
-	Led_T * const p_led = &leds[ledIdx];
+	Led_T * const p_led = &m_leds[ledIdx];
 	uint16_t var = 0;
 
 	EE_ReadVariable(m_ledFunctionParams[ledIdx][0u], &var);
