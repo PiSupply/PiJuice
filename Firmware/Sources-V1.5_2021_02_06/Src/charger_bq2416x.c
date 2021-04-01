@@ -273,9 +273,10 @@ void CHARGER_Task(void)
 {
 	const BatteryStatus_T batteryStatus = BATTERY_GetStatus();
 	const uint32_t sysTime = HAL_GetTick();
-	uint8_t tempReg;
 	const IODRV_Pin_t * p_pin = IODRV_GetPinInfo(2u);
-	const lastChargerStatus = m_chargerStatus;
+	const ChargerStatus_T lastChargerStatus = m_chargerStatus;
+
+	uint8_t tempReg;
 
 
 	if (p_pin->lastPosPulseWidthTimeMs > 200u)
@@ -442,6 +443,8 @@ void CHARGER_SetInputsConfig(const uint8_t config)
 	{
 		NvWriteVariableU8(CHARGER_INPUTS_CONFIG_NV_ADDR, config);
 	}
+
+	m_chargerNeedPoll = true;
 }
 
 
@@ -459,7 +462,6 @@ uint8_t CHARGER_GetInputsConfig(void)
 	}
 
 	return m_chargerInputsConfig;
-
 }
 
 
@@ -472,6 +474,8 @@ void CHARGER_SetChargeEnableConfig(const uint8_t config)
 	{
 		NvWriteVariableU8(CHARGING_CONFIG_NV_ADDR, config);
 	}
+
+	m_chargerNeedPoll = true;
 }
 
 

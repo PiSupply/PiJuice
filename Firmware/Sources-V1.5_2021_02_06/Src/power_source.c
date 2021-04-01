@@ -626,6 +626,7 @@ void POWERSOURCE_RPi5vDetect(void)
 		return;
 	}
 
+	MS_TIMEREF_INIT(m_lastRPiPowerDetectTimeMs, sysTime);
 
 	// If the boost converter is enabled
 	if ( (true == m_boostConverterEnabled) )
@@ -656,8 +657,6 @@ void POWERSOURCE_RPi5vDetect(void)
 				MS_TIMEREF_INIT(m_rpiDetTimeMs, sysTime);
 			}
 		}
-
-		return;
 	}
 	else if (v5RailMv > POWERSOURCE_RPI_UNDER_MV)
 	{
