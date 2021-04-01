@@ -492,10 +492,10 @@ void CmdServerReadStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 	if (dir == MASTER_CMD_DIR_READ)
 	{
 		pData[0] = IsEventFault();
-		pData[0] |= BUTTON_IsEventActive() < 1u;
-		pData[0] |= batteryStatus << 2u;
-		pData[0] |= vinStatus << 4u;
-		pData[0] |= v5VRailStatus << 6u;
+		pData[0] |= (BUTTON_IsEventActive() << 1u);
+		pData[0] |= (batteryStatus << 2u);
+		pData[0] |= (vinStatus << 4u);
+		pData[0] |= (v5VRailStatus << 6u);
 
 		*dataLen = 1u;
 	}
@@ -580,13 +580,11 @@ void CmdServerReadButtonStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
 	if (dir == MASTER_CMD_DIR_READ)
 	{
-		ButtonEvent_T evSw = BUTTON_GetButtonEvent(0u);
-		pData[0] = evSw & 0x0f;
-		evSw = BUTTON_GetButtonEvent(1u);
-		pData[0] |= evSw << 4;
-		evSw = BUTTON_GetButtonEvent(2u);
-		pData[1] = evSw & 0x0f;
-		*dataLen = 2;
+		pData[0u] = ((uint8_t)BUTTON_GetButtonEvent(0u) & 0xFu);
+		pData[0u] |= ((uint8_t)BUTTON_GetButtonEvent(1u) << 4u);
+		pData[1u] = ((uint8_t)BUTTON_GetButtonEvent(2u) & 0xFu);
+
+		*dataLen = 2u;
 	}
 	else
 	{

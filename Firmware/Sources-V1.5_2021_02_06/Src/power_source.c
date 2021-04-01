@@ -387,7 +387,6 @@ void POWERSOURCE_Set5vBoostEnable(const bool enabled)
 		// Turn off the boost converter
 		IODRV_SetPin(IODRV_PIN_POW_EN, false);
 
-		// TODO - Need to find out what this does
 		MS_TIME_COUNTER_INIT(m_lastRPiPowerDetectTimeMs);
 
 		m_boostConverterEnabled = false;
