@@ -82,7 +82,7 @@ void POWERSOURCE_Init(void)
 
 	uint8_t tempU8;
 
-	m_boostConverterEnabled = IODRV_ReadPinValue(IODRV_PIN_POW_EN);
+	m_boostConverterEnabled = false;//IODRV_ReadPinValue(IODRV_PIN_POW_EN);
 	m_vsysEnabled = IODRV_ReadPinValue(IODRV_PIN_EXTVS_EN);
 
 	uint16_t vBatMv;
@@ -405,17 +405,9 @@ void POWERSOURCE_SetLDOEnable(const bool enabled)
 	}
 	else if (m_powerRegulatorConfig == POW_REGULATOR_MODE_LDO)
 	{
-		if (true == m_boostConverterEnabled)
-		{
-			// Turn off the LDO is the boost is enabled
-			m_ldoEnabled = false;
-		}
-		else
-		{
-			m_ldoEnabled = true;
-		}
+		m_ldoEnabled = m_boostConverterEnabled;
 	}
-	else // not configured
+	else // Powersource detection mode
 	{
 		m_ldoEnabled = enabled;
 	}
@@ -586,6 +578,14 @@ static void POWERSOURCE_Process5VRailPower(void)
 	}
 
 
+	if (MS_TIMEREF_TIMEOUT(m_boostOnTimeMs, sysTime, 95u))
+	{
+		// Once the dcdc has settled enable the LDO.
+		// Note: Will only enable if it has been configured so.
+		POWERSOURCE_SetLDOEnable(true);
+	}
+
+
 	if (m_rpi5VInDetStatus != RPI5V_DETECTION_STATUS_POWERED)
 	{
 		return;
@@ -631,6 +631,8 @@ void POWERSOURCE_RPi5vDetect(void)
 	// If the boost converter is enabled
 	if ( (true == m_boostConverterEnabled) )
 	{
+		m_rpiVLowCount = 0u;
+
 		if (false == m_ldoEnabled)
 		{
 			// Can't tell if the RPi is powered without the LDO!
@@ -665,6 +667,9 @@ void POWERSOURCE_RPi5vDetect(void)
 		{
 			// If the voltage on the rail is more than the LDO can supply then the RPi is probably powered
 			m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_POWERED;
+
+			// Enable the boost converter
+			POWERSOURCE_Set5vBoostEnable(true);
 		}
 
 		if (v5RailMv <= POWERSOURCE_RPI_LOW_MV)
@@ -728,8 +733,6 @@ void POWERSOURCE_Process5VRailStatus(void)
 	if (RPI5V_DETECTION_STATUS_POWERED != m_rpi5VInDetStatus)
 	{
 		m_power5vIoStatus = POW_SOURCE_NOT_PRESENT;
-
-		CHARGER_SetRPi5vInputEnable(false);
 	}
 	else
 	{

@@ -8,21 +8,6 @@
 #ifndef CHARGER_BQ2416X_H_
 #define CHARGER_BQ2416X_H_
 
-#include <battery.h>
-#include "stdint.h"
-/*
-#define BAT_REG_VOLTAGE	(regs[3] >> 2)
-#define CHARGE_CURRENT	((((int16_t)(regs[5] >> 3) * 75 + 550) / 5 + 1) >> 1)
-#define CHARGE_TERMINATION_CURRENT	((((int16_t)(regs[5] && 0x07) * 50 + 50) / 5 + 1) >> 1)
-#define CHARGER_IS_BATTERY_PRESENT()	(!((regs[1] & 0x06) == 0x04))//((regs[1] & 0x06) == 0x00 || (regs[1] & 0x06) == 0x02)
-#define CHARGER_INSTAT()	((regs[1] >> 6) & 0x03)
-#define CHARGER_USBSTAT()	((regs[1] >> 4) & 0x03)
-#define CHARGER_IS_DPM_MODE_ACTIVE() 	(regs[6]&0x40)
-#define CHARGER_IS_USBIN_LOCKED() 	(regs[1]&0x08)
-#define CHRGER_TS_FAULT_STATUS() 	((regs[7u]&0x06u)>>1u)
-#define CHARGER_IS_INPUT_PRESENT() ((regs[0]&0x70)&&((regs[0]&0x70)<(6*16)))
-#define CHARGER_FAULT_STATUS() (regs[0]&0x07)
-*/
 
 typedef enum
 {
@@ -60,14 +45,6 @@ typedef enum NTC_MonitorTemperature_T
 	HOT,
 	UNKNOWN
 } NTC_MonitorTemperature_T;
-
-
-typedef enum ChargerUSBInLockoutStatus_T
-{
-	CHG_USB_IN_UNKNOWN,
-	CHG_USB_IN_LOCK,
-	CHG_USB_IN_UNLOCK
-} CHARGER_USBInLockoutStatus_T;
 
 
 typedef enum ChargerUsbInCurrentLimit_T

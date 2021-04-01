@@ -624,7 +624,7 @@ void CmdServerReadBatTemp(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 
 void CmdServerReadBatVoltage(const uint8_t dir, uint8_t * const p_data, uint16_t * const dataLen)
 {
-	const uint16_t batteryMv = FUELGUAGE_GetBatteryTemperature();
+	const uint16_t batteryMv = FUELGUAGE_GetBatteryMv();
 
 	if (dir == MASTER_CMD_DIR_READ)
 	{

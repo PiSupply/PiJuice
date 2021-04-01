@@ -64,6 +64,9 @@
 #define CHGR_BS_EN_NOBAT_OP_bm			(1u << 0u)
 #define CHGR_BS_EN_NOBAT_OP				(1u)
 
+#define CHGR_BS_USBIN_ENABLED			(0u)
+#define CHGR_BS_USBIN_LOCKEDOUT			(CHGR_BS_OTG_LOCK_bm)
+
 
 /* Bit definitions for Control Register */
 #define CHGR_CTRL_RESET_bm					(1u << 7u)

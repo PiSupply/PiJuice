@@ -67,7 +67,7 @@ TIM_HandleTypeDef htim17;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
-uint32_t executionState __attribute__((section("no_init"))); // used to indicate if there was unpredictable reset like watchdog expired
+EXECUTION_State_t executionState __attribute__((section("no_init"))); // used to indicate if there was unpredictable reset like watchdog expired
 
 /* USER CODE END PV */
 
@@ -108,6 +108,8 @@ int main(void)
 			executionState = EXECUTION_STATE_UPDATE;
 		}
 	}
+
+	executionState = EXECUTION_STATE_POWER_RESET;
 
 	__HAL_RCC_CLEAR_RESET_FLAGS();
 	__HAL_FLASH_PREFETCH_BUFFER_ENABLE();

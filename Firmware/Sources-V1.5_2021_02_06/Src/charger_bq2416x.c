@@ -85,7 +85,6 @@ static bool CHARGER_CheckForPoll(void);
 static uint8_t m_registersIn[CHARGER_REGISTER_COUNT] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static uint8_t m_registersOut[CHARGER_REGISTER_COUNT] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-static CHARGER_USBInLockoutStatus_T m_rpi5VInputDisable = CHG_USB_IN_UNKNOWN;
 static CHARGER_USBInCurrentLimit_T m_rpi5VCurrentLimit = CHG_IUSB_LIMIT_150MA; // current limit code as defined in datasheet
 
 static bool m_i2cSuccess;
@@ -399,15 +398,8 @@ void CHARGER_SetRPi5vInputEnable(bool enable)
 
 bool CHARGER_GetRPi5vInputEnable()
 {
-	return (CHGR_SC_FLT_SUPPLY_PREF_USB == (m_registersIn[CHG_REG_SUPPLY_STATUS] & CHGR_SUPPLY_SEL_bm));
+	return (CHGR_BS_USBIN_ENABLED == (m_registersIn[CHG_REG_BATTERY_STATUS] & CHGR_BS_OTG_LOCK_bm));
 }
-
-
-CHARGER_USBInLockoutStatus_T CHARGER_GetRPi5vInLockStatus(void)
-{
-	return m_rpi5VInputDisable;
-}
-
 
 
 void CHARGER_RPi5vInCurrentLimitStepUp(void)
@@ -813,7 +805,6 @@ void CHARGER_UpdateControlStatus(void)
 					(m_registersIn[CHG_REG_BATTERY_STATUS] & (CHGR_BS_INSTAT_Msk | CHGR_BS_USBSTAT_Msk)));
 
 	const BatteryStatus_T batteryStatus = BATTERY_GetStatus();
-
 
 	if ((m_registersIn[CHG_REG_BATTERY_STATUS] & CHGR_BS_INSTAT_Msk) > CHGR_BS_INSTAT_OVP)
 	{
