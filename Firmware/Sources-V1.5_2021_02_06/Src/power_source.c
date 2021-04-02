@@ -427,6 +427,12 @@ bool POWERSOURCE_IsBoostConverterEnabled(void)
 }
 
 
+bool POWERSOURCE_IsLDOEnabled(void)
+{
+	return m_ldoEnabled;
+}
+
+
 PowerSourceStatus_T POWERSOURCE_GetVInStatus(void)
 {
 	return m_powerInStatus;

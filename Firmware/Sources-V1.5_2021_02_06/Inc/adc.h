@@ -17,5 +17,6 @@ uint16_t ADC_GetInstantValue(const uint8_t channel);
 uint16_t ADC_GetAverageValue(const uint8_t channel);
 uint16_t ADC_CalibrateValue(const uint16_t value);
 bool ADC_GetFilterReady(void);
+int16_t ADC_GetCurrentSenseAverage(void);
 
 #endif /* ADC_H_ */

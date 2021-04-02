@@ -164,7 +164,6 @@ void TASKMAN_Run(void)
 			RTC_EvaluateAlarm();
 
 			BUTTON_Task();
-			LoadCurrentSenseTask();
 			PowerManagementTask();
 
 			HOSTCOMMS_Task();

@@ -43,6 +43,7 @@ void POWERSOURCE_Set5vBoostEnable(const bool enabled);
 void POWERSOURCE_SetLDOEnable(const bool enabled);
 bool POWERSOURCE_IsVsysEnabled(void);
 bool POWERSOURCE_IsBoostConverterEnabled(void);
+bool POWERSOURCE_IsLDOEnabled(void);
 void POWERSOURCE_SetVSysSwitchState(uint8_t state);
 uint8_t POWERSOURCE_GetVSysSwitchState(void);
 void POWERSOURCE_UpdateBatteryProfile(const BatteryProfile_T* batProfile);

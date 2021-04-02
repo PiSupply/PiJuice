@@ -205,6 +205,35 @@ uint16_t ADC_CalibrateValue(const uint16_t value)
 
 // ****************************************************************************
 /*!
+ * ADC_GetCurrentSenseAverage gets the special current sense filter value. The
+ * value is effectively oversampled to give a higher resolution. The returned
+ * value is not corrected for avdd tolerance
+ *
+ * @param	none
+ * @retval	int16_t		Oversampled difference between CS1 and CS2
+ */
+// ****************************************************************************
+int16_t ADC_GetCurrentSenseAverage(void)
+{
+	// TODO - Make sure this copies and not works on actual value
+	int32_t result = m_currentSenseFilter.average;
+
+	if (result < INT16_MIN)
+	{
+		result = INT16_MIN;
+	}
+
+	if (result > INT16_MAX)
+	{
+		result = INT16_MAX;
+	}
+
+	return (int16_t)result;
+}
+
+
+// ****************************************************************************
+/*!
  * ADC_ConvertToMV turns an ADC value to a more relevant MV value.
  *
  * @param	value		ADC value

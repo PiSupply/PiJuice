@@ -666,9 +666,12 @@ void CmdServerReadMainVoltage(uint8_t dir, uint8_t *p_Data, uint16_t *dataLen)
 	}
 }
 
-void CmdServerReadMainCurrent(uint8_t dir, uint8_t *pData, uint16_t *dataLen){
-	if (dir == MASTER_CMD_DIR_READ) {
-		uint16_t cur = GetLoadCurrent();
+void CmdServerReadMainCurrent(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_READ)
+	{
+		uint16_t cur = (uint16_t)ISENSE_GetLoadCurrentMa();
+
 		uint8_t adr = pData[0];
 		reg[adr] = cur;
 		reg[adr+1] = cur >> 8;
@@ -1136,13 +1139,36 @@ void CmdServerReadWriteEEPROM_WriteAddress(uint8_t dir, uint8_t *pData, uint16_t
 	}
 }
 
-void CmdServerReadWriteTestAndCalibration(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		if (pData[1] == 0x55 && pData[2] == 0x26 && pData[3] == 0xa0 && pData[4] == 0x2b ) {
-			CalibrateLoadCurrent();
+void CmdServerReadWriteTestAndCalibration(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		if ((pData[1] == 0x55) && (pData[2] == 0x26) && (pData[3] == 0xa0))
+		{
+			if (pData[4] == 0x2b)
+			{
+				CalibrateLoadCurrent();
+			}
+			else if (pData[4u] == 0x3Au)
+			{
+				CalibrateZeroCurrent();
+			}
+			else if (pData[4u] == 0x4Fu)
+			{
+				Calibrate50mACurrent();
+			}
+			else if (pData[4u] == 0x52u)
+			{
+				Calibrate500mACurrent();
+			}
+			else
+			{
+
+			}
 		}
-	} else {
-		//pData[0] = 0;
+	}
+	else
+	{
 		*dataLen = 0;
 	}
 }
