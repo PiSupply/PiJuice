@@ -63,8 +63,8 @@ void TASKMAN_WaitInterrupt(void);
 
 void TASKMAN_Init(void)
 {
-	LoadCurrentSenseInit();
 
+	ISENSE_Init();
 	BATTERY_Init();
 	BUTTON_Init();
 	CHARGER_Init();

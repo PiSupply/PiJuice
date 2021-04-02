@@ -8,12 +8,14 @@
 #ifndef LOAD_CURRENT_SENSE_H_
 #define LOAD_CURRENT_SENSE_H_
 
-void LoadCurrentSenseInit(void);
-void MeasurePMOSLoadCurrent(void);
+void ISENSE_Init(void);
+void ISENSE_Task(void);
+
 int16_t ISENSE_GetLoadCurrentMa(void);
-int8_t CalibrateLoadCurrent(void);
-void CalibrateZeroCurrent(void);
-void Calibrate50mACurrent(void);
-void Calibrate500mACurrent(void);
+bool ISENSE_CalibrateLoadCurrent(void);
+void ISENSE_CalibrateZeroCurrent(void);
+void ISENSE_Calibrate50mACurrent(void);
+void ISENSE_Calibrate500mACurrent(void);
+bool ISENSE_WriteNVCalibration(void);
 
 #endif /* LOAD_CURRENT_SENSE_H_ */

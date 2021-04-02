@@ -1147,23 +1147,23 @@ void CmdServerReadWriteTestAndCalibration(uint8_t dir, uint8_t *pData, uint16_t 
 		{
 			if (pData[4] == 0x2b)
 			{
-				CalibrateLoadCurrent();
+				ISENSE_CalibrateLoadCurrent();
 			}
 			else if (pData[4u] == 0x3Au)
 			{
-				CalibrateZeroCurrent();
+				ISENSE_CalibrateZeroCurrent();
 			}
 			else if (pData[4u] == 0x4Fu)
 			{
-				Calibrate50mACurrent();
+				ISENSE_Calibrate50mACurrent();
 			}
 			else if (pData[4u] == 0x52u)
 			{
-				Calibrate500mACurrent();
+				ISENSE_Calibrate500mACurrent();
 			}
-			else
+			else if (pData[4u] == 0x69u)
 			{
-
+				ISENSE_WriteNVCalibration();
 			}
 		}
 	}
