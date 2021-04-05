@@ -132,7 +132,9 @@
  BAT_R50H_NV_ADDR, \
  BAT_R90L_NV_ADDR, \
  BAT_R90H_NV_ADDR, \
- WATCHDOG_CONFIGH_NV_ADDR
+ WATCHDOG_CONFIGH_NV_ADDR, \
+ ISENSE_RES_SPAN_L, \
+ ISENSE_RES_SPAN_H
 
 
 typedef enum
@@ -141,6 +143,8 @@ typedef enum
 	NV_VAR_NUM
 } NvVarId_T;
 
+/* Variables' number */
+#define NB_OF_VAR             			NV_VAR_NUM//((uint8_t)0x04)
 
 void NV_Init(void);
 void NvSetDataInitialized(void);
@@ -151,9 +155,12 @@ void NV_FactoryReset(void);
 
 uint16_t EE_WriteVariable(uint16_t VirtAddress, uint16_t Data);
 
-__STATIC_INLINE void NvWriteVariableU8(uint16_t VirtAddress, uint8_t var) {
-	EE_WriteVariable(VirtAddress, (uint16_t)(var | (((uint16_t)(~var))<<8)));
-}
+bool NV_WriteVariable_U8(const uint16_t address, const uint8_t var);
+bool NV_ReadVariable_U8(const uint16_t address, uint8_t * const p_var);
+
+bool NV_WriteVariable_S8(const uint16_t address, const int8_t var);
+bool NV_ReadVariable_S8(const uint16_t address, int8_t * const p_var);
+
 uint16_t NvReadVariableU8(uint16_t VirtAddress, uint8_t *pVar);
 
 

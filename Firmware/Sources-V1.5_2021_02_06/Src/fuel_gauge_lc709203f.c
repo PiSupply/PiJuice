@@ -266,7 +266,7 @@ void FUELGUAGE_SetConfig(const uint8_t * const data, const uint16_t len)
 		return;
 	}
 
-	NvWriteVariableU8(FUEL_GAUGE_CONFIG_NV_ADDR, data[0u]);
+	NV_WriteVariable_U8(FUEL_GAUGE_CONFIG_NV_ADDR, data[0u]);
 
 	if (NvReadVariableU8(FUEL_GAUGE_CONFIG_NV_ADDR, &config) == NV_READ_VARIABLE_SUCCESS)
 	{

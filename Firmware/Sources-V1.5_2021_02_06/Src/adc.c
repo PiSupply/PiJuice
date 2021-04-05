@@ -12,7 +12,10 @@
 #include "system_conf.h"
 #include "ave_filter.h"
 #include "time_count.h"
+#include "util.h"
+
 #include "adc.h"
+
 
 
 // ----------------------------------------------------------------------------
@@ -61,7 +64,7 @@ void ADC_Init(const uint32_t sysTime)
 	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_MPUTEMP], sysTime, FILTER_PERIOD_MS_MPUTEMP);
 	AVE_FILTER_U16_InitPeriodic(&m_aveFilters[ANALOG_CHANNEL_INTREF], sysTime, FILTER_PERIOD_MS_INTREF);
 
-	AVE_FILTER_S32_InitPeriodic(&m_currentSenseFilter, sysTime, FILTER_PERIOD_MS_CS1 * 8u);
+	AVE_FILTER_S32_InitPeriodic(&m_currentSenseFilter, sysTime, FILTER_PERIOD_MS_ISENSE);
 
 	m_aveFilterReady = false;
 
@@ -92,6 +95,7 @@ void ADC_Shutdown(void)
 void ADC_Service(const uint32_t sysTime)
 {
 	uint8_t i;
+	int16_t iVal;
 
 	if (MS_TIMEREF_TIMEOUT(m_lastAdcStartTime, sysTime, ADC_SAMPLE_PERIOD_MS))
 	{
@@ -114,19 +118,20 @@ void ADC_Service(const uint32_t sysTime)
 				}
 			}
 
-			AVE_FILTER_S32_UpdatePeriodic(&m_currentSenseFilter,
-					(int32_t)(m_aveFilters[ANALOG_CHANNEL_CS1].total - m_aveFilters[ANALOG_CHANNEL_CS2].total),
-					sysTime
-					);
+			if ( (true == m_aveFilterReady) && (m_aveFilters[ANALOG_CHANNEL_INTREF].average > 0u) )
+			{
+				m_adcRefScale = (0x00010000u * ((uint32_t)m_adcIntRefCal)) / (uint32_t)m_aveFilters[ANALOG_CHANNEL_INTREF].average;
+			}
+
+			// Convert sense resistor value to mA (not calibrated!)
+			iVal = UTIL_FixMul_U32_S16(ADC_RES_TO_MA_K,(int32_t)(m_aveFilters[ANALOG_CHANNEL_CS1].total - m_aveFilters[ANALOG_CHANNEL_CS2].total));
+
+			// update filter
+			AVE_FILTER_S32_UpdatePeriodic(&m_currentSenseFilter, iVal, sysTime);
 
 			if (0u == m_aveFilters[0].nextValueIdx)
 			{
 				m_aveFilterReady = true;
-			}
-
-			if ( (true == m_aveFilterReady) && (m_aveFilters[ANALOG_CHANNEL_INTREF].average > 0u) )
-			{
-				m_adcRefScale = (0x00010000u * ((uint32_t)m_adcIntRefCal)) / (uint32_t)m_aveFilters[ANALOG_CHANNEL_INTREF].average;
 			}
 
 			HAL_ADC_Start_DMA(&hadc, (uint32_t*)&m_adcVals[0u], MAX_ANALOG_CHANNELS);
@@ -268,6 +273,12 @@ uint16_t ADC_ConvertToMV(const uint16_t value)
 bool ADC_GetFilterReady(void)
 {
 	return m_aveFilterReady;
+}
+
+
+void ADC_SetIFilterPeriod(uint32_t newFilterPeriod)
+{
+	m_currentSenseFilter.filterPeriodMs = newFilterPeriod;
 }
 
 // ----------------------------------------------------------------------------

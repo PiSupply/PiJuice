@@ -569,15 +569,17 @@ bool BATTERY_ReadExtendedEEProfileData(void)
 void BATTERY_WriteEEProfileData(const BatteryProfile_T *batProfile)
 {
 	uint16_t var = PACK_CAPACITY_U16(batProfile->capacity); // correction for large capacities over 32767
+
 	EE_WriteVariable(BAT_CAPACITY_NV_ADDR, var);
-	NvWriteVariableU8(CHARGE_CURRENT_NV_ADDR, batProfile->chargeCurrent);//EE_WriteVariable(CHARGE_CURRENT_NV_ADDR, batProfile->chargeCurrent | ((uint16_t)~batProfile->chargeCurrent<<8));
-	NvWriteVariableU8(CHARGE_TERM_CURRENT_NV_ADDR, batProfile->terminationCurr);//EE_WriteVariable(CHARGE_TERM_CURRENT_NV_ADDR, batProfile->terminationCurr | ((uint16_t)~batProfile->terminationCurr<<8));
-	NvWriteVariableU8(BAT_REG_VOLTAGE_NV_ADDR, batProfile->regulationVoltage);//EE_WriteVariable(BAT_REG_VOLTAGE_NV_ADDR, batProfile->regulationVoltage | ((uint16_t)~batProfile->regulationVoltage<<8));
-	NvWriteVariableU8(BAT_CUTOFF_VOLTAGE_NV_ADDR, batProfile->cutoffVoltage);//EE_WriteVariable(BAT_CUTOFF_VOLTAGE_NV_ADDR, batProfile->cutoffVoltage | ((uint16_t)~batProfile->cutoffVoltage<<8));
-	NvWriteVariableU8(BAT_TEMP_COLD_NV_ADDR, batProfile->tCold);//EE_WriteVariable(BAT_TEMP_COLD_NV_ADDR, batProfile->tCold | ((uint16_t)~batProfile->tCold<<8));
-	NvWriteVariableU8(BAT_TEMP_COOL_NV_ADDR, batProfile->tCool);//EE_WriteVariable(BAT_TEMP_COOL_NV_ADDR, batProfile->tCool | ((uint16_t)~batProfile->tCool<<8));
-	NvWriteVariableU8(BAT_TEMP_WARM_NV_ADDR, batProfile->tWarm);//EE_WriteVariable(BAT_TEMP_WARM_NV_ADDR, batProfile->tWarm | ((uint16_t)~batProfile->tWarm<<8));
-	NvWriteVariableU8(BAT_TEMP_HOT_NV_ADDR, batProfile->tHot);//EE_WriteVariable(BAT_TEMP_HOT_NV_ADDR, batProfile->tHot | ((uint16_t)~batProfile->tHot<<8));
+
+	NV_WriteVariable_U8(CHARGE_CURRENT_NV_ADDR, batProfile->chargeCurrent);//EE_WriteVariable(CHARGE_CURRENT_NV_ADDR, batProfile->chargeCurrent | ((uint16_t)~batProfile->chargeCurrent<<8));
+	NV_WriteVariable_U8(CHARGE_TERM_CURRENT_NV_ADDR, batProfile->terminationCurr);//EE_WriteVariable(CHARGE_TERM_CURRENT_NV_ADDR, batProfile->terminationCurr | ((uint16_t)~batProfile->terminationCurr<<8));
+	NV_WriteVariable_U8(BAT_REG_VOLTAGE_NV_ADDR, batProfile->regulationVoltage);//EE_WriteVariable(BAT_REG_VOLTAGE_NV_ADDR, batProfile->regulationVoltage | ((uint16_t)~batProfile->regulationVoltage<<8));
+	NV_WriteVariable_U8(BAT_CUTOFF_VOLTAGE_NV_ADDR, batProfile->cutoffVoltage);//EE_WriteVariable(BAT_CUTOFF_VOLTAGE_NV_ADDR, batProfile->cutoffVoltage | ((uint16_t)~batProfile->cutoffVoltage<<8));
+	NV_WriteVariable_U8(BAT_TEMP_COLD_NV_ADDR, batProfile->tCold);//EE_WriteVariable(BAT_TEMP_COLD_NV_ADDR, batProfile->tCold | ((uint16_t)~batProfile->tCold<<8));
+	NV_WriteVariable_U8(BAT_TEMP_COOL_NV_ADDR, batProfile->tCool);//EE_WriteVariable(BAT_TEMP_COOL_NV_ADDR, batProfile->tCool | ((uint16_t)~batProfile->tCool<<8));
+	NV_WriteVariable_U8(BAT_TEMP_WARM_NV_ADDR, batProfile->tWarm);//EE_WriteVariable(BAT_TEMP_WARM_NV_ADDR, batProfile->tWarm | ((uint16_t)~batProfile->tWarm<<8));
+	NV_WriteVariable_U8(BAT_TEMP_HOT_NV_ADDR, batProfile->tHot);//EE_WriteVariable(BAT_TEMP_HOT_NV_ADDR, batProfile->tHot | ((uint16_t)~batProfile->tHot<<8));
 	EE_WriteVariable(BAT_NTC_B_NV_ADDR, batProfile->ntcB);
 	EE_WriteVariable(BAT_NTC_RESISTANCE_NV_ADDR, batProfile->ntcResistance);
 	EE_WriteVariable(BAT_NTC_CRC_NV_ADDR, batProfile->ntcB ^ batProfile->ntcResistance);
@@ -586,19 +588,19 @@ void BATTERY_WriteEEProfileData(const BatteryProfile_T *batProfile)
 
 void BATTERY_WriteExtendedEEProfileData(const BatteryProfile_T *batProfile)
 {
-	NvWriteVariableU8(BAT_CHEMISTRY_NV_ADDR, (uint8_t)(batProfile->chemistry));
-	NvWriteVariableU8(BAT_OCV10L_NV_ADDR, batProfile->ocv10);
-	NvWriteVariableU8(BAT_OCV10H_NV_ADDR, (batProfile->ocv10)>>8);
-	NvWriteVariableU8(BAT_OCV50L_NV_ADDR, batProfile->ocv50);
-	NvWriteVariableU8(BAT_OCV50H_NV_ADDR, (batProfile->ocv50)>>8);
-	NvWriteVariableU8(BAT_OCV90L_NV_ADDR, batProfile->ocv90);
-	NvWriteVariableU8(BAT_OCV90H_NV_ADDR, (batProfile->ocv90)>>8);
-	NvWriteVariableU8(BAT_R10L_NV_ADDR, batProfile->r10);
-	NvWriteVariableU8(BAT_R10H_NV_ADDR, (batProfile->r10)>>8);
-	NvWriteVariableU8(BAT_R50L_NV_ADDR, batProfile->r50);
-	NvWriteVariableU8(BAT_R50H_NV_ADDR, (batProfile->r50)>>8);
-	NvWriteVariableU8(BAT_R90L_NV_ADDR, batProfile->r90);
-	NvWriteVariableU8(BAT_R90H_NV_ADDR, (batProfile->r90)>>8);
+	NV_WriteVariable_U8(BAT_CHEMISTRY_NV_ADDR, (uint8_t)(batProfile->chemistry));
+	NV_WriteVariable_U8(BAT_OCV10L_NV_ADDR, batProfile->ocv10);
+	NV_WriteVariable_U8(BAT_OCV10H_NV_ADDR, (batProfile->ocv10)>>8);
+	NV_WriteVariable_U8(BAT_OCV50L_NV_ADDR, batProfile->ocv50);
+	NV_WriteVariable_U8(BAT_OCV50H_NV_ADDR, (batProfile->ocv50)>>8);
+	NV_WriteVariable_U8(BAT_OCV90L_NV_ADDR, batProfile->ocv90);
+	NV_WriteVariable_U8(BAT_OCV90H_NV_ADDR, (batProfile->ocv90)>>8);
+	NV_WriteVariable_U8(BAT_R10L_NV_ADDR, batProfile->r10);
+	NV_WriteVariable_U8(BAT_R10H_NV_ADDR, (batProfile->r10)>>8);
+	NV_WriteVariable_U8(BAT_R50L_NV_ADDR, batProfile->r50);
+	NV_WriteVariable_U8(BAT_R50H_NV_ADDR, (batProfile->r50)>>8);
+	NV_WriteVariable_U8(BAT_R90L_NV_ADDR, batProfile->r90);
+	NV_WriteVariable_U8(BAT_R90H_NV_ADDR, (batProfile->r90)>>8);
 }
 
 

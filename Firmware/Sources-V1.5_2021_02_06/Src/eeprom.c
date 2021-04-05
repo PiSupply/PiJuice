@@ -31,6 +31,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "eeprom.h"
+
+// TODO - tidy this up
+#include "stdbool.h"
+#include "nv.h"
 //#include "stm32f0xx_flash.h"
 
 /* Private typedef -----------------------------------------------------------*/

@@ -8,6 +8,8 @@
 // ----------------------------------------------------------------------------
 // Include section - add all #includes here:
 
+#include <stdlib.h>
+
 #include "main.h"
 
 #include "util.h"
@@ -39,7 +41,7 @@
  * 						false = parameter is not looking initialised
  */
 // ****************************************************************************
-bool UTIL_NV_ParamInitCheck_U16(uint16_t parameter)
+bool UTIL_NV_ParamInitCheck_U16(const uint16_t parameter)
 {
 	uint8_t chk = (parameter >> 8u) ^ 0xFF;
 
@@ -56,7 +58,7 @@ bool UTIL_NV_ParamInitCheck_U16(uint16_t parameter)
  * 						false = parameter is not looking initialised
  */
 // ****************************************************************************
-uint16_t UTIL_FixMul_U32_U16(uint32_t fixmul, uint16_t value)
+uint16_t UTIL_FixMul_U32_U16(const uint32_t fixmul, const uint16_t value)
 {
 	/* Apply fixed point multipler */
 	uint32_t result = (value * fixmul);
@@ -68,4 +70,29 @@ uint16_t UTIL_FixMul_U32_U16(uint32_t fixmul, uint16_t value)
 	}
 
 	return (uint16_t)(result >> 16u);
+}
+
+
+int16_t UTIL_FixMul_U32_S16(const uint32_t fixmul, const int16_t value)
+{
+	const bool negative = (value < 0);
+	const uint32_t result = UTIL_FixMul_U32_U16(fixmul, abs(value));
+
+	return (true == negative) ? -result : result;
+}
+
+
+bool UTIL_FixMulInverse_U16_U16(const uint16_t realVal, const uint16_t divValue, uint32_t * const result)
+{
+	if (divValue == 0u)
+	{
+		// Could end badly
+		return false;
+	}
+
+	// TODO - Consider overflow
+
+	*result = (realVal << 16u) / divValue;
+
+	return true;
 }

@@ -516,8 +516,8 @@ void PowerMngmtConfigureWatchdogCmd(uint8_t data[], uint16_t len)
 
 	if (data[1]&0x80) {
 		watchdogConfig = d;
-		NvWriteVariableU8(WATCHDOG_CONFIGL_NV_ADDR, watchdogConfig);
-		NvWriteVariableU8(WATCHDOG_CONFIGH_NV_ADDR, watchdogConfig>>8);
+		NV_WriteVariable_U8(WATCHDOG_CONFIGL_NV_ADDR, watchdogConfig);
+		NV_WriteVariable_U8(WATCHDOG_CONFIGH_NV_ADDR, watchdogConfig>>8);
 
 		if (NvReadVariableU8(WATCHDOG_CONFIGL_NV_ADDR, (uint8_t*)&watchdogConfig) != NV_READ_VARIABLE_SUCCESS
 		 || NvReadVariableU8(WATCHDOG_CONFIGH_NV_ADDR, (uint8_t*)&watchdogConfig+1) != NV_READ_VARIABLE_SUCCESS
@@ -564,9 +564,9 @@ void POWERMAN_SetWakeupOnChargeData(const uint8_t * const data, const uint16_t l
 
 	if (data[0u] & 0x80u)
 	{
-		NvWriteVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (data[0u]&0x7Fu) <= 100u ? data[0u] : 0x7Fu);
+		NV_WriteVariable_U8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (data[0u]&0x7Fu) <= 100u ? data[0u] : 0x7Fu);
 
-		if (NvReadVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, &wakeupOnChargeConfig) != NV_READ_VARIABLE_SUCCESS )
+		if (NV_WriteVariable_U8(WAKEUPONCHARGE_CONFIG_NV_ADDR, wakeupOnChargeConfig) != NV_READ_VARIABLE_SUCCESS )
 		{
 			/* If writing to NV failed then disable wakeup on charge */
 			wakeupOnChargeConfig = 0x7Fu;

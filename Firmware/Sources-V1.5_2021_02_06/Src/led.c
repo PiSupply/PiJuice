@@ -237,10 +237,10 @@ void LED_SetConfigurationData(const uint8_t ledIdx, const uint8_t * const data, 
 		return;
 	}
 
-	NvWriteVariableU8(m_ledFunctionParams[ledIdx][0u], data[0u]);
-	NvWriteVariableU8(m_ledFunctionParams[ledIdx][1u], data[1u]);
-	NvWriteVariableU8(m_ledFunctionParams[ledIdx][2u], data[2u]);
-	NvWriteVariableU8(m_ledFunctionParams[ledIdx][3u], data[3u]);
+	NV_WriteVariable_U8(m_ledFunctionParams[ledIdx][0u], data[0u]);
+	NV_WriteVariable_U8(m_ledFunctionParams[ledIdx][1u], data[1u]);
+	NV_WriteVariable_U8(m_ledFunctionParams[ledIdx][2u], data[2u]);
+	NV_WriteVariable_U8(m_ledFunctionParams[ledIdx][3u], data[3u]);
 
 	LED_InitFunction(ledIdx);
 }

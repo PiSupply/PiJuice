@@ -39,6 +39,7 @@
 
 #include "execution.h"
 
+#include "nv.h"
 #include "eeprom.h"
 
 #include "adc.h"
@@ -349,17 +350,11 @@ static void MX_DMA_Init(void)
 /* I2C1 init function not used, MX_SMBUS_Init used instead*/
 static void MX_I2C1_Init(void)
 {
-
   hi2c1.Instance = I2C1;
   hi2c1.Init.Timing = 0x00FF0000;//0x00C4092A;//0x00300000;//0x00900000 for 48000 i2c clock
 
-
-
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_ENABLE;//I2C_DUALADDRESS_DISABLE;
-
-
-
   hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
   hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;

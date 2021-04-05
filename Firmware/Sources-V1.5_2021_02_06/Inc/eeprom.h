@@ -32,7 +32,6 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f0xx.h"
-#include "nv.h"
 
 /* Exported constants --------------------------------------------------------*/
 /* Define the size of the sectors to be used */
@@ -66,9 +65,6 @@
 
 /* Page full define */
 #define PAGE_FULL             ((uint8_t)0x80)
-
-/* Variables' number */
-#define NB_OF_VAR             NV_VAR_NUM//((uint8_t)0x04)
 
 /** @defgroup FLASH_Timeout_definition 
   * @{

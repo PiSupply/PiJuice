@@ -1,4 +1,6 @@
 #include "main.h"
+
+#include "nv.h"
 #include "eeprom.h"
 
 #include "system_conf.h"
@@ -78,6 +80,7 @@ void TASKMAN_Init(void)
 	RtcInit();
 	IoControlInit();
 
+	// TODO - Correct spelling!
 	NvSetDataInitialized();
 
 	E2_Init();

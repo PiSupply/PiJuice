@@ -236,6 +236,7 @@ void HAL_ADC_MspInit_old(ADC_HandleTypeDef* hadc)
 
 }
 
+
 void HAL_ADC_MspDeInit_old(ADC_HandleTypeDef* hadc)
 {
 
@@ -267,6 +268,7 @@ void HAL_ADC_MspDeInit_old(ADC_HandleTypeDef* hadc)
   /* USER CODE END ADC1_MspDeInit 1 */
 
 }
+
 
 void HAL_WWDG_MspInit(WWDG_HandleTypeDef* hwwdg)
 {
@@ -430,7 +432,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
 
 	  /*##-6- Configure the NVIC for I2C ########################################*/
 	  /* NVIC for I2Cx */
-	  HAL_NVIC_SetPriority(I2C1_IRQn, 0, 1);
+	  HAL_NVIC_SetPriority(I2C1_IRQn, 1, 1);
 	  HAL_NVIC_EnableIRQ(I2C1_IRQn);
   }
   else if(hi2c->Instance==I2C2)
@@ -672,7 +674,6 @@ void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef* htim_pwm)
 
   /* USER CODE END TIM15_MspInit 1 */
   }
-
 }
 
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)

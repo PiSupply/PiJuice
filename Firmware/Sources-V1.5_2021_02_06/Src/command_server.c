@@ -412,8 +412,8 @@ uint8_t CalcFcs(uint8_t *msg, int size)
 	return result;
 }
 
-void CommandServerInit(void) {
-
+void CommandServerInit(void)
+{
 	// init memory map
 	uint16_t size = REGISTERS_NUM;
 	while(size-- > 0u) {
@@ -461,6 +461,7 @@ void CmdServerDefaultReadWrite(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	}
 }
 
+
 static uint8_t IsEventFault(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
@@ -483,6 +484,7 @@ static uint8_t IsEventFault(void)
 	return ev;
 }
 
+
 void CmdServerReadStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
 	const uint8_t vinStatus = (uint8_t)(POWERSOURCE_GetVInStatus() & 0x03u);
@@ -500,6 +502,7 @@ void CmdServerReadStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 		*dataLen = 1u;
 	}
 }
+
 
 void CmdServerReadWriteEventFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
@@ -720,6 +723,7 @@ void CmdServerReadWriteBatRegVoltage(uint8_t dir, uint8_t *pData, uint16_t *data
 	}
 }*/
 
+
 void CmdServerReadWriteChargingConfig(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
 	if (dir == MASTER_CMD_DIR_WRITE)
@@ -733,6 +737,7 @@ void CmdServerReadWriteChargingConfig(uint8_t dir, uint8_t *pData, uint16_t *dat
 	}
 }
 
+
 void CmdServerReadWriteBatProfile(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
 	if (dir == MASTER_CMD_DIR_WRITE)
@@ -744,6 +749,7 @@ void CmdServerReadWriteBatProfile(uint8_t dir, uint8_t *pData, uint16_t *dataLen
 		BATTERY_ReadActiveProfileData(pData, dataLen);
 	}
 }
+
 
 void CmdServerReadWriteBatExtendedProfile(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
@@ -757,6 +763,7 @@ void CmdServerReadWriteBatExtendedProfile(uint8_t dir, uint8_t *pData, uint16_t 
 	}
 }
 
+
 void CmdServerReadWriteBatteryProfileId(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
 	if (MASTER_CMD_DIR_WRITE == dir)
@@ -769,6 +776,7 @@ void CmdServerReadWriteBatteryProfileId(uint8_t dir, uint8_t *pData, uint16_t *d
 	}
 }
 
+
 void CmdServerReadWriteFuelGaugeConfig(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
 	if (dir == MASTER_CMD_DIR_WRITE)
@@ -780,6 +788,7 @@ void CmdServerReadWriteFuelGaugeConfig(uint8_t dir, uint8_t *pData, uint16_t *da
 		FUELGUAGE_GetConfig(pData, dataLen);
 	}
 }
+
 
 void CmdServerReadWriteDateTime(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
@@ -807,6 +816,7 @@ void CmdServerReadWriteDateTime(uint8_t dir, uint8_t *pData, uint16_t *dataLen) 
 //		*dataLen = 4;
 	}
 }
+
 
 void CmdServerReadWriteTime(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
@@ -838,6 +848,7 @@ void CmdServerReadWriteTime(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	}
 }
 
+
 void CmdServerReadWriteDayLightSavingConfig(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
 
@@ -845,6 +856,7 @@ void CmdServerReadWriteDayLightSavingConfig(uint8_t dir, uint8_t *pData, uint16_
 
 	}
 }
+
 
 void CmdServerReadWriteAlarm(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
 	if (dir == MASTER_CMD_DIR_WRITE) {
@@ -1155,11 +1167,11 @@ void CmdServerReadWriteTestAndCalibration(uint8_t dir, uint8_t *pData, uint16_t 
 			}
 			else if (pData[4u] == 0x4Fu)
 			{
-				ISENSE_Calibrate50mACurrent();
+				ISENSE_Calibrate51mACurrent();
 			}
 			else if (pData[4u] == 0x52u)
 			{
-				ISENSE_Calibrate500mACurrent();
+				ISENSE_Calibrate510mACurrent();
 			}
 			else if (pData[4u] == 0x69u)
 			{

@@ -441,7 +441,7 @@ void CHARGER_SetInputsConfig(const uint8_t config)
 	// If write to
 	if (0u != (config & CHRG_CONFIG_INPUTS_WRITE_NV_bm))
 	{
-		NvWriteVariableU8(CHARGER_INPUTS_CONFIG_NV_ADDR, config);
+		NV_WriteVariable_U8(CHARGER_INPUTS_CONFIG_NV_ADDR, config);
 	}
 
 	m_chargerNeedPoll = true;
@@ -472,7 +472,7 @@ void CHARGER_SetChargeEnableConfig(const uint8_t config)
 	// See if caller wants to make this permanent
 	if (0u != (config & 0x80u))
 	{
-		NvWriteVariableU8(CHARGING_CONFIG_NV_ADDR, config);
+		NV_WriteVariable_U8(CHARGING_CONFIG_NV_ADDR, config);
 	}
 
 	m_chargerNeedPoll = true;

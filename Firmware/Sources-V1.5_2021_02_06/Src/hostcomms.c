@@ -1,5 +1,6 @@
 #include "main.h"
 #include "eeprom.h"
+#include "nv.h"
 
 #include "system_conf.h"
 #include "iodrv.h"
@@ -56,12 +57,16 @@ void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
 	tstFlagi2c=9;
 	dataLen = 1;
-	if (i2cAddrMatchCode == hi2c->Init.OwnAddress2) {
+
+	if (i2cAddrMatchCode == hi2c->Init.OwnAddress2)
+	{
 		uint8_t cmd = RtcGetPointer();
 		RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, cmd, slaveTransmitBuffer, &dataLen);
 		RtcSetPointer(cmd + 1);
 		HAL_I2C_Slave_Seq_Transmit_IT(hi2c, (uint8_t *)slaveTransmitBuffer, 1, I2C_NEXT_FRAME);
-	} else {
+	}
+	else
+	{
 		slaveTransmitBuffer[0] = 0;
 		HAL_I2C_Slave_Seq_Transmit_IT(hi2c, (uint8_t *)slaveTransmitBuffer, 1, I2C_NEXT_FRAME);
 	}
@@ -72,9 +77,12 @@ void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c1)
 {
     ubSlaveReceiveIndex++;
 	tstFlagi2c=1;
-    if(HAL_I2C_Slave_Seq_Receive_IT(hi2c1, (uint8_t *)&aSlaveReceiveBuffer[ubSlaveReceiveIndex], 1, I2C_NEXT_FRAME) != HAL_OK) {
+
+	if(HAL_I2C_Slave_Seq_Receive_IT(hi2c1, (uint8_t *)&aSlaveReceiveBuffer[ubSlaveReceiveIndex], 1, I2C_NEXT_FRAME) != HAL_OK)
+    {
       Error_Handler();
     }
+
     tstFlagi2c=2;
 }
 
@@ -86,36 +94,52 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
     uwTransferDirection = TransferDirection;
 
     // First of all, check the transfer direction to call the correct Slave Interface
-    if(uwTransferDirection == I2C_DIRECTION_TRANSMIT) {
+    if(uwTransferDirection == I2C_DIRECTION_TRANSMIT)
+    {
     	tstFlagi2c=3;
-      if(HAL_I2C_Slave_Seq_Receive_IT(hi2c, (uint8_t *)&aSlaveReceiveBuffer[ubSlaveReceiveIndex], 1, I2C_FIRST_FRAME) != HAL_OK) {
-        Error_Handler();
-      }
-      tstFlagi2c=4;
+		if(HAL_I2C_Slave_Seq_Receive_IT(hi2c, (uint8_t *)&aSlaveReceiveBuffer[ubSlaveReceiveIndex], 1, I2C_FIRST_FRAME) != HAL_OK)
+		{
+		Error_Handler();
+		}
+
+		tstFlagi2c=4;
     }
-    else {
+    else
+    {
 		dataLen = 1;
 		readCmdCode=aSlaveReceiveBuffer[0];
 		slaveTransmitBuffer[0]=readCmdCode;
 
-		if (AddrMatchCode == hi2c->Init.OwnAddress1 ) {
+		if (AddrMatchCode == hi2c->Init.OwnAddress1 )
+		{
 			if (readCmdCode >= 0x80 && readCmdCode <= 0x8F) {
 				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode - 0x80, slaveTransmitBuffer, &dataLen);
 				RtcSetPointer(readCmdCode - 0x80 + dataLen);
-			} else {
+			}
+			else
+			{
 				CmdServerProcessRequest(MASTER_CMD_DIR_READ, slaveTransmitBuffer, &dataLen);
 			}
+
 			tstFlagi2c=11;
-		} else {
-			if ( readCmdCode <= 0x0F ) {
+		}
+		else
+		{
+			if ( readCmdCode <= 0x0F )
+			{
 				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode, slaveTransmitBuffer, &dataLen);
 				RtcSetPointer(readCmdCode + dataLen);
-			} else {
+			}
+			else
+			{
 				CmdServerProcessRequest(MASTER_CMD_DIR_READ, slaveTransmitBuffer, &dataLen);
 			}
+
 			tstFlagi2c=12;
 		}
-		if(HAL_I2C_Slave_Seq_Transmit_IT(hi2c, (uint8_t *)slaveTransmitBuffer, dataLen, I2C_FIRST_AND_NEXT_FRAME) != HAL_OK) {
+
+		if(HAL_I2C_Slave_Seq_Transmit_IT(hi2c, (uint8_t *)slaveTransmitBuffer, dataLen, I2C_FIRST_AND_NEXT_FRAME) != HAL_OK)
+		{
 			Error_Handler();
 		}
     }

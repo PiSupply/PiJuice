@@ -164,6 +164,9 @@
 
 #define IODRV_MAX_IO_PINS					22u
 
+/* Must not be more than 255, 16 is a good number */
+#define AVE_FILTER_ELEMENT_COUNT			16u
+
 #define ANALOG_CHANNEL_CS1					0u
 #define ANALOG_CHANNEL_CS2					1u
 #define ANALOG_CHANNEL_VBAT					2u
@@ -184,6 +187,9 @@
 #define FILTER_PERIOD_MS_MPUTEMP			10u
 #define FILTER_PERIOD_MS_INTREF				10u
 
+// Average current reading over 1 second
+#define FILTER_PERIOD_MS_ISENSE				(1000u / AVE_FILTER_ELEMENT_COUNT)
+
 #define MAX_ANALOG_CHANNELS					9u
 
 #define TEMP30_CAL_ADDR 					((uint16_t*)((uint32_t)0x1FFFF7B8u))
@@ -192,6 +198,7 @@
 #define ADC_TO_BATTMV_K						72547ul
 #define ADC_TO_5VRAIL_MV_K					105601ul
 #define ADC_TO_5VRAIL_ISEN_K				21120000ul
+#define ADC_RES_TO_MA_K						1310720ul
 
 #define IODRV_PIN_DEBOUNCE_COUNT			5u
 
@@ -251,5 +258,8 @@
 
 #define LED_LED1_IDX						0u
 #define LED_LED2_IDX						1u
+
+
+
 
 #endif /* SYSTEM_CONF_H_ */

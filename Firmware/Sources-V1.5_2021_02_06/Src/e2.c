@@ -1,6 +1,7 @@
 #include "main.h"
 #include "system_conf.h"
 #include "eeprom.h"
+#include "nv.h"
 #include "iodrv.h"
 
 

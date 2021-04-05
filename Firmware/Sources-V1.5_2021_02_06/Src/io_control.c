@@ -221,7 +221,7 @@ void IoSetConfiguarion(uint8_t pin, uint8_t data[], uint8_t len)
 
 	if (data[0]&0x80)
 	{
-		NvWriteVariableU8(IO_CONFIG1_NV_ADDR+(pin-1)*3, data[0]);
+		NV_WriteVariable_U8(IO_CONFIG1_NV_ADDR+(pin-1)*3, data[0]);
 		EE_WriteVariable(IO_CONFIG1_PARAM1_NV_ADDR+(pin-1)*3, ioParam1[pin-1]);
 		EE_WriteVariable(IO_CONFIG1_PARAM2_NV_ADDR+(pin-1)*3, ioParam2[pin-1]);
 

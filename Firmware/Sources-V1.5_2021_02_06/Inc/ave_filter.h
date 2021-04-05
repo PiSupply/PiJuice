@@ -8,8 +8,7 @@
 #ifndef AVE_FILTER_H_
 #define AVE_FILTER_H_
 
-/* Must not be more than 255, 16 is a good number */
-#define AVE_FILTER_ELEMENT_COUNT	16
+#include "system_conf.h"
 
 #if AVE_FILTER_ELEMENT_COUNT > 255u
 #error average filter elements exceed indexer capacity
