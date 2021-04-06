@@ -59,9 +59,6 @@ void RtcInit(void)
   */
 void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *phrtc)
 {
-	// if alarm 1 interrupt enabled activate int signal
-	//if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
-		//HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
 	m_alarmEventFlag = true;
 }
 
@@ -79,48 +76,62 @@ void RTC_EvaluateAlarm(void)
 
 	__HAL_RTC_ALARM_CLEAR_FLAG(&hrtc, RTC_FLAG_ALRAF);
 
-		uint8_t weekDayMatch = 0;
+	uint8_t weekDayMatch = 0;
 
-		if (weekDaysSelection != 0xFF || !(sAlarm.AlarmMask&0x80000000))
-		{
-			//HAL_RTC_GetDate(&hrtc, &dateConf, RTC_FORMAT_BIN);
-			tempReg = hrtc.Instance->DR;
-			tempReg = 0;
-			tempReg = hrtc.Instance->DR;
-			tempReg = 0;
-			tempReg = hrtc.Instance->DR;
-			dateConf.WeekDay = (tempReg >> 13)&0x07;
+	if (weekDaysSelection != 0xFF || !(sAlarm.AlarmMask&0x80000000))
+	{
+		//HAL_RTC_GetDate(&hrtc, &dateConf, RTC_FORMAT_BIN);
+		tempReg = hrtc.Instance->DR;
+		tempReg = 0;
+		tempReg = hrtc.Instance->DR;
+		tempReg = 0;
+		tempReg = hrtc.Instance->DR;
+		dateConf.WeekDay = (tempReg >> 13)&0x07;
 
-			if ( (0x01 << (dateConf.WeekDay)) & weekDaysSelection )
-			{
-				weekDayMatch = 1;
-			}
-		}
-		else
+		if ( (0x01 << (dateConf.WeekDay)) & weekDaysSelection )
 		{
 			weekDayMatch = 1;
 		}
+	}
+	else
+	{
+		weekDayMatch = 1;
+	}
 
-		if (weekDayMatch)
+	if (weekDayMatch)
+	{
+		if (hoursSelection != 0xFFFFFFFF || minutesStep > 1)
 		{
-			if (hoursSelection != 0xFFFFFFFF || minutesStep > 1)
+			// TODO - 3 times reading TR? DR not read.
+			tempReg = hrtc.Instance->TR;
+			tempReg = 0;
+			tempReg = hrtc.Instance->TR;
+			tempReg = 0;
+			tempReg = hrtc.Instance->TR;
+
+
+			sTime.Minutes = ((tempReg >> 8)&0x0F) + ((tempReg >> 12)&0x07) * 10;
+
+			if ( minutesStep <= 1 || (sTime.Minutes % minutesStep) == 0 )
 			{
-				// TODO - 3 times reading TR? DR not read.
-				tempReg = hrtc.Instance->TR;
-				tempReg = 0;
-				tempReg = hrtc.Instance->TR;
-				tempReg = 0;
-				tempReg = hrtc.Instance->TR;
+				sTime.Hours = ((tempReg >> 16)&0x0F) + ((tempReg >> 20)&0x07) * 10;
+				sTime.TimeFormat = (uint8_t)((tempReg & (RTC_TR_PM)) >> 16);
 
-
-				sTime.Minutes = ((tempReg >> 8)&0x0F) + ((tempReg >> 12)&0x07) * 10;
-
-				if ( minutesStep <= 1 || (sTime.Minutes % minutesStep) == 0 )
+				if (hrtc.Init.HourFormat == RTC_HOURFORMAT_24)
 				{
-					sTime.Hours = ((tempReg >> 16)&0x0F) + ((tempReg >> 20)&0x07) * 10;
-					sTime.TimeFormat = (uint8_t)((tempReg & (RTC_TR_PM)) >> 16);
+					if ( (0x00000001 << sTime.Hours) & hoursSelection )
+					{
+						if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
+						{
+							m_rtcWakeEvent = true;
+						}
 
-					if (hrtc.Init.HourFormat == RTC_HOURFORMAT_24)
+						rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
+					}
+				}
+				else if ( sTime.TimeFormat == RTC_HOURFORMAT12_AM )
+				{
+					if (sTime.Hours < 12)
 					{
 						if ( (0x00000001 << sTime.Hours) & hoursSelection )
 						{
@@ -132,66 +143,52 @@ void RTC_EvaluateAlarm(void)
 							rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
 						}
 					}
-					else if ( sTime.TimeFormat == RTC_HOURFORMAT12_AM )
+					else if ( 0x00000001 & hoursSelection )
 					{
-						if (sTime.Hours < 12)
+						if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
 						{
-							if ( (0x00000001 << sTime.Hours) & hoursSelection )
-							{
-								if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
-								{
-									m_rtcWakeEvent = true;
-								}
-
-								rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
-							}
+							m_rtcWakeEvent = true;
 						}
-						else if ( 0x00000001 & hoursSelection )
-						{
-							if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
-							{
-								m_rtcWakeEvent = true;
-							}
 
-							rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
-						}
-					}
-					else
-					{
-						if (sTime.Hours < 12)
-						{
-							if ( (0x00010000 << sTime.Hours) & hoursSelection )
-							{
-								if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
-								{
-									m_rtcWakeEvent = true;
-								}
-
-								rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
-							}
-						}
-						else if ( 0x00010000 & hoursSelection )
-						{
-							if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
-							{
-								m_rtcWakeEvent = true;
-							}
-
-							rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
-						}
+						rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
 					}
 				}
-			}
-			else
-			{
-				if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
+				else
 				{
-					m_rtcWakeEvent = true;
-				}
+					if (sTime.Hours < 12)
+					{
+						if ( (0x00010000 << sTime.Hours) & hoursSelection )
+						{
+							if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
+							{
+								m_rtcWakeEvent = true;
+							}
 
-				rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
+							rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
+						}
+					}
+					else if ( 0x00010000 & hoursSelection )
+					{
+						if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
+						{
+							m_rtcWakeEvent = true;
+						}
+
+						rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
+					}
+				}
 			}
 		}
+		else
+		{
+			if ( (rtc_buffer[0x0E]&0x04) && (rtc_buffer[0x0E]&0x01) )
+			{
+				m_rtcWakeEvent = true;
+			}
+
+			rtc_buffer[0x0F] |= 0x01; // set alarm 1 flag
+		}
+	}
 }
 
 
@@ -213,92 +210,139 @@ void RTC_ClearWakeEvent(void)
 }
 
 
-void RtcDs1339ProcessRequest(uint8_t dir, uint8_t command, uint8_t *pData, uint16_t *dataLen) {
+void RtcDs1339ProcessRequest(uint8_t dir, uint8_t command, uint8_t *pData, uint16_t *dataLen)
+{
 	uint8_t i;
-	if (command == 0) {
-		if ( dir == I2C_DIRECTION_RECEIVE ) {
+
+	if (command == 0)
+	{
+		if ( dir == I2C_DIRECTION_RECEIVE )
+		{
 			//testRegAdr[0] = pData[0]; // debug only
 			RtcReadTime(rtc_buffer, 0);
+
 			i = 7;
-			while (i--) pData[i] = rtc_buffer[i];
+
+			while (i--)
+			{
+				pData[i] = rtc_buffer[i];
+			}
+
 			*dataLen = 7;
-		} else {
+		}
+		else
+		{
 			//testRegAdrW = pData[0]; // debug only
 			i = *dataLen;
-			while (i--) rtc_buffer[i] = pData[i];
+			while (i--)
+			{
+				rtc_buffer[i] = pData[i];
+			}
+
 			RtcWriteTime(rtc_buffer, 0);
 		}
-	} else if (command == 7) {
-		if ( dir == I2C_DIRECTION_RECEIVE ) {
+	}
+	else if (command == 7)
+	{
+		if ( dir == I2C_DIRECTION_RECEIVE )
+		{
 			RtcReadAlarm1(&rtc_buffer[7], 0);
+
 			i = 9;
-			while (i--) pData[i] = rtc_buffer[i + 7];
+
+			while (i--)
+			{
+				pData[i] = rtc_buffer[i + 7];
+			}
+
 			*dataLen = 9;
-		} else {
-				i = *dataLen;
-				while (i--)
-					if (i<9) rtc_buffer[i + 7] = pData[i];
-					/*else if (i==8) {
-						rtc_buffer[i + 7] &= pData[i] | 0xFC;
-					}*/
-				RtcWriteAlarm1(&rtc_buffer[7], 0);
+		}
+		else
+		{
+			i = *dataLen;
+
+			while (i--)
+			{
+				if (i<9)
+				{
+					rtc_buffer[i + 7] = pData[i];
+				}
 			}
-	} else if (command == 0x0E) { // control register
-			if ( dir == I2C_DIRECTION_RECEIVE ) {
-				RtcReadControlStatus(pData, dataLen);
-//				pData[0] = rtc_buffer[command];
-//				pData[1] = rtc_buffer[command+1];
-//				*dataLen = 2;
-			} else {
-				RtcWriteControlStatus(pData, *dataLen);
-//				rtc_buffer[command] = pData[0];
-//				if (*dataLen > 1) {
-//					//if ((pData[1]&0x01) == 0x00) // deactivate alarm interrupt signal
-//						//HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
-//					rtc_buffer[command+1] = rtc_buffer[command+1]&(pData[1] | 0xFC); // clear A1F, A2F
-//				}
-			}
-	} else if (command == 0x0F) {
-		if ( dir == I2C_DIRECTION_RECEIVE ) {
+
+			RtcWriteAlarm1(&rtc_buffer[7], 0);
+		}
+	}
+	else if (command == 0x0E)
+	{
+		if (dir == I2C_DIRECTION_RECEIVE)
+		{
+			RtcReadControlStatus(pData, dataLen);
+		}
+		else
+		{
+			RtcWriteControlStatus(pData, *dataLen);
+		}
+	}
+	else if (command == 0x0F)
+	{
+		if (dir == I2C_DIRECTION_RECEIVE)
+		{
 			pData[0] = rtc_buffer[command];
 			*dataLen = 1;
-		} else {
-			//if ((pData[0]&0x01) == 0x00) // deactivate alarm interrupt signal
-				//HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
+		}
+		else
+		{
 			rtc_buffer[command] = rtc_buffer[command] & (pData[0] | 0xFC); // clear A1F, A2F
 		}
-	} else 	if (command >=0 && command < RTC_REGISTERS_NUM ){
-		if (dir == I2C_DIRECTION_TRANSMIT) {
+	}
+	else if (command >=0 && command < RTC_REGISTERS_NUM)
+	{
+		if (dir == I2C_DIRECTION_TRANSMIT)
+		{
 			rtc_buffer[command] = pData[0];
-		} else {
+		}
+		else
+		{
 			pData[0] = rtc_buffer[command];
 			*dataLen = 1;
 		}
-	} else {
+	}
+	else
+	{
 		return;
 	}
+
 	rtc_buffer_ptr = command;
 }
 
-uint8_t RtcGetPointer() {
+
+uint8_t RtcGetPointer()
+{
 	return rtc_buffer_ptr;
 }
 
-uint8_t RtcSetPointer(uint8_t val) {
+
+uint8_t RtcSetPointer(uint8_t val)
+{
 	if (val <= 0x0F)
 		rtc_buffer_ptr = val;
 
 	return 0u;
 }
 
-void RtcWriteTime(uint8_t *buffer, uint8_t extended) {
+
+void RtcWriteTime(uint8_t *buffer, uint8_t extended)
+{
 	RTC_TimeTypeDef sTime;
 
 	sTime.SecondFraction = 127; // 1s / 256 resolution
 	sTime.Seconds = buffer[0]&0x7F;
 	sTime.Minutes = buffer[1]&0x7F;
-	if (buffer[2] & 0x40) {
-		if (hrtc.Init.HourFormat != RTC_HOURFORMAT_12) {
+
+	if (buffer[2] & 0x40)
+	{
+		if (hrtc.Init.HourFormat != RTC_HOURFORMAT_12)
+		{
 			hrtc.Init.HourFormat = RTC_HOURFORMAT_12;
 			if (HAL_RTC_Init(&hrtc) != HAL_OK)
 			{
@@ -307,8 +351,11 @@ void RtcWriteTime(uint8_t *buffer, uint8_t extended) {
 		}
 		sTime.TimeFormat = buffer[2] & 0x20 ? RTC_HOURFORMAT12_PM : RTC_HOURFORMAT12_AM;
 		sTime.Hours = buffer[2] & 0x1F;
-	} else {
-		if (hrtc.Init.HourFormat != RTC_HOURFORMAT_24) {
+	}
+	else
+	{
+		if (hrtc.Init.HourFormat != RTC_HOURFORMAT_24)
+		{
 			hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
 			if (HAL_RTC_Init(&hrtc) != HAL_OK)
 			{
@@ -324,17 +371,27 @@ void RtcWriteTime(uint8_t *buffer, uint8_t extended) {
 	dateConf.Month = buffer[5];
 	dateConf.Year = buffer[6];
 
-	if (extended) {
+	if (extended)
+	{
 		sTime.SubSeconds = buffer[7];
-		if ((buffer[8]&0x03) == 2) {
+
+		if ((buffer[8]&0x03) == 2)
+		{
 			sTime.DayLightSaving = RTC_DAYLIGHTSAVING_SUB1H;
-		} else if ((buffer[8]&0x03) == 1) {
+		}
+		else if ((buffer[8]&0x03) == 1)
+		{
 			sTime.DayLightSaving = RTC_DAYLIGHTSAVING_ADD1H;
-		} else {
+		}
+		else
+		{
 			sTime.DayLightSaving =  RTC_DAYLIGHTSAVING_NONE;
 		}
+
 		sTime.StoreOperation = (buffer[8]&0x04) ? RTC_STOREOPERATION_SET : RTC_STOREOPERATION_RESET;
-	} else {
+	}
+	else
+	{
 		sTime.SubSeconds = 0;
 		sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
 		sTime.StoreOperation = RTC_STOREOPERATION_RESET;

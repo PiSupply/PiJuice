@@ -16,6 +16,7 @@
 #include "analog.h"
 #include "i2cdrv.h"
 #include "led.h"
+#include "hostcomms.h"
 
 
 // ----------------------------------------------------------------------------
@@ -82,6 +83,7 @@ void OSLOOP_Init(void)
 	IODRV_Init(sysTime);
 	ANALOG_Init(sysTime);
 	I2CDRV_Init(sysTime);
+	HOSTCOMMS_Init(sysTime);
 
 	LED_Init(sysTime);
 
@@ -109,6 +111,7 @@ void OSLOOP_Service(void)
 	ANALOG_Service(sysTime);
 
 	I2CDRV_Service(sysTime);
+	HOSTCOMMS_Service(sysTime);
 
 	LED_Service(sysTime);
 

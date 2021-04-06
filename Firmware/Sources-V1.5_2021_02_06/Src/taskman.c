@@ -88,8 +88,6 @@ void TASKMAN_Init(void)
 	MS_TIME_COUNTER_INIT(m_lastTaskRunTimeMs);
 	MS_TIME_COUNTER_INIT(m_lowPowerDelayTimer);
 
-	HOSTCOMMS_Init();
-
 	m_runState = TASKMAN_RUNSTATE_NORMAL;
 }
 
@@ -211,8 +209,10 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc)
 
 void TASKMAN_WaitInterrupt(void)
 {
+	// TODO - BAD!
 	extern __IO uint32_t uwTick;
-	static GPIO_InitTypeDef i2c_GPIO_InitStruct;
+
+	//static GPIO_InitTypeDef i2c_GPIO_InitStruct;
 
 	RTC_TimeTypeDef sleepTime_rtc, wakeTime_rtc;
 	uint32_t sleepTime, wakeTime;
@@ -229,10 +229,11 @@ void TASKMAN_WaitInterrupt(void)
 		LedStop();
 
 		// Enable wake up from host
+		/*
 		i2c_GPIO_InitStruct.Pin = GPIO_PIN_7;
 		i2c_GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
 		i2c_GPIO_InitStruct.Pull = GPIO_NOPULL;
-	    HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
+	    HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);*/
 
 	    HAL_RTC_GetTime(&hrtc, &sleepTime_rtc, RTC_FORMAT_BIN);
 	    (void)RTC->DR;
@@ -273,12 +274,12 @@ void TASKMAN_WaitInterrupt(void)
 	    HAL_ResumeTick();
 
 		// Revert GPIOB.7 back to i2c mode
-		i2c_GPIO_InitStruct.Pin       = GPIO_PIN_7;
+		/*i2c_GPIO_InitStruct.Pin       = GPIO_PIN_7;
 		i2c_GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
 		i2c_GPIO_InitStruct.Pull      = GPIO_NOPULL;//GPIO_PULLUP;
 		i2c_GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
 		i2c_GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
-		HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
+		HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);*/
 
 
 		// Restart background tasks
