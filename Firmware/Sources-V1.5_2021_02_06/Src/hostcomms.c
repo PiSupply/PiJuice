@@ -31,11 +31,8 @@
 
 #define OWN1_I2C_ADDRESS				0x14
 #define OWN2_I2C_ADDRESS				0x68
-#define SMBUS_TIMEOUT_DEFAULT			((uint32_t)0x80618061)
-#define I2C_MAX_RECEIVE_SIZE			((int16_t)255)		/* int? */
 
-
-// 255 is max transaction length, byte 0 will have command code
+// 255 is max transaction length, byte 0 will have address, byte 1 will have command code
 #define HOSTCOMMS_I2C_BUFFER_LEN		256u
 
 
@@ -50,7 +47,7 @@ typedef enum
 
 
 static uint8_t m_hostcommsBuffer[HOSTCOMMS_I2C_BUFFER_LEN];
-static volatile uint8_t m_rxLen;
+static volatile uint16_t m_rxLen;
 static uint32_t m_txCount;
 static uint32_t m_rxCount;
 static uint32_t m_addrCount;
@@ -59,182 +56,220 @@ static HOSTCOMMS_Mode_t m_hostcommsMode;
 
 static uint32_t m_lastHostCommandTimeMs __attribute__((section("no_init")));
 
-
-static uint16_t i2cAddrMatchCode = 0;
-volatile static uint8_t i2cTransferDirection = 0;
-static int16_t readCmdCode = 0;
-
-static uint8_t       	aSlaveReceiveBuffer[256]  = {0};
-static uint8_t      	slaveTransmitBuffer[256]      = {0};
-static __IO uint8_t  	ubSlaveReceiveIndex       = 0;
-static uint32_t      	uwTransferDirection       = 0;
-static volatile uint8_t tstFlagi2c=0;
-static uint16_t 		dataLen;
-
 static bool m_listening;
-static bool m_i2cError;
+
 
 extern I2C_HandleTypeDef hi2c1;
 
 
-void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *hi2c)
+void HOSTCOMMS_Init(uint32_t sysTime)
 {
-	tstFlagi2c=9;
-	dataLen = 1;
+	uint8_t tempU8;
 
-	if (i2cAddrMatchCode == hi2c->Init.OwnAddress2)
+	HAL_I2C_DisableListen_IT(&hi2c1);
+
+	I2C1->CR1 &= ~(I2C_CR1_PE);
+
+	I2C1->OAR1 = 0u;
+	I2C1->OAR2 = 0u;
+
+	m_txCount = 0u;
+	m_rxCount = 0u;
+	m_addrCount = 0u;
+
+	m_listening = false;
+
+	if (executionState != EXECUTION_STATE_NORMAL)
 	{
-		uint8_t cmd = RtcGetPointer();
-		RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, cmd, slaveTransmitBuffer, &dataLen);
-		RtcSetPointer(cmd + 1);
-		HAL_I2C_Slave_Seq_Transmit_IT(hi2c, (uint8_t *)slaveTransmitBuffer, 1, I2C_NEXT_FRAME);
+		MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);
+	}
+
+
+	if (NV_ReadVariable_U8(OWN_ADDRESS1_NV_ADDR, &tempU8))
+	{
+		I2C1->OAR1 = (tempU8 << 1u) | I2C_OAR1_OA1EN;
 	}
 	else
 	{
-		slaveTransmitBuffer[0] = 0;
-		HAL_I2C_Slave_Seq_Transmit_IT(hi2c, (uint8_t *)slaveTransmitBuffer, 1, I2C_NEXT_FRAME);
+		// Use default address
+		I2C1->OAR1 = (OWN1_I2C_ADDRESS << 1u) | I2C_OAR1_OA1EN;
 	}
+
+
+	if (NV_ReadVariable_U8(OWN_ADDRESS2_NV_ADDR, &tempU8))
+	{
+		// Note: this is not shifting address as original code
+		I2C1->OAR2 = tempU8 | I2C_OAR2_OA2EN;
+	}
+	else
+	{
+		// Use default address
+		I2C1->OAR2 = (OWN2_I2C_ADDRESS << 1u) | I2C_OAR2_OA2EN;
+	}
+
+
+	// Assign the peripheral address
+	hi2c1.hdmarx->Instance->CPAR = (uint32_t)&I2C1->RXDR;
+	// Point to the second byte, the first will contain the device address.
+	hi2c1.hdmarx->Instance->CMAR = (uint32_t)&m_hostcommsBuffer[1u];
+
+	// Disable the dma channel for now
+	hi2c1.hdmarx->Instance->CCR &= ~(DMA_CCR_EN);
+
+	// Assign the peripheral address
+	hi2c1.hdmatx->Instance->CPAR = (uint32_t)&I2C1->TXDR;
+
+	// The tx buffer will be dynamic but point to the hostcomms buffer for now
+	hi2c1.hdmatx->Instance->CMAR = (uint32_t)&m_hostcommsBuffer[2u];
+
+	// Disable the dma channel for now
+	hi2c1.hdmatx->Instance->CCR &= ~(DMA_CCR_EN);
+
+	// Clear any flags
+	hi2c1.hdmarx->DmaBaseAddress->IFCR |= (DMA_FLAG_GL1 << hi2c1.hdmarx->ChannelIndex);
+	hi2c1.hdmatx->DmaBaseAddress->IFCR |= (DMA_FLAG_GL1 << hi2c1.hdmatx->ChannelIndex);
+
+	// Enable the DMA transfer mode
+	I2C1->CR1 |= I2C_CR1_TXDMAEN | I2C_CR1_RXDMAEN;
+
+	// Enable the i2c device
+	I2C1->CR1 |= I2C_CR1_PE;
 }
 
 
-void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c1)
+// High priority tasks, deal with slave to host commands
+void HOSTCOMMS_Service(uint32_t sysTime)
 {
-    ubSlaveReceiveIndex++;
-	tstFlagi2c=1;
+	uint8_t readCmdCode;
+	uint16_t dataLen = 1u;
 
-	if(HAL_I2C_Slave_Seq_Receive_IT(hi2c1, (uint8_t *)&aSlaveReceiveBuffer[ubSlaveReceiveIndex], 1, I2C_NEXT_FRAME) != HAL_OK)
-    {
-      Error_Handler();
-    }
+	// Timeout after a second, will catch fault mode
+	if ( MS_TIMEREF_TIMEOUT(m_lastHostCommandTimeMs, sysTime, 1000u) &&
+			(HOSTCOMMS_MODE_WAIT != m_hostcommsMode) &&
+			(HOSTCOMMS_MODE_RXC != m_hostcommsMode)
+			)
+	{
+		// Something bad must have happened, reset the device
+		I2C1->CR1 &= ~(I2C_CR1_PE);
 
-    tstFlagi2c=2;
-}
+		// Disable the dma controllers
+		hi2c1.hdmatx->Instance->CCR &= ~(DMA_CCR_EN);
+		hi2c1.hdmarx->Instance->CCR &= ~(DMA_CCR_EN);
 
+		// Re-enable the peripheral
+		I2C1->CR1 |= I2C_CR1_PE;
 
-void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, uint16_t AddrMatchCode)
-{
-	i2cAddrMatchCode = AddrMatchCode;
-    //uwTransferInitiated = 1;
-    uwTransferDirection = TransferDirection;
+		m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
+	}
 
-    // First of all, check the transfer direction to call the correct Slave Interface
-    if(uwTransferDirection == I2C_DIRECTION_TRANSMIT)
-    {
-    	tstFlagi2c=3;
-		if(HAL_I2C_Slave_Seq_Receive_IT(hi2c, (uint8_t *)&aSlaveReceiveBuffer[ubSlaveReceiveIndex], 1, I2C_FIRST_FRAME) != HAL_OK)
+	if (HOSTCOMMS_MODE_TX == m_hostcommsMode)
+	{
+		readCmdCode = m_hostcommsBuffer[1u];
+
+		// Something is requested by the host
+		if (m_hostcommsBuffer[0u] == (I2C1->OAR1 & 0xFE))
 		{
-		Error_Handler();
-		}
-
-		tstFlagi2c=4;
-    }
-    else
-    {
-		dataLen = 1;
-		readCmdCode=aSlaveReceiveBuffer[0];
-		slaveTransmitBuffer[0]=readCmdCode;
-
-		if (AddrMatchCode == hi2c->Init.OwnAddress1)
-		{
-			if (readCmdCode >= 0x80 && readCmdCode <= 0x8F)
+			// Is a pijuice request
+			if ( (readCmdCode >= 0x80u) && (readCmdCode <= 0x8Fu) )
 			{
-				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode - 0x80, slaveTransmitBuffer, &dataLen);
-				RtcSetPointer(readCmdCode - 0x80 + dataLen);
+				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode - 0x80u, &m_hostcommsBuffer[2u], &dataLen);
+				RtcSetPointer(readCmdCode - 0x80u + dataLen);
 			}
 			else
 			{
-				CmdServerProcessRequest(MASTER_CMD_DIR_READ, slaveTransmitBuffer, &dataLen);
+				CmdServerProcessRequest(MASTER_CMD_DIR_READ, &m_hostcommsBuffer[2u], &dataLen);
 			}
-
-			tstFlagi2c=11;
 		}
 		else
 		{
-			if ( readCmdCode <= 0x0F )
+			// Is an RTC request
+			if (readCmdCode <= 0x0Fu)
 			{
-				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode, slaveTransmitBuffer, &dataLen);
+				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode, &m_hostcommsBuffer[2u], &dataLen);
 				RtcSetPointer(readCmdCode + dataLen);
 			}
 			else
 			{
-				CmdServerProcessRequest(MASTER_CMD_DIR_READ, slaveTransmitBuffer, &dataLen);
+				CmdServerProcessRequest(MASTER_CMD_DIR_READ, &m_hostcommsBuffer[2u], &dataLen);
 			}
-
-			tstFlagi2c=12;
 		}
 
-		if(HAL_I2C_Slave_Seq_Transmit_IT(hi2c, (uint8_t *)slaveTransmitBuffer, dataLen, I2C_FIRST_AND_NEXT_FRAME) != HAL_OK)
-		{
-			Error_Handler();
-		}
-    }
-
-	PowerMngmtHostPollEvent();
-
-	MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);
+		hi2c1.hdmatx->DmaBaseAddress->IFCR |= (DMA_FLAG_GL1 << hi2c1.hdmatx->ChannelIndex);
+		hi2c1.hdmatx->Instance->CNDTR = HOSTCOMMS_I2C_BUFFER_LEN;
+		hi2c1.hdmatx->Instance->CCR |= DMA_CCR_EN;
+	}
 }
 
 
-void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c)
+// Low priority tasks, deal with host to slave commands
+void HOSTCOMMS_Task(void)
 {
-	tstFlagi2c=7;
+	uint16_t dataLen;
+	uint8_t readCmdCode;
 
-	if (uwTransferDirection == I2C_DIRECTION_TRANSMIT)
+	if (false == m_listening)
 	{
-		dataLen = ubSlaveReceiveIndex;
+		I2C1->CR1 |= (I2C_CR1_ADDRIE | I2C_CR1_STOPIE);
+		m_listening = true;
+	}
 
-		readCmdCode = aSlaveReceiveBuffer[0];
+	if (HOSTCOMMS_MODE_RXC == m_hostcommsMode)
+	{
+		dataLen = m_rxLen;
+		readCmdCode = m_hostcommsBuffer[1u];
 
-		if (dataLen > 1)
+		// Something sent from the host
+		if (m_hostcommsBuffer[0u] == (I2C1->OAR1 & 0xFEu))
 		{
-			if (i2cAddrMatchCode == (hi2c->Init.OwnAddress1 >>1))
+			// Is a pijuice command
+			if ( (readCmdCode >= 0x80u) && (readCmdCode <= 0x8Fu) )
 			{
-				if (readCmdCode >= 0x80 && readCmdCode <= 0x8F)
-				{
-					dataLen -= 1; // first is command
-					RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode - 0x80, aSlaveReceiveBuffer + 1, &dataLen);
-				}
-				else
-				{
-					CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, aSlaveReceiveBuffer, &dataLen);
-				}
+				dataLen -= 1u; // first is command
+				RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode - 0x80u, &m_hostcommsBuffer[3u], &dataLen);
 			}
 			else
 			{
-				if (readCmdCode <= 0x0F)
-				{
-					// rtc emulation range
-					dataLen -= 1; // first is command
-					RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode, aSlaveReceiveBuffer + 1, &dataLen);
-				}
-				else
-				{
-					CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, aSlaveReceiveBuffer, &dataLen);
-				}
+				CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, &m_hostcommsBuffer[2u], &dataLen);
 			}
 		}
+		else
+		{
+			// Is an RTC command
+			if (readCmdCode <= 0x0Fu)
+			{
+				// rtc emulation range
+				dataLen -= 1; // first is command
+				RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode, &m_hostcommsBuffer[3u], &dataLen);
+			}
+			else
+			{
+				CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, &m_hostcommsBuffer[2u], &dataLen);
+			}
+		}
+
+		// Enable the peripheral
+		I2C1->CR1 |= I2C_CR1_PE;
+
+		m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
 	}
-
-	ubSlaveReceiveIndex=0;
-
-	HAL_I2C_EnableListen_IT(hi2c);
-
-	tstFlagi2c=8;
 }
 
 
-void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
+uint32_t HOSTCOMMS_GetLastCommandAgeMs(const uint32_t sysTime)
 {
-	// Clear OVR flag
-	__HAL_I2C_CLEAR_FLAG(hi2c, I2C_FLAG_AF);
+	return MS_TIMEREF_DIFF(m_lastHostCommandTimeMs, sysTime);
+}
 
-	m_i2cError = true;
+
+void HOSTCOMMS_SetInterrupt(void)
+{
+	MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);
 }
 
 
 void I2C1_IRQHandler(void)
 {
-	const uint8_t addrMatch = I2C1->ISR >> 16u;
+	const uint8_t addrMatch = (uint8_t)((I2C1->ISR >> 16u) & 0xFEu);
 
 	if (I2C_ISR_ADDR == (I2C1->ISR & I2C_ISR_ADDR))
 	{
@@ -263,7 +298,7 @@ void I2C1_IRQHandler(void)
 			{
 				MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);
 
-				m_hostcommsBuffer[0u] = addrMatch & 0xFEu;
+				m_hostcommsBuffer[0u] = addrMatch;
 
 				// Data is for master to slave
 				m_hostcommsMode = HOSTCOMMS_MODE_RX;
@@ -337,165 +372,5 @@ void I2C1_IRQHandler(void)
 		// Clear the interrupt
 		I2C1->ICR |= I2C_ICR_STOPCF;
 	}
-}
-
-
-// OSLoop initialised
-void HOSTCOMMS_Init(uint32_t sysTime)
-{
-	uint8_t tempU8;
-
-	HAL_I2C_DisableListen_IT(&hi2c1);
-
-	I2C1->CR1 &= ~(I2C_CR1_PE);
-
-	I2C1->OAR1 = 0u;
-	I2C1->OAR2 = 0u;
-
-	m_txCount = 0u;
-	m_rxCount = 0u;
-	m_addrCount = 0u;
-
-	m_listening = false;
-
-	if (executionState != EXECUTION_STATE_NORMAL)
-	{
-		MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);
-	}
-
-
-	if (NV_ReadVariable_U8(OWN_ADDRESS1_NV_ADDR, &tempU8))
-	{
-		I2C1->OAR1 = (tempU8 << 1u) | I2C_OAR1_OA1EN;
-	}
-	else
-	{
-		// Use default address
-		I2C1->OAR1 = (OWN1_I2C_ADDRESS << 1u) | I2C_OAR1_OA1EN;
-	}
-
-
-	if (NV_ReadVariable_U8(OWN_ADDRESS2_NV_ADDR, &tempU8))
-	{
-		// Note: this is not shifting address as original code
-		I2C1->OAR2 = tempU8 | I2C_OAR2_OA2EN;
-	}
-	else
-	{
-		// Use default address
-		I2C1->OAR2 = (OWN2_I2C_ADDRESS << 1u) | I2C_OAR2_OA2EN;
-	}
-
-
-	// Assign the peripheral address
-	hi2c1.hdmarx->Instance->CPAR = (uint32_t)&I2C1->RXDR;
-	// Point to the second byte, the first will contain the device address.
-	hi2c1.hdmarx->Instance->CMAR = (uint32_t)&m_hostcommsBuffer[1u];
-
-	// Disable the dma channel for now
-	hi2c1.hdmarx->Instance->CCR &= ~(DMA_CCR_EN);
-
-	// Assign the peripheral address
-	hi2c1.hdmatx->Instance->CPAR = (uint32_t)&I2C1->TXDR;
-
-	// The tx buffer will be dynamic but point to the hostcomms buffer for now
-	hi2c1.hdmatx->Instance->CMAR = (uint32_t)&m_hostcommsBuffer[1u];
-
-	// Disable the dma channel for now
-	hi2c1.hdmatx->Instance->CCR &= ~(DMA_CCR_EN);
-
-	// Clear any flags
-	hi2c1.hdmarx->DmaBaseAddress->IFCR |= (DMA_FLAG_GL1 << hi2c1.hdmarx->ChannelIndex);
-	hi2c1.hdmatx->DmaBaseAddress->IFCR |= (DMA_FLAG_GL1 << hi2c1.hdmatx->ChannelIndex);
-
-	// Enable the DMA transfer mode
-	I2C1->CR1 |= I2C_CR1_TXDMAEN | I2C_CR1_RXDMAEN;
-
-	// Enable the i2c device
-	I2C1->CR1 |= I2C_CR1_PE;
-}
-
-
-// Low priority tasks, deal with host to slave commands
-void HOSTCOMMS_Task(void)
-{
-	if (false == m_listening)
-	{
-		I2C1->CR1 |= (I2C_CR1_ADDRIE | I2C_CR1_STOPIE);
-		m_listening = true;
-	}
-
-	if (HOSTCOMMS_MODE_RXC == m_hostcommsMode)
-	{
-		// Something sent from the host
-		if (m_hostcommsBuffer[0u] == (I2C1->OAR1 & 0xFE))
-		{
-			// Is a pijuice command
-		}
-		else
-		{
-			// Is an RTC command
-		}
-
-		// Enable the peripheral
-		I2C1->CR1 |= I2C_CR1_PE;
-
-		m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
-	}
-}
-
-
-// High priority tasks, deal with slave to host commands
-void HOSTCOMMS_Service(uint32_t sysTime)
-{
-	// Timeout after a second, will catch fault mode
-	if ( MS_TIMEREF_TIMEOUT(m_lastHostCommandTimeMs, sysTime, 1000u) &&
-			(HOSTCOMMS_MODE_WAIT != m_hostcommsMode) &&
-			(HOSTCOMMS_MODE_RXC != m_hostcommsMode)
-			)
-	{
-		// Something bad must have happened, reset the device
-		I2C1->CR1 &= ~(I2C_CR1_PE);
-
-		// Disable the dma controllers
-		hi2c1.hdmatx->Instance->CCR &= ~(DMA_CCR_EN);
-		hi2c1.hdmarx->Instance->CCR &= ~(DMA_CCR_EN);
-
-		// Re-enable the peripheral
-		I2C1->CR1 |= I2C_CR1_PE;
-
-		m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
-	}
-
-	if (HOSTCOMMS_MODE_TX == m_hostcommsMode)
-	{
-		// Something is requested by the host
-		if (m_hostcommsBuffer[0u] == (I2C1->OAR1 & 0xFE))
-		{
-			// Is a pijuice request
-
-			// Is a pijuice request for rtc
-		}
-		else
-		{
-			// Is an RTC request
-		}
-
-		hi2c1.hdmatx->DmaBaseAddress->IFCR |= (DMA_FLAG_GL1 << hi2c1.hdmatx->ChannelIndex);
-		hi2c1.hdmatx->Instance->CNDTR = HOSTCOMMS_I2C_BUFFER_LEN;
-		hi2c1.hdmatx->Instance->CCR |= DMA_CCR_EN;
-	}
-}
-
-
-uint32_t HOSTCOMMS_GetLastCommandAgeMs(const uint32_t sysTime)
-{
-	return MS_TIMEREF_DIFF(m_lastHostCommandTimeMs, sysTime);
-}
-
-
-void HOSTCOMMS_SetInterrupt(void)
-{
-	MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);
 }
 

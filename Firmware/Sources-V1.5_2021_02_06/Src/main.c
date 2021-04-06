@@ -391,49 +391,8 @@ static void MX_I2C1_Init(void)
 
 	/* USER CODE END I2C1_Init 2 */
 }
-#if 0
-static void MX_SMBUS_Init(void) {
-	hsmbus.Instance = I2C1;
-	hsmbus.Init.Timing = 0x00300000;//0x00900000 for 48000 i2c clock
-	hsmbus.Init.AnalogFilter = SMBUS_ANALOGFILTER_DISABLED;//SMBUS_ANALOGFILTER_ENABLED;//
-	uint16_t var = 0;
-	EE_ReadVariable(OWN_ADDRESS1_NV_ADDR, &var);
-	if ( (((~var)&0xFF) == (var>>8)) ) {
-		// Use NV address
-		hsmbus.Init.OwnAddress1 = var&0xFF;
-	} else {
-		// Use default address
-		hsmbus.Init.OwnAddress1 = OWN1_I2C_ADDRESS << 1;
-	}
-	hsmbus.Init.AddressingMode = SMBUS_ADDRESSINGMODE_7BIT;
-	hsmbus.Init.DualAddressMode = SMBUS_DUALADDRESS_ENABLED;//I2C_DUALADDRESS_DISABLE;
-	EE_ReadVariable(OWN_ADDRESS2_NV_ADDR, &var);
-	if ( (((~var)&0xFF) == (var>>8)) ) {
-		// Use NV address
-		hsmbus.Init.OwnAddress2 = var&0xFF;
-	} else {
-		// Use default address
-		hsmbus.Init.OwnAddress2 = OWN2_I2C_ADDRESS << 1;
-	}
-	hsmbus.Init.OwnAddress2Masks = SMBUS_OA2_NOMASK;
-	hsmbus.Init.GeneralCallMode = SMBUS_GENERALCALL_DISABLED;
-	hsmbus.Init.NoStretchMode = SMBUS_NOSTRETCH_DISABLED;
-	hsmbus.Init.PacketErrorCheckMode = SMBUS_PEC_DISABLED;
-	hsmbus.Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_SMBUS_SLAVE;//SMBUS_PERIPHERAL_MODE_SMBUS_SLAVE_ARP ;
-	hsmbus.Init.SMBusTimeout = SMBUS_TIMEOUT_DEFAULT;
-	if (HAL_SMBUS_Init(&hsmbus) != HAL_OK)
-	{
-		Error_Handler();
-	}
 
-	// Configure Analogue filter
-	/*if (HAL_I2CEx_ConfigAnalogFilter(&hsmbus, SMBUS_ANALOGFILTER_ENABLE) != HAL_OK)
-	{
-	  Error_Handler();
-	}*/
-}
-#endif
-/* I2C2 init function */
+
 static void MX_I2C2_Init(void)
 {
 
