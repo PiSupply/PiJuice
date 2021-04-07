@@ -1,3 +1,13 @@
+/*
+ * charger_bq2416x.c
+ *
+ *  Created on: 06.12.2016.
+ *      Author: milan
+ */
+
+// ----------------------------------------------------------------------------
+// Include section - add all #includes here:
+
 #include <string.h>
 
 #include "main.h"
@@ -21,6 +31,9 @@
 
 #include "execution.h"
 
+
+// ----------------------------------------------------------------------------
+// Defines section - add all #defines here:
 
 #define CHARGING_CONFIG_CHARGE_EN_bm			0x01u
 #define CHARGE_ENABLED							(0u != (m_chargingConfig & CHARGING_CONFIG_CHARGE_EN_bm))
@@ -50,19 +63,8 @@
 #define CHARGER_VIN_DPM_USB						6u
 
 
-// TODO - Make these defines in the charger conf header
-static uint8_t m_registersWriteMask[CHARGER_REGISTER_COUNT] =
-{
-		(uint8_t)(CHGR_SUPPLY_SEL_bm | CHGR_SC_TMR_RST_bm),
-		(uint8_t)(CHGR_BS_OTG_LOCK_bm | CHGR_BS_EN_NOBAT_OP_bm),
-		(uint8_t)(CHGR_REGISTER_ALLBITS & ~(CHGR_CTRL_RESET_bm)),
-		(uint8_t)(CHGR_REGISTER_ALLBITS),
-		0u,
-		(uint8_t)(CHGR_REGISTER_ALLBITS),
-		(uint8_t)(CHGR_VDPPM_USB_VDDPM_Msk | CHGR_VDPPM_VIN_VDDPM_Msk),
-		(uint8_t)(CHGR_REGISTER_ALLBITS & ~(CHGR_ST_NTC_FAULT_Msk))
-};
-
+// ----------------------------------------------------------------------------
+// Function prototypes for functions that only have scope in this module:
 
 static bool CHARGER_UpdateLocalRegister(const uint8_t regAddress);
 static bool CHARGER_UpdateDeviceRegister(const uint8_t regAddress, const uint8_t value, const uint8_t writeMask);
@@ -81,6 +83,22 @@ static void CHARGER_KickDeviceWatchdog(const uint32_t sysTime);
 
 static bool CHARGER_CheckForPoll(void);
 
+
+// ----------------------------------------------------------------------------
+// Variables that only have scope in this module:
+
+// TODO - Make these defines in the charger conf header
+static uint8_t m_registersWriteMask[CHARGER_REGISTER_COUNT] =
+{
+		(uint8_t)(CHGR_SUPPLY_SEL_bm | CHGR_SC_TMR_RST_bm),
+		(uint8_t)(CHGR_BS_OTG_LOCK_bm | CHGR_BS_EN_NOBAT_OP_bm),
+		(uint8_t)(CHGR_REGISTER_ALLBITS & ~(CHGR_CTRL_RESET_bm)),
+		(uint8_t)(CHGR_REGISTER_ALLBITS),
+		0u,
+		(uint8_t)(CHGR_REGISTER_ALLBITS),
+		(uint8_t)(CHGR_VDPPM_USB_VDDPM_Msk | CHGR_VDPPM_VIN_VDDPM_Msk),
+		(uint8_t)(CHGR_REGISTER_ALLBITS & ~(CHGR_ST_NTC_FAULT_Msk))
+};
 
 static uint8_t m_registersIn[CHARGER_REGISTER_COUNT] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static uint8_t m_registersOut[CHARGER_REGISTER_COUNT] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -102,6 +120,11 @@ static bool m_chargerNeedPoll;
 static bool m_updateBatteryProfile;
 
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// CALLBACK HANDLERS
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 void CHARGER_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 {
 	if (p_i2cdrvDevice->event == I2CDRV_EVENT_RX_COMPLETE)

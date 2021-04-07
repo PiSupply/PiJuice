@@ -157,11 +157,6 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/load_current_sense.h</locationURI>
 		</link>
 		<link>
-			<name>Inc/main-freertos-def.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Inc/main-freertos-def.h</locationURI>
-		</link>
-		<link>
 			<name>Inc/main.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/main.h</locationURI>

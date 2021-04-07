@@ -1,3 +1,10 @@
+/*
+ * charger_conf.h
+ *
+ *  Created on: 31.03.21
+ *      Author: jsteggall
+ */
+
 #ifndef CHARGER_CONF_H_
 #define CHARGER_CONF_H_
 

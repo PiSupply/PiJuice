@@ -1,3 +1,13 @@
+/*
+ * hostcomms.h
+ *
+ *  Created on: 31.03.21
+ *      Author: jsteggall
+ */
+
+// ----------------------------------------------------------------------------
+// Include section - add all #includes here:
+
 #include "main.h"
 #include "eeprom.h"
 #include "nv.h"
@@ -28,6 +38,8 @@
 
 #include "hostcomms.h"
 
+// ----------------------------------------------------------------------------
+// Defines section - add all #defines here:
 
 #define OWN1_I2C_ADDRESS				0x14
 #define OWN2_I2C_ADDRESS				0x68
@@ -46,6 +58,13 @@ typedef enum
 } HOSTCOMMS_Mode_t;
 
 
+// ----------------------------------------------------------------------------
+// Function prototypes for functions that only have scope in this module:
+
+
+// ----------------------------------------------------------------------------
+// Variables that only have scope in this module:
+
 static uint8_t m_hostcommsBuffer[HOSTCOMMS_I2C_BUFFER_LEN];
 static volatile uint16_t m_rxLen;
 static uint32_t m_txCount;
@@ -59,8 +78,16 @@ static uint32_t m_lastHostCommandTimeMs __attribute__((section("no_init")));
 static bool m_listening;
 
 
+// ----------------------------------------------------------------------------
+// Variables that have scope from outside this module:
+
 extern I2C_HandleTypeDef hi2c1;
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH GLOBAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 void HOSTCOMMS_Init(uint32_t sysTime)
 {
@@ -266,6 +293,19 @@ void HOSTCOMMS_SetInterrupt(void)
 	MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);
 }
 
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH LOCAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// INTERRUPT HANDLERS
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 void I2C1_IRQHandler(void)
 {

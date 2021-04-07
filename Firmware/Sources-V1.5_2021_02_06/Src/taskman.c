@@ -1,3 +1,12 @@
+/*
+ * taskman.c
+ *
+ *  Created on: 31.03.21
+ *      Author: jsteggall
+ */
+
+// ----------------------------------------------------------------------------
+// Include section - add all #includes here:
 #include "main.h"
 
 #include "nv.h"
@@ -44,6 +53,18 @@ typedef enum
 } EXTI_EventStatus_t;
 
 
+// ----------------------------------------------------------------------------
+// Defines section - add all #defines here:
+
+
+// ----------------------------------------------------------------------------
+// Function prototypes for functions that only have scope in this module:
+
+void TASKMAN_WaitInterrupt(void);
+
+// ----------------------------------------------------------------------------
+// Variables that only have scope in this module:
+
 static uint32_t m_taskmanLoopTimeTrack[TASKMAN_LOOP_TRACKER_COUNT];
 static uint32_t m_taskloopTrackIdx = 0u;
 
@@ -57,11 +78,16 @@ static EXTI_EventStatus_t m_extiEvent = 0;
 static bool m_ioWakeupEvent = false;
 
 
+// ----------------------------------------------------------------------------
+// Variables that have scope from outside this module:
+
 extern RTC_HandleTypeDef hrtc;
 
-
-void TASKMAN_WaitInterrupt(void);
-
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH GLOBAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 void TASKMAN_Init(void)
 {
@@ -178,6 +204,7 @@ void TASKMAN_Run(void)
 
 }
 
+
 TASKMAN_RunState_t TASKMAN_GetRunState(void)
 {
 	return m_runState;
@@ -195,6 +222,11 @@ void TASKMAN_ClearIOWakeEvent(void)
 	m_ioWakeupEvent = false;
 }
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH LOCAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 #ifdef DEBUG
 static volatile bool wakeupEvent;
@@ -229,6 +261,7 @@ void TASKMAN_WaitInterrupt(void)
 		LedStop();
 
 		// Enable wake up from host
+		// TODO - Check if i2c wakeup can work without looking for pin level change
 		/*
 		i2c_GPIO_InitStruct.Pin = GPIO_PIN_7;
 		i2c_GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;

@@ -1,3 +1,10 @@
+/*
+ * current_sense_tables.h
+ *
+ *  Created on: 02.04.21
+ *      Author: jsteggall, milan
+ */
+
 #ifndef CURRENT_SENSE_TABLES_H_
 #define CURRENT_SENSE_TABLES_H_
 

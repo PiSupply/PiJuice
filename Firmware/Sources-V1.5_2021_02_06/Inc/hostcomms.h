@@ -1,3 +1,10 @@
+/*
+ * hostcomms.h
+ *
+ *  Created on: 31.03.21
+ *      Author: jsteggall
+ */
+
 #ifndef HOSTCOMMS_H_
 #define HOSTCOMMS_H_
 

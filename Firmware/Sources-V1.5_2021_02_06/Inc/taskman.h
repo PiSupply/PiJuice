@@ -1,3 +1,10 @@
+/*
+ * taskman.h
+ *
+ *  Created on: 31.03.21
+ *      Author: jsteggall
+ */
+
 #ifndef TASKLOOP_H_
 #define TASKLOOP_H_
 

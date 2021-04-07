@@ -1,3 +1,10 @@
+/*
+ * battery_profiles.h
+ *
+ *  Created on: 31.03.21
+ *      Author: jsteggall, milan
+ */
+
 #ifndef BATTERY_PROFILES_H_
 #define BATTERY_PROFILES_H_
 

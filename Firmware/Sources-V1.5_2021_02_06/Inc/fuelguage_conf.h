@@ -1,3 +1,10 @@
+/*
+ * fuelguage_conf.h
+ *
+ *  Created on: 31.03.21
+ *      Author: jsteggall
+ */
+
 #ifndef FUELGUAGE_CONF_H_
 #define FUELGUAGE_CONF_H_
 
