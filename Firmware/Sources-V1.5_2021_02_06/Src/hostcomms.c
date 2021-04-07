@@ -147,7 +147,7 @@ void HOSTCOMMS_Init(uint32_t sysTime)
 	hi2c1.hdmatx->Instance->CPAR = (uint32_t)&I2C1->TXDR;
 
 	// The tx buffer will be dynamic but point to the hostcomms buffer for now
-	hi2c1.hdmatx->Instance->CMAR = (uint32_t)&m_hostcommsBuffer[2u];
+	hi2c1.hdmatx->Instance->CMAR = (uint32_t)&m_hostcommsBuffer[1u];
 
 	// Disable the dma channel for now
 	hi2c1.hdmatx->Instance->CCR &= ~(DMA_CCR_EN);
@@ -204,7 +204,7 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 			}
 			else
 			{
-				CmdServerProcessRequest(MASTER_CMD_DIR_READ, &m_hostcommsBuffer[2u], &dataLen);
+				CmdServerProcessRequest(MASTER_CMD_DIR_READ, &m_hostcommsBuffer[1u], &dataLen);
 			}
 		}
 		else
@@ -217,7 +217,7 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 			}
 			else
 			{
-				CmdServerProcessRequest(MASTER_CMD_DIR_READ, &m_hostcommsBuffer[2u], &dataLen);
+				CmdServerProcessRequest(MASTER_CMD_DIR_READ, &m_hostcommsBuffer[1u], &dataLen);
 			}
 		}
 
@@ -256,7 +256,7 @@ void HOSTCOMMS_Task(void)
 			}
 			else
 			{
-				CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, &m_hostcommsBuffer[2u], &dataLen);
+				CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, &m_hostcommsBuffer[1u], &dataLen);
 			}
 		}
 		else
@@ -270,7 +270,7 @@ void HOSTCOMMS_Task(void)
 			}
 			else
 			{
-				CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, &m_hostcommsBuffer[2u], &dataLen);
+				CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, &m_hostcommsBuffer[1u], &dataLen);
 			}
 		}
 

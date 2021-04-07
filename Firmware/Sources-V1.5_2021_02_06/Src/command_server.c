@@ -412,31 +412,47 @@ uint8_t CalcFcs(uint8_t *msg, int size)
 	return result;
 }
 
+
 void CommandServerInit(void)
 {
 	// init memory map
 	uint16_t size = REGISTERS_NUM;
-	while(size-- > 0u) {
+
+	while(size-- > 0u)
+	{
 		reg[size] = 0u;
 	}
 }
 
-int8_t CmdServerProcessRequest(uint8_t dir, uint8_t pData[], uint16_t *dataLen) {
-	if (pData[0] <= REGISTER_MAX ) {
+
+int8_t CmdServerProcessRequest(uint8_t dir, uint8_t pData[], uint16_t *dataLen)
+{
+	if (pData[0] <= REGISTER_MAX )
+	{
 		if (masterCommands[pData[0]] != NULL)
-			if (dir == MASTER_CMD_DIR_WRITE) {
-				if (CalcFcs(pData+1, *dataLen-2) == pData[*dataLen-1]) {
+		{
+			if (dir == MASTER_CMD_DIR_WRITE)
+			{
+				if (CalcFcs(pData+1, *dataLen-2) == pData[*dataLen-1])
+				{
 					(masterCommands[pData[0]])(dir, pData, dataLen);
-				} else {
+				}
+				else
+				{
 					return 1;
 				}
-			} else {
+			}
+			else
+			{
 				(masterCommands[pData[0]])(dir, pData, dataLen);
 				pData[*dataLen] = CalcFcs(pData, *dataLen);
 				(*dataLen) ++;
 			}
+		}
 		else
+		{
 			CmdServerDefaultReadWrite(dir, pData, dataLen);
+		}
 	}
 	return 0;
 }
