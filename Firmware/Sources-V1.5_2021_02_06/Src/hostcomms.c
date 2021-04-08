@@ -70,6 +70,8 @@ static volatile uint16_t m_rxLen;
 static uint32_t m_txCount;
 static uint32_t m_rxCount;
 static uint32_t m_addrCount;
+static uint32_t m_i2cBusyCount;
+static uint32_t m_i2cResetCount;
 
 static HOSTCOMMS_Mode_t m_hostcommsMode;
 
@@ -103,6 +105,9 @@ void HOSTCOMMS_Init(uint32_t sysTime)
 	m_txCount = 0u;
 	m_rxCount = 0u;
 	m_addrCount = 0u;
+
+	m_i2cBusyCount = 0u;
+	m_i2cResetCount = 0u;
 
 	m_listening = false;
 
@@ -170,13 +175,23 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 	uint8_t readCmdCode;
 	uint16_t dataLen = 1u;
 
+	if (I2C_ISR_BUSY == (I2C1->ISR & I2C_ISR_BUSY))
+	{
+		m_i2cBusyCount++;
+	}
+	else
+	{
+		m_i2cBusyCount = 0u;
+	}
+
 	// Timeout after a second, will catch fault mode
-	if ( MS_TIMEREF_TIMEOUT(m_lastHostCommandTimeMs, sysTime, 1000u) &&
+	if ( ( MS_TIMEREF_TIMEOUT(m_lastHostCommandTimeMs, sysTime, 20u) &&
 			(HOSTCOMMS_MODE_WAIT != m_hostcommsMode) &&
-			(HOSTCOMMS_MODE_RXC != m_hostcommsMode)
+			(HOSTCOMMS_MODE_RXC != m_hostcommsMode) ) ||
+			(m_i2cBusyCount > 5000u)
 			)
 	{
-		// Something bad must have happened, reset the device
+		// Something bad must have happened, reset the peripheral
 		I2C1->CR1 &= ~(I2C_CR1_PE);
 
 		// Disable the dma controllers
@@ -186,6 +201,7 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 		// Re-enable the peripheral
 		I2C1->CR1 |= I2C_CR1_PE;
 
+		m_i2cResetCount++;
 		m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
 	}
 
@@ -199,7 +215,7 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 			// Is a pijuice request
 			if ( (readCmdCode >= 0x80u) && (readCmdCode <= 0x8Fu) )
 			{
-				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode - 0x80u, &m_hostcommsBuffer[2u], &dataLen);
+				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode - 0x80u, &m_hostcommsBuffer[1u], &dataLen);
 				RtcSetPointer(readCmdCode - 0x80u + dataLen);
 			}
 			else
@@ -212,7 +228,7 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 			// Is an RTC request
 			if (readCmdCode <= 0x0Fu)
 			{
-				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode, &m_hostcommsBuffer[2u], &dataLen);
+				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode, &m_hostcommsBuffer[1u], &dataLen);
 				RtcSetPointer(readCmdCode + dataLen);
 			}
 			else
@@ -221,8 +237,9 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 			}
 		}
 
+		hi2c1.hdmatx->Instance->CMAR = (uint32_t)&m_hostcommsBuffer[1u];
 		hi2c1.hdmatx->DmaBaseAddress->IFCR |= (DMA_FLAG_GL1 << hi2c1.hdmatx->ChannelIndex);
-		hi2c1.hdmatx->Instance->CNDTR = HOSTCOMMS_I2C_BUFFER_LEN;
+		hi2c1.hdmatx->Instance->CNDTR = (sizeof(m_hostcommsBuffer) - 1u);
 		hi2c1.hdmatx->Instance->CCR |= DMA_CCR_EN;
 	}
 }
@@ -252,7 +269,7 @@ void HOSTCOMMS_Task(void)
 			if ( (readCmdCode >= 0x80u) && (readCmdCode <= 0x8Fu) )
 			{
 				dataLen -= 1u; // first is command
-				RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode - 0x80u, &m_hostcommsBuffer[3u], &dataLen);
+				RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode - 0x80u, &m_hostcommsBuffer[2u], &dataLen);
 			}
 			else
 			{
@@ -266,7 +283,7 @@ void HOSTCOMMS_Task(void)
 			{
 				// rtc emulation range
 				dataLen -= 1; // first is command
-				RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode, &m_hostcommsBuffer[3u], &dataLen);
+				RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode, &m_hostcommsBuffer[2u], &dataLen);
 			}
 			else
 			{
@@ -316,15 +333,16 @@ void I2C1_IRQHandler(void)
 		// Check data direction
 		if (I2C_ISR_DIR == (I2C1->ISR & I2C_ISR_DIR))
 		{
-			m_rxLen = (HOSTCOMMS_I2C_BUFFER_LEN - hi2c1.hdmarx->Instance->CNDTR);
+			// Host is attempting to read
 
-			// Disable rx dma
-			hi2c1.hdmarx->Instance->CCR &= ~(DMA_CCR_EN);
-
-			// Check for repeated start
-			if ( (HOSTCOMMS_MODE_RX == m_hostcommsMode) && (1u == m_rxLen) )
+			// Check to make sure the host has given a command
+			if ( (HOSTCOMMS_MODE_RX == m_hostcommsMode) &&
+					(1u == (m_rxLen = (HOSTCOMMS_I2C_BUFFER_LEN - hi2c1.hdmarx->Instance->CNDTR)))
+					)
 			{
-				// Data is for slave to master
+				// Disable rx dma
+				hi2c1.hdmarx->Instance->CCR &= ~(DMA_CCR_EN);
+
 				m_hostcommsMode = HOSTCOMMS_MODE_TX;
 			}
 			else
@@ -334,11 +352,14 @@ void I2C1_IRQHandler(void)
 		}
 		else
 		{
+			// Host is sending something
+
 			if (HOSTCOMMS_MODE_WAIT == m_hostcommsMode)
 			{
 				MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);
 
 				m_hostcommsBuffer[0u] = addrMatch;
+				m_rxLen = 0u;
 
 				// Data is for master to slave
 				m_hostcommsMode = HOSTCOMMS_MODE_RX;
@@ -354,6 +375,11 @@ void I2C1_IRQHandler(void)
 
 				// Enable dma device
 				hi2c1.hdmarx->Instance->CCR |= DMA_CCR_EN;
+			}
+			else
+			{
+				// Out of sync somehow
+				m_hostcommsMode = HOSTCOMMS_MODE_FAULT;
 			}
 		}
 
@@ -385,7 +411,8 @@ void I2C1_IRQHandler(void)
 			}
 			else
 			{
-				m_hostcommsMode = HOSTCOMMS_MODE_FAULT;
+				// This happens when i2cdetect sends an addr followed by a stop condition
+				m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
 			}
 		}
 		else if (HOSTCOMMS_MODE_TX == m_hostcommsMode)

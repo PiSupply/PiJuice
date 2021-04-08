@@ -61,7 +61,7 @@ void HAL_MspInit(void)
   /* PendSV_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(PendSV_IRQn, 0, 0);
   /* SysTick_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(SysTick_IRQn, 1, 1);
 
   /* USER CODE BEGIN MspInit 1 */
   HAL_NVIC_EnableIRQ(SysTick_IRQn);
@@ -288,72 +288,7 @@ void HAL_WWDG_MspInit(WWDG_HandleTypeDef* hwwdg)
 
 }
 
-#if 0
-void HAL_SMBUS_MspInit(SMBUS_HandleTypeDef *hsmbus)
-{
 
-  GPIO_InitTypeDef GPIO_InitStruct;
-  if(hsmbus->Instance==I2C1)
-  {
-	  static DMA_HandleTypeDef hdma_tx;
-	  static DMA_HandleTypeDef hdma_rx;
-	  RCC_PeriphCLKInitTypeDef  RCC_PeriphCLKInitStruct;
-
-	  /*##-1- Configure the I2C clock source. The clock is derived from the SYSCLK #*/
-	  RCC_PeriphCLKInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C1;
-	  RCC_PeriphCLKInitStruct.I2c1ClockSelection = RCC_I2C1CLKSOURCE_SYSCLK;
-	  HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct);
-
-	  /*##-2- Enable peripherals and GPIO Clocks #################################*/
-	  /* Enable GPIO TX/RX clock */
-	  __HAL_RCC_GPIOB_CLK_ENABLE();
-	  /* Enable I2Cx clock */
-	  __HAL_RCC_I2C1_CLK_ENABLE();
-
-	  /* Enable DMAx clock */
-	  __HAL_RCC_DMA1_CLK_ENABLE();
-
-	  /*##-3- Configure peripheral GPIO ##########################################*/
-	  /* I2C TX GPIO pin configuration  */
-	  GPIO_InitStruct.Pin       = GPIO_PIN_6;
-	  GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
-	  GPIO_InitStruct.Pull      = GPIO_PULLUP;
-	  GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
-	  GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
-	  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-	  /* I2C RX GPIO pin configuration  */
-	  GPIO_InitStruct.Pin       = GPIO_PIN_7;
-	  GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
-	  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-	  /*##-6- Configure the NVIC for I2C ########################################*/
-	  /* NVIC for I2Cx */
-	  HAL_NVIC_SetPriority(I2C1_IRQn, 0, 1);
-	  HAL_NVIC_EnableIRQ(I2C1_IRQn);
-  }
-}
-
-void HAL_SMBUS_MspDeInit(SMBUS_HandleTypeDef *hsmbus)
-{
-
-
-	__HAL_RCC_I2C1_FORCE_RESET();
-	__HAL_RCC_I2C1_RELEASE_RESET();
-
-  /* Peripheral clock disable */
-  __HAL_RCC_I2C1_CLK_DISABLE();
-
-  /**I2C1 GPIO Configuration
-  PB6     ------> I2C1_SCL
-  PB7     ------> I2C1_SDA
-  */
-  HAL_GPIO_DeInit(GPIOB, GPIO_PIN_6|GPIO_PIN_7);
-
-  /*##-3- Disable the NVIC for I2C ##########################################*/
-  HAL_NVIC_DisableIRQ(I2C1_IRQn);
-}
-#endif
 void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
 {
 
@@ -689,7 +624,7 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
     /* Peripheral clock enable */
     __HAL_RCC_TIM6_CLK_ENABLE();
     /* TIM6 interrupt Init */
-    HAL_NVIC_SetPriority(TIM6_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(TIM6_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(TIM6_IRQn);
   /* USER CODE BEGIN TIM6_MspInit 1 */
 
