@@ -37,6 +37,11 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
+			<name>PiJuice.ioc</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/PiJuice.ioc</locationURI>
+		</link>
+		<link>
 			<name>Inc/adc.h</name>
 			<type>1</type>
 			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/adc.h</location>
