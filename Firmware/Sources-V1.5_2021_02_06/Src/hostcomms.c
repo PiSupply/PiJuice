@@ -45,6 +45,12 @@
 #define OWN2_I2C_ADDRESS				0x68
 #define I2C_CR1_WUPEN					(1u << 18u)
 
+#define RTC_REG_TIME_Msk				(0x7Fu << 0u)
+#define RTC_REG_ALARM1_Msk				(0xFu << 7u)
+#define RTC_REG_ALARM2_Msk				(0x7u << 11u)
+#define RTC_REG_CTRL_Msk				(0x1u << 14u)
+#define RTC_REG_STATUS_Msk				(0x1u << 15u)
+
 // 255 is max transaction length, byte 0 will have address, byte 1 will have command code
 #define HOSTCOMMS_I2C_BUFFER_LEN		256u
 
@@ -55,8 +61,17 @@ typedef enum
 	HOSTCOMMS_MODE_RX = 1u,
 	HOSTCOMMS_MODE_RXC = 2u,
 	HOSTCOMMS_MODE_TX = 3u,
-	HOSTCOMMS_MODE_FAULT = 4u
+	HOSTCOMMS_MODE_TX_CLOCK = 4u,
+	HOSTCOMMS_MODE_FAULT = 5u
 } HOSTCOMMS_Mode_t;
+
+
+typedef struct
+{
+	uint8_t addr;
+	uint8_t cmd;
+	uint32_t time;
+} HOSTCOMMS_Msg_t;
 
 
 // ----------------------------------------------------------------------------
@@ -67,7 +82,7 @@ typedef enum
 // Variables that only have scope in this module:
 
 static uint8_t m_hostcommsBuffer[HOSTCOMMS_I2C_BUFFER_LEN];
-static volatile uint16_t m_rxLen;
+static uint16_t m_rxLen;
 static uint32_t m_txCount;
 static uint32_t m_rxCount;
 static uint32_t m_addrCount;
@@ -80,6 +95,8 @@ static uint32_t m_lastHostCommandTimeMs __attribute__((section("no_init")));
 
 static bool m_listening;
 
+static uint8_t m_rtcBuffer[17u];
+static uint32_t m_rtcRegUpdate_bm;
 
 // ----------------------------------------------------------------------------
 // Variables that have scope from outside this module:
@@ -189,7 +206,7 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 	}
 
 	// Timeout after a second, will catch fault mode
-	if ( ( MS_TIMEREF_TIMEOUT(m_lastHostCommandTimeMs, sysTime, 20u) &&
+	if ( ( MS_TIMEREF_TIMEOUT(m_lastHostCommandTimeMs, sysTime, 1000u) &&
 			(HOSTCOMMS_MODE_WAIT != m_hostcommsMode) &&
 			(HOSTCOMMS_MODE_RXC != m_hostcommsMode) ) ||
 			(m_i2cBusyCount > 5000u)
@@ -209,6 +226,7 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 		m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
 	}
 
+
 	if (HOSTCOMMS_MODE_TX == m_hostcommsMode)
 	{
 		readCmdCode = m_hostcommsBuffer[1u];
@@ -226,25 +244,12 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 			{
 				CmdServerProcessRequest(MASTER_CMD_DIR_READ, &m_hostcommsBuffer[1u], &dataLen);
 			}
-		}
-		else
-		{
-			// Is an RTC request
-			if (readCmdCode <= 0x0Fu)
-			{
-				RtcDs1339ProcessRequest(I2C_DIRECTION_RECEIVE, readCmdCode, &m_hostcommsBuffer[1u], &dataLen);
-				RtcSetPointer(readCmdCode + dataLen);
-			}
-			else
-			{
-				CmdServerProcessRequest(MASTER_CMD_DIR_READ, &m_hostcommsBuffer[1u], &dataLen);
-			}
-		}
 
-		hi2c1.hdmatx->Instance->CMAR = (uint32_t)&m_hostcommsBuffer[1u];
-		hi2c1.hdmatx->DmaBaseAddress->IFCR |= (DMA_FLAG_GL1 << hi2c1.hdmatx->ChannelIndex);
-		hi2c1.hdmatx->Instance->CNDTR = (sizeof(m_hostcommsBuffer) - 1u);
-		hi2c1.hdmatx->Instance->CCR |= DMA_CCR_EN;
+			hi2c1.hdmatx->Instance->CMAR = (uint32_t)&m_hostcommsBuffer[1u];
+			hi2c1.hdmatx->DmaBaseAddress->IFCR |= (DMA_FLAG_GL1 << hi2c1.hdmatx->ChannelIndex);
+			hi2c1.hdmatx->Instance->CNDTR = (sizeof(m_hostcommsBuffer) - 1u);
+			hi2c1.hdmatx->Instance->CCR |= DMA_CCR_EN;
+		}
 	}
 }
 
@@ -280,27 +285,45 @@ void HOSTCOMMS_Task(void)
 				CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, &m_hostcommsBuffer[1u], &dataLen);
 			}
 		}
-		else
-		{
-			// Is an RTC command
-			if (readCmdCode <= 0x0Fu)
-			{
-				// rtc emulation range
-				dataLen -= 1; // first is command
-				RtcDs1339ProcessRequest(I2C_DIRECTION_TRANSMIT, readCmdCode, &m_hostcommsBuffer[2u], &dataLen);
-			}
-			else
-			{
-				CmdServerProcessRequest(MASTER_CMD_DIR_WRITE, &m_hostcommsBuffer[1u], &dataLen);
-			}
-		}
 
-		// Enable the peripheral
 		I2C1->CR1 |= I2C_CR1_PE;
 
 		m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
 	}
+
+	if (HOSTCOMMS_MODE_TX_CLOCK != m_hostcommsMode)
+	{
+		if (0u != (m_rtcRegUpdate_bm & RTC_REG_TIME_Msk))
+		{
+			m_rtcRegUpdate_bm &= ~(RTC_REG_TIME_Msk);
+
+			RtcWriteTime(&m_rtcBuffer[0u], false);
+		}
+
+		if (0u != (m_rtcRegUpdate_bm & RTC_REG_ALARM1_Msk))
+		{
+			m_rtcRegUpdate_bm &= ~(RTC_REG_ALARM1_Msk);
+
+			RtcWriteAlarm1(&m_rtcBuffer[7u], false);
+		}
+
+		if (0u != (m_rtcRegUpdate_bm & (RTC_REG_CTRL_Msk | RTC_REG_STATUS_Msk)))
+		{
+			dataLen = (0u == (m_rtcRegUpdate_bm & RTC_REG_STATUS_Msk)) ? 1u : 2u;
+			m_rtcRegUpdate_bm &= ~(RTC_REG_CTRL_Msk | RTC_REG_STATUS_Msk);
+
+			RtcWriteControlStatus(&m_rtcBuffer[0xEu], dataLen);
+		}
+
+		m_rtcRegUpdate_bm &= ~(RTC_REG_ALARM2_Msk);
+
+		RtcReadTime(m_rtcBuffer, false);
+		RtcReadAlarm1(&m_rtcBuffer[7u], false);
+		RtcReadControlStatus(&m_rtcBuffer[0xEu], &dataLen);
+	}
 }
+
+
 
 
 uint32_t HOSTCOMMS_GetLastCommandAgeMs(const uint32_t sysTime)
@@ -331,6 +354,8 @@ void HOSTCOMMS_SetInterrupt(void)
 void I2C1_IRQHandler(void)
 {
 	const uint8_t addrMatch = (uint8_t)((I2C1->ISR >> 16u) & 0xFEu);
+	uint32_t addrClear = I2C_ICR_ADDRCF;
+	uint32_t rtcReg_bm;
 
 	if (I2C_ISR_ADDR == (I2C1->ISR & I2C_ISR_ADDR))
 	{
@@ -347,7 +372,26 @@ void I2C1_IRQHandler(void)
 				// Disable rx dma
 				hi2c1.hdmarx->Instance->CCR &= ~(DMA_CCR_EN);
 
-				m_hostcommsMode = HOSTCOMMS_MODE_TX;
+				if (addrMatch == (I2C1->OAR1 & 0xFEu))
+				{
+					// Is from pijuice, let the service routine handle it
+					m_hostcommsMode = HOSTCOMMS_MODE_TX;
+					m_hostcommsBuffer[0u] = addrMatch;
+				}
+				else if (m_hostcommsBuffer[1u] < sizeof(m_rtcBuffer))
+				{
+					// Is the RTC, can deal with this right now
+					hi2c1.hdmatx->Instance->CMAR = (uint32_t)&m_rtcBuffer[m_hostcommsBuffer[1u]];
+					hi2c1.hdmatx->DmaBaseAddress->IFCR |= (DMA_FLAG_GL1 << hi2c1.hdmatx->ChannelIndex);
+					hi2c1.hdmatx->Instance->CNDTR = sizeof(m_rtcBuffer) - m_hostcommsBuffer[1u];
+					hi2c1.hdmatx->Instance->CCR |= DMA_CCR_EN;
+
+					m_hostcommsMode = HOSTCOMMS_MODE_TX_CLOCK;
+				}
+				else
+				{
+					m_hostcommsMode = HOSTCOMMS_MODE_FAULT;
+				}
 			}
 			else
 			{
@@ -357,12 +401,10 @@ void I2C1_IRQHandler(void)
 		else
 		{
 			// Host is sending something
+			MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);
 
 			if (HOSTCOMMS_MODE_WAIT == m_hostcommsMode)
 			{
-				MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);
-
-				m_hostcommsBuffer[0u] = addrMatch;
 				m_rxLen = 0u;
 
 				// Data is for master to slave
@@ -390,7 +432,7 @@ void I2C1_IRQHandler(void)
 		m_addrCount++;
 
 		// Clear the interrupt
-		I2C1->ICR |= I2C_ICR_ADDRCF;
+		I2C1->ICR |= addrClear;
 	}
 	else
 	{
@@ -406,10 +448,36 @@ void I2C1_IRQHandler(void)
 
 			if (m_rxLen > 1u)
 			{
-				m_hostcommsMode = HOSTCOMMS_MODE_RXC;
+				if (addrMatch == (I2C1->OAR1 & 0xFEu))
+				{
+					m_hostcommsMode = HOSTCOMMS_MODE_RXC;
 
-				// Turn off the perpheral until the command has been dealt with
-				I2C1->CR1 &= ~(I2C_CR1_PE);
+					// Turn off the perpheral until the command has been dealt with
+					I2C1->CR1 &= ~(I2C_CR1_PE);
+				}
+				else if ( (m_hostcommsBuffer[1u] + m_rxLen) <= sizeof(m_rtcBuffer) )
+				{
+					// Is for RTC, deal with this now.
+					m_rxLen--;
+
+					rtcReg_bm = (1u << (m_hostcommsBuffer[1u] + m_rxLen));
+
+					while (m_rxLen > 0u)
+					{
+						m_rxLen--;
+						rtcReg_bm >>= 1u;
+
+						m_rtcBuffer[m_hostcommsBuffer[1u] + m_rxLen] = m_hostcommsBuffer[2u + m_rxLen];
+						m_rtcRegUpdate_bm |= rtcReg_bm;
+					}
+
+					m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
+				}
+				else
+				{
+					// Out of sync somehow
+					m_hostcommsMode = HOSTCOMMS_MODE_FAULT;
+				}
 
 				m_rxCount++;
 			}
@@ -419,7 +487,7 @@ void I2C1_IRQHandler(void)
 				m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
 			}
 		}
-		else if (HOSTCOMMS_MODE_TX == m_hostcommsMode)
+		else if ( (HOSTCOMMS_MODE_TX == m_hostcommsMode) || (HOSTCOMMS_MODE_TX_CLOCK == m_hostcommsMode) )
 		{
 			// TODO - Take it as transmit?
 
