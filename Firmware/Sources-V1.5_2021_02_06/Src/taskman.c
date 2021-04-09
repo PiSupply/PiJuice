@@ -228,7 +228,7 @@ void TASKMAN_ClearIOWakeEvent(void)
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-#ifdef DEBUG
+#ifdef LOWPOWER_NO_STOP
 static volatile bool wakeupEvent;
 
 void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc)
@@ -271,11 +271,11 @@ void TASKMAN_WaitInterrupt(void)
 	    HAL_RTC_GetTime(&hrtc, &sleepTime_rtc, RTC_FORMAT_BIN);
 	    (void)RTC->DR;
 
-	    wakeupEvent = false;
-
 	    HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, TASKMAN_SLEEP_SETTING, RTC_WAKEUPCLOCK_RTCCLK_DIV16);
 
-#ifdef DEBUG
+#ifdef LOWPOWER_NO_STOP
+
+	    wakeupEvent = false;
 
 	    while( (false == wakeupEvent) && (EXTI_EVENT_NONE == m_extiEvent) )
 	    {
@@ -316,7 +316,7 @@ void TASKMAN_WaitInterrupt(void)
 
 
 		// Restart background tasks
-		OSLOOP_Init();
+	    OSLOOP_Restart();
 
 		while(false == ADC_GetFilterReady())
 		{

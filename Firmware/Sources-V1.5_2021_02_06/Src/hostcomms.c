@@ -43,6 +43,7 @@
 
 #define OWN1_I2C_ADDRESS				0x14
 #define OWN2_I2C_ADDRESS				0x68
+#define I2C_CR1_WUPEN					(1u << 18u)
 
 // 255 is max transaction length, byte 0 will have address, byte 1 will have command code
 #define HOSTCOMMS_I2C_BUFFER_LEN		256u
@@ -161,8 +162,11 @@ void HOSTCOMMS_Init(uint32_t sysTime)
 	hi2c1.hdmarx->DmaBaseAddress->IFCR |= (DMA_FLAG_GL1 << hi2c1.hdmarx->ChannelIndex);
 	hi2c1.hdmatx->DmaBaseAddress->IFCR |= (DMA_FLAG_GL1 << hi2c1.hdmatx->ChannelIndex);
 
+	// Clear any digital filter settings
+	I2C1->CR1 &= ~(I2C_CR1_DNF_Msk);
+
 	// Enable the DMA transfer mode
-	I2C1->CR1 |= I2C_CR1_TXDMAEN | I2C_CR1_RXDMAEN;
+	I2C1->CR1 |= I2C_CR1_TXDMAEN | I2C_CR1_RXDMAEN | I2C_CR1_WUPEN;
 
 	// Enable the i2c device
 	I2C1->CR1 |= I2C_CR1_PE;

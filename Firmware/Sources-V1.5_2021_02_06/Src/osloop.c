@@ -140,6 +140,23 @@ void OSLOOP_Shutdown(void)
 }
 
 
+void OSLOOP_Restart(void)
+{
+	const uint32_t sysTime = HAL_GetTick();
+
+	ADC_Init(sysTime);
+	IODRV_Init(sysTime);
+	ANALOG_Init(sysTime);
+	I2CDRV_Init(sysTime);
+
+	LED_Init(sysTime);
+
+	/* Start the os timer */
+	TIMER_OSLOOP->CR1 |= TIM_CR1_CEN;
+	TIMER_OSLOOP->DIER |= TIM_IT_UPDATE;
+}
+
+
 // ****************************************************************************
 /*!
  * OSLOOP_AtomicAccess is a really awful way of ensuring that variables are not
