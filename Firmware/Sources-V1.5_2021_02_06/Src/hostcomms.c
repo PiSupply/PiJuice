@@ -1,10 +1,16 @@
-/*
- * hostcomms.h
+// ----------------------------------------------------------------------------
+/*!
+ * @file		hostcomms.c
+ * @author    	John Steggall
+ * @date       	31 March 2021
+ * @brief       hostcomms module deals with the i2c trasnactions between the
+ * 				host and this device. Two distinct addresses are used to facilitate
+ * 				commands from the pijuice interface and the emulated RTC.
+ * 				The RTC has a dedicated buffer here to give a fast response to
+ * 				the kernel driver which seems to be a bit sensitive to clock
+ * 				stretching.
  *
- *  Created on: 31.03.21
- *      Author: jsteggall
  */
-
 // ----------------------------------------------------------------------------
 // Include section - add all #includes here:
 
@@ -93,8 +99,6 @@ static HOSTCOMMS_Mode_t m_hostcommsMode;
 
 static uint32_t m_lastHostCommandTimeMs __attribute__((section("no_init")));
 
-static bool m_listening;
-
 static uint8_t m_rtcBuffer[17u];
 static uint32_t m_rtcRegUpdate_bm;
 
@@ -108,7 +112,15 @@ extern I2C_HandleTypeDef hi2c1;
 // FUNCTIONS WITH GLOBAL SCOPE
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
-
+// ****************************************************************************
+/*!
+ * HOSTCOMMS_Init configures the module to a known initial state, initialised
+ * the peripheral and DMA channels for the data transfer.
+ *
+ * @param	sysTime		current value of the ms tick timer
+ * @retval	none
+ */
+// ****************************************************************************
 void HOSTCOMMS_Init(uint32_t sysTime)
 {
 	uint8_t tempU8;
@@ -127,7 +139,6 @@ void HOSTCOMMS_Init(uint32_t sysTime)
 	m_i2cBusyCount = 0u;
 	m_i2cResetCount = 0u;
 
-	m_listening = false;
 
 	if (executionState != EXECUTION_STATE_NORMAL)
 	{
@@ -185,12 +196,24 @@ void HOSTCOMMS_Init(uint32_t sysTime)
 	// Enable the DMA transfer mode
 	I2C1->CR1 |= I2C_CR1_TXDMAEN | I2C_CR1_RXDMAEN | I2C_CR1_WUPEN;
 
+	// Enable the interrupts
+	I2C1->CR1 |= (I2C_CR1_ADDRIE | I2C_CR1_STOPIE);
+
 	// Enable the i2c device
 	I2C1->CR1 |= I2C_CR1_PE;
 }
 
 
-// High priority tasks, deal with slave to host commands
+// ****************************************************************************
+/*!
+ * HOSTCOMMS_Service performs the command server read tasks with a higher priority
+ * than the write tasks which may contain delays that would cause issue to the
+ * osloop system. The peripheral is also checked and cleared of errors here.
+ *
+ * @param	sysTime		current value of the ms tick timer
+ * @retval	none
+ */
+// ****************************************************************************
 void HOSTCOMMS_Service(uint32_t sysTime)
 {
 	uint8_t readCmdCode;
@@ -254,17 +277,23 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 }
 
 
-// Low priority tasks, deal with host to slave commands
+// ****************************************************************************
+/*!
+ * HOSTCOMMS_Task performs the command server write tasks with a lowish priority
+ * to make sure any write commands that contain delays that would cause issue to
+ * the osloop system. The RTC buffer is updated here too, calling the rtc module
+ * where needed after a host write and reading the rtc value ready for the host
+ * to fetch.
+ *
+ * @param	sysTime		current value of the ms tick timer
+ * @retval	none
+ */
+// ****************************************************************************
 void HOSTCOMMS_Task(void)
 {
 	uint16_t dataLen;
 	uint8_t readCmdCode;
 
-	if (false == m_listening)
-	{
-		I2C1->CR1 |= (I2C_CR1_ADDRIE | I2C_CR1_STOPIE);
-		m_listening = true;
-	}
 
 	if (HOSTCOMMS_MODE_RXC == m_hostcommsMode)
 	{
@@ -291,6 +320,8 @@ void HOSTCOMMS_Task(void)
 		m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
 	}
 
+	// If the host isn't transferring RTC data, update the buffer here
+	// TODO - Maybe double buffer to ensure no issues are caused by simultaneous access
 	if (HOSTCOMMS_MODE_TX_CLOCK != m_hostcommsMode)
 	{
 		if (0u != (m_rtcRegUpdate_bm & RTC_REG_TIME_Msk))
@@ -325,13 +356,30 @@ void HOSTCOMMS_Task(void)
 
 
 
-
+// ****************************************************************************
+/*!
+ * ADC_GetLastCommandAgeMs returns the time elapsed in milliseconds since the last
+ * host access.
+ *
+ * @param	sysTime		current value of the system tick timer
+ * @retval	uint32_t	time elapsed in mS since the last host access
+ */
+// ****************************************************************************
 uint32_t HOSTCOMMS_GetLastCommandAgeMs(const uint32_t sysTime)
 {
 	return MS_TIMEREF_DIFF(m_lastHostCommandTimeMs, sysTime);
 }
 
 
+// ****************************************************************************
+/*!
+ * ADC_GetAverageValue returns the average value of the analog channel, out of
+ * bounds channel acces returns 0.
+ *
+ * @param	channel		channel to be accessed
+ * @retval	uint16_t	averaged value of the analog channel
+ */
+// ****************************************************************************
 void HOSTCOMMS_SetInterrupt(void)
 {
 	MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);

@@ -10,7 +10,6 @@
 #include "osloop.h"
 #include "system_conf.h"
 
-
 #include "time_count.h"
 
 #include "adc.h"
@@ -25,7 +24,7 @@
 #include "util.h"
 
 #include "fuel_gauge_lc709203f.h"
-#include "fuelguage_conf.h"
+#include "fuelgauge_conf.h"
 
 
 // ----------------------------------------------------------------------------
@@ -58,6 +57,16 @@ static uint32_t m_lastFuelGaugeTaskTimeMs;
 static bool m_updateBatteryProfile;
 
 
+// ****************************************************************************
+/*!
+ * FUELGUAGE_I2C_Callback interfaces with the i2cdrv module, lets this module
+ * 			know when the transaction is complete and provides a pointer to the
+ * 			i2cdriver internal data which will contain information regarding the
+ * 			transaction.
+ * @param	p_i2cdrvDevice		pointer to the i2cdrv internals
+ * @retval	none
+ */
+// ****************************************************************************
 void FUELGUAGE_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 {
 	if (p_i2cdrvDevice->event == I2CDRV_EVENT_RX_COMPLETE)

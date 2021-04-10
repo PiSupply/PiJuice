@@ -14,7 +14,6 @@
 #define FUEL_GAUGE_TEMP_MODE_THERMISTOR 	1u
 #define FUEL_GAUGE_TEMP_MODE_I2C		 	0u
 
-
 typedef enum BatteryTempSenseConfig_T {
 	BAT_TEMP_SENSE_CONFIG_NOT_USED = 0,
 	BAT_TEMP_SENSE_CONFIG_NTC = 1u,

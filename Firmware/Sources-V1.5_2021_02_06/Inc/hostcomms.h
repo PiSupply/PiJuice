@@ -1,9 +1,13 @@
-/*
- * hostcomms.h
+// ----------------------------------------------------------------------------
+/*!
+ * @file		hostcomms.h
+ * @author    	John Steggall
+ * @date       	31 March 2021
+ * @brief       Header file for hostcomms.c
+ * @note        Please refer to the .c file for a detailed description.
  *
- *  Created on: 31.03.21
- *      Author: jsteggall
  */
+// ----------------------------------------------------------------------------
 
 #ifndef HOSTCOMMS_H_
 #define HOSTCOMMS_H_

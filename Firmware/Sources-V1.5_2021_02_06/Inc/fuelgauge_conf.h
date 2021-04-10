@@ -1,12 +1,16 @@
-/*
- * fuelguage_conf.h
+// ----------------------------------------------------------------------------
+/*!
+ * @file		fuelgauge_conf.h
+ * @author    	John Steggall
+ * @date       	31 March 2021
+ * @brief       Header file containing defines for the LC709203f fuel gauge
+ * 				IC registers and contents.
  *
- *  Created on: 31.03.21
- *      Author: jsteggall
  */
+// ----------------------------------------------------------------------------
 
-#ifndef FUELGUAGE_CONF_H_
-#define FUELGUAGE_CONF_H_
+#ifndef FUELGAUGE_CONF_H_
+#define FUELGAUGE_CONF_H_
 
 #define FG_MEM_ADDR_BEFORE_RSOCC		0x04u
 #define FG_MEM_ADDR_THERMB				0x06u
@@ -41,4 +45,4 @@
 #define THERM_TYPE_NTC					1u
 
 
-#endif /* FUELGUAGE_CONF_H_ */
+#endif /* FUELGAUGE_CONF_H_ */

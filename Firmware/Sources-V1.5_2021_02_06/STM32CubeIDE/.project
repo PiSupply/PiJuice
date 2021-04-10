@@ -122,9 +122,9 @@
 			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/fuel_gauge_lc709203f.h</location>
 		</link>
 		<link>
-			<name>Inc/fuelguage_conf.h</name>
+			<name>Inc/fuelgauge_conf.h</name>
 			<type>1</type>
-			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/fuelguage_conf.h</location>
+			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Inc/fuelgauge_conf.h</location>
 		</link>
 		<link>
 			<name>Inc/hostcomms.h</name>
