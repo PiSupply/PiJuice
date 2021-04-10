@@ -1,10 +1,20 @@
-/*
- * adc.c
+// ----------------------------------------------------------------------------
+/*!
+ * @file		adc.c
+ * @author    	John Steggall
+ * @date       	19 March 2021
+ * @brief       Lowish level driver for the ADC peripheral. Starts the ADC and using
+ * 				DMA transfer in a periodic fashion and updates an averaging filter
+ * 				dependant on its update period. On startup and wakeup from stop the
+ * 				module is reset and the filter buffers are cleared. Once they've
+ * 				completed one non periodic cycle the average filter ready flag is set
+ * 				and the averaging is performed periodically as set by the defines.
+ * 				There is a special current sense filter also that operates on the
+ * 				difference between the CS1 and CS2 channels. The filter totals of
+ * 				these channels are used to try and get some more resolution but it
+ * 				does mean the reading is quite unstable. The filter operates in mA.
  *
- *  Created on: 19.03.21
- *      Author: jsteggall
  */
-
 // ----------------------------------------------------------------------------
 // Include section - add all #includes here:
 
@@ -78,6 +88,13 @@ void ADC_Init(const uint32_t sysTime)
 }
 
 
+// ****************************************************************************
+/*!
+ * ADC_Shutdown prepares the module for a low power stop mode.
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void ADC_Shutdown(void)
 {
 	HAL_ADC_Stop_DMA(&hadc);
@@ -276,9 +293,19 @@ bool ADC_GetFilterReady(void)
 }
 
 
-void ADC_SetIFilterPeriod(uint32_t newFilterPeriod)
+// ****************************************************************************
+/*!
+ * ADC_SetIFilterPeriod changes the update rate for the current sense filter,
+ * it means the calibration routine can use a more stable reading averaged over
+ * a greater period and less susceptible to the inherent noise in the measurement.
+ *
+ * @param	newFilterPeriodMs	new filter update period in mS
+ * @retval	none
+ */
+// ****************************************************************************
+void ADC_SetIFilterPeriod(uint32_t newFilterPeriodMs)
 {
-	m_currentSenseFilter.filterPeriodMs = newFilterPeriod;
+	m_currentSenseFilter.filterPeriodMs = newFilterPeriodMs;
 }
 
 // ----------------------------------------------------------------------------
