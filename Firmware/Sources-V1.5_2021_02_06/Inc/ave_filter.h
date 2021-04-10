@@ -1,9 +1,13 @@
-/*
- * ave_filter.h
+// ----------------------------------------------------------------------------
+/*!
+ * @file		ave_filter.h
+ * @author    	John Steggall
+ * @date       	19 March 2021
+ * @brief       Header file for ave_filter.h
+ * @note        Please refer to the .c file for a detailed description.
  *
- *  Created on: 19.03.21
- *      Author: jsteggall
  */
+// ----------------------------------------------------------------------------
 
 #ifndef AVE_FILTER_H_
 #define AVE_FILTER_H_
