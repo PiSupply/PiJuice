@@ -1,10 +1,16 @@
-/*
- * iodrv.c
+// ----------------------------------------------------------------------------
+/*!
+ * @file		iodrv.c
+ * @author    	John Steggall
+ * @date       	19 March 2021
+ * @brief       Handles the GPIO functions and monitors pins for digital changes
+ * 				where the pins are configured as such. The module uses the actual
+ * 				pin settings so no need to configure in this module if already set
+ * 				by cubemx or using the hal drivers. As long as there is an entry
+ * 				in the array the module will monitor it. Configuration options
+ * 				allow for inverted operation and digital inputs are debounced.
  *
- *  Created on: 19.03.21
- *      Author: jsteggall
  */
-
 // ----------------------------------------------------------------------------
 // Include section - add all #includes here:
 

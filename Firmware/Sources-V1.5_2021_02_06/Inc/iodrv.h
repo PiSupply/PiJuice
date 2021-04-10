@@ -1,9 +1,13 @@
-/*
- * iodrv.h
+// ----------------------------------------------------------------------------
+/*!
+ * @file		iodrv.h
+ * @author    	John Steggall
+ * @date       	19 March 2021
+ * @brief       Header file for iodrv.c
+ * @note        Please refer to the .c file for a detailed description.
  *
- *  Created on: 19.03.21
- *      Author: jsteggall
  */
+// ----------------------------------------------------------------------------
 
 #ifndef IODRV_H_
 #define IODRV_H_
