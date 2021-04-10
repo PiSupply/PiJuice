@@ -1,9 +1,13 @@
-/*
- * i2cdrv.h
+// ----------------------------------------------------------------------------
+/*!
+ * @file		i2cdrv.h
+ * @author    	John Steggall
+ * @date       	31 March 2021
+ * @brief       Header file for i2cdrv.c
+ * @note        Please refer to the .c file for a detailed description.
  *
- *  Created on: 31.03.21
- *      Author: jsteggall
  */
+// ----------------------------------------------------------------------------
 
 #ifndef I2CDRV_H_
 #define I2CDRV_H_

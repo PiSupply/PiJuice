@@ -1,10 +1,14 @@
-/*
- * i2cdrv.c
+// ----------------------------------------------------------------------------
+/*!
+ * @file		i2cdrv.c
+ * @author    	John Steggall
+ * @date       	31 March 2021
+ * @brief       Lowish level driver for the i2c master port that talks to the
+ * 				charger and fuel gauge. Kick off a transfer with I2CDRV_Transact
+ * 				and the callback function (if set) is called once complete.
+ * 				The IsReady function can be called to get the driver state.
  *
- *  Created on: 23 Mar 2021
- *      Author: jsteggall
  */
-
 // ----------------------------------------------------------------------------
 // Include section - add all #includes here:
 
@@ -152,6 +156,13 @@ void I2CDRV_Init(const uint32_t sysTime)
 }
 
 
+// ****************************************************************************
+/*!
+ * I2CDRV_Shutdown prepares the module for a low power stop mode.
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void I2CDRV_Shutdown(void)
 {
 	I2C2->CR1 &= ~I2C_CR1_PE;
