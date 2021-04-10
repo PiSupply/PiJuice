@@ -1,9 +1,13 @@
-/*
- * osloop.h
+// ----------------------------------------------------------------------------
+/*!
+ * @file		osloop.h
+ * @author    	John Steggall
+ * @date       	19 March 2021
+ * @brief       Header file for osloop.c
+ * @note        Please refer to the .c file for a detailed description.
  *
- *  Created on: 19.03.21
- *      Author: jsteggall
  */
+// ----------------------------------------------------------------------------
 
 #ifndef OSLOOP_H_
 #define OSLOOP_H_

@@ -1,10 +1,18 @@
-/*
- * osloop.c
+// ----------------------------------------------------------------------------
+/*!
+ * @file		osloop.c
+ * @author    	John Steggall
+ * @date       	19 March 2021
+ * @brief       Handles the system operation and general order of things.
+ * @details     Initialises the system beyond the cubemx hardware initialisers
+ * 				and calls the service routines on the os loop timer period.
+ * 				Each service routine is expected to handle it's own periodic
+ * 				update if the call frequency is too high.
  *
- *  Created on: 19.03.21
- *      Author: jsteggall
+ * @note        None.
+ *
+ * @warning     No service routine should block or the whole thing falls apart!
  */
-
 // ----------------------------------------------------------------------------
 // Include section - add all #includes here:
 
@@ -125,6 +133,15 @@ void OSLOOP_Service(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * OSLOOP_Shutdown calls the module shutdown routines in preperation for the
+ * low power stop mode.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void OSLOOP_Shutdown(void)
 {
 	// Stop the interrupt occuring
@@ -140,6 +157,14 @@ void OSLOOP_Shutdown(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * OSLOOP_Restart reinitilises the modules after a wake from low power stop
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void OSLOOP_Restart(void)
 {
 	const uint32_t sysTime = HAL_GetTick();

@@ -1,5 +1,5 @@
 /*
- * led.c
+ * led_pwm_table.h
  *
  * Created on: 01.04.2016.
  *  Author: milan
