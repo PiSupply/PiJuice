@@ -1,9 +1,13 @@
-/*
- * taskman.h
+// ----------------------------------------------------------------------------
+/*!
+ * @file		taskman.h
+ * @author    	John Steggall
+ * @date       	19 March 2021
+ * @brief       Header file for taskman.c
+ * @note        Please refer to the .c file for a detailed description.
  *
- *  Created on: 31.03.21
- *      Author: jsteggall
  */
+// ----------------------------------------------------------------------------
 
 #ifndef TASKLOOP_H_
 #define TASKLOOP_H_

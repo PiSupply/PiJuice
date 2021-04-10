@@ -1,10 +1,15 @@
-/*
- * taskman.c
+// ----------------------------------------------------------------------------
+/*!
+ * @file		taskman.c
+ * @author    	John Steggall
+ * @date       	19 March 2021
+ * @details     Handles the application side of the system that isn't too dependent
+ * 				on close synchronous actions. The power mode is switched here
+ * 				where possible stopping the main process waiting for an external
+ * 				event or RTC alarm. The stop mode is woken up after 4 seconds regardless
+ * 				of no event occurring.
  *
- *  Created on: 31.03.21
- *      Author: jsteggall
  */
-
 // ----------------------------------------------------------------------------
 // Include section - add all #includes here:
 #include "main.h"
@@ -244,8 +249,6 @@ void TASKMAN_WaitInterrupt(void)
 	// TODO - BAD!
 	extern __IO uint32_t uwTick;
 
-	//static GPIO_InitTypeDef i2c_GPIO_InitStruct;
-
 	RTC_TimeTypeDef sleepTime_rtc, wakeTime_rtc;
 	uint32_t sleepTime, wakeTime;
 	uint8_t tempU8;
@@ -259,14 +262,6 @@ void TASKMAN_WaitInterrupt(void)
 
 		// Stop the led module
 		LedStop();
-
-		// Enable wake up from host
-		// TODO - Check if i2c wakeup can work without looking for pin level change
-		/*
-		i2c_GPIO_InitStruct.Pin = GPIO_PIN_7;
-		i2c_GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-		i2c_GPIO_InitStruct.Pull = GPIO_NOPULL;
-	    HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);*/
 
 	    HAL_RTC_GetTime(&hrtc, &sleepTime_rtc, RTC_FORMAT_BIN);
 	    (void)RTC->DR;
@@ -305,15 +300,6 @@ void TASKMAN_WaitInterrupt(void)
 	    uwTick += m_lastSleepTimeMs;
 
 	    HAL_ResumeTick();
-
-		// Revert GPIOB.7 back to i2c mode
-		/*i2c_GPIO_InitStruct.Pin       = GPIO_PIN_7;
-		i2c_GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
-		i2c_GPIO_InitStruct.Pull      = GPIO_NOPULL;//GPIO_PULLUP;
-		i2c_GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
-		i2c_GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
-		HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);*/
-
 
 		// Restart background tasks
 	    OSLOOP_Restart();

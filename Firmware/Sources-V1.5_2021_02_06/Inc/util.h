@@ -1,9 +1,14 @@
-/*
- * util.h
+// ----------------------------------------------------------------------------
+/*!
+ * @file		util.h
+ * @author    	John Steggall
+ * @date       	20 March 2021
+ * @brief       Header file for util.c
+ * @note        Please refer to the .c file for a detailed description.
  *
- *  Created on: 20.03.21
- *      Author: jsteggall
  */
+// ----------------------------------------------------------------------------
+
 #ifndef UTIL_H_
 #define UTIL_H_
 

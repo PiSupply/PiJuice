@@ -1,11 +1,14 @@
-/*
- * util.c
- *
- *  Created on: 20.03.21
- *      Author: jsteggall
- */
-
 // ----------------------------------------------------------------------------
+/*!
+ * @file		util.c
+ * @author    	John Steggall
+ * @date       	20 March 2021
+ * @brief       Stuff goes in here that I can't think of a good place, usually
+ * 				small helper functions.
+ *
+ */
+// ----------------------------------------------------------------------------
+
 // Include section - add all #includes here:
 
 #include <stdlib.h>
@@ -52,10 +55,12 @@ bool UTIL_NV_ParamInitCheck_U16(const uint16_t parameter)
 // ****************************************************************************
 /*!
  * UTIL_FixMul_U32_U16 multiplies a uint16 value by a 16/16 fixed point multiplier.
+ * The multiplier is derived by UINT16_MAX * fullscale value / resolution, rounding
+ * is performed to the nearest whole number.
  *
- * @param	uint16_t 	parameter vaue
- * @retval	bool		true = parameter is looking initialised
- * 						false = parameter is not looking initialised
+ * @param	fixmul		fixed point value to multiply by
+ * @param	value 		uint16_t parameter vaue
+ * @retval	uint16_t 	muiltiplied value
  */
 // ****************************************************************************
 uint16_t UTIL_FixMul_U32_U16(const uint32_t fixmul, const uint16_t value)
@@ -73,6 +78,17 @@ uint16_t UTIL_FixMul_U32_U16(const uint32_t fixmul, const uint16_t value)
 }
 
 
+// ****************************************************************************
+/*!
+ * UTIL_FixMul_U32_S16 multiplies a int16 value by a 16/16 fixed point multiplier.
+ * The multiplier is derived by UINT16_MAX * fullscale value / resolution. Rounding
+ * is performed to the nearest whole value.
+ *
+ * @param	fixmul		fixed point value to multiply by
+ * @param	value 		int16_t value to multiply
+ * @retval	int16_t		multiplied return value
+ */
+// ****************************************************************************
 int16_t UTIL_FixMul_U32_S16(const uint32_t fixmul, const int16_t value)
 {
 	const bool negative = (value < 0);
@@ -82,7 +98,18 @@ int16_t UTIL_FixMul_U32_S16(const uint32_t fixmul, const int16_t value)
 }
 
 
-bool UTIL_FixMulInverse_U16_U16(const uint16_t realVal, const uint16_t divValue, uint32_t * const result)
+// ****************************************************************************
+/*!
+ * UTIL_FixMulInverse_U16_U16 finds the fixed point conversion value.
+ *
+ * @param	realVal		value to be referenced to by the fixed point multiplier
+ * @param	divValue 	number of resolved steps that represents the real value
+ * @param	p_result	pointer to where the result is to be placed
+ * @retval	bool		true = conversion sucessful
+ * 						false = conversion unsuccesful
+ */
+// ****************************************************************************
+bool UTIL_FixMulInverse_U16_U16(const uint16_t realVal, const uint16_t divValue, uint32_t * const p_result)
 {
 	if (divValue == 0u)
 	{
@@ -92,7 +119,7 @@ bool UTIL_FixMulInverse_U16_U16(const uint16_t realVal, const uint16_t divValue,
 
 	// TODO - Consider overflow
 
-	*result = (realVal << 16u) / divValue;
+	*p_result = (realVal << 16u) / divValue;
 
 	return true;
 }
