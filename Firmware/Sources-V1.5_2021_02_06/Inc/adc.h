@@ -1,10 +1,13 @@
-/*
- * adc.h
+// ----------------------------------------------------------------------------
+/*!
+ * @file		adc.h
+ * @author    	John Steggall
+ * @date       	19 March 2021
+ * @brief       Header file for adc.c
+ * @note        Please refer to the .c file for a detailed description.
  *
- *  Created on: 19.03.21
- *      Author: jsteggall
  */
-
+// ----------------------------------------------------------------------------
 
 #ifndef ADC_H_
 #define ADC_H_
