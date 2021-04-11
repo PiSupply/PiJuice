@@ -1081,11 +1081,11 @@ void CmdServerReadWritePowerRegulatorConfiguration(uint8_t dir, uint8_t * pData,
 {
 	if (dir == MASTER_CMD_DIR_WRITE)
 	{
-		POWERSOURCE_SetRegulatorConfig(pData + 1u, *dataLen - 1u);
+		POWERSOURCE_SetRegulatorConfigData(pData + 1u, *dataLen - 1u);
 	}
 	else
 	{
-		POWERSOURCE_GetRegulatorConfig(pData, dataLen);
+		POWERSOURCE_GetRegulatorConfigData(pData, dataLen);
 	}
 }
 

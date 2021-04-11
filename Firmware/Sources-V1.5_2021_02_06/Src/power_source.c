@@ -319,18 +319,18 @@ uint8_t POWERSOURCE_GetVSysSwitchState(void)
 
 // ****************************************************************************
 /*!
- * POWERSOURCE_SetRegulatorConfig updates the configuration for the power regulator,
+ * POWERSOURCE_SetRegulatorConfigData updates the configuration for the power regulator,
  * this can be set to power detection, boost converter only or boost converter
  * + LDO. Power detection appears to do that same thing as boost converter + LDO
  * as when the regulation is on boost converter only there is no way of knowing
  * if the RPi is being powered by itself.
  *
- * @param	p_data
- * @param	len
+ * @param	p_data		data buffer holding the configuration data
+ * @param	len			length of the data within the buffer
  * @retval	none
  */
 // ****************************************************************************
-void POWERSOURCE_SetRegulatorConfig(const uint8_t * const p_data, const uint8_t len)
+void POWERSOURCE_SetRegulatorConfigData(const uint8_t * const p_data, const uint8_t len)
 {
 	uint8_t tempU8;
 
@@ -353,14 +353,16 @@ void POWERSOURCE_SetRegulatorConfig(const uint8_t * const p_data, const uint8_t 
 
 // ****************************************************************************
 /*!
- * POWERSOURCE_GetRegulatorConfig
+ * POWERSOURCE_GetRegulatorConfigData populates a uint8 data buffer with the
+ * regulater configuration data and sets the data length. Caller is responsible
+ * for ensuring buffer can hold amount of data.
  *
- * @param	p_data
- * @param	p_len
+ * @param	p_data		destination buffer to put the data
+ * @param	p_len		popultaed data length
  * @retval	none
  */
 // ****************************************************************************
-void POWERSOURCE_GetRegulatorConfig(uint8_t * const p_data, uint16_t * const p_len)
+void POWERSOURCE_GetRegulatorConfigData(uint8_t * const p_data, uint16_t * const p_len)
 {
 	p_data[0u] = m_powerRegulatorConfig;
 	*p_len = 1u;
@@ -369,9 +371,20 @@ void POWERSOURCE_GetRegulatorConfig(uint8_t * const p_data, uint16_t * const p_l
 
 // ****************************************************************************
 /*!
- * POWERSOURCE_Set5vBoostEnable
+ * POWERSOURCE_Set5vBoostEnable attempts to change the state of the boost converter,
+ * if no state change is determined then the routine will not perform any action.
  *
- * @param	enabled
+ * If enabling the boost converter, the battery voltage is checked to ensure above
+ * the minimum threshold or a charge source is available then LDO is disabled.
+ * On enabling the converter when no external source is available the battery is
+ * monitored to ensure there is enough power to support the load, if not then the
+ * converter will then be disabled. On a successful enable the time is noted.
+ *
+ * On disabling the converter the LDO is switched off and the RPi detection
+ * timer is reset so to synchronise the RPi power detection.
+ *
+ * @param	enabled		false = disable the boost converter
+ * 						true = attempt to turn on the boost converter
  * @retval	none
  */
 // ****************************************************************************
