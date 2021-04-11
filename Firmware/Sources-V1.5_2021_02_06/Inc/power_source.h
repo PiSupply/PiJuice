@@ -17,7 +17,6 @@ typedef enum
 	RPI5V_DETECTION_STATUS_POWERED = 2u
 } POWERSOURCE_RPi5VStatus_t;
 
-
 typedef enum PowerSourceStatus_T {
 	POW_SOURCE_NOT_PRESENT = 0,
 	POW_SOURCE_BAD,
@@ -32,9 +31,6 @@ typedef enum PowerRegulatorConfig_T {
 	POW_REGULATOR_MODE_COUNT = 3u
 } PowerRegulatorConfig_T;
 
-
-void PowerSourceExitLowPower(void);
-void PowerSourceEnterLowPower(void);
 
 void POWERSOURCE_Init(void);
 void POWERSOURCE_Task(void);

@@ -158,7 +158,9 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
-	if ( (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10) == GPIO_PIN_RESET) && (executionState == EXECUTION_STATE_POWER_RESET) )
+	if ( (HAL_GPIO_ReadPin(IODRV_PIN_POW_EN_GPIO, IODRV_PIN_POW_EN_PIN_Pos) == GPIO_PIN_RESET) &&
+			(executionState == EXECUTION_STATE_POWER_RESET)
+			)
 	{
 		executionState = EXECUTION_STATE_POWER_ON;
 	}

@@ -4,8 +4,11 @@
  *  Created on: 06.12.2016.
  *      Author: milan
  */
+// ----------------------------------------------------------------------------
+// Include section - add all #includes here:
 
 #include "main.h"
+#include "system_conf.h"
 
 #include "power_management.h"
 #include "charger_bq2416x.h"
@@ -17,13 +20,15 @@
 #include "load_current_sense.h"
 #include "execution.h"
 
-#include "system_conf.h"
 #include "iodrv.h"
 
 #include "util.h"
 
 #include "power_source.h"
 
+
+// ----------------------------------------------------------------------------
+// Defines section - add all #defines here:
 
 #define POW_5V_IO_DET_ADC_THRESHOLD		2950u
 #define VBAT_TURNOFF_ADC_THRESHOLD		0u // mV unit
@@ -33,30 +38,8 @@
 											|| (m_power5vIoStatus == POW_SOURCE_WEAK) )
 
 
-static bool m_forcedPowerOff __attribute__((section("no_init")));
-static bool m_forcedVSysOutputOff __attribute__((section("no_init")));
-
-volatile int32_t adcDmaPos = -1;
-
-static uint16_t m_vbatPowerOffThreshold;
-
-uint8_t m_rpiVLowCount;
-
-static uint32_t m_boostOnTimeMs;
-static uint32_t m_lastRPiPowerDetectTimeMs;
-static uint32_t m_rpiDetTimeMs;
-static uint32_t m_lastPowerProcessTime;
-
-static uint32_t forcedPowerOffCounter __attribute__((section("no_init")));
-static uint8_t m_vsysSwitchLimit __attribute__((section("no_init")));
-
-static bool m_boostConverterEnabled;
-static bool m_vsysEnabled;
-static bool m_ldoEnabled;
-
-static PowerSourceStatus_T m_powerInStatus = POW_SOURCE_NOT_PRESENT;
-static PowerSourceStatus_T m_power5vIoStatus = POW_SOURCE_NOT_PRESENT;
-static POWERSOURCE_RPi5VStatus_t m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_UNKNOWN;
+// ----------------------------------------------------------------------------
+// Function prototypes for functions that only have scope in this module:
 
 static void POWERSOURCE_ProcessVINStatus(void);
 static void POWERSOURCE_Process5VRailStatus(void);
@@ -64,74 +47,101 @@ static void POWERSOURCE_CheckPowerValid(void);
 static void POWERSOURCE_RPi5vDetect(void);
 static void POWERSOURCE_Process5VRailPower(void);
 
+
+// ----------------------------------------------------------------------------
+// Variables that only have scope in this module:
+
+static uint16_t m_vbatPowerOffThreshold;
+static uint8_t m_rpiVLowCount;
+static uint32_t m_boostOnTimeMs;
+static uint32_t m_lastRPiPowerDetectTimeMs;
+static uint32_t m_rpiDetTimeMs;
+static uint32_t m_lastPowerProcessTime;
+static bool m_ldoEnabled;
+static PowerSourceStatus_T m_powerInStatus = POW_SOURCE_NOT_PRESENT;
+static PowerSourceStatus_T m_power5vIoStatus = POW_SOURCE_NOT_PRESENT;
+static POWERSOURCE_RPi5VStatus_t m_rpi5VInDetStatus = RPI5V_DETECTION_STATUS_UNKNOWN;
 static PowerRegulatorConfig_T m_powerRegulatorConfig = POW_REGULATOR_MODE_POW_DET;
 
 
-// TODO - Check what this does
-void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc)
-{
-	adcDmaPos = __HAL_DMA_GET_COUNTER(hadc->DMA_Handle);
-}
+// ----------------------------------------------------------------------------
+// Variables that only have scope in this module that are persistent through reset:
+
+static bool m_forcedPowerOff __attribute__((section("no_init")));
+static bool m_forcedVSysOutputOff __attribute__((section("no_init")));
+static uint32_t forcedPowerOffCounter __attribute__((section("no_init")));
+static bool m_boostConverterEnabled __attribute__((section("no_init")));
+static bool m_vsysEnabled __attribute__((section("no_init")));
+static uint8_t m_vsysSwitchLimit __attribute__((section("no_init")));
 
 
+// ----------------------------------------------------------------------------
+// Variables that have scope from outside this module:
+
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH GLOBAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * POWERSOURCE_Init configures the module to a known initial state and tries to
+ * determine in the event of a non-power cycle reset if the boost converter and
+ * VSys output were previously on and the previous current limit for VSys.
+ * The LDO output will follow as configured.
+ *
+ * @param	none		current value of the ms tick timer
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERSOURCE_Init(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const uint32_t sysTime = HAL_GetTick();
-	const bool chargerHasPowerIn = CHARGER_IsChargeSourceAvailable();
+	const bool chargerHasVIn = (CHARGER_INPUT_NORMAL == CHARGER_GetInputStatus(CHARGER_INPUT_VIN));
+	const uint16_t vBatMv = ANALOG_GetBatteryMv();
 
 	uint8_t tempU8;
 
-	m_boostConverterEnabled = false;//IODRV_ReadPinValue(IODRV_PIN_POW_EN);
-	m_vsysEnabled = IODRV_ReadPinValue(IODRV_PIN_EXTVS_EN);
 
-	uint16_t vBatMv;
-	uint16_t var = 0u;
-
-	// initialize global variables after power-up
-	if (EXECUTION_STATE_NORMAL != executionState)
+	// initialise global variables in the no-init section after power-up
+	if (EXECUTION_STATE_POWER_RESET == executionState)
 	{
 		m_forcedPowerOff = 0u;
 		m_forcedVSysOutputOff = 0u;
 		forcedPowerOffCounter = 0u;
-		m_boostOnTimeMs = UINT32_MAX;
+
+		m_boostConverterEnabled = false;
+		m_vsysEnabled = false;
+		m_vsysSwitchLimit = 5u;
 	}
 
 	// Setup module timers
 	MS_TIMEREF_INIT(m_lastPowerProcessTime, sysTime);
 	MS_TIMEREF_INIT(m_lastRPiPowerDetectTimeMs, sysTime);
 
-	EE_ReadVariable(POWER_REGULATOR_CONFIG_NV_ADDR, &var);
 
-	if ( UTIL_NV_ParamInitCheck_U16(var) )
+	if (NV_ReadVariable_U8(POWER_REGULATOR_CONFIG_NV_ADDR, &tempU8))
 	{
-		tempU8 = (uint8_t)(var & 0xFFu);
-
 		if (tempU8 < POW_REGULATOR_MODE_COUNT)
 		{
 			m_powerRegulatorConfig = (PowerRegulatorConfig_T)tempU8;
 		}
 	}
 
-	// Set battery cut off threshold
-	m_vbatPowerOffThreshold = (NULL != currentBatProfile) ?
-				currentBatProfile->cutoffVoltage * (20u + VBAT_TURNOFF_ADC_THRESHOLD) :
-				3000u + VBAT_TURNOFF_ADC_THRESHOLD;
 
-	AnalogAdcWDGConfig(ANALOG_CHANNEL_VBAT,  m_vbatPowerOffThreshold);
+	// Setup battery low voltage threshold
+	POWERSOURCE_UpdateBatteryProfile(currentBatProfile);
 
-	DelayUs(100u);
 
-	vBatMv = ANALOG_GetBatteryMv();
-
-	// powerEnableState
 	// maintain regulator state before reset
 	if ( true == m_boostConverterEnabled )
 	{
 		// if there is mcu power-on, but reg was on, it can be power lost fault condition, check sources
 		if ( (executionState == EXECUTION_STATE_POWER_RESET)
 				&& (vBatMv < m_vbatPowerOffThreshold)
-				&& (false == chargerHasPowerIn)
+				&& (false == chargerHasVIn)
 				)
 		{
 			POWERSOURCE_Set5vBoostEnable(false);
@@ -140,37 +150,29 @@ void POWERSOURCE_Init(void)
 		}
 		else
 		{
+			// Need to rest the boost enabled flag or it'll just think its already on!
+			m_boostConverterEnabled = false;
 			POWERSOURCE_Set5vBoostEnable(true);
 		}
 	}
-	else
+
+
+	// Check if reset cycle was because of a loss of power (boost en on but power on reset)
+	if (EXECUTION_STATE_POWER_ON == executionState)
 	{
-		POWERSOURCE_SetLDOEnable(false);
-		POWERSOURCE_Set5vBoostEnable(false);
+		m_vsysSwitchLimit = 5u;
 	}
 
-	if ( (executionState == EXECUTION_STATE_POWER_ON) || (executionState == EXECUTION_STATE_POWER_RESET) )
-	{
-		// after power-up state is 500mA limit
-		IODRV_SetPin(IODRV_PIN_ESYSLIM, true);
-		m_vsysSwitchLimit = 5;
-	}
-	else
-	{
-		if (m_vsysSwitchLimit == 21 )
-		{
-			IODRV_SetPin(IODRV_PIN_ESYSLIM, false);
-		}
-		else
-		{
-			IODRV_SetPin(IODRV_PIN_ESYSLIM, true);
-		}
-	}
+	// Set the VSys output current limit
+	IODRV_SetPin(IODRV_PIN_ESYSLIM, 21u != m_vsysSwitchLimit);
 
 	// Restore previous Vsys enable
 	if ( (true == m_vsysEnabled) && (EXECUTION_STATE_POWER_ON != executionState) )
 	{
-		if ( (EXECUTION_STATE_POWER_RESET == executionState)  && (vBatMv < m_vbatPowerOffThreshold) && (chargerHasPowerIn) )
+		if ( (EXECUTION_STATE_POWER_RESET == executionState)  &&
+				(vBatMv < m_vbatPowerOffThreshold) &&
+				(false == chargerHasVIn)
+				)
 		{
 			// Disable vsys
 			IODRV_SetPin(IODRV_PIN_EXTVS_EN, false);
@@ -190,11 +192,21 @@ void POWERSOURCE_Init(void)
 		IODRV_SetPin(IODRV_PIN_EXTVS_EN, false);
 	}
 
+
+	// Switch the pin types to output
 	IODRV_SetPinType(IODRV_PIN_POW_EN, IOTYPE_DIGOUT_PUSHPULL);
 	IODRV_SetPinType(IODRV_PIN_EXTVS_EN, IOTYPE_DIGOUT_PUSHPULL);
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_Task performs the periodic tasks within the module
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERSOURCE_Task(void)
 {
 	POWERSOURCE_RPi5vDetect();
@@ -208,6 +220,16 @@ void POWERSOURCE_Task(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_UpdateBatteryProfile should be called when the battery profile
+ * is changed, this updates the threshold for which the battery is deemed to be
+ * out of power
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERSOURCE_UpdateBatteryProfile(const BatteryProfile_T * const batProfile)
 {
 	m_vbatPowerOffThreshold = (NULL == batProfile) ?
@@ -218,7 +240,19 @@ void POWERSOURCE_UpdateBatteryProfile(const BatteryProfile_T * const batProfile)
 }
 
 
-// 21 = on & 2.1A limit, 5 - on and 0.5A limit, anything else is off.
+// ****************************************************************************
+/*!
+ * POWERSOURCE_SetVSysSwitchState sets the VSys output current limit, there are
+ * two valid set points in 0.1A resolution, 500mA and 2100mA. Anything other than
+ * these values will turn off the VSys output but will not change the current limit
+ * setting. If running on battery power only the voltage level will be checked to
+ * make sure it is above the minimum threshold set by the battery profile before
+ * enabling the output.
+ *
+ * @param	switchState		5 = 500mA, 21 = 2100mA, anything else VSys is off.
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERSOURCE_SetVSysSwitchState(uint8_t switchState)
 {
 	const uint16_t vbatAdcVal = ADC_GetAverageValue(ANALOG_CHANNEL_VBAT);
@@ -260,6 +294,16 @@ void POWERSOURCE_SetVSysSwitchState(uint8_t switchState)
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_GetVSysSwitchState returns the setpoint of the VSys current limit
+ * if the output is actually on. If the output is off then 0 will be returned.
+ *
+ * @param	none
+ * @retval	uint8_t		VSsys current limit set point in 0.1A resolution,
+ * 						0 = VSys output is off.
+ */
+// ****************************************************************************
 uint8_t POWERSOURCE_GetVSysSwitchState(void)
 {
 	if (true == m_vsysEnabled)
@@ -273,38 +317,64 @@ uint8_t POWERSOURCE_GetVSysSwitchState(void)
 }
 
 
-void POWERSOURCE_SetRegulatorConfig(const uint8_t * const data, const uint8_t len)
+// ****************************************************************************
+/*!
+ * POWERSOURCE_SetRegulatorConfig updates the configuration for the power regulator,
+ * this can be set to power detection, boost converter only or boost converter
+ * + LDO. Power detection appears to do that same thing as boost converter + LDO
+ * as when the regulation is on boost converter only there is no way of knowing
+ * if the RPi is being powered by itself.
+ *
+ * @param	p_data
+ * @param	len
+ * @retval	none
+ */
+// ****************************************************************************
+void POWERSOURCE_SetRegulatorConfig(const uint8_t * const p_data, const uint8_t len)
 {
-	uint8_t temp;
-	uint16_t var = 0u;
+	uint8_t tempU8;
 
-	if ( (data[0u] >= (uint8_t)POW_REGULATOR_MODE_COUNT) || (len < 1u) )
+	if ( (p_data[0u] >= (uint8_t)POW_REGULATOR_MODE_COUNT) || (len < 1u) )
 	{
 		return;
 	}
 
-	EE_WriteVariable(POWER_REGULATOR_CONFIG_NV_ADDR, data[0u] | ((uint16_t)(~data[0u]) << 8u));
+	EE_WriteVariable(POWER_REGULATOR_CONFIG_NV_ADDR, p_data[0u] | ((uint16_t)(~p_data[0u]) << 8u));
 
-	EE_ReadVariable(POWER_REGULATOR_CONFIG_NV_ADDR, &var);
-	if (UTIL_NV_ParamInitCheck_U16(var))
+	if (NV_ReadVariable_U8(POWER_REGULATOR_CONFIG_NV_ADDR, &tempU8))
 	{
-		temp = (uint8_t)(var & 0xFFu);
-
-		if (temp < POW_REGULATOR_MODE_COUNT)
+		if (tempU8 < POW_REGULATOR_MODE_COUNT)
 		{
-			m_powerRegulatorConfig = temp;
+			m_powerRegulatorConfig = (PowerRegulatorConfig_T)tempU8;
 		}
 	}
 }
 
 
-void POWERSOURCE_GetRegulatorConfig(uint8_t * const data, uint16_t * const len)
+// ****************************************************************************
+/*!
+ * POWERSOURCE_GetRegulatorConfig
+ *
+ * @param	p_data
+ * @param	p_len
+ * @retval	none
+ */
+// ****************************************************************************
+void POWERSOURCE_GetRegulatorConfig(uint8_t * const p_data, uint16_t * const p_len)
 {
-	data[0u] = m_powerRegulatorConfig;
-	*len = 1u;
+	p_data[0u] = m_powerRegulatorConfig;
+	*p_len = 1u;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_Set5vBoostEnable
+ *
+ * @param	enabled
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERSOURCE_Set5vBoostEnable(const bool enabled)
 {
 	uint16_t vBattMv = ANALOG_GetBatteryMv();
@@ -361,7 +431,7 @@ void POWERSOURCE_Set5vBoostEnable(const bool enabled)
 				}
 			}
 
-			// Original code pulsed power off-5us-on
+			// TODO - Original code pulsed power off-5us-on
 			m_boostConverterEnabled = true;
 
 			// Stamp time boost converter is enabled
@@ -396,6 +466,18 @@ void POWERSOURCE_Set5vBoostEnable(const bool enabled)
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_SetLDOEnable enables or disables the LDO regulator, the actual
+ * operation is overridden by the configuration that has been set and if the
+ * boost converter is enabled. If the configuration is set to LDO or POWER_DET
+ * and the boost converter is enabled then the enabled parameter is respected.
+ *
+ * @param	enabled		true attempts to turn on the LDO
+ * 						false attempts to turn off the LDO
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERSOURCE_SetLDOEnable(const bool enabled)
 {
 	if (m_powerRegulatorConfig == POW_REGULATOR_MODE_DCDC)
@@ -415,72 +497,206 @@ void POWERSOURCE_SetLDOEnable(const bool enabled)
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_IsVsysEnabled gets the current state of the VSys output.
+ *
+ * @param	none
+ * @retval	bool		false = VSys output is off
+ * 						true = VSys output is on
+ */
+// ****************************************************************************
 bool POWERSOURCE_IsVsysEnabled(void)
 {
 	return m_vsysEnabled;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_IsBoostConverterEnabled gets the current enable state of the boost
+ * converter
+ *
+ * @param	none
+ * @retval	bool		false = boost converter is disabled
+ * 						true = boost converter is enabled
+ */
+// ****************************************************************************
 bool POWERSOURCE_IsBoostConverterEnabled(void)
 {
 	return m_boostConverterEnabled;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_IsLDOEnabled gets the current enable state of the LDO converter.
+ *
+ * @param	none
+ * @retval	bool		false = LDO disabled
+ * 						true = LDO enabled
+ */
+// ****************************************************************************
 bool POWERSOURCE_IsLDOEnabled(void)
 {
 	return m_ldoEnabled;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_GetVInStatus	gets the current state of the VIn power input to the
+ * charger IC. It is derived from the charger module.
+ *
+ * @param	none
+ * @retval	PowerSourceStatus_T		current state of the VIn power input
+ */
+// ****************************************************************************
 PowerSourceStatus_T POWERSOURCE_GetVInStatus(void)
 {
 	return m_powerInStatus;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_Get5VRailStatus gets the current state of the 5V rail connected
+ * to the RPi. This will have been determined by attempting to work out if the
+ * RPi is self powered, something that is not possible to do if the LDO converter
+ * is not enabled by the regulator configuration set to boost converter only.
+ * In this case the return will be not present status even though it may well be.
+ *
+ * Note: This does not detect the status of the output to the RPi.
+ *
+ * @param	none
+ * @retval	PowerSourceStatus_T		current state of the 5V RPi power input
+ */
+// ****************************************************************************
 PowerSourceStatus_T POWERSOURCE_Get5VRailStatus(void)
 {
 	return m_power5vIoStatus;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_GetRPi5VPowerStatus returns the detection status of the RPi 5V
+ * power input. This has a subtle difference to Get5VRail status in that it
+ * indicates the internal state of the detection routine and gives further insight
+ * into the 5V rail status.
+ *
+ * @param	none
+ * @retval	POWERSOURCE_RPi5VStatus_t
+ */
+// ****************************************************************************
 POWERSOURCE_RPi5VStatus_t POWERSOURCE_GetRPi5VPowerStatus(void)
 {
 	return m_rpi5VInDetStatus;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_NeedPoll tells the task manager that something needs an update
+ * within this module.
+ *
+ * @param	none
+ * @retval	bool		false = module does not require update
+ * 						true -= module requires update
+ */
+// ****************************************************************************
 bool POWERSOURCE_NeedPoll(void)
 {
-	return ((m_rpi5VInDetStatus == RPI5V_DETECTION_STATUS_POWERED) || (MS_TIME_COUNT(m_boostOnTimeMs) < POWERSOURCE_STABLISE_TIME_MS));
+	return ( (m_rpi5VInDetStatus == RPI5V_DETECTION_STATUS_POWERED) ||
+			(MS_TIME_COUNT(m_boostOnTimeMs) < POWERSOURCE_STABLISE_TIME_MS)
+			);
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_GetForcedPowerOffStatus gets the state of the forced power off
+ * flag. This will be set in the event of a power cycle reset and the boost
+ * converter detected as previously enabled or if the battery voltage has
+ * drooped below its minimum threshold.
+ *
+ * @param	none
+ * @retval	bool		false = boost converter not enabled on power reset
+ * 						true = boost converter detected enabled on power reset
+ */
+// ****************************************************************************
 bool POWERSOURCE_GetForcedPowerOffStatus(void)
 {
 	return m_forcedPowerOff;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_GetForcedVSysOutputOffStatus gets the current state of the forced
+ * VSys off flag. This would be set if running on battery power and the battery
+ * voltage has drooped below the minimum threshold.
+ *
+ * @param	none
+ * @retval	bool		false = VSys output not forced off
+ * 						true = VSys output forced off
+ */
+// ****************************************************************************
 bool POWERSOURCE_GetForcedVSysOutputOffStatus(void)
 {
 	return m_forcedVSysOutputOff;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_ClearForcedPowerOff clears the forced power off flag
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERSOURCE_ClearForcedPowerOff(void)
 {
 	m_forcedPowerOff = false;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_ClearForcedVSysOutputOff clears the forced VSys output off flag
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERSOURCE_ClearForcedVSysOutputOff(void)
 {
 	m_forcedVSysOutputOff = false;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_CheckPowerValid performs check on the power input to ensure system
+ * is operating in the correct mode.
+ *
+ * If the power is enabled to the RPi and either of the 3v3 rail or the 5v rail
+ * droops then the boost converter is disabled to prevent damage to the system
+ * from a large load or fault within the boost converter.
+ *
+ * If the RPi is powered and the battery voltage droops below the minimum threshold
+ * the VSys output is first turned off followed by the boost converter. The forced
+ * power off flag is set and the forced VSys output off flags are set.
+ *
+ * If the RPi is not powered but the VSys output is on and the battery voltage
+ * droops below the minimum threshold then the VSys output is turned off and the
+ * forced VSsys output flag is set.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERSOURCE_CheckPowerValid(void)
 {
 	const uint16_t v5RailMv = ANALOG_Get5VRailMv();
@@ -509,7 +725,7 @@ void POWERSOURCE_CheckPowerValid(void)
 		// if no sources connected, turn off 5V regulator and system switch when battery voltage drops below minimum
 		if ( (batteryADCValue < GetAdcWDGThreshold())
 				&& (m_rpi5VInDetStatus != RPI5V_DETECTION_STATUS_POWERED)
-				&& (true == chargerHasPowerIn)
+				&& (false == chargerHasPowerIn)
 				)
 		{
 			if (true == m_vsysEnabled)
@@ -539,7 +755,7 @@ void POWERSOURCE_CheckPowerValid(void)
 	}
 	else
 	{
-		// If running on battery turn off Vsys when it gets too low
+		// If running on battery with VSys on (RPi is off!) turn off Vsys when it gets too low
 		if ( (false == POWER_SOURCE_PRESENT)
 				&& (vBattMv < m_vbatPowerOffThreshold)
 				&& (true == m_vsysEnabled)
@@ -554,7 +770,22 @@ void POWERSOURCE_CheckPowerValid(void)
 }
 
 
-// Adjust the charge rate if the rail is low
+// ****************************************************************************
+/*!
+ * POWERSOURCE_Process5VRailPower controls the behaviour of the 5V rail. If the
+ * battery voltage is low and no charging source available then the 5v RPi voltage
+ * output will be turned off. If the boost converter has just been enabled then
+ * the LDO will be attempted to be turned on (dependent on configuration).
+ * If the RPi is charging the battery and the voltage droops then the charge
+ * rate will be backed off.
+ *
+ * Note: There is similar operation here with the check power valid routine
+ * and probably should be sorted out.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 static void POWERSOURCE_Process5VRailPower(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
@@ -610,7 +841,21 @@ static void POWERSOURCE_Process5VRailPower(void)
 }
 
 
-// Try and determine if the 5v comes from the RPi
+// ****************************************************************************
+/*!
+ * POWERSOURCE_RPi5vDetect attempts to determine if the 5v rail comes from the
+ * RPi. This basically just checks the voltage level is above the LDO voltage if
+ * it is enabled or if the voltage detected on the 5V rail is above a minimum
+ * threshold. If the boost converter is enabled and the LDO is not then it is
+ * not possible to determine the power status of the RPi.
+ *
+ * Note: The routine seems over complicated and should be refactored in context
+ * of the rest of the module.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERSOURCE_RPi5vDetect(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
@@ -703,16 +948,28 @@ void POWERSOURCE_RPi5vDetect(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_ProcessVINStatus determines the state of the VIn power source to
+ * the charger IC and updates the powerInStatus. If the Vin status is weak or
+ * over voltage the status is set to BAD, if the DPM is active within the charger
+ * then the VIn is detected as week. If undervoltage then the status is detected
+ * as not present.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERSOURCE_ProcessVINStatus(void)
 {
 	const CHARGER_InputStatus_t vinStatus = CHARGER_GetInputStatus(CHARGER_INPUT_VIN);
 	const uint8_t chargerDPMActive = CHARGER_IsDPMActive();
 
-	if (vinStatus == CHARGER_INPUT_UVP)
+	if (CHARGER_INPUT_UVP == vinStatus)
 	{
 		m_powerInStatus = POW_SOURCE_NOT_PRESENT;
 	}
-	else if ( (vinStatus == CHARGER_INPUT_OVP) || (vinStatus == CHARGER_INPUT_WEAK) )
+	else if ( (CHARGER_INPUT_OVP == vinStatus) || (CHARGER_INPUT_WEAK == vinStatus) )
 	{
 		m_powerInStatus = POW_SOURCE_BAD;
 	}
@@ -727,6 +984,22 @@ void POWERSOURCE_ProcessVINStatus(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERSOURCE_Process5VRailStatus determines the state of the RPi 5V input based
+ * on the detection state and the charger input. The detection state of anything
+ * but powered will set the source state to not present, it could still be powered
+ * but because the LDO is not enabled it is not possible to detect the voltage
+ * level. If powered and charger detects UVP then the source is set to not powered,
+ * this could be due to the charger not being allowed to use the 5v (USB) input
+ * and the detection state will indicate the true state of the input. An over
+ * voltage or input weak detection will set status as BAD, if the charge rate has
+ * been reduced because of a power droop the state will be set to weak.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERSOURCE_Process5VRailStatus(void)
 {
 	const bool rpi5vChargeEnable = CHARGER_GetRPi5vInputEnable();
@@ -743,11 +1016,13 @@ void POWERSOURCE_Process5VRailStatus(void)
 
 		if (true == rpi5vChargeEnable)
 		{
-			if (rpi5vChargeStatus == CHARGER_INPUT_UVP)
+			if (CHARGER_INPUT_UVP == rpi5vChargeStatus)
 			{
 				m_power5vIoStatus = POW_SOURCE_NOT_PRESENT;
 			}
-			else if ( rpi5vChargeStatus == CHARGER_INPUT_OVP || rpi5vChargeStatus == CHARGER_INPUT_WEAK)
+			else if ( (CHARGER_INPUT_OVP == rpi5vChargeStatus) ||
+						(CHARGER_INPUT_WEAK == rpi5vChargeStatus)
+					)
 			{
 				m_power5vIoStatus = POW_SOURCE_BAD;
 			}
