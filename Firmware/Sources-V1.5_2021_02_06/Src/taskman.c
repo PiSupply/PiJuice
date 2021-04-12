@@ -316,9 +316,6 @@ void TASKMAN_WaitInterrupt(void)
 		// Stop the background tasks
 		OSLOOP_Shutdown();
 
-		// Stop the led module
-		LedStop();
-
 	    HAL_RTC_GetTime(&hrtc, &sleepTime_rtc, RTC_FORMAT_BIN);
 	    (void)RTC->DR;
 
@@ -364,9 +361,6 @@ void TASKMAN_WaitInterrupt(void)
 		{
 			// Wait for ADC to become ready
 		}
-
-		// Restart LED module
-		LedStart();
 
 		MS_TIME_COUNTER_INIT(m_lowPowerDelayTimer);
 

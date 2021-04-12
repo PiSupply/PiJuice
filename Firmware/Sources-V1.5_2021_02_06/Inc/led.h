@@ -49,13 +49,10 @@ typedef struct
 
 } Led_T;
 
+
 void LED_Init(const uint32_t sysTime);
 void LED_Service(const uint32_t sysTime);
-
 void LED_Shutdown(void);
-
-void LedStop(void);
-void LedStart(void);
 
 void LED_SetRGB(const uint8_t ledIdx, const uint8_t r, const uint8_t g, const uint8_t b);
 void LED_FunctionSetRGB(const LedFunction_T func, const uint8_t r, const uint8_t g, const uint8_t b);
@@ -69,5 +66,6 @@ uint8_t LED_GetParamR(const uint8_t ledIdx);
 uint8_t LED_GetParamG(const uint8_t ledIdx);
 uint8_t LED_GetParamB(const uint8_t ledIdx);
 const Led_T * LED_FindHandleByFunction(const LedFunction_T func);
+
 
 #endif /* LED_H_ */
