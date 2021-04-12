@@ -1,7 +1,7 @@
 // ----------------------------------------------------------------------------
 /*!
  * @file		taskman.c
- * @author    	John Steggall
+ * @author    	John Steggall, milan
  * @date       	19 March 2021
  * @details     Handles the application side of the system that isn't too dependent
  * 				on close synchronous actions. The power mode is switched here
@@ -45,6 +45,9 @@
 #include "hostcomms.h"
 
 
+// ----------------------------------------------------------------------------
+// Defines section - add all #defines here:
+
 #define TASKMAN_LOOP_TRACKER_COUNT		16u
 
 
@@ -59,13 +62,10 @@ typedef enum
 
 
 // ----------------------------------------------------------------------------
-// Defines section - add all #defines here:
-
-
-// ----------------------------------------------------------------------------
 // Function prototypes for functions that only have scope in this module:
 
 void TASKMAN_WaitInterrupt(void);
+
 
 // ----------------------------------------------------------------------------
 // Variables that only have scope in this module:
@@ -88,12 +88,19 @@ static bool m_ioWakeupEvent = false;
 
 extern RTC_HandleTypeDef hrtc;
 
+
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 // FUNCTIONS WITH GLOBAL SCOPE
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
-
+// ****************************************************************************
+/*!
+ * TASKMAN_Init calls the modules init routines
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void TASKMAN_Init(void)
 {
 
@@ -123,6 +130,17 @@ void TASKMAN_Init(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * TASKMAN_Run is a non exiting loop, calling the task routines of the application
+ * modules. unlike the osloop service routines, the task routines can block and
+ * take as much time as they like without upsetting the background service routines.
+ * The power mode is switched here, allowing the system to sleep or stop.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void TASKMAN_Run(void)
 {
 	bool powerManagerCanShutdown;
@@ -205,23 +223,46 @@ void TASKMAN_Run(void)
 			m_taskmanLoopTimeTrack[m_taskloopTrackIdx] = (loopStartTIme - TIMER_OSLOOP->CNT);
 		}
 	}
-
-
 }
 
 
+// ****************************************************************************
+/*!
+ * TASKMAN_GetRunState gets the current running state of the system.
+ *
+ * @param	none
+ * @retval	m_runState		current running state of the system
+ */
+// ****************************************************************************
 TASKMAN_RunState_t TASKMAN_GetRunState(void)
 {
 	return m_runState;
 }
 
 
+// ****************************************************************************
+/*!
+ * TASKMAN_GetIOWakeEvent gets the state of the user configured IO wake event
+ *
+ * @param	none
+ * @retval	bool			false = no user configured IO wake event occurred
+ * 							true = user configured IO wake event occurred
+ */
+// ****************************************************************************
 bool TASKMAN_GetIOWakeEvent(void)
 {
 	return m_ioWakeupEvent;
 }
 
 
+// ****************************************************************************
+/*!
+ * TASKMAN_ClearIOWakeEvent clears any user configured IO wake event
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void TASKMAN_ClearIOWakeEvent(void)
 {
 	m_ioWakeupEvent = false;
@@ -244,6 +285,21 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc)
 #endif
 
 
+// ****************************************************************************
+/*!
+ * TASKMAN_WaitInterrupt determines the method of sleep mode to put the cpu in
+ * and then waits for a configured interrupt event. If in low power mode the
+ * processor will enter STOP mode for it's lowest power consumption. Configured
+ * peripherals can wake up the device at any point or the RTC peripheral will
+ * set a timer to wake up the device every 4 seconds by default, the osloop
+ * and taskman will run their routines for a period defined or until any task
+ * has been satisfied. On wake from STOP the system tick timer is adjusted for
+ * the amount of time it has been suspended.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void TASKMAN_WaitInterrupt(void)
 {
 	// TODO - BAD!
@@ -322,6 +378,21 @@ void TASKMAN_WaitInterrupt(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * HAL_GPIO_EXTI_Callback deals with the EXTI events, the HAL driver is fairly
+ * low overhead, simply collating all exti events into one callback. Little point
+ * in making it more efficient by hooking on the interrupt directly.
+ *
+ * @param	GPIO_Pin		Pin that caused the EXTI event.
+ * @retval	none
+ *
+ * @note	The pin that gets passed does not have a defined GPIO even though
+ * 			the events could be from random ports. STM have routed the EXTI events
+ * 			such that they do not overlap on ports and are always be unique by
+ * 			pin reference.
+ */
+// ****************************************************************************
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	if (GPIO_Pin == GPIO_PIN_0)

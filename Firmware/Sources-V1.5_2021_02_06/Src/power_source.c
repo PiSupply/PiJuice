@@ -91,7 +91,7 @@ static uint8_t m_vsysSwitchLimit __attribute__((section("no_init")));
  * VSys output were previously on and the previous current limit for VSys.
  * The LDO output will follow as configured.
  *
- * @param	none		current value of the ms tick timer
+ * @param	none
  * @retval	none
  */
 // ****************************************************************************

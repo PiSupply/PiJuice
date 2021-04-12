@@ -78,7 +78,7 @@ void OSLOOP_TIMER_IRQHandler(void)
 // ----------------------------------------------------------------------------
 // ****************************************************************************
 /*!
- * OSLOOP_Init configures the module to a known initial state
+ * OSLOOP_Init calls the modules init routines
  * @param	none
  * @retval	none
  */
@@ -105,7 +105,7 @@ void OSLOOP_Init(void)
 /*!
  * OSLOOP_Service calls the module service routines. None must block!!!
  *
- * @param	sysTime		current value of the ms tick timer
+ * @param	none
  * @retval	none
  */
 // ****************************************************************************
