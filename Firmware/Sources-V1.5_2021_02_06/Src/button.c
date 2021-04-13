@@ -4,6 +4,8 @@
  *  Created on: 28.03.2017.
  *      Author: milan
  */
+// ----------------------------------------------------------------------------
+// Include section - add all #includes here:
 
 #include "main.h"
 
@@ -15,6 +17,25 @@
 
 #include "button.h"
 
+
+// ----------------------------------------------------------------------------
+// Defines section - add all #defines here:
+
+
+// ----------------------------------------------------------------------------
+// Function prototypes for functions that only have scope in this module:
+
+static void BUTTON_SetConfigData(Button_T * const p_button, const uint8_t pinref);
+static void BUTTON_UpdateConfigData(Button_T * const p_button, const Button_T * const configData);
+static ButtonFunction_T BUTTON_GetEventFunc(Button_T * const p_button);
+static void BUTTON_ProcessButton(Button_T * const p_button, const uint32_t sysTick);
+static void BUTTON_SetConfigData(Button_T * const p_button, const uint8_t pinref);
+static bool BUTTON_ReadConfigFromNv(const uint8_t buttonIndex);
+static void BUTTON_WriteConfigToNv(const Button_T * const p_configData, const uint8_t buttonIdx);
+
+
+// ----------------------------------------------------------------------------
+// Variables that only have scope in this module:
 
 static Button_T m_buttons[3u] =
 {
@@ -78,33 +99,51 @@ static int8_t m_writebuttonConfigData = -1;
 static Button_T m_buttonConfigData;
 
 
-static void BUTTON_SetConfigData(Button_T * const p_button, const uint8_t pinref);
-static void BUTTON_UpdateConfigData(Button_T * const p_button, const Button_T * const configData);
-static ButtonFunction_T BUTTON_GetEventFunc(Button_T * const p_button);
-static void BUTTON_ProcessButton(Button_T * const p_button, const uint32_t sysTick);
-static void BUTTON_SetConfigData(Button_T * const p_button, const uint8_t pinref);
-static bool BUTTON_ReadConfigurationNv(const uint8_t buttonIndex);
+// ----------------------------------------------------------------------------
+// Variables that have scope from outside this module:
 
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH GLOBAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * BUTTON_Init configures the buttons with their respective IO pin
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void BUTTON_Init(void)
 {
-	if ( true == BUTTON_ReadConfigurationNv(0u) )
+	if (true == BUTTON_ReadConfigFromNv(0u))
 	{
 		BUTTON_SetConfigData(&m_buttons[0u], IODRV_PIN_SW1);
 	}
 
-	if ( true == BUTTON_ReadConfigurationNv(1u) )
+	if (true == BUTTON_ReadConfigFromNv(1u))
 	{
 		BUTTON_SetConfigData(&m_buttons[1u], IODRV_PIN_SW2);
 	}
 
-	if ( true == BUTTON_ReadConfigurationNv(2u) )
+	if (true == BUTTON_ReadConfigFromNv(2u))
 	{
 		BUTTON_SetConfigData(&m_buttons[2u], IODRV_PIN_SW3);
 	}
 }
 
 
+// ****************************************************************************
+/*!
+ * BUTTON_Task performs the periodic updates, processing the button state and writing
+ * configuration data if a change to the data has occurred.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void BUTTON_Task(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
@@ -122,21 +161,14 @@ void BUTTON_Task(void)
 
 	if (m_writebuttonConfigData >= 0)
 	{
-		uint8_t nvOffset = m_writebuttonConfigData * (BUTTON_PRESS_FUNC_SW2 - BUTTON_PRESS_FUNC_SW1) + BUTTON_PRESS_FUNC_SW1;
-		EE_WriteVariable(nvOffset, m_buttonConfigData.pressFunc | ((uint16_t)(~m_buttonConfigData.pressFunc)<<8u));
-		EE_WriteVariable(nvOffset + 2u, m_buttonConfigData.releaseFunc | ((uint16_t)(~m_buttonConfigData.releaseFunc)<<8u));
-		EE_WriteVariable(nvOffset + 4u, m_buttonConfigData.singlePressFunc | ((uint16_t)(~m_buttonConfigData.singlePressFunc)<<8u));
-		EE_WriteVariable(nvOffset + 5u, m_buttonConfigData.singlePressTime | ((uint16_t)(~m_buttonConfigData.singlePressTime)<<8u));
-		EE_WriteVariable(nvOffset + 6u, m_buttonConfigData.doublePressFunc | ((uint16_t)(~m_buttonConfigData.doublePressFunc)<<8u));
-		EE_WriteVariable(nvOffset + 7u, m_buttonConfigData.doublePressTime | ((uint16_t)(~m_buttonConfigData.doublePressTime)<<8u));
-		EE_WriteVariable(nvOffset + 8u, m_buttonConfigData.longPressFunc1 | ((uint16_t)(~m_buttonConfigData.longPressFunc1)<<8u));
-		EE_WriteVariable(nvOffset + 9u, m_buttonConfigData.longPressTime1 | ((uint16_t)(~m_buttonConfigData.longPressTime1)<<8u));
-		EE_WriteVariable(nvOffset + 10u, m_buttonConfigData.longPressFunc2 | ((uint16_t)(~m_buttonConfigData.longPressFunc2)<<8u));
-		EE_WriteVariable(nvOffset + 11u, m_buttonConfigData.longPressTime2 | ((uint16_t)(~m_buttonConfigData.longPressTime2)<<8u));
-
-		if ( true == BUTTON_ReadConfigurationNv(m_writebuttonConfigData) )
+		if (m_writebuttonConfigData < BUTTON_MAX_BUTTONS)
 		{
-			BUTTON_UpdateConfigData(&m_buttons[m_writebuttonConfigData], &m_buttonConfigData);
+			BUTTON_WriteConfigToNv(&m_buttonConfigData, (uint8_t)m_writebuttonConfigData);
+
+			if (true == BUTTON_ReadConfigFromNv((uint8_t)m_writebuttonConfigData))
+			{
+				BUTTON_UpdateConfigData(&m_buttons[m_writebuttonConfigData], &m_buttonConfigData);
+			}
 		}
 
 		m_writebuttonConfigData = -1;
@@ -144,7 +176,10 @@ void BUTTON_Task(void)
 }
 
 
-/* Attempt to understand what this function should do based on previous routine:
+// ****************************************************************************
+/*!
+ * BUTTON_ProcessButton checks to see if an event is required on a button. Following
+ * the previous routine it is implemented as such:
  *
  * BUTTON_EVENT_PRESS is raised on first rising edge after 30 seconds of no activity.
  * BUTTON_EVENT_RELEASE is raised on first falling edge if time exceeds single press or no action is registered for single press.
@@ -166,7 +201,12 @@ void BUTTON_Task(void)
  * staticButtonLongPress is evaluated to true when the button is held and time exceeds BUTTON_STATIC_LONG_PRESS_TIME
  * staticButtonLongPress is reset on button release
  *
+ *
+ * @param	p_button		pointer to button to process
+ * @param	sysTick			current value of the system tick timer
+ * @retval	none
  */
+// ****************************************************************************
 void BUTTON_ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 {
 	if ( (NULL == p_button) || (NULL == p_button->p_pinInfo) )
@@ -271,12 +311,31 @@ void BUTTON_ProcessButton(Button_T * const p_button, const uint32_t sysTick)
 }
 
 
+// ****************************************************************************
+/*!
+ * BUTTON_GetButtonEvent returns the event id of an indexed button. The index must
+ * be valid or BUTTON_EVENT_NONE will be returned.
+ *
+ * @param	buttonIndex			index of addressed button
+ * @retval	ButtonEvent_T		event id assigned to the current event.
+ */
+// ****************************************************************************
 ButtonEvent_T BUTTON_GetButtonEvent(const uint8_t buttonIndex)
 {
 	return (buttonIndex < BUTTON_MAX_BUTTONS) ? m_buttons[buttonIndex].event : BUTTON_EVENT_NONE;
 }
 
 
+// ****************************************************************************
+/*!
+ * BUTTON_ClearEvent clears the event for an indexed button, the button index is
+ * checked for validity and the IO pin edges are cleared to ensure a further false
+ * event trigger is not processed.
+ *
+ * @param	buttonIndex			index of addressed button
+ * @retval	none
+ */
+// ****************************************************************************
 void BUTTON_ClearEvent(const uint8_t buttonIndex)
 {
 	if (buttonIndex < BUTTON_MAX_BUTTONS)
@@ -289,123 +348,174 @@ void BUTTON_ClearEvent(const uint8_t buttonIndex)
 }
 
 
+// ****************************************************************************
+/*!
+ * BUTTON_IsEventActive tells the caller if a button has an event currently active
+ * or if a button is being monitored. As the event is only processed fully once the
+ * button is released or a valid function assigned to that event so the event could
+ * escalate further before being truly active.
+ *
+ * @param	none
+ * @retval	bool
+ */
+// ****************************************************************************
 bool BUTTON_IsEventActive(void)
 {
-	return (BUTTON_EVENT_NONE != m_buttons[0].event) || (BUTTON_EVENT_NONE != m_buttons[1].event) || (BUTTON_EVENT_NONE != m_buttons[2].event);
+	return (BUTTON_EVENT_NONE != m_buttons[0u].event) ||
+			(BUTTON_EVENT_NONE != m_buttons[1u].event) ||
+			(BUTTON_EVENT_NONE != m_buttons[2u].event);
 }
 
 
+// ****************************************************************************
+/*!
+ * BUTTON_IsButtonActive tells the caller if any button is being held by returning
+ * true or false. It does not give any information about which button is being held
+ * or if a button is being monitored for double press.
+ *
+ * @param	none
+ * @retval	bool		false = button not held
+ * 						true = button is being held
+ */
+// ****************************************************************************
 bool BUTTON_IsButtonActive(void)
 {
 	return (GPIO_PIN_SET == m_buttons[0u].state) || (GPIO_PIN_SET ==  m_buttons[1].state) || (GPIO_PIN_SET == m_buttons[2].state);
 }
 
 
-void BUTTON_SetConfigurationData(const uint8_t buttonIndex, const uint8_t * const data, const uint8_t len)
+// ****************************************************************************
+/*!
+ * BUTTON_SetConfigurationData sets the configuration data for an indexed button,
+ * the assingment itself is handled by the task routine of this module. The data
+ * is placed in an intermediate configuration container and then m_writebuttonConfigData
+ * is set to the button the task will configure. No checks are made to ensure a
+ * button is already expected to be configured so if called too quickly the chances
+ * are a button may not be configured when expected.
+ *
+ * @param	buttonIndex			index of addressed button
+ * @param	p_data				pointer to configuration data
+ * @param	len					length of configuration data
+ * @retval	none
+ */
+// ****************************************************************************
+void BUTTON_SetConfigurationData(const uint8_t buttonIndex, const uint8_t * const p_data,
+									const uint8_t len)
 {
 	if (buttonIndex > BUTTON_LAST_BUTTON_IDX)
 	{
 		return;
 	}
 
-	m_buttonConfigData.pressFunc = (ButtonFunction_T)data[0u];
-	m_buttonConfigData.pressConfig = data[1u];
-	m_buttonConfigData.releaseFunc = (ButtonFunction_T)data[2u];
-	m_buttonConfigData.releaseConfig = data[3u];
-	m_buttonConfigData.singlePressFunc = (ButtonFunction_T)data[4u];
-	m_buttonConfigData.singlePressTime = data[5u];
-	m_buttonConfigData.doublePressFunc = (ButtonFunction_T)data[6u];
-	m_buttonConfigData.doublePressTime = data[7u];
-	m_buttonConfigData.longPressFunc1 = (ButtonFunction_T)data[8u];
-	m_buttonConfigData.longPressTime1 = data[9u];
-	m_buttonConfigData.longPressFunc2 = (ButtonFunction_T)data[10u];
-	m_buttonConfigData.longPressTime2 = data[11u];
+	m_buttonConfigData.pressFunc = (ButtonFunction_T)p_data[0u];
+	m_buttonConfigData.pressConfig = p_data[1u];
+	m_buttonConfigData.releaseFunc = (ButtonFunction_T)p_data[2u];
+	m_buttonConfigData.releaseConfig = p_data[3u];
+	m_buttonConfigData.singlePressFunc = (ButtonFunction_T)p_data[4u];
+	m_buttonConfigData.singlePressTime = p_data[5u];
+	m_buttonConfigData.doublePressFunc = (ButtonFunction_T)p_data[6u];
+	m_buttonConfigData.doublePressTime = p_data[7u];
+	m_buttonConfigData.longPressFunc1 = (ButtonFunction_T)p_data[8u];
+	m_buttonConfigData.longPressTime1 = p_data[9u];
+	m_buttonConfigData.longPressFunc2 = (ButtonFunction_T)p_data[10u];
+	m_buttonConfigData.longPressTime2 = p_data[11u];
 
 	m_writebuttonConfigData = buttonIndex;
 }
 
 
-bool BUTTON_GetConfigurationData(const uint8_t buttonIndex, uint8_t * const data, uint16_t * const len)
+// ****************************************************************************
+/*!
+ * BUTTON_GetConfigurationData gets the configuration data from an addressed
+ * button, the time values are converted to 0.1S resolution. The button index is
+ * checked to ensure a button exists at that index.
+ *
+ * @param	buttonIndex			index of addressed button
+ * @param	p_data				pointer to destination for configuration data
+ * @param	p_len				pointer to destination for data length
+ * @retval	bool				false = configuration data invalid
+ * 								true = configuration data valid
+ */
+// ****************************************************************************
+bool BUTTON_GetConfigurationData(const uint8_t buttonIndex, uint8_t * const p_data,
+									uint16_t * const p_len)
 {
 	if (buttonIndex > BUTTON_LAST_BUTTON_IDX)
 	{
-		*len = 0u;
+		*p_len = 0u;
 		return false;
 	}
 
 	const Button_T* p_button = &m_buttons[buttonIndex];
 
-	data[0] = (uint8_t)p_button->pressFunc;
-	data[1] = (uint8_t)p_button->pressConfig;
-	data[2] = (uint8_t)p_button->releaseFunc;
-	data[3] = (uint8_t)p_button->releaseConfig;
-	data[4] = (uint8_t)p_button->singlePressFunc;
-	data[5] = (uint8_t)(p_button->singlePressTime / 100u);
-	data[6] = (uint8_t)p_button->doublePressFunc;
-	data[7] = (uint8_t)(p_button->doublePressTime / 100u);
-	data[8] = (uint8_t)p_button->longPressFunc1;
-	data[9] = (uint8_t)(p_button->longPressTime1 / 100u);
-	data[10] = (uint8_t)p_button->longPressFunc2;
-	data[11] = (uint8_t)(p_button->longPressTime2 / 100u);
+	p_data[0u] = (uint8_t)p_button->pressFunc;
+	p_data[1u] = (uint8_t)p_button->pressConfig;
+	p_data[2u] = (uint8_t)p_button->releaseFunc;
+	p_data[3u] = (uint8_t)p_button->releaseConfig;
+	p_data[4u] = (uint8_t)p_button->singlePressFunc;
+	p_data[5u] = (uint8_t)(p_button->singlePressTime / 100u);
+	p_data[6u] = (uint8_t)p_button->doublePressFunc;
+	p_data[7u] = (uint8_t)(p_button->doublePressTime / 100u);
+	p_data[8u] = (uint8_t)p_button->longPressFunc1;
+	p_data[9u] = (uint8_t)(p_button->longPressTime1 / 100u);
+	p_data[10u] = (uint8_t)p_button->longPressFunc2;
+	p_data[11u] = (uint8_t)(p_button->longPressTime2 / 100u);
 
-	*len = 12u;
+	*p_len = 12u;
 
 	return true;
 }
 
 
-static bool BUTTON_ReadConfigurationNv(const uint8_t buttonIndex)
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH LOCAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * BUTTON_ReadConfigFromNv gets the stored configuration from non volatile memory
+ * and populates the configuration intermediate storage. The time values are in
+ * 0.1S resolution and will need to be converted to mS in its final destination.
+ *
+ * @param	buttonIndex			index of addressed button
+ * @retval	bool				false = configuration data invalid
+ * 								true = configuration data appears valid
+ */
+// ****************************************************************************
+static bool BUTTON_ReadConfigFromNv(const uint8_t buttonIndex)
 {
-	const uint8_t nvOffset = buttonIndex * (BUTTON_PRESS_FUNC_SW2 - BUTTON_PRESS_FUNC_SW1) + BUTTON_PRESS_FUNC_SW1;
+	const uint8_t nvOffset = BUTTON_PRESS_FUNC_SW1 +
+								(buttonIndex * (BUTTON_PRESS_FUNC_SW2 - BUTTON_PRESS_FUNC_SW1));
+	bool dataValid = true;
 
-	bool dataValid = false;
-	uint16_t var;
-
-	EE_ReadVariable(nvOffset, &var);
-	dataValid |= UTIL_NV_ParamInitCheck_U16(var);
-
-	m_buttonConfigData.pressFunc = (ButtonFunction_T)(var & 0xFFu);
-
-	EE_ReadVariable(nvOffset + 2, &var);
-	dataValid |= UTIL_NV_ParamInitCheck_U16(var);
-	m_buttonConfigData.releaseFunc = (ButtonFunction_T)(var & 0xFFu);
-
-	EE_ReadVariable(nvOffset + 4, &var);
-	dataValid |= UTIL_NV_ParamInitCheck_U16(var);
-	m_buttonConfigData.singlePressFunc = (ButtonFunction_T)(var & 0xFFu);
-
-	EE_ReadVariable(nvOffset + 5, &var);
-	dataValid |= UTIL_NV_ParamInitCheck_U16(var);
-	m_buttonConfigData.singlePressTime = var&0xFF;
-
-	EE_ReadVariable(nvOffset + 6, &var);
-	dataValid |= UTIL_NV_ParamInitCheck_U16(var);
-	m_buttonConfigData.doublePressFunc = (ButtonFunction_T)(var & 0xFFu);
-
-	EE_ReadVariable(nvOffset + 7, &var);
-	dataValid |= UTIL_NV_ParamInitCheck_U16(var);
-	m_buttonConfigData.doublePressTime = var&0xFF;
-
-	EE_ReadVariable(nvOffset + 8, &var);
-	dataValid |= UTIL_NV_ParamInitCheck_U16(var);
-	m_buttonConfigData.longPressFunc1 = (ButtonFunction_T)(var & 0xFFu);
-
-	EE_ReadVariable(nvOffset + 9, &var);
-	dataValid |= UTIL_NV_ParamInitCheck_U16(var);
-	m_buttonConfigData.longPressTime1 = var&0xFF;
-
-	EE_ReadVariable(nvOffset + 10, &var);
-	dataValid |= UTIL_NV_ParamInitCheck_U16(var);
-	m_buttonConfigData.longPressFunc2 = (ButtonFunction_T)(var & 0xFFu);
-
-	EE_ReadVariable(nvOffset + 11, &var);
-	dataValid |= UTIL_NV_ParamInitCheck_U16(var);
-	m_buttonConfigData.longPressTime2 = (ButtonFunction_T)(var & 0xFFu);
+	dataValid &= NV_ReadVariable_U8(nvOffset, (uint8_t*)&m_buttonConfigData.pressFunc);
+	dataValid &= NV_ReadVariable_U8(nvOffset + 2u, (uint8_t*)&m_buttonConfigData.releaseFunc);
+	dataValid &= NV_ReadVariable_U8(nvOffset + 4u, (uint8_t*)&m_buttonConfigData.singlePressFunc);
+	dataValid &= NV_ReadVariable_U8(nvOffset + 5u, (uint8_t*)&m_buttonConfigData.singlePressTime);
+	dataValid &= NV_ReadVariable_U8(nvOffset + 6u, (uint8_t*)&m_buttonConfigData.doublePressFunc);
+	dataValid &= NV_ReadVariable_U8(nvOffset + 7u, (uint8_t*)&m_buttonConfigData.doublePressTime);
+	dataValid &= NV_ReadVariable_U8(nvOffset + 8u, (uint8_t*)&m_buttonConfigData.longPressFunc1);
+	dataValid &= NV_ReadVariable_U8(nvOffset + 9u, (uint8_t*)&m_buttonConfigData.longPressTime1);
+	dataValid &= NV_ReadVariable_U8(nvOffset + 10u, (uint8_t*)&m_buttonConfigData.longPressFunc2);
+	dataValid &= NV_ReadVariable_U8(nvOffset + 11u, (uint8_t*)&m_buttonConfigData.longPressTime2);
 
 	return dataValid;
 }
 
 
+// ****************************************************************************
+/*!
+ * BUTTON_SetConfigData sets up the button with its configuration data that has
+ * been collected from NV memory or sent by the host in a new configuration. The
+ * IO pin is assigned by linking the iodrv pin handle to the button struct. No
+ * checks are performed for data validity or null pointers.
+ *
+ * @param	p_button		pointer to destination button
+ * @param	pinref			pointer to the iodrv pin handle
+ * @retval	none
+ */
+// ****************************************************************************
 static void BUTTON_SetConfigData(Button_T * const p_button, const uint8_t pinref)
 {
 	p_button->p_pinInfo = IODRV_GetPinInfo(pinref);
@@ -414,21 +524,46 @@ static void BUTTON_SetConfigData(Button_T * const p_button, const uint8_t pinref
 }
 
 
-static void BUTTON_UpdateConfigData(Button_T * const p_button, const Button_T * const configData)
+// ****************************************************************************
+/*!
+ * BUTTON_UpdateConfigData moves the configuration data into the button. No checks
+ * are made for data validity or null pointers. The times that are sent over are
+ * multiplied by 100 to give a 0.1S resolution in the configuration data.
+ *
+ * @param	p_button			pointer to destination button
+ * @param	p_configData		pointer to button configuration
+ * @retval	none
+ */
+// ****************************************************************************
+static void BUTTON_UpdateConfigData(Button_T * const p_button,
+										const Button_T * const p_configData)
 {
-	p_button->pressFunc = configData->pressFunc;
-	p_button->releaseFunc = configData->releaseFunc;
-	p_button->singlePressFunc = configData->singlePressFunc;
-	p_button->singlePressTime = configData->singlePressTime * 100u;
-	p_button->doublePressFunc = configData->doublePressFunc;
-	p_button->doublePressTime = configData->doublePressTime * 100u;
-	p_button->longPressFunc1 = configData->longPressFunc1;
-	p_button->longPressTime1 = configData->longPressTime1 * 100u;
-	p_button->longPressFunc2 = configData->longPressFunc2;
-	p_button->longPressTime2 = configData->longPressTime2 * 100u;
+	p_button->pressFunc = p_configData->pressFunc;
+	p_button->releaseFunc = p_configData->releaseFunc;
+	p_button->singlePressFunc = p_configData->singlePressFunc;
+	p_button->singlePressTime = p_configData->singlePressTime * 100u;
+	p_button->doublePressFunc = p_configData->doublePressFunc;
+	p_button->doublePressTime = p_configData->doublePressTime * 100u;
+	p_button->longPressFunc1 = p_configData->longPressFunc1;
+	p_button->longPressTime1 = p_configData->longPressTime1 * 100u;
+	p_button->longPressFunc2 = p_configData->longPressFunc2;
+	p_button->longPressTime2 = p_configData->longPressTime2 * 100u;
 }
 
 
+// ****************************************************************************
+/*!
+ * BUTTON_GetEventFunc gets the associated function enumerator to a button event.
+ * In the case that the button does not have an active event BUTTON_EVENT_NO_FUNC
+ * is returned. There are a few preset system tasks that are handled by this firmware
+ * directly or the pijuice service running on the host will respond accordingly.
+ * The caller is expected to check for function validity.
+ *
+ * @param	p_button			pointer to button with active event
+ * @retval	ButtonFunction_T	function to perform directly or number to be passed
+ * 								to pijuice service routine.
+ */
+// ****************************************************************************
 static ButtonFunction_T BUTTON_GetEventFunc(Button_T * const p_button)
 {
 	switch (p_button->event)
@@ -457,6 +592,36 @@ static ButtonFunction_T BUTTON_GetEventFunc(Button_T * const p_button)
 }
 
 
+// ****************************************************************************
+/*!
+ * BUTTON_WriteConfigToNv commits configuration data for an indexed button to non
+ * volatile memory.
+ *
+ * @param	p_configData		pointer to a button configuration
+ * @param	buttonIdx			index of the button the configuration is for
+ * @retval	none
+ */
+// ****************************************************************************
+static void BUTTON_WriteConfigToNv(const Button_T * const p_configData,
+									const uint8_t buttonIdx)
+{
+	const uint8_t nvOffset = BUTTON_PRESS_FUNC_SW1 +
+								(m_writebuttonConfigData * (BUTTON_PRESS_FUNC_SW2 - BUTTON_PRESS_FUNC_SW1));
+
+	NV_WriteVariable_U8(nvOffset, p_configData->pressFunc);
+	NV_WriteVariable_U8(nvOffset + 2u, p_configData->releaseFunc);
+	NV_WriteVariable_U8(nvOffset + 4u, p_configData->singlePressFunc);
+	NV_WriteVariable_U8(nvOffset + 5u, p_configData->singlePressTime);
+	NV_WriteVariable_U8(nvOffset + 6u, p_configData->doublePressFunc);
+	NV_WriteVariable_U8(nvOffset + 7u, p_configData->doublePressTime);
+	NV_WriteVariable_U8(nvOffset + 8u, p_configData->longPressFunc1);
+	NV_WriteVariable_U8(nvOffset + 9u, p_configData->longPressTime1);
+	NV_WriteVariable_U8(nvOffset + 10u, p_configData->longPressFunc2);
+	NV_WriteVariable_U8(nvOffset + 11u, p_configData->longPressTime2);
+}
+
+
+// TODO - make these callback assignable
 __weak void BUTTON_PowerOnEventCb(const Button_T * const p_button)
 {
 	UNUSED(p_button);
@@ -472,7 +637,8 @@ __weak void BUTTON_PowerResetEventCb(const Button_T * const p_button)
 	UNUSED(p_button);
 }
 
-__weak void BUTTON_DualLongPressEventCb(void) {
+__weak void BUTTON_DualLongPressEventCb(void)
+{
 
 }
 

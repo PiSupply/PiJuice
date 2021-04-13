@@ -45,8 +45,8 @@ static Led_T m_leds[LED_COUNT] =
 
 static const uint8_t m_ledFunctionParams[2u][4u] =
 {
-		{NV_LED_FUNC_1, NV_LED_PARAM_R_1, NV_LED_PARAM_G_1, NV_LED_PARAM_B_1},
-		{NV_LED_FUNC_2, NV_LED_PARAM_R_2, NV_LED_PARAM_G_2, NV_LED_PARAM_B_2},
+	{NV_LED_FUNC_1, NV_LED_PARAM_R_1, NV_LED_PARAM_G_1, NV_LED_PARAM_B_1},
+	{NV_LED_FUNC_2, NV_LED_PARAM_R_2, NV_LED_PARAM_G_2, NV_LED_PARAM_B_2},
 };
 
 
