@@ -78,6 +78,7 @@ static void CHARGER_UpdateTempRegulationControlStatus(void);
 static void CHARGER_UpdateControlStatus(void);
 static void CHARGER_UpdateRPi5VInLockout(void);
 static void CHARGER_UpdateRegulationVoltage(void);
+static void CHARGER_UpdateSettings(void);
 
 static void CHARGER_KickDeviceWatchdog(const uint32_t sysTime);
 
@@ -103,7 +104,8 @@ static uint8_t m_registersWriteMask[CHARGER_REGISTER_COUNT] =
 static uint8_t m_registersIn[CHARGER_REGISTER_COUNT] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static uint8_t m_registersOut[CHARGER_REGISTER_COUNT] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-static CHARGER_USBInCurrentLimit_T m_rpi5VCurrentLimit = CHG_IUSB_LIMIT_150MA; // current limit code as defined in datasheet
+// current limit code as defined in datasheet
+static CHARGER_USBInCurrentLimit_T m_rpi5VCurrentLimit = CHG_IUSB_LIMIT_100MA;
 
 static bool m_i2cSuccess;
 static uint8_t m_i2cReadRegResult;
@@ -125,6 +127,18 @@ static bool m_updateBatteryProfile;
 // CALLBACK HANDLERS
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * CHARGER_I2C_Callback on a completed transfer (failed or not) the m_i2cSuccess
+ * flag is set based upon the result of the transaction. If successful and a read,
+ * the result is stored in the temporary read variable m_i2cReadRegResult.
+ *
+ * @param	p_i2cdrvDevice		const pointer to the device struct that performed
+ * 								the transaction.
+ * @retval	none
+ *
+ */
+// ****************************************************************************
 void CHARGER_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 {
 	if (p_i2cdrvDevice->event == I2CDRV_EVENT_RX_COMPLETE)
@@ -143,6 +157,18 @@ void CHARGER_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_ReadAll_I2C_Callback called when all the device registers are read,
+ * if the read was successful then the local copy of the registers are all updated
+ * and the m_i2cSuccess flag is set. If not then m_i2cSuccess is set to false.
+ *
+ * @param	p_i2cdrvDevice		const pointer to the device struct that performed
+ * 								the transaction.
+ * @retval	none
+ *
+ */
+// ****************************************************************************
 void CHARGER_ReadAll_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 {
 	if (p_i2cdrvDevice->event == I2CDRV_EVENT_RX_COMPLETE)
@@ -157,13 +183,24 @@ void CHARGER_ReadAll_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_WDT_I2C_Callback gets called when the WDT reset bit is attempted to
+ * be written. Only the timer is initialised to tell the task routine when to
+ * perform another reset.
+ *
+ * @param	p_i2cdrvDevice		const pointer to the device struct that performed
+ * 								the transaction.
+ * @retval	none
+ *
+ */
+// ****************************************************************************
 void CHARGER_WDT_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 {
-	const uint32_t sysTime = HAL_GetTick();
-
 	if (p_i2cdrvDevice->event == I2CDRV_EVENT_TX_COMPLETE)
 	{
-		m_lastWDTResetTimeMs = sysTime;
+		// Transact time is close enough.
+		m_lastWDTResetTimeMs = p_i2cdrvDevice->transactTime;
 	}
 }
 
@@ -263,27 +300,6 @@ void CHARGER_Init(void)
 }
 
 
-__weak void InputSourcePresenceChangeCb(uint8_t event) {
-	UNUSED(event);
-}
-
-
-void CHARGER_UpdateSettings(void)
-{
-	// Setting was changed, process the lot!
-	CHARGER_UpdateSupplyPreference();
-	CHARGER_UpdateRPi5VInLockout();
-	CHARGER_UpdateControlStatus();
-	CHARGER_UpdateRegulationVoltage();
-
-	CHARGER_UpdateTempRegulationControlStatus();
-	CHARGER_UpdateChgCurrentAndTermCurrent();
-	CHARGER_UpdateVinDPM();
-
-	m_chargerNeedPoll = false;
-}
-
-
 // ****************************************************************************
 /*!
  * CHARGER_Task performs periodic updates for this module
@@ -377,6 +393,17 @@ void CHARGER_Task(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * ChargerTriggerNTCMonitor
+ *
+ * Not sure about this one yet
+ *
+ * @param	temp
+ * @retval	none
+ */
+// ****************************************************************************
+// TODO - Look at this.
 void ChargerTriggerNTCMonitor(NTC_MonitorTemperature_T temp)
 {
 	switch (temp)
@@ -405,6 +432,16 @@ void ChargerTriggerNTCMonitor(NTC_MonitorTemperature_T temp)
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_SetRPi5vInputEnable enables or disables the RPi 5V charging source.
+ * The setting will not take effect until the next module task routine has run.
+ *
+ * @param	enable		false = RPi GPIO 5V not allowed as charge source
+ * 						true = RPi GPIO 5V allowed as charge source
+ * @retval	none
+ */
+// ****************************************************************************
 void CHARGER_SetRPi5vInputEnable(bool enable)
 {
 	if (enable)
@@ -420,36 +457,93 @@ void CHARGER_SetRPi5vInputEnable(bool enable)
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_SetRPi5vInputEnable returns the current configuration of the RPi 5V
+ * charge input source.
+ *
+ * Note: This is the actual device setting not the configuration.
+ *
+ * @param	none
+ * @retval	bool		false = RPi GPIO 5V not allowed as charge source
+ * 						true = RPi GPIO 5V allowed as charge source
+ */
+// ****************************************************************************
 bool CHARGER_GetRPi5vInputEnable()
 {
 	return (CHGR_BS_USBIN_ENABLED == (m_registersIn[CHG_REG_BATTERY_STATUS] & CHGR_BS_OTG_LOCK_bm));
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_RPi5vInCurrentLimitStepUp steps up the maximum allowed charging
+ * current step level. If already at maximum then it does not change.
+ *
+ * Step levels:
+ * 0 = 100mA, 1 = 150mA, 2 = 500mA, 3 = 800mA, 4 = 900mA, 5 = 1.5A
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void CHARGER_RPi5vInCurrentLimitStepUp(void)
 {
 	if (m_rpi5VCurrentLimit < CHG_IUSB_LIMIT_1500MA)
 	{
-		m_rpi5VCurrentLimit ++;
+		m_rpi5VCurrentLimit++;
 	}
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_RPi5vInCurrentLimitStepDown steps down the maximum allowed charging
+ * current step level. If already at minimum then it does not change.
+ *
+ * Step levels:
+ * 0 = 100mA, 1 = 150mA, 2 = 500mA, 3 = 800mA, 4 = 900mA, 5 = 1.5A
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void CHARGER_RPi5vInCurrentLimitStepDown(void)
 {
-	if (m_rpi5VCurrentLimit > CHG_IUSB_LIMIT_150MA)
+	if (m_rpi5VCurrentLimit > CHG_IUSB_LIMIT_100MA)
 	{
 		m_rpi5VCurrentLimit --;
 	}
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_RPi5vInCurrentLimitSetMin sets the maximum allowed charging current
+ * to the lowest step level, 100mA.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void CHARGER_RPi5vInCurrentLimitSetMin(void)
 {
-	m_rpi5VCurrentLimit = CHG_IUSB_LIMIT_150MA;
+	m_rpi5VCurrentLimit = CHG_IUSB_LIMIT_100MA;
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_GetRPiChargeInputLevel gets the current step level (not actual value)
+ * of the current limit set for charging from the RPi power source. The higher
+ * the level value the higher the current limit.
+ *
+ * 0 = 100mA, 1 = 150mA, 2 = 500mA, 3 = 800mA, 4 = 900mA, 5 = 1.5A
+ *
+ * @param	none
+ * @retval	uint8_t		step level of RPi GPIO charging current limit
+ */
+// ****************************************************************************
 uint8_t CHARGER_GetRPiChargeInputLevel(void)
 {
 	// TODO - read actual register?
@@ -457,11 +551,21 @@ uint8_t CHARGER_GetRPiChargeInputLevel(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_SetInputsConfig sets the input source configuration, if the caller wants
+ * the change to be persistent through power cycles then setting the 7th bit
+ * (or'd with 0x80u) will commit that change to NV memory. The settings will be
+ * updated next time the task routine is run.
+ *
+ * @param	config		new input source configuration
+ * @retval	none
+ */
+// ****************************************************************************
 void CHARGER_SetInputsConfig(const uint8_t config)
 {
 	m_chargerInputsConfig = (config & ~(CHRG_CONFIG_INPUTS_WRITE_NV_bm));
 
-	// If write to
 	if (0u != (config & CHRG_CONFIG_INPUTS_WRITE_NV_bm))
 	{
 		NV_WriteVariable_U8(CHARGER_INPUTS_CONFIG_NV_ADDR, config);
@@ -471,23 +575,43 @@ void CHARGER_SetInputsConfig(const uint8_t config)
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_GetInputsConfig returns the input source configuration. If the
+ * value in NV memory matches the current configuration then the one from NV is
+ * sent.
+ *
+ * @param	none
+ * @retval	uint8_t		input source configuration either current or stored
+ */
+// ****************************************************************************
 uint8_t CHARGER_GetInputsConfig(void)
 {
-	uint16_t var = 0;
+	uint8_t tempU8 = m_chargerInputsConfig;
 
-	EE_ReadVariable(CHARGER_INPUTS_CONFIG_NV_ADDR, &var);
-
-	if ( UTIL_NV_ParamInitCheck_U16(var)
-			&& ((m_chargerInputsConfig & 0x7Fu) == (var & 0x7Fu))
-			)
+	if (NV_ReadVariable_U8(CHARGER_INPUTS_CONFIG_NV_ADDR, &tempU8))
 	{
-		return (uint8_t)(var & 0xFFu);
+		if ((m_chargerInputsConfig & 0x7Fu) != (tempU8 & 0x7Fu))
+		{
+			tempU8 = m_chargerInputsConfig;
+		}
 	}
 
-	return m_chargerInputsConfig;
+	return tempU8;
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_SetChargeEnableConfig sets the charge configuration, if the caller wants
+ * the change to be persistent through power cycles then setting the 7th bit
+ * (or'd with 0x80u) will commit that change to NV memory. The settings will be
+ * updated next time the task routine is run.
+ *
+ * @param	config		new charge configuration
+ * @retval	none
+ */
+// ****************************************************************************
 void CHARGER_SetChargeEnableConfig(const uint8_t config)
 {
 	m_chargingConfig = config;
@@ -502,25 +626,43 @@ void CHARGER_SetChargeEnableConfig(const uint8_t config)
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_GetChargeEnableConfig returns the charge enable configuration. If the
+ * value in NV memory matches the current configuration then the one from NV is
+ * sent.
+ *
+ * @param	none
+ * @retval	uint8_t		charge configuration either current or stored
+ */
+// ****************************************************************************
 uint8_t CHARGER_GetChargeEnableConfig(void)
 {
-	uint16_t var = 0;
+	uint8_t tempU8 = m_chargingConfig;
 
-	EE_ReadVariable(CHARGING_CONFIG_NV_ADDR, &var);
-
-	// Check if the parameter has been programmed and matches current setting
-	// Note: This does not seem right... why not just return charging config?
-	if ( UTIL_NV_ParamInitCheck_U16(var)
-			&& ((m_chargingConfig & 0x7Fu) == (var & 0x7Fu))
-			)
+	if (NV_ReadVariable_U8(CHARGING_CONFIG_NV_ADDR, &tempU8))
 	{
-		return (uint8_t)(var & 0xFFu);
+		if ( (tempU8 & 0x7Fu) != (m_chargingConfig & 0x7Fu) )
+		{
+			tempU8 = m_chargingConfig;
+		}
 	}
 
-	return m_chargingConfig;
+	return tempU8;
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_SetInterrupt tells the module that the charging IC interrupt just
+ * happened and action may need to take place.
+ *
+ * Refer to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void CHARGER_SetInterrupt(void)
 {
 	// Flag went up
@@ -528,45 +670,120 @@ void CHARGER_SetInterrupt(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_RefreshSettings tells the module to update its configuration as a
+ * configuration change has occurred.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void CHARGER_RefreshSettings(void)
 {
 	m_chargerNeedPoll = true;
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_UpdateBatteryProfile tells the module to update its configuration based
+ * on the current battery profile. Generally called when the battery profile is
+ * changed.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void CHARGER_UpdateBatteryProfile(void)
 {
 	m_updateBatteryProfile = true;
+	m_chargerNeedPoll = true;
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_RequirePoll returns true if the charger IC module needs to run it's
+ * task.
+ *
+ * @param	none
+ * @retval	bool		false = charging ic task does not need to run
+ * 						true = charging ic task needs to run
+ */
+// ****************************************************************************
 bool CHARGER_RequirePoll(void)
 {
 	return true == m_chargerNeedPoll || true == m_interrupt;
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_GetStatus returns the status of the charging IC.
+ *
+ * Refer to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	ChargerStatus_T		status of charging IC
+ */
+// ****************************************************************************
 ChargerStatus_T CHARGER_GetStatus(void)
 {
 	return m_chargerStatus;
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_GetNoBatteryTurnOnEnable returns the configuration status of the no
+ * battery turn on.
+ *
+ * Note: this is the local configuration not the actual device register.
+ *
+ * @param	none
+ * @retval	bool	false = no battery turn on disabled in configuration
+ * 					true = no battery turn on enabled in configuration
+ */
+// ****************************************************************************
 bool CHARGER_GetNoBatteryTurnOnEnable(void)
 {
 	return CHRG_CONFIG_INPUTS_NOBATT_ENABLED;
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_IsChargeSourceAvailable returns true if there is a valid input source
+ * capable of charging the battery.
+ *
+ * Refer to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	bool	false = charging source not present
+ * 					true = charging source present
+ */
+// ****************************************************************************
 bool CHARGER_IsChargeSourceAvailable(void)
 {
 	const uint8_t instat = (m_registersIn[CHG_REG_SUPPLY_STATUS] & CHGR_SC_STAT_Msk);
 
-	// TODO- Supply status register might be better for this.
 	return (instat > CHGR_SC_STAT_NO_SOURCE) && (instat <= CHGR_SC_STAT_CHARGE_DONE);
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_IsCharging returns true if the battery is being charged by one of the
+ * input sources.
+ *
+ * Refer to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	bool	false = battery not charging
+ * 					true = battery charging
+ */
+// ****************************************************************************
 bool CHARGER_IsCharging(void)
 {
 	const uint8_t instat = (m_registersIn[CHG_REG_SUPPLY_STATUS] & CHGR_SC_STAT_Msk);
@@ -575,30 +792,81 @@ bool CHARGER_IsCharging(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_IsBatteryPresent returns true if a battery has been detected, further
+ * status information can be gained from CHARGER_GetBatteryStatus.
+ *
+ * Refer to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	bool	false = battery not present
+ * 					true = battery present
+ */
+// ****************************************************************************
 bool CHARGER_IsBatteryPresent(void)
 {
 	return (m_registersIn[CHG_REG_BATTERY_STATUS] & CHGR_BS_BATSTAT_Msk) == CHGR_BS_BATSTAT_NORMAL;
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_GetBatteryStatus returns the status of the battery according to the
+ * charging IC.
+ *
+ * @param	none
+ * @retval	CHARGER_BatteryStatus_t		battery status detected by the charging IC
+ */
+// ****************************************************************************
 CHARGER_BatteryStatus_t CHARGER_GetBatteryStatus(void)
 {
 	return ((m_registersIn[CHG_REG_BATTERY_STATUS] >> CHGR_BS_BATSTAT_Pos) & 0x3u);
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_HasTempSensorFault tells the caller if there is a temperature related
+ * fault present within the charging IC.
+ *
+ * @param	none
+ * @retval	bool		false = no temperature related fault present
+ * 						true = temperature related fault present
+ */
+// ****************************************************************************
 bool CHARGER_HasTempSensorFault(void)
 {
 	return (m_registersIn[CHG_REG_SAFETY_NTC] & CHGR_ST_NTC_FAULT_Msk) != CHGR_ST_NTC_TS_FAULT_NONE;
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_GetTempFault returns the temperature fault code from the charging IC.
+ * Refer to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	uint8_t		fault status code of temperature fault
+ */
+// ****************************************************************************
 uint8_t CHARGER_GetTempFault(void)
 {
 	return (m_registersIn[CHG_REG_SAFETY_NTC] >> CHGR_ST_NTC_FAULT_Pos);
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_GetInputStatus returns the status of an indexed input. If the RPi 5v
+ * (USB in) is requested its return value is dependent on whether that input
+ * has been locked out and may not reflect the actual condition. If the index is
+ * out of bounds then the routine shall return CHARGER_INPUT_UVP.
+ *
+ * @param	inputChannel			index of the input channel 0 = VIn, 1 = USB
+ * @retval	CHARGER_InputStatus_t	status of indexed input channel
+ */
+// ****************************************************************************
 CHARGER_InputStatus_t CHARGER_GetInputStatus(uint8_t inputChannel)
 {
 	uint8_t channelPos;
@@ -614,12 +882,31 @@ CHARGER_InputStatus_t CHARGER_GetInputStatus(uint8_t inputChannel)
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_IsDPMActive returns the DPM status of the charging IC. Refer
+ * to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	bool			true = DPM active
+ * 							false = DPM not active
+ */
+// ****************************************************************************
 bool CHARGER_IsDPMActive(void)
 {
 	return (0u != (m_registersIn[CHG_REG_DPPM_STATUS] & CHGR_VDPPM_DPM_ACTIVE));
 }
 
 
+// ****************************************************************************
+/*!
+ * CHARGER_GetFaultStatus returns the status as reported by the charging IC. Refer
+ * to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	uint8_t			fault status of charging IC
+ */
+// ****************************************************************************
 uint8_t CHARGER_GetFaultStatus(void)
 {
 	return (m_registersIn[CHG_REG_SUPPLY_STATUS] >> CHGR_SC_FLT_Pos) & 0x7u;
@@ -631,7 +918,18 @@ uint8_t CHARGER_GetFaultStatus(void)
 // FUNCTIONS WITH LOCAL SCOPE
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
-bool CHARGER_UpdateLocalRegister(const uint8_t regAddress)
+// ****************************************************************************
+/*!
+ * CHARGER_UpdateLocalRegister updates a single local register with the contents
+ * of that device register. The device register is read twice to check consistency
+ * of the data as no crc is passed in the data packet.
+ *
+ * @param	regAddress		device register address
+ * @retval	bool			false = read transaction failed
+ * 							true = read transaction succeeded
+ */
+// ****************************************************************************
+static bool CHARGER_UpdateLocalRegister(const uint8_t regAddress)
 {
 	uint8_t tempReg;
 
@@ -663,7 +961,18 @@ bool CHARGER_UpdateLocalRegister(const uint8_t regAddress)
 }
 
 
-bool CHARGER_ReadDeviceRegister(const uint8_t regAddress)
+// ****************************************************************************
+/*!
+ * CHARGER_ReadDeviceRegister sends a request for one single device register, on
+ * completion the callback is called and populates the m_i2cReadRegResult upon
+ * a successful transaction. The routine waits until the transaction is complete.
+ *
+ * @param	regAddress		device register address
+ * @retval	bool			false = read transaction failed
+ * 							true = read transaction succeeded
+ */
+// ****************************************************************************
+static bool CHARGER_ReadDeviceRegister(const uint8_t regAddress)
 {
 	const uint32_t sysTime = HAL_GetTick();
 	bool transactGood;
@@ -690,7 +999,19 @@ bool CHARGER_ReadDeviceRegister(const uint8_t regAddress)
 }
 
 
-bool CHARGER_UpdateAllLocalRegisters(void)
+// ****************************************************************************
+/*!
+ * CHARGER_UpdateAllLocalRegisters reads all the registers from the device and
+ * populates the local copy. If the transaction could not send or failed during
+ * then the routine returns false. If successful the routine returns true and
+ * the local copy of registers is valid.
+ *
+ * @param	none
+ * @retval	bool		false = read transaction failed
+ * 						true = read transaction succeeded
+ */
+// ****************************************************************************
+static bool CHARGER_UpdateAllLocalRegisters(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
 	bool transactGood;
@@ -718,25 +1039,31 @@ bool CHARGER_UpdateAllLocalRegisters(void)
 }
 
 
-bool CHARGER_UpdateDeviceRegister(const uint8_t regAddress, const uint8_t value, const uint8_t writeMask)
+// ****************************************************************************
+/*!
+ * CHARGER_UpdateDeviceRegister sends the configuration data to a single device
+ * address. A check is made that the write value isn't already valid in the device
+ * by comparing the last register read using a mask to filter the relevant bits.
+ * If a write is required then the routine will wait until the transaction is
+ * complete.
+ *
+ * @param	regAddress		device register address
+ * @param	value			value to write to the device register
+ * @param	writeMask		mask for bits of interest (1 = compare)
+ * @retval	none
+ */
+// ****************************************************************************
+static bool CHARGER_UpdateDeviceRegister(const uint8_t regAddress, const uint8_t value, const uint8_t writeMask)
 {
 	const uint32_t sysTime = HAL_GetTick();
 	uint8_t writeData[2u] = {regAddress, value};
 	bool transactGood;
-
-	// Check register address is in bounds
-	if (regAddress > CHARGER_LAST_REGISTER)
-	{
-		return false;
-	}
-
 
 	// Check if the register actually needs an update
 	if (value == (m_registersIn[regAddress] & writeMask))
 	{
 		return true;
 	}
-
 
 	m_i2cSuccess = false;
 
@@ -759,7 +1086,17 @@ bool CHARGER_UpdateDeviceRegister(const uint8_t regAddress, const uint8_t value,
 }
 
 
-void CHARGER_KickDeviceWatchdog(const uint32_t sysTime)
+// ****************************************************************************
+/*!
+ * CHARGER_KickDeviceWatchdog sets the bit in the supply status register that tells
+ * the device not to reset its configuration on elapsed time. The routine wil wait
+ * until the transaction is completed
+ *
+ * @param	sysTime		current value of the system tick timer
+ * @retval	none
+ */
+// ****************************************************************************
+static void CHARGER_KickDeviceWatchdog(const uint32_t sysTime)
 {
 	uint8_t writeData[2u] = {CHG_REG_SUPPLY_STATUS, m_registersOut[CHG_REG_SUPPLY_STATUS]};
 	// Reset charger watchdog timer, the timeout is reset in the callback
@@ -777,7 +1114,15 @@ void CHARGER_KickDeviceWatchdog(const uint32_t sysTime)
 }
 
 
-void CHARGER_UpdateSupplyPreference(void)
+// ****************************************************************************
+/*!
+ * CHARGER_UpdateSupplyPreference configures the device register
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+static void CHARGER_UpdateSupplyPreference(void)
 {
 
 	if (true == CHGR_CONFIG_INPUTS_RPI5V_PREFERRED)
@@ -794,7 +1139,17 @@ void CHARGER_UpdateSupplyPreference(void)
 }
 
 
-void CHARGER_UpdateRPi5VInLockout(void)
+// ****************************************************************************
+/*!
+ * CHARGER_UpdateRPi5VInLockout configures the device register.
+ *
+ * Refer to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+static void CHARGER_UpdateRPi5VInLockout(void)
 {
 	const POWERSOURCE_RPi5VStatus_t pow5vInDetStatus = POWERSOURCE_GetRPi5VPowerStatus();
 
@@ -822,7 +1177,17 @@ void CHARGER_UpdateRPi5VInLockout(void)
 }
 
 
-void CHARGER_UpdateControlStatus(void)
+// ****************************************************************************
+/*!
+ * CHARGER_UpdateControlStatus configures the device register.
+ *
+ * Refer to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+static void CHARGER_UpdateControlStatus(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const uint8_t batteryTemp = FUELGUAGE_GetBatteryTemperature();
@@ -876,7 +1241,17 @@ void CHARGER_UpdateControlStatus(void)
 }
 
 
-void CHARGER_UpdateRegulationVoltage(void)
+// ****************************************************************************
+/*!
+ * CHARGER_UpdateRegulationVoltage configures the device register.
+ *
+ * Refer to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+static void CHARGER_UpdateRegulationVoltage(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const int8_t batteryTemperature = FUELGUAGE_GetBatteryTemperature();
@@ -935,7 +1310,17 @@ void CHARGER_UpdateRegulationVoltage(void)
 }
 
 
-void CHARGER_UpdateChgCurrentAndTermCurrent(void)
+// ****************************************************************************
+/*!
+ * CHARGER_UpdateChgCurrentAndTermCurrent configures the device register.
+ *
+ * Refer to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+static void CHARGER_UpdateChgCurrentAndTermCurrent(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 
@@ -955,7 +1340,17 @@ void CHARGER_UpdateChgCurrentAndTermCurrent(void)
 }
 
 
-void CHARGER_UpdateVinDPM(void)
+// ****************************************************************************
+/*!
+ * CHARGER_UpdateVinDPM configures the device register.
+ *
+ * Refer to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+static void CHARGER_UpdateVinDPM(void)
 {
 	// Take value for Vin as set by the inputs config, RPi 5V set to 480mV
 	m_registersOut[CHG_REG_DPPM_STATUS] = CHRG_CONFIG_INPUTS_DPM | (CHARGER_VIN_DPM_USB << 3u);
@@ -965,7 +1360,17 @@ void CHARGER_UpdateVinDPM(void)
 }
 
 
-void CHARGER_UpdateTempRegulationControlStatus(void)
+// ****************************************************************************
+/*!
+ * CHARGER_UpdateTempRegulationControlStatus configures the device register.
+ *
+ * Refer to BQ2416x datasheet for more information.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+static void CHARGER_UpdateTempRegulationControlStatus(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const uint8_t batteryTemp = FUELGUAGE_GetBatteryTemperature();
@@ -991,7 +1396,44 @@ void CHARGER_UpdateTempRegulationControlStatus(void)
 }
 
 
-bool CHARGER_CheckForPoll(void)
+// ****************************************************************************
+/*!
+ * CHARGER_UpdateSettings runs though the configuration for each of the registers
+ * and sets accordingly. The device registers are written also going along if they
+ * need updating.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+static void CHARGER_UpdateSettings(void)
+{
+	// Setting was changed, process the lot!
+	CHARGER_UpdateSupplyPreference();
+	CHARGER_UpdateRPi5VInLockout();
+	CHARGER_UpdateControlStatus();
+	CHARGER_UpdateRegulationVoltage();
+
+	CHARGER_UpdateTempRegulationControlStatus();
+	CHARGER_UpdateChgCurrentAndTermCurrent();
+	CHARGER_UpdateVinDPM();
+
+	m_chargerNeedPoll = false;
+}
+
+
+// ****************************************************************************
+/*!
+ * CHARGER_CheckForPoll runs though the device registers to check if they match
+ * what should be set. If any register does not match then the routines returns
+ * true
+ *
+ * @param	none
+ * @retval	bool		false = all device registers match current configuration
+ * 						true = one or more registers require configuration
+ */
+// ****************************************************************************
+static bool CHARGER_CheckForPoll(void)
 {
 	uint8_t i = CHARGER_REGISTER_COUNT;
 
