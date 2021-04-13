@@ -8,7 +8,7 @@
 #ifndef BATTERY_PROFILES_H_
 #define BATTERY_PROFILES_H_
 
-#define BATTERY_PROFILES_COUNT()	((sizeof(m_batteryProfiles)/sizeof(BatteryProfile_T)))
+#define BATTERY_PROFILES_COUNT		((sizeof(m_batteryProfiles)/sizeof(BatteryProfile_T)))
 
 const BatteryProfile_T m_batteryProfiles[] =
 {

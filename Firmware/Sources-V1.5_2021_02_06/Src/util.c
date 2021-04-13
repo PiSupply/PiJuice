@@ -123,3 +123,22 @@ bool UTIL_FixMulInverse_U16_U16(const uint16_t realVal, const uint16_t divValue,
 
 	return true;
 }
+
+
+uint16_t UTIL_Make_U16(const uint8_t lowByte, const uint8_t highByte)
+{
+	return (uint16_t)lowByte | ((uint16_t)highByte << 8u);
+}
+
+
+uint16_t UTIL_FromBytes_U16(const uint8_t * const p_data)
+{
+	return (uint16_t)p_data[0u] | ((uint16_t)p_data[1u] << 8u);
+}
+
+
+void UTIL_ToBytes_U16(const uint16_t value, uint8_t * const destBuffer)
+{
+	destBuffer[0u] = (uint8_t)(value & 0xFFu);
+	destBuffer[1u] = (uint8_t)((value >> 8u) & 0xFFu);
+}
