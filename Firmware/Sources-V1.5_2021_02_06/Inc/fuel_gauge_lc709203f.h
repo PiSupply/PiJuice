@@ -40,10 +40,10 @@ typedef enum
 void FUELGUAGE_Init(void);
 void FUELGUAGE_Task(void);
 
-void FUELGUAGE_SetConfig(const uint8_t * const data, const uint16_t len);
-void FUELGUAGE_GetConfig(uint8_t * const data, uint16_t * const len);
+void FUELGUAGE_SetConfigData(const uint8_t * const p_data, const uint16_t len);
+void FUELGUAGE_GetConfigData(uint8_t * const p_data, uint16_t * const p_len);
 void FUELGUAGE_UpdateBatteryProfile(void);
-int16_t FUELGUAGE_GetBatteryMa(void);
+int16_t FUELGUAGE_GetBatteryMaHr(void);
 uint16_t FUELGUAGE_GetBatteryMv(void);
 BatteryTempSenseConfig_T FUELGUAGE_GetBatteryTempSensorCfg(void);
 uint16_t FUELGUAGE_GetSocPt1(void);

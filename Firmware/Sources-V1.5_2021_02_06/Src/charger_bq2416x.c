@@ -84,6 +84,9 @@ static void CHARGER_KickDeviceWatchdog(const uint32_t sysTime);
 
 static bool CHARGER_CheckForPoll(void);
 
+void CHARGER_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice);
+void CHARGER_ReadAll_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice);
+void CHARGER_WDT_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice);
 
 // ----------------------------------------------------------------------------
 // Variables that only have scope in this module:
@@ -220,20 +223,13 @@ void CHARGER_WDT_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 void CHARGER_Init(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
-
-	uint16_t var = 0;
 	uint8_t i;
-
 
 	// If not just powered on...
 	if (EXECUTION_STATE_NORMAL != executionState)
 	{
-		EE_ReadVariable(CHARGER_INPUTS_CONFIG_NV_ADDR, &var);
-
-		if (true == UTIL_NV_ParamInitCheck_U16(var))
+		if (NV_ReadVariable_U8(CHARGER_INPUTS_CONFIG_NV_ADDR, &m_chargerInputsConfig))
 		{
-			m_chargerInputsConfig = (uint8_t)(var & 0xFFu);
-
 			CHARGER_SetInputsConfig(m_chargerInputsConfig);
 		}
 		else
@@ -245,17 +241,10 @@ void CHARGER_Init(void)
 			m_chargerInputsConfig |= 0u;
 		}
 
-		EE_ReadVariable(CHARGING_CONFIG_NV_ADDR, &var);
-
-		// Check to see if the parameter is programmed
-		if (true == UTIL_NV_ParamInitCheck_U16(var))
-		{
-			m_chargingConfig = (uint8_t)(var & 0xFFu);
-		}
-		else
+		if (false == NV_ReadVariable_U8(CHARGING_CONFIG_NV_ADDR, &m_chargingConfig))
 		{
 			// Set enable charge if unprogrammed
-			m_chargingConfig = CHARGING_CONFIG_CHARGE_EN_bm;
+			CHARGER_SetChargeEnableConfig(0x80 | CHARGING_CONFIG_CHARGE_EN_bm);
 		}
 	}
 

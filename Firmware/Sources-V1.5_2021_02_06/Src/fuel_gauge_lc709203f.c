@@ -30,10 +30,13 @@
 // ----------------------------------------------------------------------------
 // Function prototypes for functions that only have scope in this module:
 
-void FUELGUAGE_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice);
-bool FUELGUAGE_WriteWord(const uint8_t cmd, const uint16_t word);
-bool FUELGUAGE_ReadWord(const uint8_t cmd, uint16_t *const word);
-bool FUELGUAGE_IcInit(void);
+static void FUELGUAGE_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice);
+static bool FUELGUAGE_WriteWord(const uint8_t cmd, const uint16_t word);
+static bool FUELGUAGE_ReadWord(const uint8_t cmd, uint16_t *const word);
+static bool FUELGUAGE_IcInit(void);
+static void FUELGUAGE_CalculateDischargeRate(const uint16_t previousRSoc,
+												const uint16_t newRsoc,
+												const uint32_t timeDeltaMs);
 
 
 // ----------------------------------------------------------------------------
@@ -57,6 +60,11 @@ static uint32_t m_lastFuelGaugeTaskTimeMs;
 static bool m_updateBatteryProfile;
 
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// CALLBACK HANDLERS
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 // ****************************************************************************
 /*!
  * FUELGUAGE_I2C_Callback interfaces with the i2cdrv module, lets this module
@@ -67,7 +75,7 @@ static bool m_updateBatteryProfile;
  * @retval	none
  */
 // ****************************************************************************
-void FUELGUAGE_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
+static void FUELGUAGE_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 {
 	if (p_i2cdrvDevice->event == I2CDRV_EVENT_RX_COMPLETE)
 	{
@@ -97,6 +105,18 @@ void FUELGUAGE_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 }
 
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH GLOBAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * FUELGUAGE_Init configures the module to a known initial state
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void FUELGUAGE_Init(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
@@ -144,28 +164,15 @@ void FUELGUAGE_Init(void)
 
 }
 
-void SocEvaluateDirectDynVoltage(uint16_t batVolt, int32_t dt)
-{
-	// Dynamic voltage state of charge evaluation
-}
 
-
-void SocEvaluateFuelGaugeIc(const uint16_t previousRSoc, const uint16_t newRsoc, const uint32_t timeDeltaMs)
-{
-	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
-
-	int16_t socDelta = previousRSoc - newRsoc;
-	int32_t deltaFactor = (int32_t)socDelta * timeDeltaMs * currentBatProfile->capacity;
-
-	bool neg = (deltaFactor < 0u);
-
-	uint16_t dischargeRate = UTIL_FixMul_U32_U16(FUELGUAGE_SOC_TO_I_K, abs(deltaFactor));
-
-	m_dischargeRate = (false == neg) ? dischargeRate : -dischargeRate;
-
-}
-
-
+// ****************************************************************************
+/*!
+ * FUELGUAGE_Task performs periodic updates for this module
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void FUELGUAGE_Task(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
@@ -218,7 +225,8 @@ void FUELGUAGE_Task(void)
 
 						socTimeDiff = MS_TIMEREF_DIFF(m_lastSocTimeMs, HAL_GetTick());
 
-						SocEvaluateFuelGaugeIc(m_lastSocPt1, tempU16, socTimeDiff);
+						FUELGUAGE_CalculateDischargeRate(m_lastSocPt1, tempU16,
+															socTimeDiff);
 
 						m_lastSocPt1 = tempU16;
 
@@ -255,16 +263,35 @@ void FUELGUAGE_Task(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * FUELGUAGE_UpdateBatteryProfile tells the module to update its configuration
+ * based on the current battery profile. Generally called when the battery profile
+ * is changed.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void FUELGUAGE_UpdateBatteryProfile(void)
 {
 	m_updateBatteryProfile = true;
 }
 
 
-void FUELGUAGE_SetConfig(const uint8_t * const data, const uint16_t len)
+// ****************************************************************************
+/*!
+ * FUELGUAGE_SetConfigData sets the current configuration data
+ *
+ * @param	p_data		pointer to buffer where the config data is held
+ * @param	len			length of config data
+ * @retval	none
+ */
+// ****************************************************************************
+void FUELGUAGE_SetConfigData(const uint8_t * const p_data, const uint16_t len)
 {
-	const uint8_t newTempConfig = data[0u] & 0x07u;
-	const uint8_t newRsocConfig = (uint8_t)((data[0u] & 0x30u) >> 4u);
+	const uint8_t newTempConfig = p_data[0u] & 0x07u;
+	const uint8_t newRsocConfig = (uint8_t)((p_data[0u] & 0x30u) >> 4u);
 
 	uint8_t config;
 
@@ -275,7 +302,7 @@ void FUELGUAGE_SetConfig(const uint8_t * const data, const uint16_t len)
 		return;
 	}
 
-	NV_WriteVariable_U8(FUEL_GAUGE_CONFIG_NV_ADDR, data[0u]);
+	NV_WriteVariable_U8(FUEL_GAUGE_CONFIG_NV_ADDR, p_data[0u]);
 
 	if (NvReadVariableU8(FUEL_GAUGE_CONFIG_NV_ADDR, &config) == NV_READ_VARIABLE_SUCCESS)
 	{
@@ -290,56 +317,149 @@ void FUELGUAGE_SetConfig(const uint8_t * const data, const uint16_t len)
 }
 
 
-void FUELGUAGE_GetConfig(uint8_t * const data, uint16_t * const len)
+// ****************************************************************************
+/*!
+ * FUELGUAGE_GetConfigData populates a buffer with the current fuel gauge configuration
+ *
+ * @param	p_data		pointer to buffer where the config data is to be placed
+ * @param	p_len		length of status data
+ * @retval	none
+ */
+// ****************************************************************************
+void FUELGUAGE_GetConfigData(uint8_t * const p_data, uint16_t * const p_len)
 {
-	data[0u] = (m_tempSensorConfig & 0x07u) | ( (m_rsocMeasurementConfig & 0x03u) << 4u);
-	*len = 1u;
+	p_data[0u] = (m_tempSensorConfig & 0x07u) | ( (m_rsocMeasurementConfig & 0x03u) << 4u);
+	*p_len = 1u;
 }
 
 
+// ****************************************************************************
+/*!
+ * FUELGUAGE_GetIcId returns the id of the fuel gauge IC. Think this is just its
+ * address!
+ *
+ * @param	none
+ * @retval	uint16_t		id of the fuel gauge IC
+ */
+// ****************************************************************************
 uint16_t FUELGUAGE_GetIcId(void)
 {
 	return m_fuelguageIcId;
 }
 
 
+// ****************************************************************************
+/*!
+ * FUELGUAGE_IsNtcOK
+ *
+ * @param	none
+ * @retval	bool
+ */
+// ****************************************************************************
 bool FUELGUAGE_IsNtcOK(void)
 {
 	return m_thermistorGood;
 }
 
 
+// ****************************************************************************
+/*!
+ * FUELGUAGE_IsOnline
+ *
+ * @param	none
+ * @retval	bool
+ */
+// ****************************************************************************
 bool FUELGUAGE_IsOnline(void)
 {
 	return FUELGUAGE_STATUS_ONLINE == m_fuelgaugeIcStatus;
 }
 
 
+// ****************************************************************************
+/*!
+ * FUELGUAGE_GetBatteryTemperature
+ *
+ * @param	none
+ * @retval	int8_t
+ */
+// ****************************************************************************
 int8_t FUELGUAGE_GetBatteryTemperature(void)
 {
 	return m_batteryTemperaturePt1 / 10;
 }
 
 
+// ****************************************************************************
+/*!
+ * FUELGUAGE_GetSocPt1
+ *
+ * @param	none
+ * @retval	uint16_t
+ */
+// ****************************************************************************
 uint16_t FUELGUAGE_GetSocPt1(void)
 {
 	return m_lastSocPt1;
 }
 
 
-int16_t FUELGUAGE_GetBatteryMa(void)
+// ****************************************************************************
+/*!
+ * FUELGUAGE_GetBatteryMaHr
+ *
+ * @param	none
+ * @retval	int16_t
+ */
+// ****************************************************************************
+int16_t FUELGUAGE_GetBatteryMaHr(void)
 {
 	return m_dischargeRate;
 }
 
 
+// ****************************************************************************
+/*!
+ * FUELGUAGE_GetBatteryMv
+ *
+ * @param	none
+ * @retval	uint16_t		Battery voltage in mV
+ */
+// ****************************************************************************
 uint16_t FUELGUAGE_GetBatteryMv(void)
 {
 	return m_batteryMv;
 }
 
 
-bool FUELGUAGE_IcInit(void)
+// ****************************************************************************
+/*!
+ * FUELGUAGE_GetBatteryTempSensorCfg
+ *
+ * @param	none
+ * @retval	BatteryTempSenseConfig_T
+ */
+// ****************************************************************************
+BatteryTempSenseConfig_T FUELGUAGE_GetBatteryTempSensorCfg(void)
+{
+	return m_tempSensorConfig;
+}
+
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH LOCAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * FUELGUAGE_IcInit
+ *
+ * @param	none
+ * @retval	bool
+ */
+// ****************************************************************************
+static bool FUELGUAGE_IcInit(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	uint16_t tempU16;
@@ -426,13 +546,16 @@ bool FUELGUAGE_IcInit(void)
 }
 
 
-BatteryTempSenseConfig_T FUELGUAGE_GetBatteryTempSensorCfg(void)
-{
-	return m_tempSensorConfig;
-}
-
-
-bool FUELGUAGE_ReadWord(const uint8_t cmd, uint16_t *const word)
+// ****************************************************************************
+/*!
+ * FUELGUAGE_ReadWord
+ *
+ * @param	cmd
+ * @param	cmd
+ * @retval	bool
+ */
+// ****************************************************************************
+static bool FUELGUAGE_ReadWord(const uint8_t cmd, uint16_t * const p_word)
 {
 	const uint32_t sysTime = HAL_GetTick();
 	bool transactGood;
@@ -454,13 +577,22 @@ bool FUELGUAGE_ReadWord(const uint8_t cmd, uint16_t *const word)
 		// Wait for transfer
 	}
 
-	*word = m_fuelgaugeI2CReadResult;
+	*p_word = m_fuelgaugeI2CReadResult;
 
 	return m_fuelgaugeI2CSuccess;
 }
 
 
-bool FUELGUAGE_WriteWord(const uint8_t memAddress, const uint16_t value)
+// ****************************************************************************
+/*!
+ * FUELGUAGE_WriteWord
+ *
+ * @param	memAddress
+ * @param	value
+ * @retval	bool
+ */
+// ****************************************************************************
+static bool FUELGUAGE_WriteWord(const uint8_t memAddress, const uint16_t value)
 {
 	const uint32_t sysTime = HAL_GetTick();
 	bool transactGood;
@@ -489,4 +621,47 @@ bool FUELGUAGE_WriteWord(const uint8_t memAddress, const uint16_t value)
 	}
 
 	return m_fuelgaugeI2CSuccess;
+}
+
+
+// ****************************************************************************
+/*!
+ * SocEvaluateDirectDynVoltage
+ *
+ * @param	batVolt
+ * @param	dt
+ * @retval	none
+ */
+// ****************************************************************************
+void SocEvaluateDirectDynVoltage(uint16_t batVolt, int32_t dt)
+{
+	// Dynamic voltage state of charge evaluation
+}
+
+
+// ****************************************************************************
+/*!
+ * FUELGUAGE_CalculateDischargeRate
+ *
+ * @param	previousRSoc
+ * @param	newRsoc
+ * @param	timeDeltaMs
+ * @retval	none
+ */
+// ****************************************************************************
+static void FUELGUAGE_CalculateDischargeRate(const uint16_t previousRSoc,
+												const uint16_t newRsoc,
+												const uint32_t timeDeltaMs)
+{
+	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
+
+	int16_t socDelta = previousRSoc - newRsoc;
+	int32_t deltaFactor = (int32_t)socDelta * timeDeltaMs * currentBatProfile->capacity;
+
+	bool neg = (deltaFactor < 0u);
+
+	uint16_t dischargeRate = UTIL_FixMul_U32_U16(FUELGUAGE_SOC_TO_I_K, abs(deltaFactor));
+
+	m_dischargeRate = (false == neg) ? dischargeRate : -dischargeRate;
+
 }
