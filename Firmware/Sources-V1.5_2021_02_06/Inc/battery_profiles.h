@@ -10,6 +10,25 @@
 
 #define BATTERY_PROFILES_COUNT		((sizeof(m_batteryProfiles)/sizeof(BatteryProfile_T)))
 
+static BatteryProfile_T m_customBatteryProfile =
+{
+	 	// default battery
+		BAT_CHEMISTRY_LIPO,
+		1400, // 1400mAh
+		0x04, // 850mA
+		0x01, // 100mA
+		0x22, // 4.18V
+		150, // 3V
+		3649, 3800, 4077,
+		15900, 15630, 15550,
+		1,
+		10,
+		45,
+		60,
+		0xFFFF,
+		0xFFFF,
+};
+
 const BatteryProfile_T m_batteryProfiles[] =
 {
 	{ 	// PiJuice Zero 1000mAh battery

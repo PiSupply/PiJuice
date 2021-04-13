@@ -8,7 +8,6 @@
 #ifndef BATTERY_H_
 #define BATTERY_H_
 
-#include "stdint.h"
 /*
 #define BATTERY_PROFILE (batteryProfiles[batProfileStatus])
 #define BATTERY_NONEXIST_PROFILE_ID 0xE0 // ored with stored profile id
@@ -99,7 +98,7 @@ void BATTERY_ReadActiveProfileExtendedData(uint8_t * const data, uint16_t * cons
 void BATTERY_WriteCustomProfileData(const uint8_t * const data, const uint16_t len);
 void BATTERY_WriteCustomProfileExtendedData(const uint8_t * const data, const uint16_t len);
 
-void BATTERY_SetProfileReq(const uint8_t id);
-void BATTERY_ReadProfileStatus(uint8_t * const data, uint16_t * const len);
+void BATTERY_SetProfileIdReq(const uint8_t id);
+void BATTERY_ReadProfileStatusData(uint8_t * const data, uint16_t * const len);
 
 #endif /* BATTERY_H_ */

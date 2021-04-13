@@ -784,11 +784,11 @@ void CmdServerReadWriteBatteryProfileId(uint8_t dir, uint8_t *pData, uint16_t *d
 {
 	if (MASTER_CMD_DIR_WRITE == dir)
 	{
-		BATTERY_SetProfileReq(pData[1u]);
+		BATTERY_SetProfileIdReq(pData[1u]);
 	}
 	else
 	{
-		BATTERY_ReadProfileStatus(pData, dataLen);
+		BATTERY_ReadProfileStatusData(pData, dataLen);
 	}
 }
 

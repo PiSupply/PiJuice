@@ -8,8 +8,6 @@
 #ifndef CONFIG_SWITCH_RESISTOR_H_
 #define CONFIG_SWITCH_RESISTOR_H_
 
-#include "stdint.h"
-
 extern int8_t switchConfigCode;
 extern int16_t resistorConfig1Code7;
 extern int8_t resistorConfig2Code4;

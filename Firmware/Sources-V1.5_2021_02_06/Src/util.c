@@ -125,20 +125,50 @@ bool UTIL_FixMulInverse_U16_U16(const uint16_t realVal, const uint16_t divValue,
 }
 
 
+// ****************************************************************************
+/*!
+ * UTIL_Make_U16 returns a uint16 made up from the high byte and the low byte.
+ *
+ * @param	lowByte		low byte value for the uint16
+ * @param	highByte 	high byte value for the uint16
+ * @retval	uint16_t	result
+ */
+// ****************************************************************************
 uint16_t UTIL_Make_U16(const uint8_t lowByte, const uint8_t highByte)
 {
 	return (uint16_t)lowByte | ((uint16_t)highByte << 8u);
 }
 
 
+// ****************************************************************************
+/*!
+ * UTIL_FromBytes_U16 returns a uint16 made up from the bytes in a buffer. The
+ * bytes are to be ordered little endian.
+ * No NULL pointer checks are made!
+ *
+ * @param	p_data		pointer to buffer containing 2 bytes ordered little endian
+ * @retval	uint16_t	result
+ */
+// ****************************************************************************
 uint16_t UTIL_FromBytes_U16(const uint8_t * const p_data)
 {
 	return (uint16_t)p_data[0u] | ((uint16_t)p_data[1u] << 8u);
 }
 
 
-void UTIL_ToBytes_U16(const uint16_t value, uint8_t * const destBuffer)
+// ****************************************************************************
+/*!
+ * UTIL_ToBytes_U16 writes a uint16 value to a buffer ordered little endian.
+ * No NULL pointer checks are made!
+ *
+ * @param	value			uint16 value to be used
+ * @param	p_destBuffer 	pointer to destination buffer
+ * @retval	none
+ *
+ */
+// ****************************************************************************
+void UTIL_ToBytes_U16(const uint16_t value, uint8_t * const p_destBuffer)
 {
-	destBuffer[0u] = (uint8_t)(value & 0xFFu);
-	destBuffer[1u] = (uint8_t)((value >> 8u) & 0xFFu);
+	p_destBuffer[0u] = (uint8_t)(value & 0xFFu);
+	p_destBuffer[1u] = (uint8_t)((value >> 8u) & 0xFFu);
 }

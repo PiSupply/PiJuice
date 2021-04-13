@@ -62,14 +62,14 @@ static bool BATTERY_ReadExtendedEEProfileData(void);
 static void BATTERY_WriteEEProfileData(const BatteryProfile_T *batProfile);
 static void BATTERY_WriteExtendedEEProfileData(const BatteryProfile_T *batProfile);
 
-static void BATTERY_SetNewProfile(const uint8_t newProfile);
+static void BATTERY_SetNewProfileId(const uint8_t newProfileId);
 static void BATTERY_WriteCustomProfile(const BatteryProfile_T * newProfile);
 static void BATTERY_WriteCustomProfileExtended(const BatteryProfile_T * newProfile);
 
 static void BATTERY_UpdateBatteryStatus(const uint16_t battMv,
 									const ChargerStatus_T chargerStatus, const bool batteryPresent);
 
-static void BATTERY_UpdateLeds(const uint16_t batteryRsocPt1,
+static void BATTERY_UpdateChargeLed(const uint16_t batteryRsocPt1,
 						const ChargerStatus_T chargerStatus, const TASKMAN_RunState_t runState);
 
 
@@ -81,25 +81,6 @@ static BATTERY_SetProfileStatus_t m_setProfileRequest = BATTERY_DONT_SET_PROFILE
 static BATTERY_WriteCustomProfileRequest_t m_writeCustomProfileRequest = BATTERY_CUSTOM_PROFILE_NO_WRITE;
 static BatteryProfile_T m_tempBatteryProfile;
 static const BatteryProfile_T * m_p_activeBatteryProfile = NULL;
-
-static BatteryProfile_T m_customBatteryProfile =
-{
-	 	// default battery
-		BAT_CHEMISTRY_LIPO,
-		1400, // 1400mAh
-		0x04, // 850mA
-		0x01, // 100mA
-		0x22, // 4.18V
-		150, // 3V
-		3649, 3800, 4077,
-		15900, 15630, 15550,
-		1,
-		10,
-		45,
-		60,
-		0xFFFF,
-		0xFFFF,
-};
 
 static BATTERY_ProfileStatus_t m_batteryProfileStatus = BATTERY_PROFILE_STATUS_STORED_PROFILE_ID_INVALID;
 static BatteryStatus_T m_batteryStatus = BAT_STATUS_NOT_PRESENT;
@@ -130,7 +111,8 @@ static uint32_t m_lastBatteryUpdateTimeMs;
  * BATTERY_Init configures the battery with the stored profile from NV memory,
  * if no profile is found in the NV memory then the default is used and the NV
  * memory is initialised to the default also. the profile is checked for validity
- * in the initprofile routine.
+ * in the initprofile routine. This should probably be called before any other
+ * module that uses the active battery configuration data.
  *
  * @param	none
  * @retval	none
@@ -171,7 +153,7 @@ void BATTERY_Task(void)
 
 	if ((m_setProfileRequest & BATTERY_SET_REQUEST_MSK) == BATTERY_SET_PROFILE)
 	{
-		BATTERY_SetNewProfile(m_setProfileRequest & BATTERY_REQUEST_PROFILE_MSK);
+		BATTERY_SetNewProfileId(m_setProfileRequest & BATTERY_REQUEST_PROFILE_MSK);
 
 		m_setProfileRequest = BATTERY_DONT_SET_PROFILE;
 	}
@@ -201,37 +183,40 @@ void BATTERY_Task(void)
 	{
 		MS_TIME_COUNTER_INIT(m_lastChargeLedTaskTimeMs);
 
-		BATTERY_UpdateLeds(batteryRsocPt1, chargerStatus, runState);
+		BATTERY_UpdateChargeLed(batteryRsocPt1, chargerStatus, runState);
 	}
 }
 
 
 // ****************************************************************************
 /*!
- * BATTERY_SetProfileReq
+ * BATTERY_SetProfileIdReq puts a request up for the module task to change the
+ * current active battery profile
  *
  * @param	id			new battery profile id to set
  * @retval	none
  */
 // ****************************************************************************
-void BATTERY_SetProfileReq(const uint8_t id)
+void BATTERY_SetProfileIdReq(const uint8_t id)
 {
 	if ((m_batteryProfileStatus != id) && (id <= 0x0Fu))
 	{
 		m_batteryProfileStatus = BATTERY_PROFILE_STATUS_WRITE_BUSY;
 		m_setProfileRequest = BATTERY_SET_PROFILE | id;
 	}
-
-	return;
 }
 
 
 // ****************************************************************************
 /*!
- * BATTERY_WriteCustomProfileData
+ * BATTERY_WriteCustomProfileData writes new custom profile standard data to the
+ * intermediate storage and sets the write request for the module task to perform
+ * the write. No check is performed to ensure a previous write has completed so
+ * could be inconsistent if time is not allowed for the previous request to be
+ * satisfied.
  *
- * @param	p_data
- * @param	len
+ * @param	p_data		pointer to buffer that contains the standard profile data
+ * @param	len			length of data in the buffer
  * @retval	none
  */
 // ****************************************************************************
@@ -261,10 +246,11 @@ void BATTERY_WriteCustomProfileData(const uint8_t * const p_data, const uint16_t
 
 // ****************************************************************************
 /*!
- * BATTERY_ReadActiveProfileData
+ * BATTERY_ReadActiveProfileData populates a buffer with the active profile
+ * standard data
  *
- * @param	p_data
- * @param	p_len
+ * @param	p_data	pointer to buffer where the standard profile data is to be placed
+ * @param	p_len	pointer to where to place the length of standard profile data
  * @retval	none
  */
 // ****************************************************************************
@@ -306,14 +292,19 @@ void BATTERY_ReadActiveProfileData(uint8_t * const p_data, uint16_t * const p_le
 
 // ****************************************************************************
 /*!
- * BATTERY_WriteCustomProfileExtendedData
+ * BATTERY_WriteCustomProfileExtendedData writes new custom profile data to the
+ * intermediate storage and sets the write request for the module task to perform
+ * the write. No check is performed to ensure a previous write has completed so
+ * could be inconsistent if time is not allowed for the previous request to be
+ * satisfied.
  *
- * @param	p_data
- * @param	len
+ * @param	p_data		pointer to buffer that contains the extended profile data
+ * @param	len			length of data in the buffer
  * @retval	none
  */
 // ****************************************************************************
-void BATTERY_WriteCustomProfileExtendedData(const uint8_t * const p_data, const uint16_t len)
+void BATTERY_WriteCustomProfileExtendedData(const uint8_t * const p_data,
+												const uint16_t len)
 {
 	//batProfileStatus = BATTERY_PROFILE_WRITE_BUSY_STATUS;
 
@@ -331,14 +322,16 @@ void BATTERY_WriteCustomProfileExtendedData(const uint8_t * const p_data, const 
 
 // ****************************************************************************
 /*!
- * BATTERY_ReadActiveProfileExtendedData
+ * BATTERY_ReadActiveProfileExtendedData populates a buffer with the active profile
+ * extended data
  *
- * @param	p_data
- * @param	p_len
+ * @param	p_data		pointer to buffer where the extended profile data is to be placed
+ * @param	p_len		pointer to where to place the length of length of extended profile data
  * @retval	none
  */
 // ****************************************************************************
-void BATTERY_ReadActiveProfileExtendedData(uint8_t * const p_data, uint16_t * const p_len)
+void BATTERY_ReadActiveProfileExtendedData(uint8_t * const p_data,
+											uint16_t * const p_len)
 {
 	p_data[0u] = (uint8_t)m_p_activeBatteryProfile->chemistry;
 
@@ -360,14 +353,14 @@ void BATTERY_ReadActiveProfileExtendedData(uint8_t * const p_data, uint16_t * co
 
 // ****************************************************************************
 /*!
- * BATTERY_ReadProfileStatus
+ * BATTERY_ReadProfileStatus populates a buffer with the current battery status
  *
- * @param	p_data
- * @param	p_len
+ * @param	p_data		pointer to buffer where status is to be placed
+ * @param	p_len		length of status data
  * @retval	none
  */
 // ****************************************************************************
-void BATTERY_ReadProfileStatus(uint8_t * const p_data, uint16_t * const p_len)
+void BATTERY_ReadProfileStatusData(uint8_t * const p_data, uint16_t * const p_len)
 {
 	p_data[0u] = m_batteryProfileStatus;
 	*p_len = 1u;
@@ -376,10 +369,11 @@ void BATTERY_ReadProfileStatus(uint8_t * const p_data, uint16_t * const p_len)
 
 // ****************************************************************************
 /*!
- * BATTERY_GetActiveProfileHandle
+ * BATTERY_GetActiveProfileHandle returns a const pointer to the currently active
+ * battery profile
  *
  * @param	none
- * @retval	BatteryProfile_T
+ * @retval	BatteryProfile_T *		pointer to the active battery profile
  */
 // ****************************************************************************
 const BatteryProfile_T * BATTERY_GetActiveProfileHandle(void)
@@ -390,10 +384,10 @@ const BatteryProfile_T * BATTERY_GetActiveProfileHandle(void)
 
 // ****************************************************************************
 /*!
- * BATTERY_GetStatus
+ * BATTERY_GetStatus returns the current battery status
  *
  * @param	none
- * @retval	BatteryStatus_T
+ * @retval	BatteryStatus_T		current battery status
  */
 // ****************************************************************************
 BatteryStatus_T BATTERY_GetStatus(void)
@@ -409,7 +403,9 @@ BatteryStatus_T BATTERY_GetStatus(void)
 // ----------------------------------------------------------------------------
 // ****************************************************************************
 /*!
- * BATTERY_InitProfile
+ * BATTERY_InitProfile configures the current battery profile using the profile
+ * id, if this is set to default then the battery profile is set by the dip switch
+ * settings in combination with the
  *
  * @param	initProfileId		id of profile to initialise module with
  * @retval	none
@@ -516,7 +512,9 @@ static void BATTERY_InitProfile(const uint8_t initProfileId)
 
 // ****************************************************************************
 /*!
- * BATTERY_ReadEEProfileData
+ * BATTERY_ReadEEProfileData reads the NV memory for the custom profile
+ * standard data and stores it to the custom profile. On success the routine returns
+ * true.
  *
  * @param	none
  * @retval	bool		false = profile data invalid
@@ -558,7 +556,9 @@ static bool BATTERY_ReadEEProfileData(void)
 
 // ****************************************************************************
 /*!
- * BATTERY_ReadExtendedEEProfileData
+ * BATTERY_ReadExtendedEEProfileData reads the NV memory for the custom profile
+ * extended data and stores it to the custom profile. On success the routine returns
+ * true. If any of the data reads are unsuccessful the extended data is wiped.
  *
  * @param	none
  * @retval	bool		false = profile data invalid
@@ -631,9 +631,9 @@ static bool BATTERY_ReadExtendedEEProfileData(void)
 
 // ****************************************************************************
 /*!
- * BATTERY_WriteEEProfileData
+ * BATTERY_WriteEEProfileData commits battery profile data to non volatile memory
  *
- * @param	p_batProfile
+ * @param	p_batProfile		pointer to battery profile data
  * @retval	none
  *
  */
@@ -660,9 +660,10 @@ static void BATTERY_WriteEEProfileData(const BatteryProfile_T * const p_batProfi
 
 // ****************************************************************************
 /*!
- * BATTERY_WriteExtendedEEProfileData
+ * BATTERY_WriteExtendedEEProfileData commits battery profile extended data to
+ * non volatile memory
  *
- * @param	p_batProfile
+ * @param	p_batProfile		pointer to battery profile data
  * @retval	none
  *
  */
@@ -687,32 +688,44 @@ static void BATTERY_WriteExtendedEEProfileData(const BatteryProfile_T * const p_
 
 // ****************************************************************************
 /*!
- * BATTERY_SetNewProfile
+ * BATTERY_SetNewProfileId tells the module to use a new profile from the preset
+ * profiles or the custom one. The dependent modules are notified for a change
+ * in battery profile. The new profile is is stored to NV memory for persistence
+ * over power cycles.
  *
- * @param	newProfile
+ * @param	newProfileId		id of profile to use
  * @retval	none
  *
  */
 // ****************************************************************************
-static void BATTERY_SetNewProfile(const uint8_t newProfile)
+static void BATTERY_SetNewProfileId(const uint8_t newProfileId)
 {
-	uint16_t var;
+	uint8_t tempU8;
 
-	EE_WriteVariable(BAT_PROFILE_NV_ADDR, newProfile | ((uint16_t)(~newProfile) << 8u));
-
-	EE_ReadVariable(BAT_PROFILE_NV_ADDR, &var);
-
-	if (UTIL_NV_ParamInitCheck_U16(var))
+	// Check to see if new profile is preset and isn't already active
+	if ( (newProfileId < BATTERY_CUSTOM_PROFILE_ID) &&
+			(m_p_activeBatteryProfile == &m_batteryProfiles[newProfileId])
+			)
 	{
-		// if fcs correct
-		BATTERY_InitProfile((uint8_t)(var * 0xFFu));
+		return;
 	}
-	else
+
+	// Commit new profile id to NV
+	NV_WriteVariable_U8(BAT_PROFILE_NV_ADDR, newProfileId);
+
+	if (false == NV_ReadVariable_U8(BAT_PROFILE_NV_ADDR, &tempU8))
 	{
+		// Something went wrong with the write
 		m_p_activeBatteryProfile = NULL;
 		m_batteryProfileStatus = BATTERY_PROFILE_STATUS_STORED_PROFILE_ID_INVALID;
 	}
+	else
+	{
+		// Initialise new profile
+		BATTERY_InitProfile(tempU8);
+	}
 
+	// Notify dependent modules
 	POWERSOURCE_UpdateBatteryProfile(m_p_activeBatteryProfile);
 	FUELGUAGE_UpdateBatteryProfile();
 	CHARGER_UpdateBatteryProfile();
@@ -721,17 +734,17 @@ static void BATTERY_SetNewProfile(const uint8_t newProfile)
 
 // ****************************************************************************
 /*!
- * BATTERY_WriteCustomProfile
+ * BATTERY_WriteCustomProfile writes the new profile data to NV memory and then
+ * reads it back to ensure correctness. Battery profile Id is updated if not already
+ * set to custom profile.
  *
- * @param	p_newProfile
+ * @param	p_newProfile		new profile to write to NV memory
  * @retval	none
  *
  */
 // ****************************************************************************
 static void BATTERY_WriteCustomProfile(const BatteryProfile_T * p_newProfile)
 {
-	uint16_t var;
-
 	BATTERY_WriteEEProfileData(p_newProfile);
 
 	if (true == BATTERY_ReadEEProfileData())
@@ -745,44 +758,17 @@ static void BATTERY_WriteCustomProfile(const BatteryProfile_T * p_newProfile)
 		m_p_activeBatteryProfile = NULL;
 	}
 
-	EE_ReadVariable(BAT_PROFILE_NV_ADDR, &var);
-
-	if ( (BATTERY_CUSTOM_PROFILE_ID != (uint8_t)(var & 0xFFu)) || (false == UTIL_NV_ParamInitCheck_U16(var)) )
-	{
-		BATTERY_ReadExtendedEEProfileData();
-
-		EE_WriteVariable(BAT_PROFILE_NV_ADDR, BATTERY_CUSTOM_PROFILE_ID | (uint16_t)((~BATTERY_CUSTOM_PROFILE_ID) << 8u));
-		EE_ReadVariable(BAT_PROFILE_NV_ADDR, &var);
-
-		if ( (BATTERY_CUSTOM_PROFILE_ID == (uint8_t)(var & 0xFFu)) && (false == UTIL_NV_ParamInitCheck_U16(var)) )
-		{
-			if (m_p_activeBatteryProfile != NULL)
-			{
-				m_batteryProfileStatus = BATTERY_CUSTOM_PROFILE_ID;
-			}
-			else
-			{
-				m_batteryProfileStatus = BATTERY_PROFILE_STATUS_CUSTOM_PROFILE_INVALID;
-			}
-		}
-		else
-		{
-			m_p_activeBatteryProfile = NULL;
-			m_batteryProfileStatus = BATTERY_PROFILE_STATUS_STORED_PROFILE_ID_INVALID;
-		}
-	}
-
-	POWERSOURCE_UpdateBatteryProfile(m_p_activeBatteryProfile);
-	FUELGUAGE_UpdateBatteryProfile();
-	CHARGER_UpdateBatteryProfile();
+	// Set profile ID to custom battery and initialise battery data
+	BATTERY_SetNewProfileId(BATTERY_CUSTOM_PROFILE_ID);
 }
 
 
 // ****************************************************************************
 /*!
- * BATTERY_WriteCustomProfileExtended
+ * BATTERY_WriteCustomProfileExtended writes the extended data for a new custom
+ * profile to non volatile memory for persistence over power cycles.
  *
- * @param	p_newProfile
+ * @param	p_newProfile		new profile to write to NV memory
  * @retval	none
  *
  */
@@ -795,8 +781,7 @@ static void BATTERY_WriteCustomProfileExtended(const BatteryProfile_T * p_newPro
 
 	if (m_batteryProfileStatus == BATTERY_CUSTOM_PROFILE_ID)
 	{
-		// TODO - Nothing now uses this extended data in fuelgauge as the ocv -> soc calculation is done by the IC.
-		// - Decide what to do.
+		// Fuel guage is the only module that uses the extended data in the profile
 		FUELGUAGE_UpdateBatteryProfile();
 	}
 }
@@ -804,11 +789,12 @@ static void BATTERY_WriteCustomProfileExtended(const BatteryProfile_T * p_newPro
 
 // ****************************************************************************
 /*!
- * BATTERY_UpdateBatteryStatus
+ * BATTERY_UpdateBatteryStatus processes the battery status from the battery voltage
+ * and charger input status.
  *
- * @param	battMv
- * @param	chargerStatus
- * @param	batteryPresent
+ * @param	battMv				current battery voltage in millivolts
+ * @param	chargerStatus		current status of all charger inputs
+ * @param	batteryPresent		true if battery is present, false if not present
  * @retval	none
  *
  */
@@ -837,16 +823,18 @@ static void BATTERY_UpdateBatteryStatus(const uint16_t battMv,
 
 // ****************************************************************************
 /*!
- * BATTERY_UpdateLeds
+ * BATTERY_UpdateChargeLed changes the charge led based on current charge level
+ * and if the battery is charging. If the system is in low power mode then the
+ * light level of the charge led is reduced.
  *
- * @param	batteryRsocPt1
- * @param	chargerStatus
- * @param	runState
+ * @param	batteryRsocPt1		current SOC of battery in 0.1% steps
+ * @param	chargerStatus		current status of all charge inputs
+ * @param	runState			current run state of the task manager
  * @retval	none
  *
  */
 // ****************************************************************************
-static void BATTERY_UpdateLeds(const uint16_t batteryRsocPt1,
+static void BATTERY_UpdateChargeLed(const uint16_t batteryRsocPt1,
 						const ChargerStatus_T chargerStatus, const TASKMAN_RunState_t runState)
 {
 	const Led_T * p_chargeLed = LED_FindHandleByFunction(LED_CHARGE_STATUS);

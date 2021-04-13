@@ -4,7 +4,7 @@
  *  Created on: 10.03.2017.
  *      Author: milan
  */
-
+#include "main.h"
 #include "config_switch_resistor.h"
 
 #define CONFIG_SW_01_ADC	2048 // 1.65
@@ -40,35 +40,64 @@ int8_t switchConfigCode = -1;
 int16_t resistorConfig1Code7 = -1;
 int8_t resistorConfig2Code4 = -1;
 
-void SwitchResCongigInit(uint32_t resistorConfigAdc) {
-	if ( resistorConfigAdc > CONFIG_SW_11_ADC_HIGH + 2) {
+void SwitchResCongigInit(uint32_t resistorConfigAdc)
+{
+	if ( resistorConfigAdc > CONFIG_SW_11_ADC_HIGH + 2)
+	{
 		switchConfigCode = 0x3;
-	} else if ( resistorConfigAdc > CONFIG_SW_11_ADC_LOW ) {
+	}
+	else if ( resistorConfigAdc > CONFIG_SW_11_ADC_LOW )
+	{
 		switchConfigCode = 0x3;
 		resistorConfig1Code7 = ((((CONFIG_SW_11_ADC_HIGH - resistorConfigAdc) * 128 / (CONFIG_SW_11_ADC_HIGH - CONFIG_SW_11_ADC_LOW)) << 1) + 1) >> 1;
-	} else if ( resistorConfigAdc > CONFIG_SW_10_ADC_HIGH + 2) {
+	}
+	else if ( resistorConfigAdc > CONFIG_SW_10_ADC_HIGH + 2)
+	{
 		switchConfigCode = 0x2;
-	} else if ( resistorConfigAdc > CONFIG_SW_10_ADC_LOW ) {
+	}
+	else if ( resistorConfigAdc > CONFIG_SW_10_ADC_LOW )
+	{
 		switchConfigCode = 0x2;
 		resistorConfig1Code7 = ((((CONFIG_SW_10_ADC_HIGH - resistorConfigAdc) * 128 / (CONFIG_SW_10_ADC_HIGH - CONFIG_SW_10_ADC_LOW)) << 1) + 1) >> 1;
-	} else if ( resistorConfigAdc > CONFIG_SW_01_ADC_HIGH + 2) {
+	}
+	else if ( resistorConfigAdc > CONFIG_SW_01_ADC_HIGH + 2)
+	{
 		switchConfigCode = 0x1;
-	} else if ( resistorConfigAdc > CONFIG_SW_01_ADC_LOW ) {
+	}
+	else if ( resistorConfigAdc > CONFIG_SW_01_ADC_LOW )
+	{
 		switchConfigCode = 0x1;
 		resistorConfig1Code7 = ((((CONFIG_SW_01_ADC_HIGH - resistorConfigAdc) * 128 / (CONFIG_SW_01_ADC_HIGH - CONFIG_SW_01_ADC_LOW)) << 1) + 1) >> 1;
-	} else if ( resistorConfigAdc > CONFIG_SWR2_11_ADC_HIGH + 3) {
-	} else if ( resistorConfigAdc > CONFIG_SWR2_11_ADC_LOW ) {
+	}
+	else if ( resistorConfigAdc > CONFIG_SWR2_11_ADC_HIGH + 3)
+	{
+		// TODO - Figure out what goes here
+	}
+	else if ( resistorConfigAdc > CONFIG_SWR2_11_ADC_LOW )
+	{
 		switchConfigCode = 0x3;
 		resistorConfig2Code4 = ((((CONFIG_SWR2_11_ADC_HIGH - resistorConfigAdc) * 16 / (CONFIG_SWR2_11_ADC_HIGH - CONFIG_SWR2_11_ADC_LOW)) << 1) + 1) >> 1;
-	} else if ( resistorConfigAdc > CONFIG_SWR2_10_ADC_HIGH + 3) {
-	} else if ( resistorConfigAdc > CONFIG_SWR2_10_ADC_LOW ) {
+	}
+	else if ( resistorConfigAdc > CONFIG_SWR2_10_ADC_HIGH + 3)
+	{
+		// TODO - Figure out what goes here
+	}
+	else if ( resistorConfigAdc > CONFIG_SWR2_10_ADC_LOW )
+	{
 		switchConfigCode = 0x2;
 		resistorConfig2Code4 = ((((CONFIG_SWR2_10_ADC_HIGH - resistorConfigAdc) * 16 / (CONFIG_SWR2_10_ADC_HIGH - CONFIG_SWR2_10_ADC_LOW)) << 1) + 1) >> 1;
-	} else if ( resistorConfigAdc > CONFIG_SWR2_01_ADC_HIGH + 3) {
-	} else if ( resistorConfigAdc > CONFIG_SWR2_01_ADC_LOW ) {
+	}
+	else if ( resistorConfigAdc > CONFIG_SWR2_01_ADC_HIGH + 3)
+	{
+		// TODO - Figure out what goes here
+	}
+	else if ( resistorConfigAdc > CONFIG_SWR2_01_ADC_LOW )
+	{
 		switchConfigCode = 0x1;
 		resistorConfig2Code4 = ((((CONFIG_SWR2_01_ADC_HIGH - resistorConfigAdc) * 16 / (CONFIG_SWR2_01_ADC_HIGH - CONFIG_SWR2_01_ADC_LOW)) << 1) + 1) >> 1;
-	} else if (resistorConfigAdc < 8) {
+	}
+	else if (resistorConfigAdc < 8)
+	{
 		switchConfigCode = 0x0;
 	}
 }
