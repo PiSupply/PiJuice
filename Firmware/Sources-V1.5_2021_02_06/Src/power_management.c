@@ -266,7 +266,6 @@ void POWERMAN_Task(void)
 	const bool rtcWakeEvent = RTC_GetWakeEvent();
 	const bool ioWakeEvent = TASKMAN_GetIOWakeEvent();
 
-	bool boostConverterEnabled;
 	bool isWakeupOnCharge;
 
 	if (MS_TIMEREF_TIMEOUT(m_powerMngmtTaskMsCounter, sysTime, POWERMANAGE_TASK_PERIOD_MS))
@@ -321,8 +320,6 @@ void POWERMAN_Task(void)
 
 		MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
 	}
-
-	boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
 
 	// Time is set in the future, so need to work in int32 or it'll roll over
 	if ( (0u != m_delayedPowerOffTimeMs) && (int32_t)MS_TIMEREF_DIFF(m_delayedPowerOffTimeMs, sysTime) > 0)

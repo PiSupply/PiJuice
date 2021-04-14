@@ -4,6 +4,8 @@
  *  Created on: 10.03.2017.
  *      Author: milan
  */
+// ----------------------------------------------------------------------------
+// Include section - add all #includes here:
 
 #include <stdlib.h>
 #include "main.h"
@@ -21,33 +23,65 @@
 #include "load_current_sense.h"
 #include "current_sense_tables.h"
 
+
+// ----------------------------------------------------------------------------
+// Defines section - add all #defines here:
+
 #define ISENSE_CAL_POINTS			3u
+#define ISENSE_CAL_POINT_LOW		0u
+#define ISENSE_CAL_POINT_MID		1u
+#define ISENSE_CAL_POINT_HIGH		2u
+
+
+// ----------------------------------------------------------------------------
+// Function prototypes for functions that only have scope in this module:
+
+static bool ISENSE_ReadNVCalibration(void);
+static uint16_t ISENSE_GetPMOSLoadCurrentMa(void);
+static uint16_t ISENSE_GetRefLoadCurrentMa(void);
+static int16_t ISENSE_GetResSenseCurrentMa(void);
+static void ISENSE_CalibrateCurrent(const uint8_t pointIdx, const uint16_t currentMa);
+static uint16_t ISENSE_ConvertFETDrvToMa(const uint16_t fetDrvAdc, const int8_t temperature);
+
+
+// ----------------------------------------------------------------------------
+// Variables that only have scope in this module:
 
 static uint8_t m_kta;
 static uint8_t m_ktb;
 static int16_t m_resLoadCurrCalibOffset = 0;
 static uint32_t m_resLoadCurrCalibScale_K;
 
-static int16_t m_calibrationPointsR[ISENSE_CAL_POINTS];
-static uint16_t m_calibrationPointsF[ISENSE_CAL_POINTS];
-static uint16_t m_calibrationPointsB[ISENSE_CAL_POINTS];
-static uint16_t m_calibrationPointsI[ISENSE_CAL_POINTS];
+static int16_t m_calibrationPointsIRes[ISENSE_CAL_POINTS];
+static uint16_t m_calibrationPointsFET[ISENSE_CAL_POINTS];
+static uint16_t m_calibrationPointsBoost[ISENSE_CAL_POINTS];
+static uint16_t m_calibrationPointsIRef[ISENSE_CAL_POINTS];
+static int8_t m_calibrationPointsTemp[ISENSE_CAL_POINTS];
 
 
-static bool ISENSE_ReadNVCalibration(void);
-static uint16_t ISENSE_GetPMOSLoadCurrentMa(void);
-static float ISENSE_GetRefLoadCurrentMa(void);
-static int16_t ISENSE_GetResSenseCurrentMa(void);
-static void ISENSE_CalibrateCurrent(const uint8_t pointIdx, const uint16_t currentMa);
+// ----------------------------------------------------------------------------
+// Variables that have scope from outside this module:
 
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH GLOBAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * ISENSE_Init configures the module to a known initial state
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void ISENSE_Init(void)
 {
 	uint8_t i = 0;
 
 	while(i < ISENSE_CAL_POINTS)
 	{
-		m_calibrationPointsI[i] = 0u;
+		m_calibrationPointsIRef[i] = 0u;
 		i++;
 	}
 
@@ -56,12 +90,28 @@ void ISENSE_Init(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * ISENSE_Task performs periodic updates for this module
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void ISENSE_Task(void)
 {
 	// do something?
 }
 
 
+// ****************************************************************************
+/*!
+ * ISENSE_GetLoadCurrentMa
+ *
+ * @param	none
+ * @retval	int16_t
+ */
+// ****************************************************************************
 int16_t ISENSE_GetLoadCurrentMa(void)
 {
 	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
@@ -70,7 +120,7 @@ int16_t ISENSE_GetLoadCurrentMa(void)
 	const uint16_t fetDetectCurrentMa = ISENSE_GetPMOSLoadCurrentMa();
 
 	int16_t result = ISENSE_GetResSenseCurrentMa();
-/*
+
 	if (pow5vInDetStatus == POW_SOURCE_NOT_PRESENT)
 	{
 		if ( (true == boostConverterEnabled) && (true == ldoEnabled) )
@@ -80,13 +130,20 @@ int16_t ISENSE_GetLoadCurrentMa(void)
 				result = fetDetectCurrentMa;
 			}
 		}
-	}*/
+	}
 
 	return result;
 }
 
 
-// Return value not used.
+// ****************************************************************************
+/*!
+ * ISENSE_CalibrateLoadCurrent
+ *
+ * @param	none
+ * @retval	bool
+ */
+// ****************************************************************************
 bool ISENSE_CalibrateLoadCurrent(void)
 {
 	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
@@ -150,33 +207,69 @@ bool ISENSE_CalibrateLoadCurrent(void)
 }
 
 
-// No resistance on RPi 5V
+// ****************************************************************************
+/*!
+ * ISENSE_CalibrateZeroCurrent records the adc values for a load current of 0mA.
+ *
+ * Fit 1M to RPi 5V (ca. 0mA @ 4.8v) before calling this routine.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void ISENSE_CalibrateZeroCurrent(void)
 {
-	ISENSE_CalibrateCurrent(0u, 0u);
+	ISENSE_CalibrateCurrent(ISENSE_CAL_POINT_LOW, 0u);
 }
 
 
-// Fit 94R to RPi 5V (ca. 51mA @ 4.8v)
+// ****************************************************************************
+/*!
+ * ISENSE_Calibrate51mACurrent records the adc values for a load current of 51mA.
+ *
+ * Fit 94R to RPi 5V (ca. 51mA @ 4.8v) before calling this routine.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void ISENSE_Calibrate51mACurrent(void)
 {
-	ISENSE_CalibrateCurrent(1u, 50u);
+	ISENSE_CalibrateCurrent(ISENSE_CAL_POINT_MID, 51u);
 }
 
 
-// Fit 9.4R to RPi 5V (ca. 510mA @ 4.8v)
+
+// ****************************************************************************
+/*!
+ * ISENSE_Calibrate510mACurrent records the adc values for a load current of 510mA.
+ *
+ * Fit 9.4R to RPi 5V (ca. 510mA @ 4.8v) before calling this routine.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void ISENSE_Calibrate510mACurrent(void)
 {
-	ISENSE_CalibrateCurrent(2u, 510u);
+	ISENSE_CalibrateCurrent(ISENSE_CAL_POINT_HIGH, 510u);
 }
 
 
+// ****************************************************************************
+/*!
+ * ISENSE_WriteNVCalibration
+ *
+ * @param	none
+ * @retval	bool
+ */
+// ****************************************************************************
 bool ISENSE_WriteNVCalibration(void)
 {
 	uint8_t i = ISENSE_CAL_POINTS;
 	uint32_t spanK = 0u;
-	int16_t spanIAct = m_calibrationPointsI[ISENSE_CAL_POINTS - 1u] - m_calibrationPointsI[0u];
-	int16_t spanIMeas = m_calibrationPointsR[ISENSE_CAL_POINTS - 1u] - m_calibrationPointsR[0u];
+	int16_t spanIAct = m_calibrationPointsIRef[ISENSE_CAL_POINTS - 1u] - m_calibrationPointsIRef[0u];
+	int16_t spanIMeas = m_calibrationPointsIRes[ISENSE_CAL_POINTS - 1u] - m_calibrationPointsIRes[0u];
 
 	// Spans must be positive and not 0.
 	if ( (spanIAct <= 0) || (spanIMeas <= 0) )
@@ -205,12 +298,12 @@ bool ISENSE_WriteNVCalibration(void)
 
 	NV_WriteVariable_U8(ISENSE_RES_SPAN_H, (uint8_t)(spanK & 0xFFu));
 
-	NV_WriteVariable_S8(RES_ILOAD_CALIB_ZERO_NV_ADDR, m_calibrationPointsR[0u] / 10);
+	NV_WriteVariable_S8(RES_ILOAD_CALIB_ZERO_NV_ADDR, m_calibrationPointsIRes[0u] / 10u);
 
 	// Reset cal points
 	while(i < ISENSE_CAL_POINTS)
 	{
-		m_calibrationPointsI[i] = 0u;
+		m_calibrationPointsIRef[i] = 0u;
 	}
 
 	// TODO - test mid point
@@ -220,7 +313,20 @@ bool ISENSE_WriteNVCalibration(void)
 }
 
 
-bool ISENSE_ReadNVCalibration(void)
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH LOCAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * ISENSE_ReadNVCalibration
+ *
+ * @param	none
+ * @retval	bool
+ */
+// ****************************************************************************
+static bool ISENSE_ReadNVCalibration(void)
 {
 	m_kta = 0u; // invalid value
 	m_ktb = 0u; // invalid value
@@ -233,7 +339,6 @@ bool ISENSE_ReadNVCalibration(void)
 	NV_ReadVariable_U8(VDG_ILOAD_CALIB_KTA_NV_ADDR, &m_ktb);
 	NV_ReadVariable_U8(RES_ILOAD_CALIB_ZERO_NV_ADDR, &tempU8);
 	m_resLoadCurrCalibOffset = ((int8_t)tempU8 * 10u);
-
 
 	if (false == NV_ReadVariable_U8(ISENSE_RES_SPAN_L, &tempU8))
 	{
@@ -258,32 +363,84 @@ bool ISENSE_ReadNVCalibration(void)
 		m_resLoadCurrCalibScale_K = 0x10000u;
 	}
 
-
 	return true;
 }
 
 
-uint16_t ISENSE_GetPMOSLoadCurrentMa(void)
+// ****************************************************************************
+/*!
+ * ISENSE_ReadNVCalibration
+ *
+ * @param	none
+ * @retval	uint16_t
+ */
+// ****************************************************************************
+static uint16_t ISENSE_GetPMOSLoadCurrentMa(void)
 {
 	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
+	const uint16_t powDet = ADC_CalibrateValue(ADC_GetAverageValue(ANALOG_CHANNEL_POW_DET));
+	const uint16_t iNorm = ISENSE_ConvertFETDrvToMa(powDet, mcuTemperature);
 
-	int16_t result = ((m_kta * mcuTemperature + (((uint16_t)m_ktb) << 8) ) * ((int32_t)(ISENSE_GetRefLoadCurrentMa() + 0.5f))) >> 13;
+	int32_t result = (((int32_t)m_kta * mcuTemperature + (((uint16_t)m_ktb) << 8u) ) * ((int32_t)(iNorm + 0.5f))) >> 13u;
 
 	// Current can't go backwards here!
-	return (result < 0) ? 0 : result;
+	return (result > 0) ? result : 0u;
 }
 
 
-float ISENSE_GetRefLoadCurrentMa(void)
+// ****************************************************************************
+/*!
+ * ISENSE_ConvertFETDrvToMa
+ *
+ * @param	fetDrv				fet drive value from ADC
+ * @param	temperature			temperature in degrees
+ * @retval	uint16_t			converted current in mA
+ */
+// ****************************************************************************
+static uint16_t ISENSE_ConvertFETDrvToMa(const uint16_t fetDrvAdc, const int8_t temperature)
 {
-	const uint16_t aVdd = ANALOG_GetAVDDMv();
-	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
-	float result;
+	const uint16_t vdg = 4790u - (fetDrvAdc > 4790u) ? fetDrvAdc : 4790u;
+
 	uint16_t coeffIdx;
+	int16_t result;
 
-	int32_t vdg = 4790u - ( (ADC_GetAverageValue(ANALOG_CHANNEL_POW_DET) * aVdd) >> 11u );
+	// Check index isn't minimum
+	coeffIdx = (vdg >= ID_T_POLY_COEFF_VDG_START) ?
+					( (vdg - ID_T_POLY_COEFF_VDG_START) + (ID_T_POLY_COEFF_VDG_INC / 2u) ) / ID_T_POLY_COEFF_VDG_INC :
+					0u;
 
-	// Check i isn't minimum
+	// Check index hasn't maxed out
+	if (coeffIdx > ID_T_POLY_LAST_COEFF_IDX)
+	{
+		coeffIdx = ID_T_POLY_LAST_COEFF_IDX;
+	}
+
+	// Should be some brackets here somewhere!
+	result = (a[coeffIdx] + b[coeffIdx] + c[coeffIdx]) * temperature;
+
+	// Make sure its positive
+	return (result > 0) ? (uint16_t)result : 0u;
+}
+
+
+// ****************************************************************************
+/*!
+ * ISENSE_GetRefLoadCurrentMa
+ *
+ * @param	none
+ * @retval	int16_t
+ */
+// ****************************************************************************
+static uint16_t ISENSE_GetRefLoadCurrentMa(void)
+{
+	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
+	const uint16_t powDetValue = UTIL_FixMul_U32_U16(ISENSE_POWDET_K, ADC_CalibrateValue(ADC_GetAverageValue(ANALOG_CHANNEL_POW_DET)));
+	const uint16_t vdg = 4790u - (powDetValue > 4790u) ? powDetValue : 4790u;
+
+	uint16_t coeffIdx;
+	int16_t result;
+
+	// Check index isn't minimum
 	coeffIdx = (vdg >= ID_T_POLY_COEFF_VDG_START) ?
 					(vdg - ID_T_POLY_COEFF_VDG_START + ID_T_POLY_COEFF_VDG_INC / 2u) / ID_T_POLY_COEFF_VDG_INC :
 					0u;
@@ -295,14 +452,23 @@ float ISENSE_GetRefLoadCurrentMa(void)
 	}
 
 	// Should be some brackets here somewhere!
-	result = a[coeffIdx] * mcuTemperature * mcuTemperature + b[coeffIdx] * mcuTemperature + c[coeffIdx];
+	result = (a[coeffIdx] + b[coeffIdx] + c[coeffIdx]) * mcuTemperature;
 
 	// Make sure its positive
-	return (result > 0) ? result : 0;
+	return (result > 0) ? (uint16_t)result : 0u;
 }
 
 
-int16_t ISENSE_GetResSenseCurrentMa(void)
+// ****************************************************************************
+/*!
+ * ISENSE_GetResSenseCurrentMa returns a calibrated value taken from the volt drop
+ * across FB2. The measurement is quite noisy due to the low SNR.
+ *
+ * @param	none
+ * @retval	int16_t
+ */
+// ****************************************************************************
+static int16_t ISENSE_GetResSenseCurrentMa(void)
 {
 	int16_t result = ADC_GetCurrentSenseAverage();
 
@@ -312,7 +478,19 @@ int16_t ISENSE_GetResSenseCurrentMa(void)
 }
 
 
-void ISENSE_CalibrateCurrent(const uint8_t pointIdx, const uint16_t currentMa)
+// ****************************************************************************
+/*!
+ * ISENSE_CalibrateCurrent records the values for the current sense resistor, power
+ * detect fet drive and the actual current and bundles them into an array so that
+ * calibration can be performed on all values. There are 3 points possible to store,
+ * should be 0mA, 51mA and 510mA.
+ *
+ * @param	pointIdx
+ * @param	currentMa
+ * @retval	none
+ */
+// ****************************************************************************
+static void ISENSE_CalibrateCurrent(const uint8_t pointIdx, const uint16_t currentMa)
 {
 	const bool boostEnabled = POWERSOURCE_IsBoostConverterEnabled();
 	const bool ldoEnabled = POWERSOURCE_IsLDOEnabled();
@@ -325,7 +503,7 @@ void ISENSE_CalibrateCurrent(const uint8_t pointIdx, const uint16_t currentMa)
 	// Adjust filter period to try and stabilise the sense resistor.
 	ADC_SetIFilterPeriod(1000u);
 
-	m_calibrationPointsI[pointIdx] = currentMa;
+	m_calibrationPointsIRef[pointIdx] = currentMa;
 
 	// Override any config settings
 	IODRV_SetPin(IODRV_PIN_POWDET_EN, false);
@@ -334,7 +512,7 @@ void ISENSE_CalibrateCurrent(const uint8_t pointIdx, const uint16_t currentMa)
 	HAL_Delay(FILTER_PERIOD_MS_CS1 * AVE_FILTER_ELEMENT_COUNT);
 
 	// Get boost converter voltage
-	m_calibrationPointsB[pointIdx] = ADC_CalibrateValue(
+	m_calibrationPointsBoost[pointIdx] = ADC_CalibrateValue(
 									ADC_GetAverageValue(ANALOG_CHANNEL_CS1)
 									);
 
@@ -344,13 +522,16 @@ void ISENSE_CalibrateCurrent(const uint8_t pointIdx, const uint16_t currentMa)
 	// Wait for the filter to work.
 	HAL_Delay(1000u * AVE_FILTER_ELEMENT_COUNT);
 
-	// Get current sense value
-	m_calibrationPointsR[pointIdx] = ADC_GetCurrentSenseAverage();
+	// Log current sense value
+	m_calibrationPointsIRes[pointIdx] = ADC_GetCurrentSenseAverage();
 
-	// Get LDO drive value
-	m_calibrationPointsF[pointIdx] = ADC_CalibrateValue(
+	// Log LDO drive value
+	m_calibrationPointsFET[pointIdx] = ADC_CalibrateValue(
 									ADC_GetAverageValue(ANALOG_CHANNEL_POW_DET)
 									);
+
+	// Log temperature
+	m_calibrationPointsTemp[pointIdx] = ANALOG_GetMCUTemp();
 
 	// Restore normal I sense filter period
 	ADC_SetIFilterPeriod(FILTER_PERIOD_MS_ISENSE);
