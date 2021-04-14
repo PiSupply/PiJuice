@@ -62,6 +62,7 @@ static uint16_t m_fuelgaugeIcId;
 static bool m_thermistorGood;
 static uint32_t m_lastFuelGaugeTaskTimeMs;
 static bool m_updateBatteryProfile;
+static bool m_initBatterySOC;
 
 
 // ----------------------------------------------------------------------------
@@ -209,7 +210,6 @@ void FUELGAUGE_Task(void)
 			return;
 		}
 
-
 		if ( (FUELGAUGE_STATUS_OFFLINE == m_fuelgaugeIcStatus) || m_updateBatteryProfile )
 		{
 			m_updateBatteryProfile = false;
@@ -222,8 +222,19 @@ void FUELGAUGE_Task(void)
 			if (RSOC_MEASUREMENT_DIRECT_DV == m_rsocMeasurementConfig)
 			{
 				FUELGAUGE_CalculateSOCInit();
-				FUELGAUGE_GetSOCFromOCV(battMv);
+				m_initBatterySOC =  true;
 			}
+		}
+
+		// If battery just inserted or there has been a profile change, work out the SOC
+		// Should not run if soc is used from fuel gauge ic.
+		if (m_initBatterySOC)
+		{
+			m_initBatterySOC = false;
+
+			FUELGAUGE_GetSOCFromOCV(battMv);
+			MS_TIMEREF_INIT(m_lastSocTimeMs, sysTime);
+
 		}
 
 
@@ -282,6 +293,39 @@ void FUELGAUGE_Task(void)
 				}
 			}
 		}
+		else
+		{
+			m_batteryMv = battMv;
+
+			socTimeDiff = MS_TIMEREF_DIFF(m_lastSocTimeMs, HAL_GetTick());
+
+			if (RSOC_MEASUREMENT_DIRECT_DV == m_rsocMeasurementConfig)
+			{
+				// TODO - does this need to happen every 125ms?
+				FUELGAUGE_UpdateCalculateSOC(battMv, socTimeDiff);
+
+				MS_TIMEREF_INIT(m_lastSocTimeMs, sysTime);
+			}
+		}
+	}
+}
+
+
+// ****************************************************************************
+/*!
+ * FUELGAUGE_InitBatterySOC should be called when the battery has been inserted
+ * so that the module can calculate the initial SOC based on the terminal voltage.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+// TODO - make this call when the battery has been inserted
+void FUELGAUGE_InitBatterySOC(void)
+{
+	if (RSOC_MEASUREMENT_DIRECT_DV == m_rsocMeasurementConfig)
+	{
+		m_initBatterySOC = true;
 	}
 }
 
@@ -373,10 +417,12 @@ uint16_t FUELGAUGE_GetIcId(void)
 
 // ****************************************************************************
 /*!
- * FUELGAUGE_IsNtcOK
+ * FUELGAUGE_IsNtcOK returns the state of the NTC thermister, if faulty the routine
+ * will return false, true if it appears to be ok.
  *
  * @param	none
- * @retval	bool
+ * @retval	bool		false = thermister faulty
+ * 						true = thermister appears ok
  */
 // ****************************************************************************
 bool FUELGAUGE_IsNtcOK(void)
@@ -387,10 +433,13 @@ bool FUELGAUGE_IsNtcOK(void)
 
 // ****************************************************************************
 /*!
- * FUELGAUGE_IsOnline
+ * FUELGAUGE_IsOnline returns the status of the fuel gauge IC communications. If
+ * the battery is not inserted then the IC itself does not get any power and will
+ * not be communicating.
  *
  * @param	none
- * @retval	bool
+ * @retval	bool		false = fuel gauge IC is not powered
+ * 						true = fuel gauge IC is powered
  */
 // ****************************************************************************
 bool FUELGAUGE_IsOnline(void)
@@ -401,10 +450,12 @@ bool FUELGAUGE_IsOnline(void)
 
 // ****************************************************************************
 /*!
- * FUELGAUGE_GetBatteryTemperature
+ * FUELGAUGE_GetBatteryTemperature returns the battery temperature. If the battery
+ * does not have a thermister or the thermister value is out of range then this
+ * returns the temperature of the processor.
  *
  * @param	none
- * @retval	int8_t
+ * @retval	int8_t		temperature in degrees of the battery (or processor!)
  */
 // ****************************************************************************
 int8_t FUELGAUGE_GetBatteryTemperature(void)
@@ -415,10 +466,12 @@ int8_t FUELGAUGE_GetBatteryTemperature(void)
 
 // ****************************************************************************
 /*!
- * FUELGAUGE_GetSocPt1
+ * FUELGAUGE_GetSocPt1 returns the state of charge as determined by the module
+ * in 0.1% resolution. The calculation is either done in software or by the fuel
+ * gauge IC depending on the configuration.
  *
  * @param	none
- * @retval	uint16_t
+ * @retval	uint16_t	battery soc in 0.1% steps
  */
 // ****************************************************************************
 uint16_t FUELGAUGE_GetSocPt1(void)
@@ -429,10 +482,11 @@ uint16_t FUELGAUGE_GetSocPt1(void)
 
 // ****************************************************************************
 /*!
- * FUELGAUGE_GetBatteryMaHr
+ * FUELGAUGE_GetBatteryMaHr returns the discharge or charge rate of the battery
+ * as determined by the capacity and difference in SOC during a period of time.
  *
  * @param	none
- * @retval	int16_t
+ * @retval	int16_t		battery discharge/charge rate
  */
 // ****************************************************************************
 int16_t FUELGAUGE_GetBatteryMaHr(void)
@@ -443,7 +497,8 @@ int16_t FUELGAUGE_GetBatteryMaHr(void)
 
 // ****************************************************************************
 /*!
- * FUELGAUGE_GetBatteryMv
+ * FUELGAUGE_GetBatteryMv returns the battery terminal voltage, this can be either
+ * from the ADC directly or the fuel gauge ic depending on whether the IC is online.
  *
  * @param	none
  * @retval	uint16_t		Battery voltage in mV
@@ -457,10 +512,11 @@ uint16_t FUELGAUGE_GetBatteryMv(void)
 
 // ****************************************************************************
 /*!
- * FUELGAUGE_GetBatteryTempSensorCfg
+ * FUELGAUGE_GetBatteryTempSensorCfg returns the current configuration for the
+ * battery temperature sensor
  *
  * @param	none
- * @retval	BatteryTempSenseConfig_T
+ * @retval	BatteryTempSenseConfig_T	battery temperature configuration
  */
 // ****************************************************************************
 BatteryTempSenseConfig_T FUELGAUGE_GetBatteryTempSensorCfg(void)
@@ -476,7 +532,7 @@ BatteryTempSenseConfig_T FUELGAUGE_GetBatteryTempSensorCfg(void)
 // ----------------------------------------------------------------------------
 // ****************************************************************************
 /*!
- * FUELGAUGE_IcInit
+ * FUELGAUGE_IcInit initialises the fuel gauge IC with the battery information.
  *
  * @param	none
  * @retval	bool

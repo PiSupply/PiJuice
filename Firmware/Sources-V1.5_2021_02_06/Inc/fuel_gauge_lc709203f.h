@@ -43,6 +43,7 @@ void FUELGAUGE_Task(void);
 void FUELGAUGE_SetConfigData(const uint8_t * const p_data, const uint16_t len);
 void FUELGAUGE_GetConfigData(uint8_t * const p_data, uint16_t * const p_len);
 void FUELGAUGE_UpdateBatteryProfile(void);
+void FUELGAUGE_InitBatterySOC(void);
 int16_t FUELGAUGE_GetBatteryMaHr(void);
 uint16_t FUELGAUGE_GetBatteryMv(void);
 BatteryTempSenseConfig_T FUELGAUGE_GetBatteryTempSensorCfg(void);
