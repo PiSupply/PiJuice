@@ -217,7 +217,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_LED1_B_PIN_Pos,
 				.gpioPort = IODRV_PIN_LED1_B_GPIO,
 				.invert_bm = IODRV_PIN_LED1_G_INVERT_bm,
-				.canConfigure = false,
+				.canConfigure = true,
 				.index = IODRV_PIN_LED1_B
 		},
 		{
@@ -226,7 +226,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_LED2_R_PIN_Pos,
 				.gpioPort = IODRV_PIN_LED2_R_GPIO,
 				.invert_bm = IODRV_PIN_LED2_R_INVERT_bm,
-				.canConfigure = false,
+				.canConfigure = true,
 				.index = IODRV_PIN_LED2_R
 		},
 		{
@@ -235,7 +235,7 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_LED2_G_PIN_Pos,
 				.gpioPort = IODRV_PIN_LED2_G_GPIO,
 				.invert_bm = IODRV_PIN_LED2_G_INVERT_bm,
-				.canConfigure = false,
+				.canConfigure = true,
 				.index = IODRV_PIN_LED2_G
 		},
 		{
@@ -244,11 +244,19 @@ IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 				.gpioPin_pos = IODRV_PIN_LED2_B_PIN_Pos,
 				.gpioPort = IODRV_PIN_LED2_B_GPIO,
 				.invert_bm = IODRV_PIN_LED2_B_INVERT_bm,
-				.canConfigure = false,
+				.canConfigure = true,
 				.index = IODRV_PIN_LED2_B
+		},
+		{
+				.adcChannel = MAX_ANALOG_CHANNELS,
+				.gpioPin_bm = (1u << IODRV_PIN_RPI_GPIO3_PIN_Pos),
+				.gpioPin_pos = IODRV_PIN_RPI_GPIO3_PIN_Pos,
+				.gpioPort = IODRV_PIN_RPI_GPIO3_GPIO,
+				.invert_bm = IODRV_PIN_RPI_GPIO3_PIN_INVERT_bm,
+				.canConfigure = true,
+				.index = IODRV_PIN_RPI_GPIO3
 		}
 };
-
 
 static uint32_t m_lastPinUpdateTime;
 

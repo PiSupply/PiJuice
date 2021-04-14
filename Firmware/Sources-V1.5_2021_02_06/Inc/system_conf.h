@@ -162,7 +162,12 @@
 #define IODRV_PIN_LED2_B_PIN_Pos			0u
 #define IODRV_PIN_LED2_B_INVERT_bm			0u
 
-#define IODRV_MAX_IO_PINS					22u
+#define IODRV_PIN_RPI_GPIO3					22u
+#define IODRV_PIN_RPI_GPIO3_GPIO			GPIOB
+#define IODRV_PIN_RPI_GPIO3_PIN_Pos			3u
+#define IODRV_PIN_RPI_GPIO3_PIN_INVERT_bm	0u
+
+#define IODRV_MAX_IO_PINS					23u
 
 /* Must not be more than 255, 16 is a good number */
 #define AVE_FILTER_ELEMENT_COUNT			16u

@@ -146,7 +146,7 @@ void POWERSOURCE_Init(void)
 		{
 			POWERSOURCE_Set5vBoostEnable(false);
 			m_forcedPowerOff = true;
-			POWERMAN_SetWakeupOnChargePt1(5u); // schedule wake up when there is enough energy
+			POWERMAN_SetWakeupOnChargePcntPt1(5u); // schedule wake up when there is enough energy
 		}
 		else
 		{
@@ -760,7 +760,7 @@ void POWERSOURCE_CheckPowerValid(void)
 				POWERSOURCE_Set5vBoostEnable(false);
 
 				m_forcedPowerOff = true;
-				POWERMAN_SetWakeupOnChargePt1(5u); // schedule wake up when power is applied
+				POWERMAN_SetWakeupOnChargePcntPt1(5u); // schedule wake up when power is applied
 
 				return;
 			}

@@ -4,6 +4,8 @@
  *  Created on: 04.04.2017.
  *      Author: milan
  */
+// ----------------------------------------------------------------------------
+// Include section - add all #includes here:
 
 #include "main.h"
 #include "system_conf.h"
@@ -26,12 +28,31 @@
 
 #include "power_management.h"
 
-static bool POWERMAN_ResetHost(void);
+
+// ----------------------------------------------------------------------------
+// Defines section - add all #defines here:
 
 #define WAKEUPONCHARGE_NV_INITIALISED	(0u != (m_wakeupOnChargeConfig & 0x80u))
+#define WAKEUP_ONCHARGE_DISABLED_VAL	0xFFFFu
+#define RPI_ACTLED_IO_PIN				1u
+#define GPIO_POWERCONTROL				1u
+
+
+// ----------------------------------------------------------------------------
+// Function prototypes for functions that only have scope in this module:
+
+static bool POWERMAN_ResetHost(void);
+
+
+// ----------------------------------------------------------------------------
+// Variables that only have scope in this module:
 
 static uint32_t m_powerMngmtTaskMsCounter;
 static RunPinInstallationStatus_T m_runPinInstalled = RUN_PIN_NOT_INSTALLED;
+
+
+// ----------------------------------------------------------------------------
+// Variables that only have scope in this module that are persistent through reset:
 
 static uint8_t m_wakeupOnChargeConfig __attribute__((section("no_init")));
 static uint16_t m_wakeUpOnCharge __attribute__((section("no_init"))); // 0 - 1000, 0xFFFF - disabled
@@ -46,6 +67,113 @@ static bool m_powerButtonPressedEvent __attribute__((section("no_init")));
 static uint32_t m_lastWakeupTimer __attribute__((section("no_init")));
 
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// CALLBACK HANDLERS
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * BUTTON_PowerOnEventCb
+ *
+ * @param	p_button		pointer to button that initiated the event
+ * @retval	none
+ */
+// ****************************************************************************
+void BUTTON_PowerOnEventCb(const Button_T * const p_button)
+{
+	const uint32_t sysTime = HAL_GetTick();
+
+	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
+	const PowerSourceStatus_T power5vIoStatus = POWERSOURCE_Get5VRailStatus();
+	const uint32_t lastHostCommandAgeMs = HOSTCOMMS_GetLastCommandAgeMs(sysTime);
+
+	// TODO - Check brackets are in the right places
+	if ( ( (false == boostConverterEnabled) && (POW_SOURCE_NOT_PRESENT == power5vIoStatus) ) ||
+			( MS_TIMEREF_TIMEOUT(m_lastWakeupTimer, sysTime, 12000u) && (lastHostCommandAgeMs > 11000) )
+			)
+	{
+
+		if (true == POWERMAN_ResetHost())
+		{
+			m_wakeUpOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
+			RTC_ClearWakeEvent();
+			TASKMAN_ClearIOWakeEvent();
+			m_delayedPowerOffTimeMs = 0u;
+		}
+	}
+
+	BUTTON_ClearEvent(p_button->index);
+
+}
+
+
+// ****************************************************************************
+/*!
+ * BUTTON_PowerOffEventCb
+ *
+ * @param	p_button		pointer to button that initiated the event
+ * @retval	none
+ */
+// ****************************************************************************
+void BUTTON_PowerOffEventCb(const Button_T * const p_button)
+{
+	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
+	const PowerSourceStatus_T power5vIoStatus = POWERSOURCE_Get5VRailStatus();
+
+	if ( (true == boostConverterEnabled) && (POW_SOURCE_NOT_PRESENT == power5vIoStatus) )
+	{
+		POWERSOURCE_Set5vBoostEnable(false);
+		m_powerButtonPressedEvent = true;
+	}
+
+	BUTTON_ClearEvent(p_button->index); // remove event
+}
+
+
+// ****************************************************************************
+/*!
+ * BUTTON_PowerResetEventCb
+ *
+ * @param	p_button		pointer to button that initiated the event
+ * @retval	none
+ */
+// ****************************************************************************
+void BUTTON_PowerResetEventCb(const Button_T * const p_button)
+{
+	if (true == POWERMAN_ResetHost())
+	{
+		m_wakeUpOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
+
+		RTC_ClearWakeEvent();
+		TASKMAN_ClearIOWakeEvent();
+
+		m_delayedPowerOffTimeMs = 0u;
+	}
+
+	BUTTON_ClearEvent(p_button->index);
+}
+
+
+// TODO - What is this for?
+void InputSourcePresenceChangeCb(uint8_t event)
+{
+
+}
+
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH GLOBAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * POWERMAN_Init configures the module to a known initial state
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERMAN_Init(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
@@ -119,65 +247,14 @@ void POWERMAN_Init(void)
 }
 
 
-void BUTTON_PowerOnEventCb(const Button_T * const p_button)
-{
-	const uint32_t sysTime = HAL_GetTick();
-
-	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
-	const PowerSourceStatus_T power5vIoStatus = POWERSOURCE_Get5VRailStatus();
-	const uint32_t lastHostCommandAgeMs = HOSTCOMMS_GetLastCommandAgeMs(sysTime);
-
-	// TODO - Check brackets are in the right places
-	if ( ( (false == boostConverterEnabled) && (POW_SOURCE_NOT_PRESENT == power5vIoStatus) ) ||
-			( MS_TIMEREF_TIMEOUT(m_lastWakeupTimer, sysTime, 12000u) && (lastHostCommandAgeMs > 11000) )
-			)
-	{
-
-		if (true == POWERMAN_ResetHost())
-		{
-			m_wakeUpOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
-			RTC_ClearWakeEvent();
-			TASKMAN_ClearIOWakeEvent();
-			m_delayedPowerOffTimeMs = 0u;
-		}
-	}
-
-	BUTTON_ClearEvent(p_button->index);
-
-}
-
-
-void BUTTON_PowerOffEventCb(const Button_T * const p_button)
-{
-	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
-	const PowerSourceStatus_T power5vIoStatus = POWERSOURCE_Get5VRailStatus();
-
-	if ( (true == boostConverterEnabled) && (POW_SOURCE_NOT_PRESENT == power5vIoStatus) )
-	{
-		POWERSOURCE_Set5vBoostEnable(false);
-		m_powerButtonPressedEvent = true;
-	}
-
-	BUTTON_ClearEvent(p_button->index); // remove event
-}
-
-
-void BUTTON_PowerResetEventCb(const Button_T * const p_button)
-{
-	if (true == POWERMAN_ResetHost())
-	{
-		m_wakeUpOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
-
-		RTC_ClearWakeEvent();
-		TASKMAN_ClearIOWakeEvent();
-
-		m_delayedPowerOffTimeMs = 0u;
-	}
-
-	BUTTON_ClearEvent(p_button->index);
-}
-
-
+// ****************************************************************************
+/*!
+ * POWERMAN_Task performs periodic updates for this module
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERMAN_Task(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
@@ -240,7 +317,8 @@ void POWERMAN_Task(void)
 	if ( m_delayedTurnOnFlag && (MS_TIMEREF_TIMEOUT(m_delayedTurnOnTimer, sysTime, 100u)) )
 	{
 		POWERSOURCE_Set5vBoostEnable(true);
-		m_delayedTurnOnFlag = 0u;
+		m_delayedTurnOnFlag = false;
+
 		MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
 	}
 
@@ -249,9 +327,7 @@ void POWERMAN_Task(void)
 	// Time is set in the future, so need to work in int32 or it'll roll over
 	if ( (0u != m_delayedPowerOffTimeMs) && (int32_t)MS_TIMEREF_DIFF(m_delayedPowerOffTimeMs, sysTime) > 0)
 	{
-		// TODO - Check what happens with unknown status,
-		// maybe don't even bother checking as the thing will just be powered or not.
-		if ((true == boostConverterEnabled) && (RPI5V_DETECTION_STATUS_POWERED != pow5vInDetStatus))
+		if (RPI5V_DETECTION_STATUS_POWERED != pow5vInDetStatus)
 		{
 			POWERSOURCE_Set5vBoostEnable(false);
 		}
@@ -275,17 +351,21 @@ void POWERMAN_Task(void)
 }
 
 
-void InputSourcePresenceChangeCb(uint8_t event)
-{
-
-}
-
-
+// ****************************************************************************
+/*!
+ * POWERMAN_SchedulePowerOff sets a timer for the module task to monitor and turn
+ * off the boost converter when timed out. The timer is set to a future system
+ * time to compare with the tick timer. The delay code is in seconds resolution
+ *
+ * @param	delayCode		seconds to wait before turning off the boost converter
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERMAN_SchedulePowerOff(const uint8_t delayCode)
 {
 	if (delayCode <= 250u)
 	{
-		MS_TIMEREF_INIT(m_delayedPowerOffTimeMs, HAL_GetTick() + (delayCode * 1024u));
+		MS_TIMEREF_INIT(m_delayedPowerOffTimeMs, HAL_GetTick() + (delayCode * 1000u));
 
 		if (m_delayedPowerOffTimeMs == 0u)
 		{
@@ -299,16 +379,25 @@ void POWERMAN_SchedulePowerOff(const uint8_t delayCode)
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERMAN_GetPowerOffTime returns the time in seconds left before the system
+ * turns off the power to the RPi.
+ *
+ * @param	none
+ * @retval	uint8_t		time in seconds before the boost converter is disabled.
+ */
+// ****************************************************************************
 uint8_t POWERMAN_GetPowerOffTime(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
-	const uint32_t timeLeft = MS_TIMEREF_DIFF(m_delayedPowerOffTimeMs, sysTime);
+	const int32_t timeLeft = -MS_TIMEREF_DIFF(m_delayedPowerOffTimeMs, sysTime);
 
 	if (0u != m_delayedPowerOffTimeMs)
 	{
-		if (timeLeft < (UINT8_MAX * 1024u))
+		if ( (timeLeft > 0) && (timeLeft < (UINT8_MAX * 1000u)) )
 		{
-			return (uint8_t)(timeLeft / 1024u);
+			return (uint8_t)(timeLeft / 1000u);
 		}
 		else
 		{
@@ -322,24 +411,63 @@ uint8_t POWERMAN_GetPowerOffTime(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERMAN_GetPowerButtonPressedStatus returns true if the power button callback
+ * was run though the power off button event callback.
+ * Will remain true until it is cleared.
+ *
+ * @param	none
+ * @retval	bool		false = power off event has not been initiated
+ * 						true = power off event has been initiated.
+ */
+// ****************************************************************************
 bool POWERMAN_GetPowerButtonPressedStatus(void)
 {
 	return m_powerButtonPressedEvent;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERMAN_GetWatchdogExpired returns true if the watchdog time has expired.
+ * Will remain true until cleared.
+ *
+ * @param	none
+ * @retval	bool		false = watchdog timer has not expired
+ * 						true = watchdog timer has expired
+ */
+// ****************************************************************************
 bool POWERMAN_GetWatchdogExpired(void)
 {
 	return m_watchdogExpired;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERMAN_ClearWatchdog clears the watchdog expired flag if set.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERMAN_ClearWatchdog(void)
 {
 	m_watchdogExpired = false;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERMAN_SetRunPinConfigData writes the run pin installation config to NV memory
+ * and sets current configuration
+ *
+ * @param	p_data		pointer to config data
+ * @param	len			length of config data
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERMAN_SetRunPinConfigData(const uint8_t * const p_data, const uint8_t len)
 {
 	if (p_data[0u] > 1u)
@@ -356,13 +484,36 @@ void POWERMAN_SetRunPinConfigData(const uint8_t * const p_data, const uint8_t le
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERMAN_GetRunPinConfigData populates a data buffer with the run pin installation
+ * configuration.
+ *
+ * @param	p_data		pointer to destination buffer
+ * @param	p_len		length of data written to the buffer
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERMAN_GetRunPinConfigData(uint8_t * const p_data, uint16_t * const p_len)
 {
-	p_data[0] = m_runPinInstalled;
+	p_data[0u] = m_runPinInstalled;
 	*p_len = 1u;
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERMAN_SetWatchdogConfigData writes the watchdog timer configuration.
+ * if the watchdog timer is 16384 seconds or more then the resolution is adjusted
+ * to 4 times the value written. To make the setting persistent though power cycles
+ * set bit 15 (or'd with 0x8000u) else the value passed is used to only set the
+ * current timeout period.
+ *
+ * @param	p_data		pointer to config data
+ * @param	len			length of config data
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERMAN_SetWatchdogConfigData(const uint8_t * const p_data, const uint16_t len)
 {
 	uint32_t cfg;
@@ -415,6 +566,19 @@ void POWERMAN_SetWatchdogConfigData(const uint8_t * const p_data, const uint16_t
 
 }
 
+
+// ****************************************************************************
+/*!
+ * POWERMAN_GetWatchdogConfigData populates a buffer with the watchdog configuration
+ * if it has been written to NV memory or the watchdog expiry period as previously
+ * set. If the value is greater than 16384 seconds then the resolution is dropped
+ * and the value is four times that set.
+ *
+ * @param	p_data		pointer to destination buffer
+ * @param	p_len		length of data written to the buffer
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERMAN_GetWatchdogConfigData(uint8_t * const p_data, uint16_t * const p_len)
 {
 	uint16_t d;
@@ -446,6 +610,15 @@ void POWERMAN_GetWatchdogConfigData(uint8_t * const p_data, uint16_t * const p_l
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERMAN_SetWakeupOnChargeData
+ *
+ * @param	p_data		pointer to config data
+ * @param	len			length of config data
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERMAN_SetWakeupOnChargeData(const uint8_t * const p_data, const uint16_t len)
 {
 	uint16_t newWakeupVal = (p_data[0u] & 0x7Fu) * 10u;
@@ -475,6 +648,15 @@ void POWERMAN_SetWakeupOnChargeData(const uint8_t * const p_data, const uint16_t
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERMAN_GetWakeupOnChargeData
+ *
+ * @param	p_data		pointer to destination buffer
+ * @param	p_len		length of data written to the buffer
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERMAN_GetWakeupOnChargeData(uint8_t * const p_data, uint16_t * const p_len)
 {
 	if (WAKEUPONCHARGE_NV_INITIALISED)
@@ -490,6 +672,16 @@ void POWERMAN_GetWakeupOnChargeData(uint8_t * const p_data, uint16_t * const p_l
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERMAN_CanShutDown tells the caller if there are tasks being performed by
+ * the module and effectively not to put the processor in STOP mode.
+ *
+ * @param	none
+ * @retval	bool		false = module busy and not convenient to stop CPU
+ * 						true = can stop CPU
+ */
+// ****************************************************************************
 bool POWERMAN_CanShutDown(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
@@ -499,75 +691,123 @@ bool POWERMAN_CanShutDown(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * POWERMAN_ClearPowerButtonPressed resets the power button pressed flag
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void POWERMAN_ClearPowerButtonPressed(void)
 {
 	m_powerButtonPressedEvent = false;
 }
 
 
-void POWERMAN_SetWakeupOnChargePt1(const uint16_t newValue)
+// ****************************************************************************
+/*!
+ * POWERMAN_SetWakeupOnChargePt1 sets the wake up on charge charge trigger level,
+ * if the RPi has powered down then setting this level will power it back up again
+ * once the level has been met or exceeded. Setting to minimum will simply wake
+ * it back up when the external VIn charge source is connected.
+ *
+ * @param	chargeTriggerPcntPt1	charge percentage in 0.1% steps to power up
+ * 									the RPi.
+ * @retval	none
+ */
+// ****************************************************************************
+void POWERMAN_SetWakeupOnChargePcntPt1(const uint16_t chargeTriggerPcntPt1)
 {
-	m_wakeUpOnCharge = newValue;
+	m_wakeUpOnCharge = chargeTriggerPcntPt1;
 }
 
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH LOCAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * POWERMAN_ResetHost attempts to wake up the RPi though either the run pin, 5v
+ * power cycle or GPIO3 line toggle. If the boost converter is already on then
+ * the power is turned off and the delay timer will re-enable it in the module
+ * task routine.
+ *
+ * @param	none
+ * @retval	bool		false = reset not performed
+ * 						true = reset performed
+ */
+// ****************************************************************************
 static bool POWERMAN_ResetHost(void)
 {
 	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
 	const PowerSourceStatus_T power5vIoStatus = POWERSOURCE_Get5VRailStatus();
+
+	bool result = false;
 
 	if ( ((true == boostConverterEnabled) || (POW_SOURCE_NOT_PRESENT != power5vIoStatus))
 			&& (RUN_PIN_INSTALLED == m_runPinInstalled)
 			)
 	{
 		POWERSOURCE_Set5vBoostEnable(true);
+
 		// activate RUN signal
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
+		IODRV_SetPin(IODRV_PIN_RUN,GPIO_PIN_RESET);
 		DelayUs(100);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
+		IODRV_SetPin(IODRV_PIN_RUN,GPIO_PIN_SET);
+
+		// Note wakeup time
 		MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
-		return true;
+		result = true;
 	}
 	else if (power5vIoStatus == POW_SOURCE_NOT_PRESENT)
 	{
 		if (true == boostConverterEnabled)
 		{
-			// do power circle, first turn power off
+			// if power is already on then first turn power off
 			POWERSOURCE_Set5vBoostEnable(false);
+
 			// schedule turn on after delay
-			m_delayedTurnOnFlag = 1;
+			m_delayedTurnOnFlag = true;
+
+			// wake up time will be set on delay power up
 			MS_TIME_COUNTER_INIT(m_delayedTurnOnTimer);
-			MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
-			return true;
+
+			result = true;
 		}
 		else
 		{
+			// Enable the power
 			POWERSOURCE_Set5vBoostEnable(true);
+
+			// Note wakeup time
 			MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
-			return true;
+
+			result = true;
 		}
 	}
 	else if ( (true == boostConverterEnabled) || (POW_SOURCE_NOT_PRESENT != power5vIoStatus) )
 	{
-		// wakeup via RPI GPIO3
-	    GPIO_InitTypeDef i2c_GPIO_InitStruct;
-		i2c_GPIO_InitStruct.Pin = GPIO_PIN_6;
-		i2c_GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-		i2c_GPIO_InitStruct.Pull = GPIO_NOPULL;
-	    HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
-	    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+		// Change SCL pin to output open drain
+		IODRV_SetPinType(IODRV_PIN_RPI_GPIO3, IOTYPE_DIGOUT_OPENDRAIN);
+
+		// Pull down the pin
+		IODRV_SetPin(IODRV_PIN_RPI_GPIO3,GPIO_PIN_RESET);
 		DelayUs(100);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
-		i2c_GPIO_InitStruct.Pin       = GPIO_PIN_6;
-		i2c_GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
-		i2c_GPIO_InitStruct.Pull      = GPIO_NOPULL;
-		i2c_GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
-		i2c_GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
-		HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
+
+		// Let the pin go
+		IODRV_SetPin(IODRV_PIN_RPI_GPIO3,GPIO_PIN_SET);
+
+		// PWM open drain is the same as I2C SCL
+		IODRV_SetPinType(IODRV_PIN_RPI_GPIO3, IOTYPE_PWM_OPENDRAIN);
+
+		// Note wakeup time
 		MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
 
-		return true;
+		result = true;
 	}
 
-	return false;
+	return result;
 }
