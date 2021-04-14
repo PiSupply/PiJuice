@@ -266,7 +266,7 @@ void PowerManagementTask(void)
 	const uint32_t sysTime = HAL_GetTick();
 	const bool chargerHasInput = CHARGER_IsChargeSourceAvailable();
 	const bool chargerHasBattery = (CHARGER_BATTERY_NOT_PRESENT != CHARGER_GetBatteryStatus());
-	const uint16_t batteryRsoc = FUELGUAGE_GetSocPt1();
+	const uint16_t batteryRsoc = FUELGAUGE_GetSocPt1();
 	const POWERSOURCE_RPi5VStatus_t pow5vInDetStatus = POWERSOURCE_GetRPi5VPowerStatus();
 	const uint32_t lastHostCommandAgeMs = HOSTCOMMS_GetLastCommandAgeMs(sysTime);
 	const bool rtcWakeEvent = RTC_GetWakeEvent();

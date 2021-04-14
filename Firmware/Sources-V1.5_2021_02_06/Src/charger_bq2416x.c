@@ -978,7 +978,7 @@ static bool CHARGER_ReadDeviceRegister(const uint8_t regAddress)
 		return false;
 	}
 
-	while(false == I2CDRV_IsReady(FUELGUAGE_I2C_PORTNO))
+	while(false == I2CDRV_IsReady(FUELGAUGE_I2C_PORTNO))
 	{
 		// Wait for transfer
 	}
@@ -1018,7 +1018,7 @@ static bool CHARGER_UpdateAllLocalRegisters(void)
 		return false;
 	}
 
-	while(false == I2CDRV_IsReady(FUELGUAGE_I2C_PORTNO))
+	while(false == I2CDRV_IsReady(FUELGAUGE_I2C_PORTNO))
 	{
 		// Wait for transfer
 	}
@@ -1179,8 +1179,8 @@ static void CHARGER_UpdateRPi5VInLockout(void)
 static void CHARGER_UpdateControlStatus(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
-	const uint8_t batteryTemp = FUELGUAGE_GetBatteryTemperature();
-	const BatteryTempSenseConfig_T tempSensorConfig = FUELGUAGE_GetBatteryTempSensorCfg();
+	const uint8_t batteryTemp = FUELGAUGE_GetBatteryTemperature();
+	const BatteryTempSenseConfig_T tempSensorConfig = FUELGAUGE_GetBatteryTempSensorCfg();
 	const bool inputSourcePresent =
 			((CHGR_BS_USBSTAT_UVP | CHGR_BS_INSTAT_UVP) !=
 					(m_registersIn[CHG_REG_BATTERY_STATUS] & (CHGR_BS_INSTAT_Msk | CHGR_BS_USBSTAT_Msk)));
@@ -1243,10 +1243,10 @@ static void CHARGER_UpdateControlStatus(void)
 static void CHARGER_UpdateRegulationVoltage(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
-	const int8_t batteryTemperature = FUELGUAGE_GetBatteryTemperature();
-	const BatteryTempSenseConfig_T tempSensorConfig = FUELGUAGE_GetBatteryTempSensorCfg();
+	const int8_t batteryTemperature = FUELGAUGE_GetBatteryTemperature();
+	const BatteryTempSenseConfig_T tempSensorConfig = FUELGAUGE_GetBatteryTempSensorCfg();
 	const BatteryStatus_T batteryStatus = BATTERY_GetStatus();
-	const uint8_t minRegVol = ((FUELGUAGE_GetBatteryMv() - CHGR_CB_BATT_REGV_BASE_MV) / CHGR_CB_BATT_REGV_RESOLUTION) + 1u;
+	const uint8_t minRegVol = ((FUELGAUGE_GetBatteryMv() - CHGR_CB_BATT_REGV_BASE_MV) / CHGR_CB_BATT_REGV_RESOLUTION) + 1u;
 
 	int8_t newRegVol;
 
@@ -1362,8 +1362,8 @@ static void CHARGER_UpdateVinDPM(void)
 static void CHARGER_UpdateTempRegulationControlStatus(void)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
-	const uint8_t batteryTemp = FUELGUAGE_GetBatteryTemperature();
-	const BatteryTempSenseConfig_T tempSensorConfig = FUELGUAGE_GetBatteryTempSensorCfg();
+	const uint8_t batteryTemp = FUELGAUGE_GetBatteryTemperature();
+	const BatteryTempSenseConfig_T tempSensorConfig = FUELGAUGE_GetBatteryTempSensorCfg();
 
 	//Timer slowed by 2x when in thermal regulation, 10 � 9 hour fast charge, TS function disabled
 	m_registersOut[CHG_REG_SAFETY_NTC] = CHGR_ST_NTC_2XTMR_EN_bm | CHGR_ST_NTC_SFTMR_9HOUR;

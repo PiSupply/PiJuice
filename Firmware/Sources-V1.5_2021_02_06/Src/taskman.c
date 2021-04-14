@@ -109,7 +109,7 @@ void TASKMAN_Init(void)
 	BUTTON_Init();
 	CHARGER_Init();
 	POWERSOURCE_Init();
-	FUELGUAGE_Init();
+	FUELGAUGE_Init();
 
 	PowerManagementInit();
 
@@ -207,7 +207,7 @@ void TASKMAN_Run(void)
 			loopStartTIme = TIMER_OSLOOP->CNT;
 
 			CHARGER_Task();
-			FUELGUAGE_Task();
+			FUELGAUGE_Task();
 			BATTERY_Task();
 			POWERSOURCE_Task();
 

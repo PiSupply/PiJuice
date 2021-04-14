@@ -144,8 +144,8 @@ void BATTERY_Init(void)
 // ****************************************************************************
 void BATTERY_Task(void)
 {
-	const uint16_t batteryVoltageMv = FUELGUAGE_GetBatteryMv();
-	const uint16_t batteryRsocPt1 = FUELGUAGE_GetSocPt1();
+	const uint16_t batteryVoltageMv = FUELGAUGE_GetBatteryMv();
+	const uint16_t batteryRsocPt1 = FUELGAUGE_GetSocPt1();
 	const ChargerStatus_T chargerStatus = CHARGER_GetStatus();
 	const bool chargerBatteryDetected = (CHARGER_BATTERY_NOT_PRESENT != CHARGER_GetBatteryStatus());
 	const TASKMAN_RunState_t runState = TASKMAN_GetRunState();
@@ -727,7 +727,7 @@ static void BATTERY_SetNewProfileId(const uint8_t newProfileId)
 
 	// Notify dependent modules
 	POWERSOURCE_UpdateBatteryProfile(m_p_activeBatteryProfile);
-	FUELGUAGE_UpdateBatteryProfile();
+	FUELGAUGE_UpdateBatteryProfile();
 	CHARGER_UpdateBatteryProfile();
 }
 
@@ -782,7 +782,7 @@ static void BATTERY_WriteCustomProfileExtended(const BatteryProfile_T * p_newPro
 	if (m_batteryProfileStatus == BATTERY_CUSTOM_PROFILE_ID)
 	{
 		// Fuel guage is the only module that uses the extended data in the profile
-		FUELGUAGE_UpdateBatteryProfile();
+		FUELGAUGE_UpdateBatteryProfile();
 	}
 }
 

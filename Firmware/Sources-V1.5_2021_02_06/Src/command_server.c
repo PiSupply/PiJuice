@@ -571,7 +571,7 @@ void CmdServerReadWriteEventFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *d
 
 void CmdServerReadRsoc(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
-	const uint16_t batteryRsocPt1 = FUELGUAGE_GetSocPt1();
+	const uint16_t batteryRsocPt1 = FUELGAUGE_GetSocPt1();
 
 	if (dir == MASTER_CMD_DIR_READ)
 	{
@@ -584,7 +584,7 @@ void CmdServerReadRsoc(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 
 void CmdServerReadRsocHigherResolution(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
-	const uint16_t batteryRsocPt1 = FUELGUAGE_GetSocPt1();
+	const uint16_t batteryRsocPt1 = FUELGAUGE_GetSocPt1();
 
 	if (dir == MASTER_CMD_DIR_READ)
 	{
@@ -626,7 +626,7 @@ void CmdServerReadButtonStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 
 void CmdServerReadBatTemp(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
-	const uint8_t batteryTemp = FUELGUAGE_GetBatteryTemperature();
+	const uint8_t batteryTemp = FUELGAUGE_GetBatteryTemperature();
 
 	if (dir == MASTER_CMD_DIR_READ)
 	{
@@ -641,7 +641,7 @@ void CmdServerReadBatTemp(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 
 void CmdServerReadBatVoltage(const uint8_t dir, uint8_t * const p_data, uint16_t * const dataLen)
 {
-	const uint16_t batteryMv = FUELGUAGE_GetBatteryMv();
+	const uint16_t batteryMv = FUELGAUGE_GetBatteryMv();
 
 	if (dir == MASTER_CMD_DIR_READ)
 	{
@@ -657,7 +657,7 @@ void CmdServerReadBatVoltage(const uint8_t dir, uint8_t * const p_data, uint16_t
 void CmdServerReadBatCurrent(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
 	// TODO - Check the units this is supposed to be in
-	const uint16_t cur = FUELGUAGE_GetBatteryMaHr();
+	const uint16_t cur = FUELGAUGE_GetBatteryMaHr();
 
 	if (dir == MASTER_CMD_DIR_READ)
 	{
@@ -798,11 +798,11 @@ void CmdServerReadWriteFuelGaugeConfig(uint8_t dir, uint8_t *pData, uint16_t *da
 {
 	if (dir == MASTER_CMD_DIR_WRITE)
 	{
-		FUELGUAGE_SetConfigData(&pData[1u], *dataLen - 1u);
+		FUELGAUGE_SetConfigData(&pData[1u], *dataLen - 1u);
 	}
 	else
 	{
-		FUELGUAGE_GetConfigData(pData, dataLen);
+		FUELGAUGE_GetConfigData(pData, dataLen);
 	}
 }
 
@@ -1277,8 +1277,8 @@ void CmdServerReadFirmwareVersion(uint8_t dir, uint8_t *pData, uint16_t *dataLen
 
 void CmdServerReadBoardFaultStatus(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 {
-	const bool fuelguageOnline = FUELGUAGE_IsOnline();
-	const bool tempSensorFault = FUELGUAGE_IsNtcOK();
+	const bool fuelguageOnline = FUELGAUGE_IsOnline();
+	const bool tempSensorFault = FUELGAUGE_IsNtcOK();
 	const uint8_t chargerFault = CHARGER_GetFaultStatus();
 
 	if (dir == MASTER_CMD_DIR_READ)

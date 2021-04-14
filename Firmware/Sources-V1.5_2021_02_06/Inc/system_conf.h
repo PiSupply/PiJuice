@@ -220,13 +220,13 @@
 #define I2CDRV_MAX_DEVICES					2u
 #define I2CDRV_MAX_BUFFER_SIZE				12u		/* Big enough to read all registers from charger */
 
-#define FUELGUAGE_I2C_ADDR					0x16u
-#define FUELGUAGE_I2C_PORTNO				1u
+#define FUELGAUGE_I2C_ADDR					0x16u
+#define FUELGAUGE_I2C_PORTNO				1u
 
-#define FUELGUAGE_MIN_BATT_MV				2500u
-#define FUELGUAGE_SOC_TO_I_K				4748u	/* Divide by 13.888888 */
+#define FUELGAUGE_MIN_BATT_MV				2500u
+#define FUELGAUGE_SOC_TO_I_K				4748u	/* Divide by 13.888888 */
 
-#define FUELGUAGE_TASK_PERIOD_MS			125u
+#define FUELGAUGE_TASK_PERIOD_MS			125u
 #define POWERMANAGE_TASK_PERIOD_MS			500u
 
 
