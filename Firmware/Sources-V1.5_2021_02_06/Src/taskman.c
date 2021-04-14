@@ -111,7 +111,7 @@ void TASKMAN_Init(void)
 	POWERSOURCE_Init();
 	FUELGAUGE_Init();
 
-	PowerManagementInit();
+	POWERMAN_Init();
 
 	BUTTON_Init();
 
@@ -214,7 +214,7 @@ void TASKMAN_Run(void)
 			RTC_EvaluateAlarm();
 
 			BUTTON_Task();
-			PowerManagementTask();
+			POWERMAN_Task();
 
 			HOSTCOMMS_Task();
 

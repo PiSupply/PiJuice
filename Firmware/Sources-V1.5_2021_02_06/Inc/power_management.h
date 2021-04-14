@@ -21,18 +21,9 @@ typedef enum
 } RunPinInstallationStatus_T;
 
 
-void PowerManagementInit(void);
-void PowerManagementTask(void);
 
-void RunPinInstallationStatusSetConfigCmd(uint8_t data[], uint8_t len);
-void RunPinInstallationStatusGetConfigCmd(uint8_t data[], uint16_t *len);
-void PowerMngmtSchedulePowerOff(uint8_t dalayCode);
-void PowerMngmtConfigureWatchdogCmd(uint8_t data[], uint16_t len);
-void PowerMngmtGetWatchdogConfigurationCmd(uint8_t data[], uint16_t *len);
-void PowerMngmtHostPollEvent(void);
-
-void PowerMngmtSetWakeupOnChargeCmd(uint8_t data[], uint16_t len);
-void PowerMngmtGetWakeupOnChargeCmd(uint8_t data[], uint16_t *len);
+void POWERMAN_Init(void);
+void POWERMAN_Task(void);
 
 bool POWERMAN_CanShutDown(void);
 uint8_t POWERMAN_GetPowerOffTime(void);
@@ -44,6 +35,11 @@ void POWERMAN_SetWakeupOnChargeData(const uint8_t * const data, const uint16_t l
 void POWERMAN_GetWakeupOnChargeData(uint8_t * const data, uint16_t * const len);
 void POWERMAN_ClearPowerButtonPressed(void);
 void POWERMAN_SetWakeupOnChargePt1(const uint16_t newValue);
+void POWERMAN_SetRunPinConfigData(const uint8_t * const p_data, const uint8_t len);
+void POWERMAN_GetRunPinConfigData(uint8_t * const p_data, uint16_t * const p_len);
+void POWERMAN_SetWatchdogConfigData(const uint8_t * const p_data, const uint16_t len);
+void POWERMAN_GetWatchdogConfigData(uint8_t * const p_data, uint16_t * const p_len);
+void POWERMAN_SchedulePowerOff(const uint8_t dalayCode);
 
 
 #endif /* POWER_MANAGEMENT_H_ */

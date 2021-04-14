@@ -914,7 +914,7 @@ void CmdServerReadWriteScheduledPowerOff(uint8_t dir, uint8_t *pData, uint16_t *
 {
 	if (dir == MASTER_CMD_DIR_WRITE)
 	{
-		PowerMngmtSchedulePowerOff(pData[1]);
+		POWERMAN_SchedulePowerOff(pData[1u]);
 	}
 	else
 	{
@@ -1060,20 +1060,28 @@ void CmdServerReadWriteLedConfigurationLED2(uint8_t dir, uint8_t *pData, uint16_
 }
 
 
-void CmdServerReadWriteRunPinConfiguration(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		RunPinInstallationStatusSetConfigCmd(pData+1, *dataLen - 1);
-	} else {
-		RunPinInstallationStatusGetConfigCmd(pData, dataLen);
+void CmdServerReadWriteRunPinConfiguration(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		POWERMAN_SetRunPinConfigData(&pData[1u], *dataLen - 1u);
+	}
+	else
+	{
+		POWERMAN_GetRunPinConfigData(pData, dataLen);
 	}
 }
 
 
-void CmdServerReadWriteWDGConfiguration(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		PowerMngmtConfigureWatchdogCmd(pData+1, *dataLen - 1);
-	} else {
-		PowerMngmtGetWatchdogConfigurationCmd(pData, dataLen);
+void CmdServerReadWriteWDGConfiguration(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		POWERMAN_SetWatchdogConfigData(&pData[1u], *dataLen - 1u);
+	}
+	else
+	{
+		POWERMAN_GetWatchdogConfigData(pData, dataLen);
 	}
 }
 

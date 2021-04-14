@@ -9,7 +9,7 @@
 #include "system_conf.h"
 
 #include "nv.h"
-#include "power_management.h"
+
 #include "charger_bq2416x.h"
 #include "fuel_gauge_lc709203f.h"
 #include "time_count.h"
@@ -18,101 +18,96 @@
 #include "io_control.h"
 #include "led.h"
 #include "iodrv.h"
-
-
 #include "hostcomms.h"
 #include "execution.h"
 #include "rtc_ds1339_emu.h"
 #include "taskman.h"
+#include "util.h"
 
+#include "power_management.h"
 
-#define WAKEUPONCHARGE_NV_INITIALISED	(0u != (wakeupOnChargeConfig & 0x80u))
+static bool POWERMAN_ResetHost(void);
 
-static RunPinInstallationStatus_T runPinInstallationStatus = RUN_PIN_NOT_INSTALLED;
+#define WAKEUPONCHARGE_NV_INITIALISED	(0u != (m_wakeupOnChargeConfig & 0x80u))
 
-static uint8_t wakeupOnChargeConfig __attribute__((section("no_init")));
+static uint32_t m_powerMngmtTaskMsCounter;
+static RunPinInstallationStatus_T m_runPinInstalled = RUN_PIN_NOT_INSTALLED;
 
+static uint8_t m_wakeupOnChargeConfig __attribute__((section("no_init")));
 static uint16_t m_wakeUpOnCharge __attribute__((section("no_init"))); // 0 - 1000, 0xFFFF - disabled
-
-static uint8_t delayedTurnOnFlag __attribute__((section("no_init")));
-static uint32_t delayedTurnOnTimer __attribute__((section("no_init")));
-
+static bool m_delayedTurnOnFlag __attribute__((section("no_init")));
+static uint32_t m_delayedTurnOnTimer __attribute__((section("no_init")));
 static uint32_t m_delayedPowerOffTimeMs __attribute__((section("no_init")));
-
-static uint16_t watchdogConfig __attribute__((section("no_init")));
-static uint32_t watchdogExpirePeriod __attribute__((section("no_init"))); // 0 - disabled, 1-255 expiration time minutes
-static uint32_t watchdogTimer __attribute__((section("no_init")));
-
+static uint16_t m_watchdogConfig __attribute__((section("no_init")));
+static uint32_t m_watchdogExpirePeriod __attribute__((section("no_init"))); // 0 - disabled, 1-255 expiration time minutes
+static uint32_t m_watchdogTimer __attribute__((section("no_init")));
 static bool m_watchdogExpired __attribute__((section("no_init")));
 static bool m_powerButtonPressedEvent __attribute__((section("no_init")));
-
-
-static uint32_t powerMngmtTaskMsCounter;
 static uint32_t m_lastWakeupTimer __attribute__((section("no_init")));
 
 
-#ifdef DETECT_RPI_PWRLED_GPIO26
-static bool m_rpiActive;
-static uint32_t m_rpiActiveTime;
-static bool m_gpioPowerControl;
-#endif
-
-
-void PowerManagementInit(void)
+void POWERMAN_Init(void)
 {
-
 	const uint32_t sysTime = HAL_GetTick();
 	const bool noBatteryTurnOn = CHARGER_GetNoBatteryTurnOnEnable();
 	const bool chargerHasInput = CHARGER_IsChargeSourceAvailable();
+	uint8_t tempU8;
+	bool nvOk;
 
-	uint16_t var = 0u;
-
-	EE_ReadVariable(NV_RUN_PIN_CONFIG, &var);
-
-	if (((~var)&0xFFu) == (var>>8u))
-	{
-		runPinInstallationStatus = (RunPinInstallationStatus_T)(var&0xFFu);
-	}
+	// If not programmed will default to not installed
+	NV_ReadVariable_U8(NV_RUN_PIN_CONFIG, (uint8_t*)&m_runPinInstalled);
 
 	if (EXECUTION_STATE_NORMAL != executionState)
 	{
 		// on mcu power up
-
 		m_wakeUpOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
-		wakeupOnChargeConfig = 0x7Fu;
+		m_wakeupOnChargeConfig = 0x7Fu;
 
-		if (NvReadVariableU8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (uint8_t*)&wakeupOnChargeConfig) == NV_READ_VARIABLE_SUCCESS)
+		if (NV_ReadVariable_U8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (uint8_t*)&m_wakeupOnChargeConfig))
 		{
-			if (wakeupOnChargeConfig<=100u) {
-				/* Set last bit in config value to show EE is not just blank. */
-				wakeupOnChargeConfig |= 0x80u;
+			if (m_wakeupOnChargeConfig <= 100u)
+			{
+				/* Set last bit in config value to show EE value is valid. */
+				m_wakeupOnChargeConfig |= 0x80u;
 			}
 		}
 
 		if (true == chargerHasInput)
 		{	/* Charger is connected */
-			delayedTurnOnFlag = noBatteryTurnOn;
+			m_delayedTurnOnFlag = noBatteryTurnOn;
 		}
 		else
 		{	/* Charger is not connected */
-			delayedTurnOnFlag = 0u;
+			m_delayedTurnOnFlag = false;
 
 			if (WAKEUPONCHARGE_NV_INITIALISED)
 			{
-				m_wakeUpOnCharge = (wakeupOnChargeConfig&0x7Fu) <= 100u ? (wakeupOnChargeConfig&0x7Fu) * 10u : WAKEUP_ONCHARGE_DISABLED_VAL;
+				m_wakeUpOnCharge = (m_wakeupOnChargeConfig & 0x7Fu) <= 100u ?
+										(m_wakeupOnChargeConfig & 0x7Fu) * 10u :
+										WAKEUP_ONCHARGE_DISABLED_VAL;
 			}
 		}
 
-		if ( NvReadVariableU8(WATCHDOG_CONFIGL_NV_ADDR, (uint8_t*)&watchdogConfig) != NV_READ_VARIABLE_SUCCESS ||
-				NvReadVariableU8(WATCHDOG_CONFIGH_NV_ADDR, (uint8_t*)&watchdogConfig+1) != NV_READ_VARIABLE_SUCCESS
-		 	 )
+		nvOk = true;
+
+		nvOk &= NV_ReadVariable_U8(WATCHDOG_CONFIGL_NV_ADDR, &tempU8);
+		m_watchdogConfig = tempU8;
+
+		nvOk &= NV_ReadVariable_U8(WATCHDOG_CONFIGH_NV_ADDR, &tempU8);
+
+		if (true == nvOk)
 		{
-			watchdogConfig  = 0u;
+			m_watchdogConfig |= (uint16_t)tempU8 << 8u;
+		}
+		else
+		{
+			m_watchdogConfig = 0u;
 		}
 
+
 		m_delayedPowerOffTimeMs = 0u;
-		watchdogExpirePeriod = 0u;
-		watchdogTimer = 0u;
+		m_watchdogExpirePeriod = 0u;
+		m_watchdogTimer = 0u;
 		m_watchdogExpired = false;
 
 		RTC_ClearWakeEvent();
@@ -120,78 +115,7 @@ void PowerManagementInit(void)
 		m_powerButtonPressedEvent = false;
 	}
 
-	MS_TIMEREF_INIT(powerMngmtTaskMsCounter, sysTime);
-
-#ifdef DETECT_RPI_PWRLED_GPIO26
-
-	m_gpioPowerControl = true;
-
-	m_rpiActive = false;
-	MS_TIMEREF_INIT(m_rpiActiveTime, sysTime);
-
-#endif
-
-}
-
-int8_t ResetHost(void)
-{
-	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
-	const PowerSourceStatus_T power5vIoStatus = POWERSOURCE_Get5VRailStatus();
-
-	if ( ((true == boostConverterEnabled) || (POW_SOURCE_NOT_PRESENT != power5vIoStatus))
-			&& (RUN_PIN_INSTALLED == runPinInstallationStatus)
-			)
-	{
-		POWERSOURCE_Set5vBoostEnable(true);
-		// activate RUN signal
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
-		DelayUs(100);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
-		MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
-		return 0;
-	}
-	else if (power5vIoStatus == POW_SOURCE_NOT_PRESENT)
-	{
-		if (true == boostConverterEnabled)
-		{
-			// do power circle, first turn power off
-			POWERSOURCE_Set5vBoostEnable(false);
-			// schedule turn on after delay
-			delayedTurnOnFlag = 1;
-			MS_TIME_COUNTER_INIT(delayedTurnOnTimer);
-			MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
-			return 0;
-		}
-		else
-		{
-			POWERSOURCE_Set5vBoostEnable(true);
-			MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
-			return 0;
-		}
-	}
-	else if ( (true == boostConverterEnabled) || (POW_SOURCE_NOT_PRESENT != power5vIoStatus) )
-	{
-		// wakeup via RPI GPIO3
-	    GPIO_InitTypeDef i2c_GPIO_InitStruct;
-		i2c_GPIO_InitStruct.Pin = GPIO_PIN_6;
-		i2c_GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-		i2c_GPIO_InitStruct.Pull = GPIO_NOPULL;
-	    HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
-	    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
-		DelayUs(100);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
-		i2c_GPIO_InitStruct.Pin       = GPIO_PIN_6;
-		i2c_GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
-		i2c_GPIO_InitStruct.Pull      = GPIO_NOPULL;
-		i2c_GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
-		i2c_GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
-		HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
-		MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
-
-		return 0;
-	}
-
-	return 1;
+	MS_TIMEREF_INIT(m_powerMngmtTaskMsCounter, sysTime);
 }
 
 
@@ -209,7 +133,7 @@ void BUTTON_PowerOnEventCb(const Button_T * const p_button)
 			)
 	{
 
-		if (ResetHost() == 0)
+		if (true == POWERMAN_ResetHost())
 		{
 			m_wakeUpOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 			RTC_ClearWakeEvent();
@@ -240,7 +164,7 @@ void BUTTON_PowerOffEventCb(const Button_T * const p_button)
 
 void BUTTON_PowerResetEventCb(const Button_T * const p_button)
 {
-	if (ResetHost() == 0)
+	if (true == POWERMAN_ResetHost())
 	{
 		m_wakeUpOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 
@@ -253,15 +177,8 @@ void BUTTON_PowerResetEventCb(const Button_T * const p_button)
 	BUTTON_ClearEvent(p_button->index);
 }
 
-void PowerMngmtHostPollEvent(void)
-{
-	RTC_ClearWakeEvent();
-	TASKMAN_ClearIOWakeEvent();
-	watchdogTimer = watchdogExpirePeriod;
-}
 
-
-void PowerManagementTask(void)
+void POWERMAN_Task(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
 	const bool chargerHasInput = CHARGER_IsChargeSourceAvailable();
@@ -275,40 +192,39 @@ void PowerManagementTask(void)
 	bool boostConverterEnabled;
 	bool isWakeupOnCharge;
 
-	if (MS_TIMEREF_TIMEOUT(powerMngmtTaskMsCounter, sysTime, POWERMANAGE_TASK_PERIOD_MS))
+	if (MS_TIMEREF_TIMEOUT(m_powerMngmtTaskMsCounter, sysTime, POWERMANAGE_TASK_PERIOD_MS))
 	{
-		MS_TIMEREF_INIT(powerMngmtTaskMsCounter, sysTime);
+		MS_TIMEREF_INIT(m_powerMngmtTaskMsCounter, sysTime);
 
 		isWakeupOnCharge = (batteryRsoc >= m_wakeUpOnCharge) && (true == chargerHasInput) && (true == chargerHasBattery);
 
 		if ( ( isWakeupOnCharge || rtcWakeEvent || ioWakeEvent ) // there is wake-up trigger
 				&& 	(0u == m_delayedPowerOffTimeMs) // deny wake-up during shutdown
-				&& 	(false == delayedTurnOnFlag)
-				&& 	( (lastHostCommandAgeMs >= 15000) && MS_TIMEREF_TIMEOUT(m_lastWakeupTimer, sysTime, 30000) )
+				&& 	(false == m_delayedTurnOnFlag)
+				&& 	( (lastHostCommandAgeMs >= 15000u) && MS_TIMEREF_TIMEOUT(m_lastWakeupTimer, sysTime, 30000u) )
 						//|| (!POW_5V_BOOST_EN_STATUS() && power5vIoStatus == POW_SOURCE_NOT_PRESENT) //  Host is non powered
 		   	   	)
 		{
-			if ( ResetHost() == 0u )
+			if (true == POWERMAN_ResetHost())
 			{
 				m_wakeUpOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 				RTC_ClearWakeEvent();
 				TASKMAN_ClearIOWakeEvent();
 				m_delayedPowerOffTimeMs = 0u;
 
-				if (watchdogConfig)
+				if (0u != m_watchdogConfig)
 				{
 					// activate watchdog after wake-up if watchdog config has restore flag
-					watchdogExpirePeriod = watchdogConfig * (uint32_t)60000;
-					watchdogTimer = watchdogExpirePeriod;
+					m_watchdogExpirePeriod = (uint32_t)m_watchdogConfig * 60000u;
+					m_watchdogTimer = m_watchdogExpirePeriod;
 				}
 			}
 		}
 
 
-
-		if ( watchdogExpirePeriod && (lastHostCommandAgeMs > watchdogTimer) )
+		if ( (0u !=  m_watchdogExpirePeriod) && (lastHostCommandAgeMs > m_watchdogTimer) )
 		{
-			if ( ResetHost() == 0 )
+			if (true == POWERMAN_ResetHost())
 			{
 				m_wakeUpOnCharge = WAKEUP_ONCHARGE_DISABLED_VAL;
 				m_watchdogExpired = true;
@@ -317,14 +233,14 @@ void PowerManagementTask(void)
 				m_delayedPowerOffTimeMs = 0u;
 			}
 
-			watchdogTimer += watchdogExpirePeriod;
+			m_watchdogTimer += m_watchdogExpirePeriod;
 		}
 	}
 
-	if ( delayedTurnOnFlag && (MS_TIMEREF_TIMEOUT(delayedTurnOnTimer, sysTime, 100u)) )
+	if ( m_delayedTurnOnFlag && (MS_TIMEREF_TIMEOUT(m_delayedTurnOnTimer, sysTime, 100u)) )
 	{
 		POWERSOURCE_Set5vBoostEnable(true);
-		delayedTurnOnFlag = 0;
+		m_delayedTurnOnFlag = 0u;
 		MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
 	}
 
@@ -347,63 +263,13 @@ void PowerManagementTask(void)
 		LED_SetRGB(LED_LED2_IDX, 0u, 0u, 0u);
 	}
 
-#ifdef DETECT_RPI_PWRLED_GPIO26
-	if ( true == m_rpiActive )
-	{
-		if ( (true == m_gpioPowerControl) && MS_TIMEREF_TIMEOUT(m_delayedPowerOffTimeMs, sysTime, 2000u) )
-		{
-			uint8_t pinData[2u];
-			uint16_t len;
-
-			IoRead(RPI_ACTLED_IO_PIN, pinData, &len);
-
-			if (0u == pinData[0u])
-			{
-				/* RPi power has gone off, make sure */
-				if (MS_TIMEREF_TIMEOUT(m_rpiActiveTime, sysTime, 100u))
-				{
-					/* Turn led to red */
-					LedSetRGB(LED2, 100u, 0u, 0u);
-
-					/* Adjust power off to 2 seconds */
-					MS_TIMEREF_INIT(m_delayedPowerOffTimeMs, sysTime + 2000u);
-				}
-			}
-			else
-			{
-				/* RPi power is still on */
-				MS_TIMEREF_INIT(m_rpiActiveTime, sysTime);
-			}
-		}
-	}
-	else
-	{
-		uint8_t pinData[2u];
-		uint16_t len;
-
-		IoRead(RPI_ACTLED_IO_PIN, pinData, &len);
-
-		if (0u == pinData[0u])
-		{
-			/* RPi is not on yet */
-			MS_TIMEREF_INIT(m_rpiActiveTime, sysTime);
-		}
-		else if (MS_TIMEREF_TIMEOUT(m_rpiActiveTime, sysTime, 5000u))
-		{
-			/* RPi has been on for 5 seconds */
-			m_rpiActive = true;
-			LedSetRGB(LED2, 0u, 100u, 0u);
-		}
-	}
-#endif
-
 	if ( (false == chargerHasInput) &&
 			(WAKEUP_ONCHARGE_DISABLED_VAL == m_wakeUpOnCharge) &&
 			(WAKEUPONCHARGE_NV_INITIALISED)
 			)
 	{
 		// setup wake-up on charge if charging stopped, power source removed
-		m_wakeUpOnCharge = (wakeupOnChargeConfig & 0x7F) <= 100u ? (wakeupOnChargeConfig & 0x7Fu) * 10u :
+		m_wakeUpOnCharge = (m_wakeupOnChargeConfig & 0x7F) <= 100u ? (m_wakeupOnChargeConfig & 0x7Fu) * 10u :
 																	WAKEUP_ONCHARGE_DISABLED_VAL;
 	}
 }
@@ -415,7 +281,7 @@ void InputSourcePresenceChangeCb(uint8_t event)
 }
 
 
-void PowerMngmtSchedulePowerOff(uint8_t delayCode)
+void POWERMAN_SchedulePowerOff(const uint8_t delayCode)
 {
 	if (delayCode <= 250u)
 	{
@@ -474,107 +340,134 @@ void POWERMAN_ClearWatchdog(void)
 }
 
 
-void RunPinInstallationStatusSetConfigCmd(uint8_t data[], uint8_t len)
+void POWERMAN_SetRunPinConfigData(const uint8_t * const p_data, const uint8_t len)
 {
-	uint16_t var = 0;
-
-	if (data[0] > 1)
+	if (p_data[0u] > 1u)
 	{
 		return;
 	}
 
-	EE_WriteVariable(NV_RUN_PIN_CONFIG, data[0] | ((uint16_t)(~data[0])<<8));
-	EE_ReadVariable(NV_RUN_PIN_CONFIG, &var);
+	NV_WriteVariable_U8(NV_RUN_PIN_CONFIG, p_data[0u]);
 
-	if (((~var)&0xFF) == (var>>8))
+	if (false == NV_ReadVariable_U8(NV_RUN_PIN_CONFIG, (uint8_t*)&m_runPinInstalled))
 	{
-		runPinInstallationStatus = var&0xFF;
+		m_runPinInstalled = RUN_PIN_NOT_INSTALLED;
+	}
+}
+
+
+void POWERMAN_GetRunPinConfigData(uint8_t * const p_data, uint16_t * const p_len)
+{
+	p_data[0] = m_runPinInstalled;
+	*p_len = 1u;
+}
+
+
+void POWERMAN_SetWatchdogConfigData(const uint8_t * const p_data, const uint16_t len)
+{
+	uint32_t cfg;
+	uint8_t tempU8;
+	bool nvOk;
+
+	if (len < 2u)
+	{
+		return;
+	}
+
+	cfg = UTIL_FromBytes_U16(&p_data[0u]) & 0x3FFFu;
+
+	// Drop resolution if time is >= 16384 seconds
+	if (0u != (p_data[1u] & 0x40u))
+	{
+		cfg >>= 2u;
+		cfg |= 0x4000u;
+	}
+
+	if (p_data[1u] & 0x80)
+	{
+		m_watchdogConfig = cfg;
+		NV_WriteVariable_U8(WATCHDOG_CONFIGL_NV_ADDR, (uint8_t)(m_watchdogConfig & 0xFFu));
+		NV_WriteVariable_U8(WATCHDOG_CONFIGH_NV_ADDR, (uint8_t)((m_watchdogConfig >> 8u) & 0xFFu));
+
+		nvOk = true;
+
+		nvOk &= NV_ReadVariable_U8(WATCHDOG_CONFIGL_NV_ADDR, &tempU8);
+		m_watchdogConfig = tempU8;
+
+		nvOk &= NV_ReadVariable_U8(WATCHDOG_CONFIGH_NV_ADDR, &tempU8);
+
+		if (false == nvOk)
+		{
+			m_watchdogConfig = 0u;
+		}
+
+		if (0u == m_watchdogConfig)
+		{
+			m_watchdogExpirePeriod = 0u;
+			m_watchdogTimer = 0u;
+		}
 	}
 	else
 	{
-		runPinInstallationStatus = RUN_PIN_NOT_INSTALLED;
+		m_watchdogExpirePeriod = cfg * 60000u;
+		m_watchdogTimer = m_watchdogExpirePeriod;
 	}
+
 }
 
-void RunPinInstallationStatusGetConfigCmd(uint8_t data[], uint16_t *len)
+void POWERMAN_GetWatchdogConfigData(uint8_t * const p_data, uint16_t * const p_len)
 {
-	data[0] = runPinInstallationStatus;
-	*len = 1;
-}
+	uint16_t d;
 
-void PowerMngmtConfigureWatchdogCmd(uint8_t data[], uint16_t len)
-{
-	if (len < 2) return;
-	volatile uint16_t d, cfg;
+	if (0u != m_watchdogConfig)
+	{
+		d = m_watchdogConfig;
 
-	cfg = data[1];
-	cfg <<= 8;
-	cfg |= data[0];
-
-	d = cfg & 0x3FFF;
-	d <<= ((cfg&0x4000) >> 13); // correct resolution to 4 minutes for range 16384-65536
-
-	if (data[1]&0x80) {
-		watchdogConfig = d;
-		NV_WriteVariable_U8(WATCHDOG_CONFIGL_NV_ADDR, watchdogConfig);
-		NV_WriteVariable_U8(WATCHDOG_CONFIGH_NV_ADDR, watchdogConfig>>8);
-
-		if (NvReadVariableU8(WATCHDOG_CONFIGL_NV_ADDR, (uint8_t*)&watchdogConfig) != NV_READ_VARIABLE_SUCCESS
-		 || NvReadVariableU8(WATCHDOG_CONFIGH_NV_ADDR, (uint8_t*)&watchdogConfig+1) != NV_READ_VARIABLE_SUCCESS
-		 ) {
-			watchdogConfig = 0;
+		if (0u != (d & 0x4000u))
+		{
+			d = (d >> 2u) | 0x4000u;
 		}
 
-		if (watchdogConfig == 0) {
-			watchdogExpirePeriod = 0;
-			watchdogTimer = 0;
+		d |= 0x8000u;
+	}
+	else
+	{
+		d = m_watchdogExpirePeriod / 60000u;
+
+		if (0u != (d & 0x4000u))
+		{
+			 d = (d >> 2u) | 0x4000u;
 		}
-	} else {
-		watchdogExpirePeriod = d * (uint32_t)60000;
-		watchdogTimer = watchdogExpirePeriod;
 	}
 
-}
+	UTIL_ToBytes_U16(d, &p_data[0u]);
 
-void PowerMngmtGetWatchdogConfigurationCmd(uint8_t data[], uint16_t *len) {
-	if (watchdogConfig) {
-		uint16_t d = watchdogConfig;
-		if (d >= 0x4000) d = (d >> 2) | 0x4000;
-		data[0] = d;
-		data[1] = (d >> 8) | 0x80;
-	} else {
-		 uint16_t d = watchdogExpirePeriod / 60000;
-		 if (d >= 0x4000) d = (d >> 2) | 0x4000;
-		 data[0] = d;
-		 data[1] = d >> 8;
-	}
-
-	 *len = 2;
+	*p_len = 2;
 }
 
 
-void POWERMAN_SetWakeupOnChargeData(const uint8_t * const data, const uint16_t len)
+void POWERMAN_SetWakeupOnChargeData(const uint8_t * const p_data, const uint16_t len)
 {
-	uint16_t newWakeupVal = (data[0u] & 0x7Fu) * 10u;
+	uint16_t newWakeupVal = (p_data[0u] & 0x7Fu) * 10u;
 
 	if (newWakeupVal > 1000u)
 	{
 		newWakeupVal = WAKEUP_ONCHARGE_DISABLED_VAL;
 	}
 
-	if (data[0u] & 0x80u)
+	if (p_data[0u] & 0x80u)
 	{
-		NV_WriteVariable_U8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (data[0u]&0x7Fu) <= 100u ? data[0u] : 0x7Fu);
+		NV_WriteVariable_U8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (p_data[0u] & 0x7Fu) <= 100u ? p_data[0u] : 0x7Fu);
 
-		if (NV_WriteVariable_U8(WAKEUPONCHARGE_CONFIG_NV_ADDR, wakeupOnChargeConfig) != NV_READ_VARIABLE_SUCCESS )
+		if (NV_WriteVariable_U8(WAKEUPONCHARGE_CONFIG_NV_ADDR, m_wakeupOnChargeConfig) != NV_READ_VARIABLE_SUCCESS )
 		{
 			/* If writing to NV failed then disable wakeup on charge */
-			wakeupOnChargeConfig = 0x7Fu;
+			m_wakeupOnChargeConfig = 0x7Fu;
 			newWakeupVal = WAKEUP_ONCHARGE_DISABLED_VAL;
 		}
 		else
 		{
-			wakeupOnChargeConfig |= 0x80u;
+			m_wakeupOnChargeConfig |= 0x80u;
 		}
 	}
 
@@ -582,18 +475,18 @@ void POWERMAN_SetWakeupOnChargeData(const uint8_t * const data, const uint16_t l
 }
 
 
-void POWERMAN_GetWakeupOnChargeData(uint8_t * const data, uint16_t * const len)
+void POWERMAN_GetWakeupOnChargeData(uint8_t * const p_data, uint16_t * const p_len)
 {
 	if (WAKEUPONCHARGE_NV_INITIALISED)
 	{
-		data[0u] = wakeupOnChargeConfig;
+		p_data[0u] = m_wakeupOnChargeConfig;
 	}
 	else
 	{
-		data[0u] = (m_wakeUpOnCharge <= 1000) ? m_wakeUpOnCharge / 10u : 100u;
+		p_data[0u] = (m_wakeUpOnCharge <= 1000) ? m_wakeUpOnCharge / 10u : 100u;
 	}
 
-	*len = 1u;
+	*p_len = 1u;
 }
 
 
@@ -615,4 +508,66 @@ void POWERMAN_ClearPowerButtonPressed(void)
 void POWERMAN_SetWakeupOnChargePt1(const uint16_t newValue)
 {
 	m_wakeUpOnCharge = newValue;
+}
+
+
+static bool POWERMAN_ResetHost(void)
+{
+	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
+	const PowerSourceStatus_T power5vIoStatus = POWERSOURCE_Get5VRailStatus();
+
+	if ( ((true == boostConverterEnabled) || (POW_SOURCE_NOT_PRESENT != power5vIoStatus))
+			&& (RUN_PIN_INSTALLED == m_runPinInstalled)
+			)
+	{
+		POWERSOURCE_Set5vBoostEnable(true);
+		// activate RUN signal
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
+		DelayUs(100);
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
+		MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
+		return true;
+	}
+	else if (power5vIoStatus == POW_SOURCE_NOT_PRESENT)
+	{
+		if (true == boostConverterEnabled)
+		{
+			// do power circle, first turn power off
+			POWERSOURCE_Set5vBoostEnable(false);
+			// schedule turn on after delay
+			m_delayedTurnOnFlag = 1;
+			MS_TIME_COUNTER_INIT(m_delayedTurnOnTimer);
+			MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
+			return true;
+		}
+		else
+		{
+			POWERSOURCE_Set5vBoostEnable(true);
+			MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
+			return true;
+		}
+	}
+	else if ( (true == boostConverterEnabled) || (POW_SOURCE_NOT_PRESENT != power5vIoStatus) )
+	{
+		// wakeup via RPI GPIO3
+	    GPIO_InitTypeDef i2c_GPIO_InitStruct;
+		i2c_GPIO_InitStruct.Pin = GPIO_PIN_6;
+		i2c_GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+		i2c_GPIO_InitStruct.Pull = GPIO_NOPULL;
+	    HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
+	    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+		DelayUs(100);
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
+		i2c_GPIO_InitStruct.Pin       = GPIO_PIN_6;
+		i2c_GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
+		i2c_GPIO_InitStruct.Pull      = GPIO_NOPULL;
+		i2c_GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
+		i2c_GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
+		HAL_GPIO_Init(GPIOB, &i2c_GPIO_InitStruct);
+		MS_TIME_COUNTER_INIT(m_lastWakeupTimer);
+
+		return true;
+	}
+
+	return false;
 }
