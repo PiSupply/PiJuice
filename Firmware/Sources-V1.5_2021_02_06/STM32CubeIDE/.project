@@ -192,19 +192,9 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/rtc_ds1339_emu.h</locationURI>
 		</link>
 		<link>
-			<name>Inc/stm32f0xx_hal_conf-original-pijuice.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Inc/stm32f0xx_hal_conf-original-pijuice.h</locationURI>
-		</link>
-		<link>
 			<name>Inc/stm32f0xx_hal_conf.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Inc/stm32f0xx_hal_conf.h</locationURI>
-		</link>
-		<link>
-			<name>Inc/stm32f0xx_it-freertosdef.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Inc/stm32f0xx_it-freertosdef.h</locationURI>
 		</link>
 		<link>
 			<name>Inc/stm32f0xx_it.h</name>
