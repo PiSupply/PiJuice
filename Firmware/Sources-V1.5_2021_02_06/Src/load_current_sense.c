@@ -366,14 +366,15 @@ static void ISENSE_CalculateLoadCurrentMa(void)
 {
 	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
 	const bool ldoEnabled = POWERSOURCE_IsLDOEnabled();
-	const PowerSourceStatus_T pow5vInDetStatus = POWERSOURCE_Get5VRailStatus();
+	const POWERSOURCE_RPi5VStatus_t pow5vInDetStatus = POWERSOURCE_GetRPi5VPowerStatus();
 	const BatteryStatus_T batteryStatus = BATTERY_GetStatus();
 	const bool vSysEnabled = POWERSOURCE_IsVsysEnabled();
+	const bool chargerRPiInEnabled = CHARGER_GetRPi5vInputEnable();
 
 	m_loadFetMa = ISENSE_CalculatePMOSLoadCurrentMa();
 	m_loadResMa = ISENSE_CalculateResSenseCurrentMa();
 
-	if (pow5vInDetStatus == POW_SOURCE_NOT_PRESENT)
+	if (pow5vInDetStatus == RPI5V_DETECTION_STATUS_UNPOWERED)
 	{
 		if (true == boostConverterEnabled)
 		{
@@ -393,18 +394,20 @@ static void ISENSE_CalculateLoadCurrentMa(void)
 			m_loadCurrentMa = 0;
 		}
 	}
-	else
+	else if (pow5vInDetStatus == RPI5V_DETECTION_STATUS_POWERED)
 	{
-		// Check to see if there should be any current being exchanged
-		if ( (BAT_STATUS_CHARGING_FROM_5V_IO == batteryStatus) || (true == vSysEnabled) || true == boostConverterEnabled )
+		if ( (BAT_STATUS_CHARGING_FROM_5V_IO == batteryStatus) || ((true == chargerRPiInEnabled) && (true == vSysEnabled)) )
 		{
-			// Have to us the sense resistor unfortunately
 			m_loadCurrentMa = m_loadResMa;
 		}
 		else
 		{
 			m_loadCurrentMa = 0;
 		}
+	}
+	else
+	{
+		m_loadCurrentMa = m_loadResMa;
 	}
 }
 

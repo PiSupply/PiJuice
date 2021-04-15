@@ -255,8 +255,9 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 		hi2c1.hdmatx->Instance->CCR &= ~(DMA_CCR_EN);
 		hi2c1.hdmarx->Instance->CCR &= ~(DMA_CCR_EN);
 
-		// Re-enable the peripheral
+		// Re-enable the peripheral and addr interrupt
 		I2C1->CR1 |= I2C_CR1_PE;
+		I2C1->CR1 |= I2C_CR1_ADDRIE;
 
 		m_i2cResetCount++;
 		m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
@@ -328,9 +329,10 @@ void HOSTCOMMS_Task(void)
 			}
 		}
 
-		I2C1->CR1 |= I2C_CR1_PE;
-
 		m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
+
+		//I2C1->CR1 |= I2C_CR1_PE;
+		I2C1->CR1 |= I2C_CR1_ADDRIE;
 	}
 
 	// If the host isn't transferring RTC data, update the buffer here
@@ -519,7 +521,8 @@ void I2C1_IRQHandler(void)
 
 					// Turn off the perpheral until the command has been dealt with
 					// TODO - Stretch the clock on the ADDR phase instead
-					I2C1->CR1 &= ~(I2C_CR1_PE);
+					//I2C1->CR1 &= ~(I2C_CR1_PE);
+					I2C1->CR1 &= ~(I2C_CR1_ADDRIE);
 				}
 				else if ( (m_hostcommsBuffer[1u] + m_rxLen) <= sizeof(m_rtcBuffer) )
 				{
