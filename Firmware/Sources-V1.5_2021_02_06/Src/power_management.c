@@ -265,6 +265,7 @@ void POWERMAN_Task(void)
 	const uint32_t lastHostCommandAgeMs = HOSTCOMMS_GetLastCommandAgeMs(sysTime);
 	const bool rtcWakeEvent = RTC_GetWakeEvent();
 	const bool ioWakeEvent = TASKMAN_GetIOWakeEvent();
+	const IODRV_Pin_t * p_gpio26 = IODRV_GetPinInfo(IODRV_PIN_IO1);
 
 	bool isWakeupOnCharge;
 
@@ -322,18 +323,23 @@ void POWERMAN_Task(void)
 	}
 
 	// Time is set in the future, so need to work in int32 or it'll roll over
-	if ( (0u != m_delayedPowerOffTimeMs) && (int32_t)MS_TIMEREF_DIFF(m_delayedPowerOffTimeMs, sysTime) > 0)
+	if (0u != m_delayedPowerOffTimeMs)
 	{
-		if (RPI5V_DETECTION_STATUS_POWERED != pow5vInDetStatus)
+		if ( ((int32_t)MS_TIMEREF_DIFF(m_delayedPowerOffTimeMs, sysTime) > 0) ||
+				((p_gpio26->value == 0u) && (MS_TIMEREF_TIMEOUT(p_gpio26->lastDigitalChangeTime, sysTime, 2000u)))
+				)
 		{
-			POWERSOURCE_Set5vBoostEnable(false);
+			if (RPI5V_DETECTION_STATUS_POWERED != pow5vInDetStatus)
+			{
+				POWERSOURCE_Set5vBoostEnable(false);
+			}
+
+			// Disable timer
+			m_delayedPowerOffTimeMs = 0u;
+
+			/* Turn off led as it keeps flashing! */
+			LED_SetRGB(LED_LED2_IDX, 0u, 0u, 0u);
 		}
-
-		// Disable timer
-		m_delayedPowerOffTimeMs = 0u;
-
-		/* Turn off led as it keeps flashing! */
-		LED_SetRGB(LED_LED2_IDX, 0u, 0u, 0u);
 	}
 
 	if ( (false == chargerHasInput) &&
