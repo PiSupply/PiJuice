@@ -80,7 +80,6 @@ void LED_Init(const uint32_t sysTime)
 	HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim17, TIM_CHANNEL_1);
 
-
 	// Set all pins to drive push pull
 	IODRV_SetPinType(IODRV_PIN_LED1_R, IOTYPE_PWM_PUSHPULL);
 	IODRV_SetPinType(IODRV_PIN_LED1_G, IOTYPE_PWM_PUSHPULL);
@@ -89,15 +88,13 @@ void LED_Init(const uint32_t sysTime)
 	IODRV_SetPinType(IODRV_PIN_LED2_G, IOTYPE_PWM_PUSHPULL);
 	IODRV_SetPinType(IODRV_PIN_LED2_B, IOTYPE_PWM_PUSHPULL);
 
-
-	/* TODO - Set these in cube MX and just toggle alt function */
+	// Set pull down for when in input mode
 	IODRV_SetPinPullDir(IODRV_PIN_LED1_R, GPIO_PULLDOWN);
 	IODRV_SetPinPullDir(IODRV_PIN_LED1_G, GPIO_PULLDOWN);
 	IODRV_SetPinPullDir(IODRV_PIN_LED1_B, GPIO_PULLDOWN);
 	IODRV_SetPinPullDir(IODRV_PIN_LED2_R, GPIO_PULLDOWN);
 	IODRV_SetPinPullDir(IODRV_PIN_LED2_G, GPIO_PULLDOWN);
 	IODRV_SetPinPullDir(IODRV_PIN_LED2_B, GPIO_PULLDOWN);
-
 
 	// Initialise the led functions from NV memory
 	LED_InitFunction(LED_LED1_IDX);
@@ -114,9 +111,12 @@ void LED_Init(const uint32_t sysTime)
 // ****************************************************************************
 void LED_Shutdown(void)
 {
-	TIM3->CR1 &= ~(TIM_CR1_CEN);
-	TIM15->CR1 &= ~(TIM_CR1_CEN);
-	TIM17->CR1 &= ~(TIM_CR1_CEN);
+	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Stop(&htim17, TIM_CHANNEL_1);
 
 	// Make all pins pull down
 	IODRV_SetPinType(IODRV_PIN_LED1_R, IOTYPE_DIGIN);
