@@ -20,6 +20,7 @@ void HOSTCOMMS_Task(void);
 bool HOSTCOMMS_IsCommandActive(void);
 uint32_t HOSTCOMMS_GetLastCommandAgeMs(const uint32_t sysTime);
 void HOSTCOMMS_SetInterrupt(void);
+void HOSTCOMMS_PiJuiceAddressSetEnable(const bool enabled);
 
 
 #endif /* HOSTCOMMS_H_ */

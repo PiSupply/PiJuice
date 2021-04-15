@@ -135,6 +135,12 @@ bool NV_ReadVariable_U8(const uint16_t address, uint8_t * const p_var)
 }
 
 
+void NV_WipeVariable(const uint16_t address)
+{
+	EE_WriteVariable(address, 0xFFFFu);
+}
+
+
 uint16_t NvReadVariableU8(uint16_t VirtAddress, uint8_t *pVar)
 {
 	uint16_t var = 0;

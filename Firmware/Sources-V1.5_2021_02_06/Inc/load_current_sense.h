@@ -12,7 +12,7 @@ void ISENSE_Init(void);
 void ISENSE_Task(void);
 
 int16_t ISENSE_GetLoadCurrentMa(void);
-bool ISENSE_CalibrateLoadCurrent(void);
+void ISENSE_CalibrateLoadCurrent(void);
 void ISENSE_CalibrateZeroCurrent(void);
 void ISENSE_Calibrate51mACurrent(void);
 void ISENSE_Calibrate510mACurrent(void);

@@ -40,18 +40,15 @@
 // ****************************************************************************
 void E2_Init(void)
 {
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET); // ee write protect
+	uint8_t tempU8;
+	bool EE_AddrPinValue = GPIO_PIN_RESET;
 
-	uint16_t var = 0;
+	IODRV_SetPin(IODRV_PIN_EE_WP, GPIO_PIN_SET);
 
-	EE_ReadVariable(ID_EEPROM_ADR_NV_ADDR, &var);
-
-	if ( (((~var)&0xFF) == (var>>8)) )
+	if (NV_ReadVariable_U8(ID_EEPROM_ADR_NV_ADDR, &tempU8))
 	{
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, (var&0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		EE_AddrPinValue = (0u != (tempU8 & 0x02u));
 	}
-	else
-	{
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); // default ee Adr
-	}
+
+	IODRV_SetPin(IODRV_PIN_EE_A, EE_AddrPinValue);
 }

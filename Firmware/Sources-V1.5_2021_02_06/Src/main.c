@@ -120,7 +120,7 @@ int main(void)
 		}
 	}
 
-	executionState = EXECUTION_STATE_POWER_RESET;
+
 
 	__HAL_RCC_CLEAR_RESET_FLAGS();
 	__HAL_FLASH_PREFETCH_BUFFER_ENABLE();
@@ -164,6 +164,9 @@ int main(void)
 	{
 		executionState = EXECUTION_STATE_POWER_ON;
 	}
+
+	// For debugging.
+	executionState = EXECUTION_STATE_POWER_RESET;
 
 	OSLOOP_Init();
 

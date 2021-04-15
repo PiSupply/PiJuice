@@ -206,6 +206,7 @@
 #define ADC_RES_TO_MA_K						1310720ul
 
 #define ISENSE_POWDET_K						105600ul
+#define ISENSE_UPDATE_PERIOD				125u
 
 #define IODRV_PIN_DEBOUNCE_COUNT			5u
 

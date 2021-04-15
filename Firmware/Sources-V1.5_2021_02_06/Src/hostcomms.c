@@ -148,12 +148,12 @@ void HOSTCOMMS_Init(uint32_t sysTime)
 
 	if (NV_ReadVariable_U8(OWN_ADDRESS1_NV_ADDR, &tempU8))
 	{
-		I2C1->OAR1 = (tempU8 << 1u) | I2C_OAR1_OA1EN;
+		I2C1->OAR1 = (tempU8 << 1u);
 	}
 	else
 	{
 		// Use default address
-		I2C1->OAR1 = (OWN1_I2C_ADDRESS << 1u) | I2C_OAR1_OA1EN;
+		I2C1->OAR1 = (OWN1_I2C_ADDRESS << 1u);
 	}
 
 
@@ -204,6 +204,19 @@ void HOSTCOMMS_Init(uint32_t sysTime)
 }
 
 
+void HOSTCOMMS_PiJuiceAddressSetEnable(const bool enabled)
+{
+	if (enabled)
+	{
+		I2C1->OAR1 |= I2C_OAR1_OA1EN;
+	}
+	else
+	{
+		I2C1->OAR1 &= I2C_OAR1_OA1EN;
+	}
+}
+
+
 // ****************************************************************************
 /*!
  * HOSTCOMMS_Service performs the command server read tasks with a higher priority
@@ -229,10 +242,10 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 	}
 
 	// Timeout after a second, will catch fault mode
-	if ( ( MS_TIMEREF_TIMEOUT(m_lastHostCommandTimeMs, sysTime, 1000u) &&
+	if ( ( MS_TIMEREF_TIMEOUT(m_lastHostCommandTimeMs, sysTime, 100u) &&
 			(HOSTCOMMS_MODE_WAIT != m_hostcommsMode) &&
 			(HOSTCOMMS_MODE_RXC != m_hostcommsMode) ) ||
-			(m_i2cBusyCount > 5000u)
+			(m_i2cBusyCount > 500u)
 			)
 	{
 		// Something bad must have happened, reset the peripheral
@@ -500,7 +513,12 @@ void I2C1_IRQHandler(void)
 				{
 					m_hostcommsMode = HOSTCOMMS_MODE_RXC;
 
+					// Let the service routine know the message is to be dealt with
+					// TODO - Check this is needed.
+					m_hostcommsBuffer[0u] = addrMatch;
+
 					// Turn off the perpheral until the command has been dealt with
+					// TODO - Stretch the clock on the ADDR phase instead
 					I2C1->CR1 &= ~(I2C_CR1_PE);
 				}
 				else if ( (m_hostcommsBuffer[1u] + m_rxLen) <= sizeof(m_rtcBuffer) )

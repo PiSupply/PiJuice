@@ -160,6 +160,7 @@ bool NV_ReadVariable_U8(const uint16_t address, uint8_t * const p_var);
 
 bool NV_WriteVariable_S8(const uint16_t address, const int8_t var);
 bool NV_ReadVariable_S8(const uint16_t address, int8_t * const p_var);
+void NV_WipeVariable(const uint16_t address);
 
 uint16_t NvReadVariableU8(uint16_t VirtAddress, uint8_t *pVar);
 

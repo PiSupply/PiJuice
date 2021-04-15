@@ -70,7 +70,7 @@ void TASKMAN_WaitInterrupt(void);
 // ----------------------------------------------------------------------------
 // Variables that only have scope in this module:
 
-static uint32_t m_taskmanLoopTimeTrack[TASKMAN_LOOP_TRACKER_COUNT];
+static volatile uint32_t m_taskmanLoopTimeTrack[TASKMAN_LOOP_TRACKER_COUNT];
 static uint32_t m_taskloopTrackIdx = 0u;
 
 static uint32_t m_lastSleepTimeMs = 0u;
@@ -103,6 +103,10 @@ extern RTC_HandleTypeDef hrtc;
 // ****************************************************************************
 void TASKMAN_Init(void)
 {
+	// TODO - Correct spelling!
+	NvSetDataInitialized();
+
+	E2_Init();
 
 	ISENSE_Init();
 	BATTERY_Init();
@@ -118,13 +122,10 @@ void TASKMAN_Init(void)
 	RtcInit();
 	IoControlInit();
 
-	// TODO - Correct spelling!
-	NvSetDataInitialized();
-
-	E2_Init();
-
 	MS_TIME_COUNTER_INIT(m_lastTaskRunTimeMs);
 	MS_TIME_COUNTER_INIT(m_lowPowerDelayTimer);
+
+	HOSTCOMMS_PiJuiceAddressSetEnable(true);
 
 	m_runState = TASKMAN_RUNSTATE_NORMAL;
 }
@@ -148,7 +149,6 @@ void TASKMAN_Run(void)
 	uint32_t lastHostCommandAge;
 	bool needEventPoll;
 	uint32_t sysTime;
-	uint32_t loopStartTIme;
 
 	while(true)
 	{
@@ -204,12 +204,11 @@ void TASKMAN_Run(void)
 		{
 			MS_TIME_COUNTER_INIT(m_lastTaskRunTimeMs);
 
-			loopStartTIme = TIMER_OSLOOP->CNT;
-
 			CHARGER_Task();
 			FUELGAUGE_Task();
 			BATTERY_Task();
 			POWERSOURCE_Task();
+			ISENSE_Task();
 
 			RTC_EvaluateAlarm();
 
@@ -220,7 +219,12 @@ void TASKMAN_Run(void)
 
 			CHARGER_Task();
 
-			m_taskmanLoopTimeTrack[m_taskloopTrackIdx] = (loopStartTIme - TIMER_OSLOOP->CNT);
+			m_taskmanLoopTimeTrack[m_taskloopTrackIdx] = MS_TIMEREF_DIFF(m_lastTaskRunTimeMs, HAL_GetTick());
+			m_taskloopTrackIdx++;
+			if (m_taskloopTrackIdx == TASKMAN_LOOP_TRACKER_COUNT)
+			{
+				m_taskloopTrackIdx = 0u;
+			}
 		}
 	}
 }

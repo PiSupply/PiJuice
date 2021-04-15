@@ -123,7 +123,7 @@ void OSLOOP_Service(void)
 
 	LED_Service(sysTime);
 
-	m_osloopTimeTrack[m_osloopTimeTrackIdx] = (timeIn - TIMER_OSLOOP->CNT);
+	m_osloopTimeTrack[m_osloopTimeTrackIdx] = (TIMER_OSLOOP->CNT - timeIn);
 	m_osloopTimeTrackIdx++;
 
 	if (OSLOOP_LOOP_TRACKER_COUNT == m_osloopTimeTrackIdx)
