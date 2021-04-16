@@ -110,3 +110,10 @@ ENV/
 Software/Source/pijuice-*.tar.gz
 MANIFEST
 *.swp
+
+#stm32cubeide
+**/Debug/
+**/Release/
+**/Backup/
+**/*.bak
+**/.~lock.*

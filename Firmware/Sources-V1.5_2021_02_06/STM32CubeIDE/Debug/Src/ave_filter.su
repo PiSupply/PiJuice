@@ -1,8 +1,0 @@
-ave_filter.c:48:6:AVE_FILTER_U16_UpdatePeriodic	24	static
-ave_filter.c:71:6:AVE_FILTER_U16_Update	16	static
-ave_filter.c:105:6:AVE_FILTER_U16_InitPeriodic	24	static
-ave_filter.c:121:6:AVE_FILTER_U16_Reset	16	static
-ave_filter.c:151:6:AVE_FILTER_S32_UpdatePeriodic	24	static
-ave_filter.c:174:6:AVE_FILTER_S32_Update	40	static
-ave_filter.c:205:6:AVE_FILTER_S32_Reset	16	static
-ave_filter.c:234:6:AVE_FILTER_S32_InitPeriodic	24	static
