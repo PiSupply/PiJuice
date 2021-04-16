@@ -1,0 +1,7 @@
+taskman.c:104:6:TASKMAN_Init	8	static
+taskman.c:145:6:TASKMAN_Run	32	static
+taskman.c:241:20:TASKMAN_GetRunState	8	static
+taskman.c:256:6:TASKMAN_GetIOWakeEvent	8	static
+taskman.c:270:6:TASKMAN_ClearIOWakeEvent	8	static
+taskman.c:307:6:TASKMAN_WaitInterrupt	72	static
+taskman.c:394:6:HAL_GPIO_EXTI_Callback	16	static

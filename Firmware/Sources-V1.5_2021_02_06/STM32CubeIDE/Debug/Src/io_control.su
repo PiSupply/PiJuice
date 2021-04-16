@@ -1,0 +1,9 @@
+io_control.c:32:6:MX_TIM1_Init	64	static
+io_control.c:96:6:MX_TIM14_Init	40	static
+io_control.c:128:6:IoConfigure	40	static
+io_control.c:176:6:IoNvReadConfig	32	static
+io_control.c:195:6:IoControlInit	8	static
+io_control.c:211:6:IoSetConfiguarion	16	static
+io_control.c:234:6:IoGetConfiguarion	24	static
+io_control.c:245:6:IoWrite	32	static
+io_control.c:291:6:IoRead	40	static

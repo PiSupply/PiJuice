@@ -1,0 +1,7 @@
+hostcomms.c:124:6:HOSTCOMMS_Init	32	static
+hostcomms.c:207:6:HOSTCOMMS_PiJuiceAddressSetEnable	16	static
+hostcomms.c:230:6:HOSTCOMMS_Service	32	static
+hostcomms.c:306:6:HOSTCOMMS_Task	16	static
+hostcomms.c:383:10:HOSTCOMMS_GetLastCommandAgeMs	16	static
+hostcomms.c:398:6:HOSTCOMMS_SetInterrupt	8	static
+hostcomms.c:417:6:I2C1_IRQHandler	24	static

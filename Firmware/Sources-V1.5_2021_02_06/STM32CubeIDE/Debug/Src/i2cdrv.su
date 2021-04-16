@@ -1,0 +1,7 @@
+i2cdrv.c:65:6:I2C2_IRQHandler	16	static
+i2cdrv.c:119:6:I2CDRV_Init	16	static
+i2cdrv.c:166:6:I2CDRV_Shutdown	8	static
+i2cdrv.c:180:6:I2CDRV_Service	16	static
+i2cdrv.c:195:6:I2CDRV_IsReady	16	static
+i2cdrv.c:244:6:I2CDRV_Transact	32	static
+i2cdrv.c:366:6:I2CDRV_ProcessDevice	32	static

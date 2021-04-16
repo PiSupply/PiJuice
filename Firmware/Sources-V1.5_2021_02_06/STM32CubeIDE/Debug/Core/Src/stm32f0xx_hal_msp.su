@@ -1,0 +1,12 @@
+stm32f0xx_hal_msp.c:75:6:HAL_MspInit	16	static
+stm32f0xx_hal_msp.c:97:6:HAL_ADC_MspInit	56	static
+stm32f0xx_hal_msp.c:156:6:HAL_ADC_MspDeInit	16	static
+stm32f0xx_hal_msp.c:193:6:HAL_I2C_MspInit	64	static
+stm32f0xx_hal_msp.c:335:6:HAL_I2C_MspDeInit	16	static
+stm32f0xx_hal_msp.c:398:6:HAL_RTC_MspInit	16	static
+stm32f0xx_hal_msp.c:423:6:HAL_RTC_MspDeInit	16	static
+stm32f0xx_hal_msp.c:448:6:HAL_TIM_PWM_MspInit	24	static
+stm32f0xx_hal_msp.c:481:6:HAL_TIM_Base_MspInit	24	static
+stm32f0xx_hal_msp.c:511:6:HAL_TIM_MspPostInit	56	static
+stm32f0xx_hal_msp.c:587:6:HAL_TIM_PWM_MspDeInit	16	static
+stm32f0xx_hal_msp.c:620:6:HAL_TIM_Base_MspDeInit	16	static
