@@ -1,0 +1,15 @@
+analog.c:30:6:ANALOG_Init	16	static
+analog.c:40:6:ANALOG_Shutdown	8	static
+analog.c:46:6:ANALOG_Service	40	static
+analog.c:63:10:ANALOG_GetAVDDMv	8	static
+analog.c:69:10:ANALOG_GetMv	32	static
+analog.c:77:10:ANALOG_GetBatteryMv	24	static
+analog.c:86:10:ANALOG_Get5VRailMv	24	static
+analog.c:94:9:ANALOG_Get5VRailMa	24	static
+analog.c:104:9:ANALOG_AnalogSamplesReady	8	static
+analog.c:110:9:ANALOG_GetMCUTemp	8	static
+analog.c:116:6:AnalogStop	8	static
+analog.c:120:6:AnalogStart	8	static
+analog.c:124:6:AnalogPowerIsGood	8	static
+analog.c:128:19:AnalogAdcWDGConfig	16	static
+analog.c:154:6:AnalogAdcWDGEnable	16	static

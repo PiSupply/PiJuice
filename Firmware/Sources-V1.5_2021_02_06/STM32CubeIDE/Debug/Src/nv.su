@@ -1,0 +1,12 @@
+nv.c:32:6:NV_Init	8	static
+nv.c:44:6:NV_FactoryReset	8	static
+nv.c:66:6:NV_EraseAllVariables	16	static
+nv.c:77:6:NvSetDataInitialized	8	static
+nv.c:84:6:NvTask	8	static
+nv.c:93:6:NvSaveParameterReq	16	static
+nv.c:99:6:NV_WriteVariable_S8	16	static
+nv.c:105:6:NV_WriteVariable_U8	16	static
+nv.c:111:6:NV_ReadVariable_S8	16	static
+nv.c:117:6:NV_ReadVariable_U8	24	static
+nv.c:138:6:NV_WipeVariable	16	static
+nv.c:144:10:NvReadVariableU8	40	static

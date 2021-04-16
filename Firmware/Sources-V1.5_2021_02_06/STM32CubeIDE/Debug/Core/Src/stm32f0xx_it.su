@@ -1,0 +1,9 @@
+stm32f0xx_it.c:70:6:NMI_Handler	8	static
+stm32f0xx_it.c:85:6:HardFault_Handler	8	static
+stm32f0xx_it.c:100:6:SVC_Handler	8	static
+stm32f0xx_it.c:113:6:PendSV_Handler	8	static
+stm32f0xx_it.c:126:6:SysTick_Handler	8	static
+stm32f0xx_it.c:147:6:RTC_IRQHandler	8	static
+stm32f0xx_it.c:162:6:EXTI0_1_IRQHandler	8	static
+stm32f0xx_it.c:176:6:EXTI2_3_IRQHandler	8	static
+stm32f0xx_it.c:190:6:EXTI4_15_IRQHandler	8	static
