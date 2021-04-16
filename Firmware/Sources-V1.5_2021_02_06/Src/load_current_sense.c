@@ -15,6 +15,7 @@
 #include "nv.h"
 #include "time_count.h"
 #include "power_source.h"
+#include "charger_bq2416x.h"
 
 #include "system_conf.h"
 #include "util.h"
