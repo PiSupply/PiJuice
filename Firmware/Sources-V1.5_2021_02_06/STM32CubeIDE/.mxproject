@@ -9,17 +9,17 @@ CDefines=USE_HAL_DRIVER;STM32F030xC;USE_HAL_DRIVER;USE_HAL_DRIVER;
 [PreviousGenFiles]
 AdvancedFolderStructure=true
 HeaderFileListSize=3
-HeaderFiles#0=C:/Repository/PiJuice/Firmware/Sources-V2.0_2021_04_16/Core/Inc/stm32f0xx_it.h
-HeaderFiles#1=C:/Repository/PiJuice/Firmware/Sources-V2.0_2021_04_16/Core/Inc/stm32f0xx_hal_conf.h
-HeaderFiles#2=C:/Repository/PiJuice/Firmware/Sources-V2.0_2021_04_16/Core/Inc/main.h
+HeaderFiles#0=C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/STM32CubeIDE/Core/Inc/stm32f0xx_it.h
+HeaderFiles#1=C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/STM32CubeIDE/Core/Inc/stm32f0xx_hal_conf.h
+HeaderFiles#2=C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/STM32CubeIDE/Core/Inc/main.h
 HeaderFolderListSize=1
-HeaderPath#0=C:/Repository/PiJuice/Firmware/Sources-V2.0_2021_04_16/Core/Inc
+HeaderPath#0=C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/STM32CubeIDE/Core/Inc
 HeaderFiles=;
 SourceFileListSize=3
-SourceFiles#0=C:/Repository/PiJuice/Firmware/Sources-V2.0_2021_04_16/Core/Src/stm32f0xx_it.c
-SourceFiles#1=C:/Repository/PiJuice/Firmware/Sources-V2.0_2021_04_16/Core/Src/stm32f0xx_hal_msp.c
-SourceFiles#2=C:/Repository/PiJuice/Firmware/Sources-V2.0_2021_04_16/Core/Src/main.c
+SourceFiles#0=C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/STM32CubeIDE/Core/Src/stm32f0xx_it.c
+SourceFiles#1=C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/STM32CubeIDE/Core/Src/stm32f0xx_hal_msp.c
+SourceFiles#2=C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/STM32CubeIDE/Core/Src/main.c
 SourceFolderListSize=1
-SourcePath#0=C:/Repository/PiJuice/Firmware/Sources-V2.0_2021_04_16/Core/Src
+SourcePath#0=C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/STM32CubeIDE/Core/Src
 SourceFiles=;
 

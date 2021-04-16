@@ -10,6 +10,11 @@
  * 				the kernel driver which seems to be a bit sensitive to clock
  * 				stretching.
  *
+ * @note		time references are linked to the last time the service routine
+ * 				was run due to the concurrency of the interrupt routine, the
+ * 				timer could be compared out of sync and think it's 49.7(ish) days
+ * 				behind!
+ *
  */
 // ----------------------------------------------------------------------------
 // Include section - add all #includes here:
@@ -92,10 +97,11 @@ static uint16_t m_rxLen;
 static uint32_t m_txCount;
 static uint32_t m_rxCount;
 static uint32_t m_addrCount;
-static uint32_t m_i2cBusyCount;
+static uint32_t m_i2cBusyTime;
 static uint32_t m_i2cResetCount;
 
 static HOSTCOMMS_Mode_t m_hostcommsMode;
+static uint32_t m_lastServiceTime;
 
 static uint32_t m_lastHostCommandTimeMs __attribute__((section("no_init")));
 
@@ -136,7 +142,6 @@ void HOSTCOMMS_Init(uint32_t sysTime)
 	m_rxCount = 0u;
 	m_addrCount = 0u;
 
-	m_i2cBusyCount = 0u;
 	m_i2cResetCount = 0u;
 
 
@@ -232,20 +237,16 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 	uint8_t readCmdCode;
 	uint16_t dataLen = 1u;
 
-	if (I2C_ISR_BUSY == (I2C1->ISR & I2C_ISR_BUSY))
+	if (I2C_ISR_BUSY != (I2C1->ISR & I2C_ISR_BUSY))
 	{
-		m_i2cBusyCount++;
-	}
-	else
-	{
-		m_i2cBusyCount = 0u;
+		MS_TIMEREF_INIT(m_i2cBusyTime, m_lastServiceTime);
 	}
 
 	// Timeout after a second, will catch fault mode
-	if ( ( MS_TIMEREF_TIMEOUT(m_lastHostCommandTimeMs, sysTime, 100u) &&
+	if ( ( MS_TIMEREF_TIMEOUT(m_lastHostCommandTimeMs, m_lastServiceTime, 100u) &&
 			(HOSTCOMMS_MODE_WAIT != m_hostcommsMode) &&
 			(HOSTCOMMS_MODE_RXC != m_hostcommsMode) ) ||
-			(m_i2cBusyCount > 500u)
+			MS_TIMEREF_TIMEOUT(m_i2cBusyTime, m_lastServiceTime, 500u)
 			)
 	{
 		// Something bad must have happened, reset the peripheral
@@ -288,6 +289,8 @@ void HOSTCOMMS_Service(uint32_t sysTime)
 			hi2c1.hdmatx->Instance->CCR |= DMA_CCR_EN;
 		}
 	}
+
+	m_lastServiceTime = sysTime;
 }
 
 
@@ -420,6 +423,8 @@ void I2C1_IRQHandler(void)
 	uint32_t addrClear = I2C_ICR_ADDRCF;
 	uint32_t rtcReg_bm;
 
+	MS_TIMEREF_INIT(m_i2cBusyTime, m_lastServiceTime);
+
 	if (I2C_ISR_ADDR == (I2C1->ISR & I2C_ISR_ADDR))
 	{
 		// Check data direction
@@ -464,7 +469,7 @@ void I2C1_IRQHandler(void)
 		else
 		{
 			// Host is sending something
-			MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);
+			MS_TIMEREF_INIT(m_lastHostCommandTimeMs, m_lastServiceTime);
 
 			if (HOSTCOMMS_MODE_WAIT == m_hostcommsMode)
 			{
