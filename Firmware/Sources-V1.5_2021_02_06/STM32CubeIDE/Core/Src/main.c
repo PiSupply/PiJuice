@@ -94,8 +94,12 @@ static void MX_IWDG_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+#define SYS_MEM_ADDRESS		0x1FFFD800 // for STM32F030x8 0x1FFFEC00
+typedef  void (*pFunction)(void);
+pFunction Jump_To_Bootloader;
 /* USER CODE END 0 */
+
+void CmdServerRunBootloader(uint8_t dir, uint8_t *pData, uint16_t *dataLen);
 
 /**
   * @brief  The application entry point.
@@ -119,8 +123,6 @@ int main(void)
 			executionState = EXECUTION_STATE_UPDATE;
 		}
 	}
-
-
 
 	__HAL_RCC_CLEAR_RESET_FLAGS();
 	__HAL_FLASH_PREFETCH_BUFFER_ENABLE();
@@ -157,6 +159,8 @@ int main(void)
   MX_I2C2_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+
+  //CmdServerRunBootloader(0, a_tempU8, &len);
 
 	if ( (HAL_GPIO_ReadPin(IODRV_PIN_POW_EN_GPIO, IODRV_PIN_POW_EN_PIN_Pos) == GPIO_PIN_RESET) &&
 			(executionState == EXECUTION_STATE_POWER_RESET)

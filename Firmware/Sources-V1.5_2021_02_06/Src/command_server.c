@@ -34,14 +34,22 @@
 
 static int8_t reg[REGISTERS_NUM]; // registers used for i2c master access
 //static int8_t regWriteFn[REGISTERS_NUM];
+
 extern RTC_HandleTypeDef hrtc;
 extern I2C_HandleTypeDef hi2c2;
 extern I2C_HandleTypeDef hi2c1;//extern SMBUS_HandleTypeDef hsmbus;
+extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef htim6;
+extern TIM_HandleTypeDef htim14;
 extern TIM_HandleTypeDef htim15;
 extern TIM_HandleTypeDef htim17;
 extern ADC_HandleTypeDef hadc;
-
+DMA_HandleTypeDef hdma_adc;
+DMA_HandleTypeDef hdma_i2c1_rx;
+DMA_HandleTypeDef hdma_i2c1_tx;
+DMA_HandleTypeDef hdma_i2c2_rx;
+DMA_HandleTypeDef hdma_i2c2_tx;
 
 extern void Error_Handler(void);
 
@@ -1210,55 +1218,50 @@ void CmdServerReadWriteTestAndCalibration(uint8_t dir, uint8_t *pData, uint16_t 
 	}
 }
 
-void CmdServerRunBootloader(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-  // Execute bootloader by jumping to system memory
 
-	if ( pData[1] != 0x01 || dir == MASTER_CMD_DIR_READ ) return;
+void CmdServerRunBootloader(uint8_t dir, uint8_t * pData, uint16_t * dataLen)
+{
+	void (*SysMemBootJump)(void);
+	SysMemBootJump = (void (*)(void)) (*((uint32_t *)(SYS_MEM_ADDRESS + 4)));
+
+	if ( pData[1] != 0x01 || dir == MASTER_CMD_DIR_READ )
+	{
+		return;
+	}
 
 	executionState = EXECUTION_STATE_UPDATE;
 
-	HAL_ADC_MspDeInit(&hadc);
-	HAL_I2C_DeInit(&hi2c1);//HAL_SMBUS_MspDeInit(&hsmbus);
-	HAL_I2C_MspDeInit(&hi2c2);
-	HAL_RTC_MspDeInit(&hrtc);
-	HAL_TIM_PWM_MspDeInit(&htim3);
-	HAL_TIM_PWM_MspDeInit(&htim15);
-	HAL_TIM_Base_MspDeInit(&htim17);
-  // Disable all peripheral clocks
-  __HAL_RCC_GPIOC_CLK_DISABLE();
-  __HAL_RCC_GPIOF_CLK_DISABLE();
-  __HAL_RCC_GPIOA_CLK_DISABLE();
-  __HAL_RCC_GPIOB_CLK_DISABLE();
-  __HAL_RCC_ADC1_CLK_DISABLE();
-  __HAL_RCC_DMA1_CLK_DISABLE();
-  __HAL_RCC_I2C1_CLK_DISABLE();
-  __HAL_RCC_I2C2_CLK_DISABLE();
-  __HAL_RCC_TIM1_CLK_DISABLE();
-  __HAL_RCC_TIM3_CLK_DISABLE();
-  __HAL_RCC_TIM14_CLK_DISABLE();
-  __HAL_RCC_TIM15_CLK_DISABLE();
-  __HAL_RCC_TIM17_CLK_DISABLE();
-  __HAL_RCC_PWR_CLK_DISABLE();
-  __HAL_RCC_SYSCFG_CLK_DISABLE();
+	// Clear the clock settings
+	HAL_RCC_DeInit();
 
-  // Disable used PLL
+	// Disable the systick timer
+	SysTick->CTRL = 0u;
+	SysTick->LOAD = 0u;
+	SysTick->VAL = 0u;
 
-  // Disable and clear interrupts
-  // disable global interrupt
-  __disable_irq();
-  int i;
-  for (i = 0; i <= 29; i++) {
-	  HAL_NVIC_DisableIRQ(i);
-	  HAL_NVIC_ClearPendingIRQ(i);
-  }
+	// Disable and clear interrupts
+	// disable global interrupt
+	__disable_irq();
 
-  __HAL_SYSCFG_REMAPMEMORY_SYSTEMFLASH();
+	// Clear the I2C peripheral or the bootloader gets a bit messed up
+	I2C1->CR1 = 0u;
+	I2C1->CR2 = 0u;
+	I2C1->OAR1 = 0u;
+	I2C1->OAR2 = 0u;
+	I2C1->TIMINGR = 0u;
+	I2C1->TIMEOUTR = 0u;
 
-  // jump to bootloader address
-  uint32_t JumpAddress = *(__IO uint32_t*) (SYS_MEM_ADDRESS + 4);
-  Jump_To_Bootloader = (pFunction) JumpAddress;
-   __set_MSP(*(__IO uint32_t*)SYS_MEM_ADDRESS);
-  Jump_To_Bootloader();
+	// Run deinit on I2C peripheral to switch off the DMA transfer
+	HAL_I2C_DeInit(&hi2c1);
+
+	// Set the execution area to system flash (bootloader)
+	__HAL_SYSCFG_REMAPMEMORY_SYSTEMFLASH();
+
+	// Setup the stack for the bootloader
+	__set_MSP(*(uint32_t *)SYS_MEM_ADDRESS);
+
+	// Go bootload
+	SysMemBootJump();
 }
 
 
