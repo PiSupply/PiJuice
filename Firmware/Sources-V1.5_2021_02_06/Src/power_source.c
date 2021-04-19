@@ -462,17 +462,16 @@ void POWERSOURCE_Set5vBoostEnable(const bool enabled)
 	}
 	else
 	{
-		// Turn off LDO
-		POWERSOURCE_SetLDOEnable(false);
-
-		AnalogAdcWDGEnable(DISABLE);
-
 		// Turn off the boost converter
 		IODRV_SetPin(IODRV_PIN_POW_EN, false);
 
 		MS_TIME_COUNTER_INIT(m_lastRPiPowerDetectTimeMs);
 
 		m_boostConverterEnabled = false;
+
+		POWERSOURCE_SetLDOEnable(false);
+
+		AnalogAdcWDGEnable(DISABLE);
 
 		return;
 	}
@@ -497,13 +496,11 @@ void POWERSOURCE_SetLDOEnable(const bool enabled)
 	{
 		m_ldoEnabled = false;
 	}
-	else if (m_powerRegulatorConfig == POW_REGULATOR_MODE_LDO)
+	else
 	{
+		// Power det and LDO enabled are the same thing
+		// LDO should not be on if the boost isn't on.
 		m_ldoEnabled = m_boostConverterEnabled;
-	}
-	else // Powersource detection mode
-	{
-		m_ldoEnabled = enabled;
 	}
 
 	IODRV_SetPin(IODRV_PIN_POWDET_EN, m_ldoEnabled);

@@ -1,6 +1,0 @@
-osloop.c:66:6:TIM6_IRQHandler	8	static
-osloop.c:86:6:OSLOOP_Init	16	static
-osloop.c:112:6:OSLOOP_Service	16	static
-osloop.c:145:6:OSLOOP_Shutdown	8	static
-osloop.c:168:6:OSLOOP_Restart	16	static
-osloop.c:196:6:OSLOOP_AtomicAccess	16	static

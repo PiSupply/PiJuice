@@ -1,7 +1,0 @@
-util.c:47:6:UTIL_NV_ParamInitCheck_U16	24	static
-util.c:66:10:UTIL_FixMul_U32_U16	24	static
-util.c:92:9:UTIL_FixMul_U32_S16	32	static
-util.c:112:6:UTIL_FixMulInverse_U16_U16	16	static
-util.c:137:10:UTIL_Make_U16	16	static
-util.c:153:10:UTIL_FromBytes_U16	16	static
-util.c:170:6:UTIL_ToBytes_U16	16	static
