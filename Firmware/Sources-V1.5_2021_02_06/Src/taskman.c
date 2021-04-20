@@ -117,8 +117,6 @@ void TASKMAN_Init(void)
 
 	POWERMAN_Init();
 
-	BUTTON_Init();
-
 	RtcInit();
 	IoControlInit();
 

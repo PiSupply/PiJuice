@@ -635,15 +635,15 @@ void POWERMAN_SetWakeupOnChargeData(const uint8_t * const p_data, const uint16_t
 	{
 		NV_WriteVariable_U8(WAKEUPONCHARGE_CONFIG_NV_ADDR, (p_data[0u] & 0x7Fu) <= 100u ? p_data[0u] : 0x7Fu);
 
-		if (NV_WriteVariable_U8(WAKEUPONCHARGE_CONFIG_NV_ADDR, m_wakeupOnChargeConfig) != NV_READ_VARIABLE_SUCCESS )
+		if (false == NV_ReadVariable_U8(WAKEUPONCHARGE_CONFIG_NV_ADDR, &m_wakeupOnChargeConfig))
 		{
 			/* If writing to NV failed then disable wakeup on charge */
 			m_wakeupOnChargeConfig = 0x7Fu;
-			newWakeupVal = WAKEUP_ONCHARGE_DISABLED_VAL;
 		}
-		else
+
+		if (0x7Fu == m_wakeupOnChargeConfig)
 		{
-			m_wakeupOnChargeConfig |= 0x80u;
+			newWakeupVal = WAKEUP_ONCHARGE_DISABLED_VAL;
 		}
 	}
 
