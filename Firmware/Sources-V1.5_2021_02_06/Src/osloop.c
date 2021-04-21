@@ -193,7 +193,7 @@ void OSLOOP_Restart(void)
  * @retval	none
  */
 // ****************************************************************************
-void OSLOOP_AtomicAccess(bool access)
+void OSLOOP_AtomicAccess(const bool access)
 {
 	if (true == access)
 	{

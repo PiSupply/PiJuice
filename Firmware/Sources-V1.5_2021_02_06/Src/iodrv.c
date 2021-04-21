@@ -36,7 +36,7 @@
 // ----------------------------------------------------------------------------
 // Function prototypes for functions that only have scope in this module:
 
-void IODRV_UpdatePins(const uint32_t sysTime);
+static void IODRV_UpdatePins(const uint32_t sysTime);
 
 
 // ----------------------------------------------------------------------------
@@ -46,7 +46,7 @@ void IODRV_UpdatePins(const uint32_t sysTime);
 // ----------------------------------------------------------------------------
 // Variables that only have scope in this module:
 
-IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
+static IODRV_Pin_t m_pins[IODRV_MAX_IO_PINS] =
 {
 		{
 				.adcChannel = IODRV_PIN_IO1_ADC_CHANNEL,
@@ -273,7 +273,7 @@ static uint32_t m_lastPinUpdateTime;
  * @retval	none
  */
 // ****************************************************************************
-void IODRV_Init(uint32_t sysTime)
+void IODRV_Init(const uint32_t sysTime)
 {
 	uint8_t i;
 
@@ -300,7 +300,7 @@ void IODRV_Shutdown(void)
  * @retval	none
  */
 // ****************************************************************************
-void IODRV_Service(uint32_t sysTime)
+void IODRV_Service(const uint32_t sysTime)
 {
 	if (MS_TIMEREF_TIMEOUT(m_lastPinUpdateTime, sysTime, IODRV_PIN_UPDATE_PERIOD_MS))
 	{
@@ -319,7 +319,7 @@ void IODRV_Service(uint32_t sysTime)
  * @retval	uint16_t	value of the pin that is required
  */
 // ****************************************************************************
-uint16_t IODRV_ReadPinValue(uint8_t pin)
+uint16_t IODRV_ReadPinValue(const uint8_t pin)
 {
 	if ( pin >= IODRV_MAX_IO_PINS )
 	{
@@ -341,7 +341,7 @@ uint16_t IODRV_ReadPinValue(uint8_t pin)
  * @retval	uint8_t		value of the pin that is required
  */
 // ****************************************************************************
-bool IODRV_ReadPinOutputState(uint8_t pin)
+bool IODRV_ReadPinOutputState(const uint8_t pin)
 {
 	if ( pin >= IODRV_MAX_IO_PINS )
 	{
@@ -363,7 +363,7 @@ bool IODRV_ReadPinOutputState(uint8_t pin)
  * @retval	bool		returns true is the pin is an output, false if an input
  */
 // ****************************************************************************
-bool IODRV_WritePin(uint8_t pin, bool newValue)
+bool IODRV_WritePin(const uint8_t pin, const bool newValue)
 {
 	if ( (m_pins[pin].pinType == IOTYPE_DIGOUT_PUSHPULL) || (m_pins[pin].pinType <= IOTYPE_DIGOUT_OPENDRAIN) )
 	{
@@ -384,7 +384,7 @@ bool IODRV_WritePin(uint8_t pin, bool newValue)
  * @retval	bool		returns true if the arguments are correct
  */
 // ****************************************************************************
-bool IODRV_SetPin(uint8_t pin, bool newValue)
+bool IODRV_SetPin(const uint8_t pin, const bool newValue)
 {
 	const GPIO_PinState outVal = (newValue ^ m_pins[pin].invert_bm);
 
@@ -410,7 +410,7 @@ bool IODRV_SetPin(uint8_t pin, bool newValue)
  * @retval	bool		true if the pin has been set
  */
 // ****************************************************************************
-bool IODRV_SetPinType(uint8_t pin, IODRV_PinType_t newType)
+bool IODRV_SetPinType(const uint8_t pin, const IODRV_PinType_t newType)
 {
 	const uint32_t otyper_bm = (1u << m_pins[pin].gpioPin_pos);
 	const uint32_t moder_pos = (m_pins[pin].gpioPin_pos * 2u);
@@ -465,7 +465,7 @@ bool IODRV_SetPinType(uint8_t pin, IODRV_PinType_t newType)
  * @retval	bool			true if the pin has been set
  */
 // ****************************************************************************
-bool IODRV_SetPinPullDir(uint8_t pin, uint32_t pullDirection)
+bool IODRV_SetPinPullDir(const uint8_t pin, const uint32_t pullDirection)
 {
 	const uint32_t pupdr_pos = (m_pins[pin].gpioPin_pos * 2u);
 
@@ -489,7 +489,7 @@ bool IODRV_SetPinPullDir(uint8_t pin, uint32_t pullDirection)
  * @retval	IODRV_Pin_t*	const pointer to the pin data, NULL if pin not valid
  */
 // ****************************************************************************
-const IODRV_Pin_t * IODRV_GetPinInfo(uint8_t pin)
+const IODRV_Pin_t * IODRV_GetPinInfo(const uint8_t pin)
 {
 	if ( (pin >= IODRV_MAX_IO_PINS) )
 	{
@@ -519,7 +519,7 @@ void IORDV_ClearPinEdges(const uint8_t pinIdx)
  * @retval	none
  */
 // ****************************************************************************
-void IODRV_UpdatePins(const uint32_t sysTime)
+static void IODRV_UpdatePins(const uint32_t sysTime)
 {
 	uint8_t pin;
 	uint16_t value = 0u;

@@ -154,7 +154,7 @@ void LED_Service(const uint32_t sysTime)
  * @retval	uint8_t		red set point level for the associated function
  */
 // ****************************************************************************
-uint8_t LED_GetParamR(uint8_t func)
+uint8_t LED_GetParamR(const uint8_t func)
 {
 	if (m_leds[0u].func == func)
 	{
@@ -210,7 +210,7 @@ uint8_t LED_GetParamG(const uint8_t func)
  * @retval	uint8_t		blue set point level for the associated function
  */
 // ****************************************************************************
-uint8_t LED_GetParamB(uint8_t func)
+uint8_t LED_GetParamB(const uint8_t func)
 {
 	if (m_leds[0u].func == func)
 	{
@@ -262,7 +262,7 @@ void LED_SetRGB(const uint8_t ledIdx, const uint8_t r, const uint8_t g, const ui
  * @retval	none
  */
 // ****************************************************************************
-void LED_FunctionSetRGB(LedFunction_T func, uint8_t r, uint8_t g, uint8_t b)
+void LED_FunctionSetRGB(const LedFunction_T func, const uint8_t r, const uint8_t g, const uint8_t b)
 {
 	uint8_t i = 0u;
 
@@ -517,7 +517,7 @@ void LED_GetBlinkData(const uint8_t ledIdx, uint8_t * const p_data, uint16_t * c
  *
  */
 // ****************************************************************************
-void LED_ProcessBlink(Led_T * const p_led, const uint32_t sysTime)
+static void LED_ProcessBlink(Led_T * const p_led, const uint32_t sysTime)
 {
 	if (p_led->blinkCount)
 	{
@@ -573,7 +573,7 @@ void LED_ProcessBlink(Led_T * const p_led, const uint32_t sysTime)
  * @retval	none
  */
 // ****************************************************************************
-void LED_SetRGBLedPtr(Led_T * const p_led, const uint8_t r, const uint8_t g, const uint8_t b)
+static void LED_SetRGBLedPtr(Led_T * const p_led, const uint8_t r, const uint8_t g, const uint8_t b)
 {
 	*p_led->pwmDrv_r = (UINT16_MAX - pwm_table[r]);
 	*p_led->pwmDrv_g = (UINT16_MAX - pwm_table[g]);
@@ -590,7 +590,7 @@ void LED_SetRGBLedPtr(Led_T * const p_led, const uint8_t r, const uint8_t g, con
  * @retval	none
  */
 // ****************************************************************************
-void LED_InitFunction(const uint8_t ledIdx)
+static void LED_InitFunction(const uint8_t ledIdx)
 {
 	Led_T * const p_led = &m_leds[ledIdx];
 

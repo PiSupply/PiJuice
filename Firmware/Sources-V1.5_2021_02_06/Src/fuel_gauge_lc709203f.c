@@ -40,7 +40,7 @@ static void FUELGAUGE_CalculateDischargeRate(const uint16_t previousRSoc,
 												const uint32_t timeDeltaMs);
 
 static void FUELGAUGE_CalculateSOCInit(void);
-static uint32_t FUELGAUGE_GetSOCFromOCV(uint16_t batteryMv);
+static uint32_t FUELGAUGE_GetSOCFromOCV(const uint16_t batteryMv);
 static void FUELGAUGE_UpdateCalculateSOC(const uint16_t batteryMv, const uint32_t dt);
 
 // ----------------------------------------------------------------------------
@@ -719,7 +719,7 @@ static bool FUELGAUGE_WriteWord(const uint8_t memAddress, const uint16_t value)
  * @retval	uint32_t	index of SOC table * 2^23
  */
 // ****************************************************************************
-static uint32_t FUELGAUGE_GetSOCFromOCV(uint16_t batteryMv)
+static uint32_t FUELGAUGE_GetSOCFromOCV(const uint16_t batteryMv)
 {
 	uint8_t i = 0u;
 

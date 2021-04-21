@@ -308,7 +308,7 @@ bool ADC_GetFilterReady(void)
  * @retval	none
  */
 // ****************************************************************************
-void ADC_SetIFilterPeriod(uint32_t newFilterPeriodMs)
+void ADC_SetIFilterPeriod(const uint32_t newFilterPeriodMs)
 {
 	m_currentSenseFilter.filterPeriodMs = newFilterPeriodMs;
 }

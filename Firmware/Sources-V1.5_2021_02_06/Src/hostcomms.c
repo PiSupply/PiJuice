@@ -127,7 +127,7 @@ extern I2C_HandleTypeDef hi2c1;
  * @retval	none
  */
 // ****************************************************************************
-void HOSTCOMMS_Init(uint32_t sysTime)
+void HOSTCOMMS_Init(const uint32_t sysTime)
 {
 	uint8_t tempU8;
 
@@ -232,7 +232,7 @@ void HOSTCOMMS_PiJuiceAddressSetEnable(const bool enabled)
  * @retval	none
  */
 // ****************************************************************************
-void HOSTCOMMS_Service(uint32_t sysTime)
+void HOSTCOMMS_Service(const uint32_t sysTime)
 {
 	uint8_t readCmdCode;
 	uint16_t dataLen = 1u;

@@ -431,7 +431,7 @@ void ChargerTriggerNTCMonitor(NTC_MonitorTemperature_T temp)
  * @retval	none
  */
 // ****************************************************************************
-void CHARGER_SetRPi5vInputEnable(bool enable)
+void CHARGER_SetRPi5vInputEnable(const bool enable)
 {
 	if (enable)
 	{
@@ -458,7 +458,7 @@ void CHARGER_SetRPi5vInputEnable(bool enable)
  * 						true = RPi GPIO 5V allowed as charge source
  */
 // ****************************************************************************
-bool CHARGER_GetRPi5vInputEnable()
+bool CHARGER_GetRPi5vInputEnable(void)
 {
 	return (CHGR_BS_USBIN_ENABLED == (m_registersIn[CHG_REG_BATTERY_STATUS] & CHGR_BS_OTG_LOCK_bm));
 }
