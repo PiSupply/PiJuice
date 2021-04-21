@@ -156,15 +156,22 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
-	if ( (HAL_GPIO_ReadPin(IODRV_PIN_POW_EN_GPIO, IODRV_PIN_POW_EN_PIN_Pos) == GPIO_PIN_RESET) &&
-			(executionState == EXECUTION_STATE_POWER_RESET)
-			)
+	if (EXECUTION_STATE_UPDATE != executionState)
 	{
-		executionState = EXECUTION_STATE_POWER_ON;
-	}
+		if ( (HAL_GPIO_ReadPin(IODRV_PIN_POW_EN_GPIO, IODRV_PIN_POW_EN_PIN_Pos) == GPIO_PIN_RESET) &&
+				(executionState == EXECUTION_STATE_POWER_RESET)
+				)
+		{
+			executionState = EXECUTION_STATE_POWER_ON;
+		}
 
-	// For debugging.
-	executionState = EXECUTION_STATE_POWER_RESET;
+		// For debugging.
+		executionState = EXECUTION_STATE_POWER_RESET;
+	}
+	else
+	{
+	  executionState = EXECUTION_STATE_NORMAL;
+	}
 
 	OSLOOP_Init();
 
