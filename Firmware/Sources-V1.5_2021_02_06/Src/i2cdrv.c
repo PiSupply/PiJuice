@@ -27,7 +27,7 @@
 // ----------------------------------------------------------------------------
 // Function prototypes for functions that only have scope in this module:
 
-void I2CDRV_ProcessDevice(I2CDRV_Device_t * p_device, uint32_t sysTime);
+static void I2CDRV_ProcessDevice(I2CDRV_Device_t * const p_device, const uint32_t sysTime);
 
 
 // ----------------------------------------------------------------------------
@@ -192,7 +192,7 @@ void I2CDRV_Service(const uint32_t sysTime)
  * 						false = device is busy or just not available
  */
 // ****************************************************************************
-bool I2CDRV_IsReady(uint8_t devIdx)
+bool I2CDRV_IsReady(const uint8_t devIdx)
 {
 	if (devIdx < I2CDRV_MAX_DEVICES)
 	{
@@ -363,7 +363,7 @@ bool I2CDRV_Transact(const uint8_t deviceIdx, const uint8_t addr,
  * @retval	none
  */
 // ****************************************************************************
-void I2CDRV_ProcessDevice(I2CDRV_Device_t * p_device, uint32_t sysTime)
+static void I2CDRV_ProcessDevice(I2CDRV_Device_t * const p_device, const uint32_t sysTime)
 {
 	DMA_Channel_TypeDef * p_dmaChannel;
 	DMA_TypeDef * p_dma;

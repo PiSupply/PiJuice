@@ -253,7 +253,7 @@ void POWERSOURCE_UpdateBatteryProfile(const BatteryProfile_T * const batProfile)
  * @retval	none
  */
 // ****************************************************************************
-void POWERSOURCE_SetVSysSwitchState(uint8_t switchState)
+void POWERSOURCE_SetVSysSwitchState(const uint8_t switchState)
 {
 	const uint16_t vbatAdcVal = ADC_GetAverageValue(ANALOG_CHANNEL_VBAT);
 	const uint16_t wdgThreshold = GetAdcWDGThreshold();
@@ -686,6 +686,11 @@ void POWERSOURCE_ClearForcedVSysOutputOff(void)
 }
 
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH LOCAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 // ****************************************************************************
 /*!
  * POWERSOURCE_CheckPowerValid performs check on the power input to ensure system
@@ -707,7 +712,7 @@ void POWERSOURCE_ClearForcedVSysOutputOff(void)
  * @retval	none
  */
 // ****************************************************************************
-void POWERSOURCE_CheckPowerValid(void)
+static void POWERSOURCE_CheckPowerValid(void)
 {
 	const uint16_t v5RailMv = ANALOG_Get5VRailMv();
 	const uint16_t aVddMv = ANALOG_GetAVDDMv();
@@ -866,7 +871,7 @@ static void POWERSOURCE_Process5VRailPower(void)
  * @retval	none
  */
 // ****************************************************************************
-void POWERSOURCE_RPi5vDetect(void)
+static void POWERSOURCE_RPi5vDetect(void)
 {
 	const uint32_t sysTime = HAL_GetTick();
 	const uint16_t v5RailMv = ANALOG_Get5VRailMv();
@@ -970,7 +975,7 @@ void POWERSOURCE_RPi5vDetect(void)
  * @retval	none
  */
 // ****************************************************************************
-void POWERSOURCE_ProcessVINStatus(void)
+static void POWERSOURCE_ProcessVINStatus(void)
 {
 	const CHARGER_InputStatus_t vinStatus = CHARGER_GetInputStatus(CHARGER_INPUT_VIN);
 	const uint8_t chargerDPMActive = CHARGER_IsDPMActive();
@@ -1010,7 +1015,7 @@ void POWERSOURCE_ProcessVINStatus(void)
  * @retval	none
  */
 // ****************************************************************************
-void POWERSOURCE_Process5VRailStatus(void)
+static void POWERSOURCE_Process5VRailStatus(void)
 {
 	const bool rpi5vChargeEnable = CHARGER_GetRPi5vInputEnable();
 	const CHARGER_InputStatus_t rpi5vChargeStatus = CHARGER_GetInputStatus(CHARGER_INPUT_RPI);

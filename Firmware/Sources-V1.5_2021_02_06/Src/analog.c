@@ -27,7 +27,7 @@ static int16_t m_mcuTemperature = 25; // will contain the mcuTemperature in degr
 
 
 // Needs to be called once ADC has filled the filter buffer
-void ANALOG_Init(uint32_t sysTime)
+void ANALOG_Init(const uint32_t sysTime)
 {
 	// Process resistorConfig
 	SwitchResCongigInit(ADC_GetAverageValue(ANALOG_CHANNEL_BATTYPE));
@@ -66,9 +66,9 @@ uint16_t ANALOG_GetAVDDMv(void)
 }
 
 
-uint16_t ANALOG_GetMv(uint8_t channel)
+uint16_t ANALOG_GetMv(const uint8_t channelIdx)
 {
-	const uint16_t adcVal = ADC_CalibrateValue(ADC_GetAverageValue(channel));
+	const uint16_t adcVal = ADC_CalibrateValue(ADC_GetAverageValue(channelIdx));
 
 	return UTIL_FixMul_U32_U16(ADC_TO_MV_K, adcVal);
 }
