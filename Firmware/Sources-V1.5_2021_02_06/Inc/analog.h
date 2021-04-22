@@ -10,12 +10,12 @@
 
 extern ADC_AnalogWDGConfTypeDef analogWDGConfig;
 
-void ANALOG_Init(uint32_t sysTime);
-void ANALOG_Service(uint32_t sysTime);
+void ANALOG_Init(const uint32_t sysTime);
+void ANALOG_Service(const uint32_t sysTime);
 void ANALOG_Shutdown(void);
 
 uint16_t ANALOG_GetAVDDMv(void);
-uint16_t ANALOG_GetMv(uint8_t channel);
+uint16_t ANALOG_GetMv(const uint8_t channelIdx);
 uint16_t ANALOG_GetBatteryMv(void);
 uint16_t ANALOG_Get5VRailMv(void);
 int16_t ANALOG_Get5VRailMa(void);

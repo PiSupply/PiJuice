@@ -94,7 +94,7 @@ static void MX_IWDG_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+#include "util.h"
 /* USER CODE END 0 */
 
 /**
@@ -172,6 +172,8 @@ int main(void)
 	{
 	  executionState = EXECUTION_STATE_NORMAL;
 	}
+
+	executionState = EXECUTION_STATE_POWER_RESET;
 
 	OSLOOP_Init();
 

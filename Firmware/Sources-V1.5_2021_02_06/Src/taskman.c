@@ -13,12 +13,20 @@
 // ----------------------------------------------------------------------------
 // Include section - add all #includes here:
 #include "main.h"
+#include "system_conf.h"
+#include "osloop.h"
+#include "time_count.h"
+#include "execution.h"
 
 #include "nv.h"
 #include "eeprom.h"
 
-#include "system_conf.h"
+#include "adc.h"
 #include "iodrv.h"
+#include "analog.h"
+#include "i2cdrv.h"
+#include "hostcomms.h"
+
 #include "crc.h"
 
 #include "execution.h"
@@ -29,20 +37,18 @@
 #include "command_server.h"
 #include "led.h"
 #include "button.h"
-#include "analog.h"
-#include "time_count.h"
+
 #include "load_current_sense.h"
 #include "rtc_ds1339_emu.h"
 #include "power_management.h"
 #include "io_control.h"
-#include "execution.h"
+
 #include "e2.h"
-#include "osloop.h"
-#include "taskman.h"
-#include "adc.h"
-#include "i2cdrv.h"
+
 #include "util.h"
-#include "hostcomms.h"
+
+
+#include "taskman.h"
 
 
 // ----------------------------------------------------------------------------

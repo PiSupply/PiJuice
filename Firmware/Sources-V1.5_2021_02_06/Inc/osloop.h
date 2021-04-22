@@ -17,7 +17,7 @@ void OSLOOP_Service(void);
 void OSLOOP_Shutdown(void);
 void OSLOOP_Restart(void);
 
-void OSLOOP_AtomicAccess(bool access);
+void OSLOOP_AtomicAccess(const bool access);
 
 
 #endif	/* OSLOOP_H_ */

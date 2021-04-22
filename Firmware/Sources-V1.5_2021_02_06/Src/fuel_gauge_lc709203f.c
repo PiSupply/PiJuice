@@ -28,6 +28,10 @@
 #include "fuelgauge_tables.h"
 
 
+#define RSOC_TEMP_TABLE_MIN 		-127
+#define RSOC_TEMP_MAX_COMPENSATE	21
+#define RSOC_TEMP_STEP_COUNT		(RSOC_TEMP_MAX_COMPENSATE - RSOC_TEMP_TABLE_MIN)
+
 // ----------------------------------------------------------------------------
 // Function prototypes for functions that only have scope in this module:
 
@@ -35,13 +39,15 @@ static void FUELGAUGE_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice)
 static bool FUELGAUGE_WriteWord(const uint8_t cmd, const uint16_t word);
 static bool FUELGAUGE_ReadWord(const uint8_t cmd, uint16_t *const word);
 static bool FUELGAUGE_IcInit(void);
-static void FUELGAUGE_CalculateDischargeRate(const uint16_t previousRSoc,
+static bool FUELGAUGE_CalculateDischargeRate(const uint16_t previousRSoc,
 												const uint16_t newRsoc,
 												const uint32_t timeDeltaMs);
 
-static void FUELGAUGE_CalculateSOCInit(void);
+static void FUELGAUGE_BuildSocTables(void);
 static uint32_t FUELGAUGE_GetSOCFromOCV(const uint16_t batteryMv);
-static void FUELGAUGE_UpdateCalculateSOC(const uint16_t batteryMv, const uint32_t dt);
+static void FUELGAUGE_UpdateCalculateSOC(const uint16_t batteryMv,
+											const int16_t batteryTemp,
+											const int32_t timeDeltaMs);
 
 // ----------------------------------------------------------------------------
 // Variables that only have scope in this module:
@@ -68,11 +74,11 @@ static bool m_initBatterySOC;
 // ----------------------------------------------------------------------------
 // Variables that only have scope in this module that are persistent through reset:
 
-static uint16_t m_ocvSocTbl[256u] __attribute__((section("no_init")));
-static uint16_t m_rSocTbl[256u] __attribute__((section("no_init")));
-static uint8_t m_rSocTempCompensateTbl[256u] __attribute__((section("no_init")));
+static uint16_t m_ocvSocTable[256u] __attribute__((section("no_init")));
+static uint16_t m_rSocTable[256u] __attribute__((section("no_init")));
+static uint8_t m_rSocTempCompensateTable[256u] __attribute__((section("no_init")));
 static uint16_t m_c0 __attribute__((section("no_init")));
-static uint32_t m_soc __attribute__((section("no_init")));
+static int32_t m_soc __attribute__((section("no_init")));
 
 
 // ----------------------------------------------------------------------------
@@ -175,6 +181,12 @@ void FUELGAUGE_Init(void)
 		m_batteryMv = 0u;
 	}
 
+	//if (RSOC_MEASUREMENT_DIRECT_DV == m_rsocMeasurementConfig)
+	{
+		FUELGAUGE_BuildSocTables();
+		m_initBatterySOC =  true;
+	}
+
 	MS_TIMEREF_INIT(m_lastFuelGaugeTaskTimeMs, sysTime);
 
 }
@@ -200,6 +212,8 @@ void FUELGAUGE_Task(void)
 
 	if (MS_TIMEREF_TIMEOUT(m_lastFuelGaugeTaskTimeMs, sysTime, FUELGAUGE_TASK_PERIOD_MS))
 	{
+		MS_TIMEREF_INIT(m_lastFuelGaugeTaskTimeMs, sysTime);
+
 		if (battMv < FUELGAUGE_MIN_BATT_MV)
 		{
 			// If the battery voltage is less than the device operating limit then don't even bother!
@@ -210,19 +224,19 @@ void FUELGAUGE_Task(void)
 			return;
 		}
 
-		if ( (FUELGAUGE_STATUS_OFFLINE == m_fuelgaugeIcStatus) || m_updateBatteryProfile )
+		if ( (RSOC_MEASUREMENT_DIRECT_DV == m_rsocMeasurementConfig) && (true == m_updateBatteryProfile) )
+		{
+			FUELGAUGE_BuildSocTables();
+			m_initBatterySOC =  true;
+		}
+
+		if ( (FUELGAUGE_STATUS_OFFLINE == m_fuelgaugeIcStatus) || (true == m_updateBatteryProfile) )
 		{
 			m_updateBatteryProfile = false;
 
 			if (true == FUELGAUGE_IcInit())
 			{
 				m_fuelgaugeIcStatus = FUELGAUGE_STATUS_ONLINE;
-			}
-
-			if (RSOC_MEASUREMENT_DIRECT_DV == m_rsocMeasurementConfig)
-			{
-				FUELGAUGE_CalculateSOCInit();
-				m_initBatterySOC =  true;
 			}
 		}
 
@@ -232,7 +246,8 @@ void FUELGAUGE_Task(void)
 		{
 			m_initBatterySOC = false;
 
-			FUELGAUGE_GetSOCFromOCV(battMv);
+			//m_currentSocTableIdx = FUELGAUGE_GetSocTableIdxFromOCV(battMv);
+			m_soc = FUELGAUGE_GetSOCFromOCV(battMv);
 			MS_TIMEREF_INIT(m_lastSocTimeMs, sysTime);
 
 		}
@@ -273,7 +288,7 @@ void FUELGAUGE_Task(void)
 			if (RSOC_MEASUREMENT_DIRECT_DV == m_rsocMeasurementConfig)
 			{
 				// TODO - does this need to happen every 125ms?
-				FUELGAUGE_UpdateCalculateSOC(battMv, socTimeDiff);
+				FUELGAUGE_UpdateCalculateSOC(battMv, m_batteryTemperaturePt1 / 10, socTimeDiff);
 
 				MS_TIMEREF_INIT(m_lastSocTimeMs, sysTime);
 			}
@@ -281,11 +296,9 @@ void FUELGAUGE_Task(void)
 			{
 				if (true == FUELGAUGE_ReadWord(FG_MEM_ADDR_ITE, &tempU16))
 				{
-					if (m_lastSocPt1 != tempU16)
+					if (FUELGAUGE_CalculateDischargeRate(m_lastSocPt1, tempU16,	socTimeDiff))
 					{
-						FUELGAUGE_CalculateDischargeRate(m_lastSocPt1, tempU16,
-															socTimeDiff);
-
+						// Log soc and time for next update
 						m_lastSocPt1 = tempU16;
 
 						MS_TIMEREF_INIT(m_lastSocTimeMs, sysTime);
@@ -302,7 +315,7 @@ void FUELGAUGE_Task(void)
 			if (RSOC_MEASUREMENT_DIRECT_DV == m_rsocMeasurementConfig)
 			{
 				// TODO - does this need to happen every 125ms?
-				FUELGAUGE_UpdateCalculateSOC(battMv, socTimeDiff);
+				FUELGAUGE_UpdateCalculateSOC(battMv, m_batteryTemperaturePt1 / 10, socTimeDiff);
 
 				MS_TIMEREF_INIT(m_lastSocTimeMs, sysTime);
 			}
@@ -713,7 +726,10 @@ static bool FUELGAUGE_WriteWord(const uint8_t memAddress, const uint16_t value)
 // ****************************************************************************
 /*!
  * FUELGAUGE_GetSocFromOCV finds the SOC from the index of the calculated SOC
- * voltage table.
+ * voltage table. It is then multiplied up to perform further calculations at an
+ * increased resolution.
+ *
+ * Note: The result is not temperature compensated, should this be implemented?
  *
  * @param	batteryMv	battery voltage in millivolts
  * @retval	uint32_t	index of SOC table * 2^23
@@ -723,7 +739,7 @@ static uint32_t FUELGAUGE_GetSOCFromOCV(const uint16_t batteryMv)
 {
 	uint8_t i = 0u;
 
-	while ( (m_ocvSocTbl[i] < batteryMv) && (i < 255u) )
+	while ( (m_ocvSocTable[i] < batteryMv) && (i < 255u) )
 	{
 		i++;
 	}
@@ -743,12 +759,13 @@ static uint32_t FUELGAUGE_GetSOCFromOCV(const uint16_t batteryMv)
  * @retval	none
  */
 // ****************************************************************************
-static void FUELGAUGE_CalculateSOCInit(void)
+static void FUELGAUGE_BuildSocTables(void)
 {
 	const BatteryProfile_T * const p_currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const int16_t * ocvSocTableRef = ocvSocTableNormLipo;
 
-	int16_t i;
+	uint16_t i;
+	int16_t tempStep;
 	uint16_t ocv50 = 3800u;
 	uint16_t ocv10 = 3649u;
 	uint16_t ocv90 = 4077u;
@@ -792,47 +809,39 @@ static void FUELGAUGE_CalculateSOCInit(void)
 
 	m_c0 = p_currentBatProfile->capacity;
 
-
 	ocv50 = (0xFFFF != p_currentBatProfile->ocv50) ?
 				p_currentBatProfile->ocv50 :
 				((uint16_t)p_currentBatProfile->regulationVoltage + 175u + p_currentBatProfile->cutoffVoltage) * 10u;
-
 
 	ocv10 = (0xFFFF != p_currentBatProfile->ocv10) ?
 				p_currentBatProfile->ocv10 :
 				0.96322f * ocv50;
 
-
 	ocv90 = (0xFFFF != p_currentBatProfile->ocv90) ?
 				p_currentBatProfile->ocv90 :
 				1.0735f * ocv50;
-
 
 	if (0xFFFFu != p_currentBatProfile->r50)
 	{
 		r50 = ((uint32_t)m_c0 * p_currentBatProfile->r50) / 100000u;
 	}
 
-
 	r10 = (0xFFFFu != p_currentBatProfile->r10) ?
 			((uint32_t)m_c0 * p_currentBatProfile->r10) / 100000u :
 			r50;
-
 
 	r90 = (0xFFFFu != p_currentBatProfile->r90) ?
 			((uint32_t)m_c0 * p_currentBatProfile->r90) / 100000u :
 			r50;
 
-
-	// TODO - sanity check on parameters
-
-
+	// Calculate first slope increase rate
 	k1 = ((ocvRef90 - ocvRef50) * (230 - 26) * (ocv50 - ocv10)) / 1024u;
 
-	for (i = 0; i < 26u; i++)
+	// Build first slope in OCV table (lowest soc)
+	for (i = 0u; i < 26u; i++)
 	{
-		m_ocvSocTbl[i] = ocv50 - ((k1 * ocvSocTableRef[i]) / 65536); //ocv50 - (((((int32_t)(4070-3791)*(230-26.0)*dOCV10)>>8)*ocvSocTableNorm[i])>>10);
-		m_rSocTbl[i] = 65535 / (r50 + (r50 - r10) * (i - 128.0f) / (128 - 26));
+		m_ocvSocTable[i] = ocv50 - ((k1 * ocvSocTableRef[i]) / 65536); //ocv50 - (((((int32_t)(4070-3791)*(230-26.0)*dOCV10)>>8)*ocvSocTableNorm[i])>>10);
+		m_rSocTable[i] = 65535 / (r50 + (r50 - r10) * (i - 128) / (128 - 26));
 	}
 
 	OCVdSoc50 = (((uint32_t)ocv50) * 8196u) / (230u - 26u);
@@ -840,30 +849,35 @@ static void FUELGAUGE_CalculateSOCInit(void)
 	k1 = ((ocvRef90 - ocvRef50) * (ocv50 - ocv10)) / 16;
 	k2 = ((ocvRef50 - ocvRef10) * (ocv90 - ocv50)) / 16;
 
-	for (i = 26; i < 128; i++)
+	// Build mid slope in OCV table (mid soc)
+	for (i = 26u; i < 128u; i++)
 	{
-		d1= (OCVdSoc50 - ((k1 * ocvSocTableRef[i]) / 512)) * (230.0f - i); //ocv50/(230-26.0) - (((((int32_t)(4070-3791)*dOCV10))*ocvSocTableNorm[i])>>18);
-		d2= (OCVdSoc50 - ((k2 * ocvSocTableRef[i]) / 512)) * (i - 26); //ocv50/(230-26.0) + (((((int32_t)(3652-3791)*dOCV90))*ocvSocTableNorm[i])>>18);
-		m_ocvSocTbl[i] = (d2 + d1) / 8192;
-		m_rSocTbl[i] = 65535 / (r50 + (r50 - r10) * (i - 128.0f) / (128 - 26));
+		d1= (OCVdSoc50 - ((k1 * ocvSocTableRef[i]) / 512)) * (230 - i); //ocv50/(230-26.0) - (((((int32_t)(4070-3791)*dOCV10))*ocvSocTableNorm[i])>>18);
+		d2= (OCVdSoc50 - ((k2 * ocvSocTableRef[i]) / 512)) * (i - 26u); //ocv50/(230-26.0) + (((((int32_t)(3652-3791)*dOCV90))*ocvSocTableNorm[i])>>18);
+		m_ocvSocTable[i] = (d2 + d1) / 8192;
+		m_rSocTable[i] = 65535 / (r50 + (r50 - r10) * (i - 128) / (128 - 26));
 	}
 
 	k2 = ((ocvRef50 - ocvRef10) * (230 - 26) * (ocv90 - ocv50)) / 1024;
 
-	// TODO - int converts to uint!
-	for (i = 128; i < 256; i++)
+	// Build high slope in OCV table (highest soc)
+	for (i = 128u; i < 256u; i++)
 	{
-		m_ocvSocTbl[i] = ocv50 - ((k2 * ocvSocTableRef[i]) / 65536); //ocv50 + (((((int32_t)(3652-3791)*(230-26.0)*dOCV90)>>8)*ocvSocTableNorm[i])>>10);
-		m_rSocTbl[i] = 65535 / (r50 + (r50 - r90) * (i - 128.0f) / (128 - 230));
+		m_ocvSocTable[i] = ocv50 - ((k2 * ocvSocTableRef[i]) / 65536); //ocv50 + (((((int32_t)(3652-3791)*(230-26.0)*dOCV90)>>8)*ocvSocTableNorm[i])>>10);
+		m_rSocTable[i] = 65535 / (r50 + (r50 - r90) * (i - 128) / (128 - 230));
 	}
 
-	// TODO - this hurts my head.
-	for (i = -127; i < 129; i++)
+	// Build a table of 16bit (8.8) fixed point multipliers to adjust the value of rsoc during the estimation update
+	tempStep = RSOC_TEMP_TABLE_MIN;
+
+	for (i = 0u; i < sizeof(m_rSocTempCompensateTable); i++, tempStep++)
 	{
-		m_rSocTempCompensateTbl[(uint8_t)i] = (i < 21) ? 255ul * 32 / (32 + 2 * (20 - i)) : 255; // 1 + 2*(20-batteryTemp)/(20-(-12)), krtemp ~ 3, temperature=i
+		m_rSocTempCompensateTable[i] = (tempStep < RSOC_TEMP_MAX_COMPENSATE) ?
+											(255ul * 32) / (32 + (2 * ((RSOC_TEMP_MAX_COMPENSATE - 1) - tempStep))) :
+											255;
 	}
 
-	//batteryCurrent = 0;
+	m_dischargeRate = 0;
 }
 
 
@@ -878,21 +892,38 @@ static void FUELGAUGE_CalculateSOCInit(void)
  * @retval	none
  */
 // ****************************************************************************
-static void FUELGAUGE_UpdateCalculateSOC(const uint16_t batteryMv, const uint32_t dt)
+static void FUELGAUGE_UpdateCalculateSOC(const uint16_t batteryMv,
+											const int16_t batteryTemp,
+											const int32_t timeDeltaMs)
 {
-	const uint32_t ind = m_soc >> 23u;
-	const int32_t dif = m_ocvSocTbl[ind] - batteryMv;
-	const uint16_t rsoc = ((uint32_t)m_rSocTbl[ind] * m_rSocTempCompensateTbl[(uint8_t)m_batteryTemperaturePt1]) >> 8;
-	const int32_t dSoC = ((dif * dt * ((596l * rsoc) / 256))) / 256; //dif*596*dt/res;
+	const uint32_t currentSocTableIdx = m_soc >> 23u;
+	const int32_t deltaBatteryMv = (int32_t)m_ocvSocTable[currentSocTableIdx] - batteryMv;
 
-	m_dischargeRate = (dif * (((uint32_t)m_c0 * rsoc) / 64)) / 1024;
+	// Fix point multiply rsoc by temp compensation lookup
+	uint16_t rsoc;
 
-	m_soc -= dSoC;
-	m_soc = m_soc <= 2139095040 ? m_soc : 2139095040;
+	if (batteryTemp < RSOC_TEMP_MAX_COMPENSATE)
+	{
+
+		rsoc = UTIL_FixMul_U16_U16(m_rSocTempCompensateTable[batteryTemp - RSOC_TEMP_TABLE_MIN],
+									m_rSocTable[currentSocTableIdx]
+												);
+	}
+	else
+	{
+		rsoc = UTIL_FixMul_U16_U16(255u, m_rSocTable[currentSocTableIdx]);
+	}
+
+	const int32_t deltaSoc = ((deltaBatteryMv * timeDeltaMs * ((596l * rsoc) / 256))) / 256;
+
+	m_dischargeRate = (deltaBatteryMv * (((uint32_t)m_c0 * rsoc) / 64)) / 1024;
+
+	m_soc -= deltaSoc;
+	m_soc = (m_soc <= 2139095040) ? m_soc : 2139095040;
 
 	m_soc = (m_soc > 0) ? m_soc : 0;
 
-	// Divide SOC by 2147483.648 to get batterySOC
+	// Divide SOC by 2147483.648 to get batterySOC?
 	m_lastSocPt1 = ((m_soc >> 7) * 125) >> 21;
 }
 
@@ -902,28 +933,31 @@ static void FUELGAUGE_UpdateCalculateSOC(const uint16_t batteryMv, const uint32_
  * FUELGAUGE_CalculateDischargeRate looks at the change in SOC and works out how
  * much capacity has been taken over the amount of time the change occurred and
  * converts that value into mA per hour. If no change in SOC has occurred or time
- * delta is 0 then no action is taken.
+ * delta is 0 then no action is taken and the routine returns false.
  *
  * @param	previousRSoc		soc reading at start of time period
  * @param	newRsoc				soc reading at end of time period
  * @param	timeDeltaMs			time elapsed between readings
- * @retval	none
+ * @retval	bool				false = no discharge rate was calculated
+ * 								true = discharge rate was calculated
  */
 // ****************************************************************************
 // TODO - check this calculation against original code
-static void FUELGAUGE_CalculateDischargeRate(const uint16_t previousRSoc,
+static bool FUELGAUGE_CalculateDischargeRate(const uint16_t previousRSoc,
 												const uint16_t newRsoc,
 												const uint32_t timeDeltaMs)
 {
 	const BatteryProfile_T * currentBatProfile = BATTERY_GetActiveProfileHandle();
 	const int16_t socDelta = previousRSoc - newRsoc;
 	const int32_t deltaFactor = (int32_t)socDelta * timeDeltaMs * currentBatProfile->capacity;
-	uint16_t dischargeRate;
 
 	// Check to make sure there is a change in both time and SOC
 	if (deltaFactor != 0)
 	{
-		dischargeRate = UTIL_FixMul_U32_U16(FUELGAUGE_SOC_TO_I_K, abs(deltaFactor));
-		m_dischargeRate = (deltaFactor > 0) ? dischargeRate : -dischargeRate;
+		m_dischargeRate = UTIL_FixMul_U32_S32(FUELGAUGE_SOC_TO_I_K, deltaFactor);
+
+		return true;
 	}
+
+	return false;
 }

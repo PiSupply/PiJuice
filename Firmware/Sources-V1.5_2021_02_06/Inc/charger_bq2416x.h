@@ -93,7 +93,7 @@ uint8_t CHARGER_GetChargeEnableConfig(void);
 ChargerStatus_T CHARGER_GetStatus(void);
 void CHARGER_SetInterrupt(void);
 
-void CHARGER_SetRPi5vInputEnable(bool enable);
+void CHARGER_SetRPi5vInputEnable(const bool enable);
 bool CHARGER_GetRPi5vInputEnable(void);
 
 void CHARGER_RPi5vInCurrentLimitSetMin(void);
@@ -113,7 +113,7 @@ CHARGER_BatteryStatus_t CHARGER_GetBatteryStatus(void);
 
 bool CHARGER_HasTempSensorFault(void);
 uint8_t CHARGER_GetTempFault(void);
-CHARGER_InputStatus_t CHARGER_GetInputStatus(uint8_t channel);
+CHARGER_InputStatus_t CHARGER_GetInputStatus(const uint8_t channel);
 bool CHARGER_IsDPMActive(void);
 uint8_t CHARGER_GetFaultStatus(void);
 void CHARGER_UpdateBatteryProfile(void);

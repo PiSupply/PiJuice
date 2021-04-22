@@ -13,8 +13,8 @@
 #define HOSTCOMMS_H_
 
 
-void HOSTCOMMS_Init(uint32_t sysTime);
-void HOSTCOMMS_Service(uint32_t sysTime);
+void HOSTCOMMS_Init(const uint32_t sysTime);
+void HOSTCOMMS_Service(const uint32_t sysTime);
 void HOSTCOMMS_Task(void);
 
 bool HOSTCOMMS_IsCommandActive(void);
