@@ -65,8 +65,17 @@ bool UTIL_NV_ParamInitCheck_U16(const uint16_t parameter)
 // ****************************************************************************
 uint16_t UTIL_FixMul_U32_U16(const uint32_t fixmul, const uint16_t value)
 {
+	bool overflow;
+
+	return UTIL_FixMulOvf_U32_U16(fixmul, value, &overflow);
+}
+
+
+uint16_t UTIL_FixMulOvf_U32_U16(const uint32_t fixmul, const uint16_t value, bool * const p_overFlow)
+{
 	/* Apply fixed point multipler */
-	uint32_t result = (value * fixmul);
+	uint64_t result = (value * (uint64_t)fixmul);
+	*p_overFlow = result > UINT32_MAX;
 
 	// Round up if halfway there
 	if (0u != (result & 0x8000u))
@@ -75,6 +84,46 @@ uint16_t UTIL_FixMul_U32_U16(const uint32_t fixmul, const uint16_t value)
 	}
 
 	return (uint16_t)(result >> 16u);
+}
+
+uint32_t UTIL_FixMulOvf_U32_U32(const uint32_t fixmul, const uint32_t value, bool * const p_overFlow)
+{
+	uint64_t result = (value * (uint64_t)fixmul);
+
+	// Round up if halfway there
+	if (0u != (result & 0x8000u))
+	{
+		result += 0x10000u;
+	}
+
+	return (uint32_t)(result >> 16u);
+}
+
+
+uint32_t UTIL_FixMul_U32_U32(const uint32_t fixmul, const uint32_t value)
+{
+	bool overflow;
+
+	return UTIL_FixMulOvf_U32_U32(fixmul, value, &overflow);
+}
+
+
+int32_t UTIL_FixMulOvf_U32_S32(const uint32_t fixmul, const int32_t value, bool * const p_overFlow)
+{
+	const bool negative = (value < 0);
+	const uint32_t result = UTIL_FixMulOvf_U32_U32(fixmul, abs(value), p_overFlow);
+
+	*p_overFlow |= result > (INT32_MAX + (true == negative) ? 1u : 0u);
+
+	return (true == negative) ? (int32_t)-result : (int32_t)result;
+}
+
+
+int32_t UTIL_FixMul_U32_S32(const uint32_t fixmul, const int32_t value)
+{
+	bool overflow;
+
+	return UTIL_FixMulOvf_U32_S32(fixmul, value, &overflow);
 }
 
 
@@ -91,8 +140,18 @@ uint16_t UTIL_FixMul_U32_U16(const uint32_t fixmul, const uint16_t value)
 // ****************************************************************************
 int16_t UTIL_FixMul_U32_S16(const uint32_t fixmul, const int16_t value)
 {
+	bool overflow;
+
+	return UTIL_FixMulOvf_U32_S16(fixmul, value, &overflow);
+}
+
+
+int16_t UTIL_FixMulOvf_U32_S16(const uint32_t fixmul, const int16_t value, bool * const p_overflow)
+{
 	const bool negative = (value < 0);
-	const uint32_t result = UTIL_FixMul_U32_U16(fixmul, abs(value));
+	const uint16_t result = UTIL_FixMulOvf_U32_U16(fixmul, abs(value), p_overflow);
+
+	*p_overflow |= result > (INT16_MAX + (true == negative) ? 1 : 0);
 
 	return (true == negative) ? -result : result;
 }
@@ -124,6 +183,13 @@ bool UTIL_FixMulInverse_U16_U16(const uint16_t realVal, const uint16_t divValue,
 	return true;
 }
 
+
+uint16_t UTIL_FixMul_U16_U16(const uint16_t fixmul, const uint8_t value)
+{
+	uint32_t result = fixmul * value;
+
+	return (uint16_t)(result >> 8u);
+}
 
 // ****************************************************************************
 /*!

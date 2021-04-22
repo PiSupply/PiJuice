@@ -46,17 +46,17 @@ typedef struct
 } IODRV_Pin_t;
 
 
-void IODRV_Init(uint32_t sysTime);
-void IODRV_Service(uint32_t sysTime);
+void IODRV_Init(const uint32_t sysTime);
+void IODRV_Service(const uint32_t sysTime);
 void IODRV_Shutdown(void);
 
-uint16_t IODRV_ReadPinValue(uint8_t pin);
-bool IODRV_ReadPinOutputState(uint8_t pin);
-const IODRV_Pin_t * IODRV_GetPinInfo(uint8_t pin);
+uint16_t IODRV_ReadPinValue(const uint8_t pin);
+bool IODRV_ReadPinOutputState(const uint8_t pin);
+const IODRV_Pin_t * IODRV_GetPinInfo(const uint8_t pin);
 void IORDV_ClearPinEdges(const uint8_t pinIdx);
-bool IODRV_SetPinType(uint8_t pin, IODRV_PinType_t newType);
-bool IODRV_WritePin(uint8_t pin, bool newValue);
-bool IODRV_SetPin(uint8_t pin, bool newValue);
-bool IODRV_SetPinPullDir(uint8_t pin, uint32_t pullDirection);
+bool IODRV_SetPinType(const uint8_t pin, const IODRV_PinType_t newType);
+bool IODRV_WritePin(const uint8_t pin, bool newValue);
+bool IODRV_SetPin(const uint8_t pin, const bool newValue);
+bool IODRV_SetPinPullDir(const uint8_t pin, const uint32_t pullDirection);
 
 #endif /* IODRV_H_ */

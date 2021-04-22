@@ -33,12 +33,18 @@
 		<link>
 			<name>Inc</name>
 			<type>2</type>
-			<location>C:/Repository/PiJuice/Firmware/Sources-V2.0_2021_04_16/Inc</location>
+			<locationURI>$%7BSOURCE_LOC%7D/Inc</locationURI>
 		</link>
 		<link>
 			<name>Src</name>
 			<type>2</type>
-			<location>C:/Repository/PiJuice/Firmware/Sources-V1.5_2021_02_06/Src</location>
+			<locationURI>$%7BSOURCE_LOC%7D/Src</locationURI>
 		</link>
 	</linkedResources>
+	<variableList>
+		<variable>
+			<name>SOURCE_LOC</name>
+			<value>$%7BPARENT-1-PROJECT_LOC%7D</value>
+		</variable>
+	</variableList>
 </projectDescription>
