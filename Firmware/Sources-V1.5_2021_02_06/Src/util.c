@@ -176,8 +176,6 @@ bool UTIL_FixMulInverse_U16_U16(const uint16_t realVal, const uint16_t divValue,
 		return false;
 	}
 
-	// TODO - Consider overflow
-
 	*p_result = (realVal << 16u) / divValue;
 
 	return true;

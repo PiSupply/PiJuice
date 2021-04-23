@@ -102,7 +102,8 @@ void RTC_EvaluateAlarm(void)
 	{
 		if (hoursSelection != 0xFFFFFFFF || minutesStep > 1)
 		{
-			// TODO - 3 times reading TR? DR not read.
+			// TODO - 3 times reading TR? DR not read which causes RTC to not update.
+			// Would HAL_RTC_GetTime be better?
 			tempReg = hrtc.Instance->TR;
 			tempReg = 0;
 			tempReg = hrtc.Instance->TR;

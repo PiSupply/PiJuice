@@ -242,7 +242,6 @@ uint16_t ADC_CalibrateValue(const uint16_t value)
 // ****************************************************************************
 int16_t ADC_GetCurrentSenseAverage(void)
 {
-	// TODO - Make sure this copies and not works on actual value
 	int32_t result = m_currentSenseFilter.average;
 
 	if (result < INT16_MIN)

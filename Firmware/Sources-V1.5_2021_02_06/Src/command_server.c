@@ -583,7 +583,6 @@ void CmdServerReadRsoc(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
 
 	if (dir == MASTER_CMD_DIR_READ)
 	{
-		// TODO - Check, original might have divided by 20!
 		pData[0] = (batteryRsocPt1 < 1000u) ? UTIL_FixMul_U32_U16(6553u, batteryRsocPt1) : 100u;
 		*dataLen = 1u;
 	}
@@ -1271,7 +1270,6 @@ void CmdServerReadWriteDefaultConfiguration(uint8_t dir, uint8_t *pData, uint16_
 	{
 		if (pData[1] == 0xaa && pData[2] == 0x55 && pData[3] == 0x0a && pData[4] == 0xa3 )
 		{
-			// TODO - look at this to make sure the world doesn't implode once initiated.
 			NV_FactoryReset();
 		}
 	}

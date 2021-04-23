@@ -147,9 +147,9 @@ typedef enum
 #define NB_OF_VAR             			NV_VAR_NUM//((uint8_t)0x04)
 
 void NV_Init(void);
-void NvSetDataInitialized(void);
-void NvTask(void);
-void NvSaveParameterReq(NvVarId_T id, uint16_t value);
+void NV_SetDataInitialised(void);
+void NV_Task(void);
+void NV_SaveParameterReq(const NvVarId_T id, const uint16_t value);
 
 void NV_FactoryReset(void);
 

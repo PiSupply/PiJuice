@@ -311,7 +311,6 @@ void HOSTCOMMS_Task(void)
 	uint16_t dataLen;
 	uint8_t readCmdCode;
 
-
 	if (HOSTCOMMS_MODE_RXC == m_hostcommsMode)
 	{
 		dataLen = m_rxLen;
@@ -333,15 +332,17 @@ void HOSTCOMMS_Task(void)
 		}
 
 		m_hostcommsMode = HOSTCOMMS_MODE_WAIT;
-
-		//I2C1->CR1 |= I2C_CR1_PE;
-		I2C1->CR1 |= I2C_CR1_ADDRIE;
 	}
 
+	// Stop the interrupt so the clock will stretch briefly if an attempt to access device
+	I2C1->CR1 &= ~(I2C_CR1_ADDRIE);
+
 	// If the host isn't transferring RTC data, update the buffer here
-	// TODO - Maybe double buffer to ensure no issues are caused by simultaneous access
+	// Burns clock cycles and briefly blocks i2c port, maybe some optimisation could be had.
 	if (HOSTCOMMS_MODE_TX_CLOCK != m_hostcommsMode)
 	{
+
+
 		if (0u != (m_rtcRegUpdate_bm & RTC_REG_TIME_Msk))
 		{
 			m_rtcRegUpdate_bm &= ~(RTC_REG_TIME_Msk);
@@ -370,6 +371,10 @@ void HOSTCOMMS_Task(void)
 		RtcReadAlarm1(&m_rtcBuffer[7u], false);
 		RtcReadControlStatus(&m_rtcBuffer[0xEu], &dataLen);
 	}
+
+	// Restore the ADDRIE state depending on the mode, addrie will get restored on the next spin
+	// if rxc has just occurred.
+	I2C1->CR1 |= (HOSTCOMMS_MODE_RXC == m_hostcommsMode) ? 0u : I2C_CR1_ADDRIE;
 }
 
 
@@ -520,13 +525,12 @@ void I2C1_IRQHandler(void)
 				{
 					m_hostcommsMode = HOSTCOMMS_MODE_RXC;
 
-					// Let the service routine know the message is to be dealt with
-					// TODO - Check this is needed.
+					// Let the service routine know the message is to be dealt with, probably not needed
+					// as the RTC address is dealt with here.
 					m_hostcommsBuffer[0u] = addrMatch;
 
-					// Turn off the perpheral until the command has been dealt with
-					// TODO - Stretch the clock on the ADDR phase instead
-					//I2C1->CR1 &= ~(I2C_CR1_PE);
+					// Stretch the next address clock until the command has been dealt with so the
+					// host knows the device is busy.
 					I2C1->CR1 &= ~(I2C_CR1_ADDRIE);
 				}
 				else if ( (m_hostcommsBuffer[1u] + m_rxLen) <= sizeof(m_rtcBuffer) )
@@ -563,8 +567,6 @@ void I2C1_IRQHandler(void)
 		}
 		else if ( (HOSTCOMMS_MODE_TX == m_hostcommsMode) || (HOSTCOMMS_MODE_TX_CLOCK == m_hostcommsMode) )
 		{
-			// TODO - Take it as transmit?
-
 			// Disable the DMA controller
 			hi2c1.hdmatx->Instance->CCR &= ~(DMA_CCR_EN);
 

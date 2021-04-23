@@ -48,7 +48,6 @@ typedef enum
 
 #define BATTERY_DEFAULT_PROFILE_ID	0xFFu
 
-// TODO - figure this out!
 #define PACK_CAPACITY_U16(c)		((c==0xFFFFFFFF) ? 0xFFFF : (c >> ((c>=0x8000)*7)) | (c>=0x8000)*0x8000)
 #define UNPACK_CAPACITY_U16(v)		((v==0xFFFF) ? 0xFFFFFFFF : (uint32_t)(v&0x7FFF) << (((v&0x8000) >> 15)*7))
 
@@ -802,6 +801,12 @@ static void BATTERY_WriteCustomProfileExtended(const BatteryProfile_T * p_newPro
 static void BATTERY_UpdateBatteryStatus(const uint16_t battMv,
 									const ChargerStatus_T chargerStatus, const bool batteryPresent)
 {
+	// if the battery has just been inserted then get the fuel gauge to update it's soc.
+	if ( (true == batteryPresent) & (BAT_STATUS_NOT_PRESENT == m_batteryStatus) )
+	{
+		FUELGAUGE_InitBatterySOC();
+	}
+
 	if ( (false == batteryPresent) || (battMv < 2500u) )
 	{
 		m_batteryStatus = BAT_STATUS_NOT_PRESENT;

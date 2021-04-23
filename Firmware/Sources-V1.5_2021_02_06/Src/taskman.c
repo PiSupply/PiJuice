@@ -109,8 +109,7 @@ extern RTC_HandleTypeDef hrtc;
 // ****************************************************************************
 void TASKMAN_Init(void)
 {
-	// TODO - Correct spelling!
-	NvSetDataInitialized();
+	NV_SetDataInitialised();
 
 	E2_Init();
 
@@ -310,7 +309,7 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc)
 // ****************************************************************************
 void TASKMAN_WaitInterrupt(void)
 {
-	// TODO - BAD!
+	// Not great but it is what it is.
 	extern __IO uint32_t uwTick;
 
 	RTC_TimeTypeDef sleepTime_rtc, wakeTime_rtc;

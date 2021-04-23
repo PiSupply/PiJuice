@@ -379,7 +379,6 @@ static void ISENSE_CalculateLoadCurrentMa(void)
 	{
 		if (true == boostConverterEnabled)
 		{
-			// TODO - Work out why these values
 			if ( (m_loadResMa > -300) && (m_loadResMa < 800) && (true == ldoEnabled) )
 			{
 				m_loadCurrentMa = m_loadFetMa;

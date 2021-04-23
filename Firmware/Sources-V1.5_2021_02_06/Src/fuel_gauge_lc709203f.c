@@ -287,7 +287,6 @@ void FUELGAUGE_Task(void)
 
 			if (RSOC_MEASUREMENT_DIRECT_DV == m_rsocMeasurementConfig)
 			{
-				// TODO - does this need to happen every 125ms?
 				FUELGAUGE_UpdateCalculateSOC(battMv, m_batteryTemperaturePt1 / 10, socTimeDiff);
 
 				MS_TIMEREF_INIT(m_lastSocTimeMs, sysTime);
@@ -314,7 +313,6 @@ void FUELGAUGE_Task(void)
 
 			if (RSOC_MEASUREMENT_DIRECT_DV == m_rsocMeasurementConfig)
 			{
-				// TODO - does this need to happen every 125ms?
 				FUELGAUGE_UpdateCalculateSOC(battMv, m_batteryTemperaturePt1 / 10, socTimeDiff);
 
 				MS_TIMEREF_INIT(m_lastSocTimeMs, sysTime);
@@ -333,7 +331,6 @@ void FUELGAUGE_Task(void)
  * @retval	none
  */
 // ****************************************************************************
-// TODO - make this call when the battery has been inserted
 void FUELGAUGE_InitBatterySOC(void)
 {
 	if (RSOC_MEASUREMENT_DIRECT_DV == m_rsocMeasurementConfig)

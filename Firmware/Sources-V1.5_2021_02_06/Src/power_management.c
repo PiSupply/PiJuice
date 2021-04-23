@@ -88,7 +88,6 @@ void BUTTON_PowerOnEventCb(const Button_T * const p_button)
 	const PowerSourceStatus_T power5vIoStatus = POWERSOURCE_Get5VRailStatus();
 	const uint32_t lastHostCommandAgeMs = HOSTCOMMS_GetLastCommandAgeMs(sysTime);
 
-	// TODO - Check brackets are in the right places
 	if ( ( (false == boostConverterEnabled) && (POW_SOURCE_NOT_PRESENT == power5vIoStatus) ) ||
 			( MS_TIMEREF_TIMEOUT(m_lastWakeupTimer, sysTime, 12000u) && (lastHostCommandAgeMs > 11000) )
 			)
@@ -152,13 +151,6 @@ void BUTTON_PowerResetEventCb(const Button_T * const p_button)
 	}
 
 	BUTTON_ClearEvent(p_button->index);
-}
-
-
-// TODO - What is this for?
-void InputSourcePresenceChangeCb(uint8_t event)
-{
-
 }
 
 

@@ -74,23 +74,27 @@ void NV_EraseAllVariables(void)
 }
 
 
-void NvSetDataInitialized(void) {
-	if (!NV_IS_DATA_INITIALIZED) {
+void NV_SetDataInitialised(void)
+{
+	if (false == NV_IS_DATA_INITIALIZED)
+	{
 		EE_WriteVariable(NV_START_ID, 0);
 	}
 }
 
 
-void NvTask(void) {
-
-	if (nvSaveParmeterReq >= 0) {
+void NV_Task(void)
+{
+	if (nvSaveParmeterReq >= 0)
+	{
 		EE_WriteVariable(BAT_PROFILE_NV_ADDR, nvSaveParmeterValue);
 		nvSaveParmeterReq = -1;
 	}
 }
 
 
-void NvSaveParameterReq(NvVarId_T id, uint16_t value) {
+void NV_SaveParameterReq(const NvVarId_T id, const uint16_t value)
+{
 	nvSaveParmeterReq = id;
 	nvSaveParmeterValue = value;
 }

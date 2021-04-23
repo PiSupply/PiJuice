@@ -194,7 +194,6 @@ void IoNvReadConfig(uint8_t pin)
 
 void IoControlInit()
 {
-	// TODO - Move these!
 	MX_TIM1_Init();
 	MX_TIM14_Init();
 

@@ -91,7 +91,6 @@ void CHARGER_WDT_I2C_Callback(const I2CDRV_Device_t * const p_i2cdrvDevice);
 // ----------------------------------------------------------------------------
 // Variables that only have scope in this module:
 
-// TODO - Make these defines in the charger conf header
 static uint8_t m_registersWriteMask[CHARGER_REGISTER_COUNT] =
 {
 		(uint8_t)(CHGR_SUPPLY_SEL_bm | CHGR_SC_TMR_RST_bm),
@@ -392,7 +391,7 @@ void CHARGER_Task(void)
  * @retval	none
  */
 // ****************************************************************************
-// TODO - Look at this.
+// TODO - Look at this, does something need to happen here?
 void ChargerTriggerNTCMonitor(NTC_MonitorTemperature_T temp)
 {
 	switch (temp)
