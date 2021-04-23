@@ -381,7 +381,7 @@ void HOSTCOMMS_Task(void)
 
 // ****************************************************************************
 /*!
- * ADC_GetLastCommandAgeMs returns the time elapsed in milliseconds since the last
+ * HOSTCOMMS_GetLastCommandAgeMs returns the time elapsed in milliseconds since the last
  * host access.
  *
  * @param	sysTime		current value of the system tick timer
@@ -396,19 +396,34 @@ uint32_t HOSTCOMMS_GetLastCommandAgeMs(const uint32_t sysTime)
 
 // ****************************************************************************
 /*!
- * ADC_GetAverageValue returns the average value of the analog channel, out of
- * bounds channel acces returns 0.
+ * HOSTCOMMS_SetInterrupt just updates the time the last i2c message came in, should
+ * already be done in the interrupt routine but just in case.!
  *
- * @param	channel		channel to be accessed
- * @retval	uint16_t	averaged value of the analog channel
+ * @param	none
+ * @retval	none
  */
 // ****************************************************************************
 void HOSTCOMMS_SetInterrupt(void)
 {
+
 	MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);
 }
 
 
+// ****************************************************************************
+/*!
+ * HOSTCOMMS_ChangeAddress handles the immediate update of an address change for
+ * either of the slave addresses. It will be called from the command server so the
+ * assumption is that there will not be an ongoing transaction as the hardware will
+ * be tied with the RXC event. The address is 7 bits for i2c and it should be
+ * pre-shifted before calling. Sett addr type to select the primary or secondary
+ * slave address
+ *
+ * @param	addrType		HOSTCOMMS_PRIMARY_ADDR or HOSTCOMMS_SECONDARY_ADDR
+ * @param	addr			7bit pre-shifted address to set
+ * @retval	none
+ */
+// ****************************************************************************
 void HOSTCOMMS_ChangeAddress(const uint8_t addrType, const uint8_t addr)
 {
 	if (addrType < HOSTCOMMS_ADDR_TYPES)
