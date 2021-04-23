@@ -584,7 +584,6 @@ static HAL_StatusTypeDef EE_PageTransfer(uint16_t VirtAddress, uint16_t Data)
 	HAL_StatusTypeDef status = HAL_OK;
 	uint32_t NewPageAddress = 0x080103FF, OldPageAddress = 0x08010000;
 	uint16_t ValidPage = PAGE0, VarIdx = 0;
-	uint16_t ReadStatus = 0;
 
 	FLASH_EraseInitTypeDef FlashEraseInit;
 	uint32_t pageError;
@@ -638,9 +637,9 @@ static HAL_StatusTypeDef EE_PageTransfer(uint16_t VirtAddress, uint16_t Data)
 		if (VirtAddVarTab[VarIdx] != VirtAddress) /* Check each variable except the one passed as parameter */
 		{
 			/* Read the other last variable updates */
-			ReadStatus = EE_ReadVariable(VirtAddVarTab[VarIdx], &DataVar);
+			status = EE_ReadVariable(VirtAddVarTab[VarIdx], &DataVar);
 			/* In case variable corresponding to the virtual address was found */
-			if (ReadStatus != 0x1)
+			if (HAL_OK == status)
 			{
 				/* Transfer the variable to the new active page */
 				status = EE_VerifyPageFullWriteVariable(VirtAddVarTab[VarIdx],

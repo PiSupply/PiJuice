@@ -148,9 +148,9 @@ void NV_WipeVariable(const uint16_t address)
 uint16_t NvReadVariableU8(uint16_t VirtAddress, uint8_t *pVar)
 {
 	uint16_t var = 0;
-	uint16_t succ = EE_ReadVariable(VirtAddress, &var);
+	HAL_StatusTypeDef succ = EE_ReadVariable(VirtAddress, &var);
 
-	if (succ==0)
+	if (HAL_OK == succ)
 	{
 		if (NV_IS_VARIABLE_VALID(var))
 		{
