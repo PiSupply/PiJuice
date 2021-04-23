@@ -32,7 +32,7 @@ uint16_t VirtAddVarTab[NV_VAR_NUM] =
 void NV_Init(void)
 {
 	/* Unlock the Flash Program Erase controller */
-	FLASH_Unlock();
+	HAL_FLASH_Unlock();
 
 	/* EEPROM Init */
 	EE_Init();
