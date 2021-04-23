@@ -42,6 +42,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+#define DEBUGGING
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -156,24 +159,17 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
-	if (EXECUTION_STATE_UPDATE != executionState)
+	if ( (HAL_GPIO_ReadPin(IODRV_PIN_POW_EN_GPIO, IODRV_PIN_POW_EN_PIN_Pos) == GPIO_PIN_RESET) &&
+			(executionState == EXECUTION_STATE_POWER_RESET)
+			)
 	{
-		if ( (HAL_GPIO_ReadPin(IODRV_PIN_POW_EN_GPIO, IODRV_PIN_POW_EN_PIN_Pos) == GPIO_PIN_RESET) &&
-				(executionState == EXECUTION_STATE_POWER_RESET)
-				)
-		{
-			executionState = EXECUTION_STATE_POWER_ON;
-		}
-
-		// For debugging.
-		executionState = EXECUTION_STATE_POWER_RESET;
-	}
-	else
-	{
-	  executionState = EXECUTION_STATE_NORMAL;
+		executionState = EXECUTION_STATE_POWER_ON;
 	}
 
+#ifdef DEBUGGING
+	// For debugging.
 	executionState = EXECUTION_STATE_POWER_RESET;
+#endif
 
 	OSLOOP_Init();
 

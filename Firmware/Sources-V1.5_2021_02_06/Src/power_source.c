@@ -235,8 +235,6 @@ void POWERSOURCE_UpdateBatteryProfile(const BatteryProfile_T * const batProfile)
 	m_vbatPowerOffThreshold = (NULL == batProfile) ?
 								3000u + VBAT_TURNOFF_ADC_THRESHOLD	:
 								(batProfile->cutoffVoltage * 20u) + VBAT_TURNOFF_ADC_THRESHOLD;
-
-	AnalogAdcWDGConfig(ANALOG_CHANNEL_VBAT,  m_vbatPowerOffThreshold);
 }
 
 
@@ -256,14 +254,14 @@ void POWERSOURCE_UpdateBatteryProfile(const BatteryProfile_T * const batProfile)
 void POWERSOURCE_SetVSysSwitchState(const uint8_t switchState)
 {
 	const uint16_t vbatAdcVal = ADC_GetAverageValue(ANALOG_CHANNEL_VBAT);
-	const uint16_t wdgThreshold = GetAdcWDGThreshold();
+
 
 	if (5u == switchState)
 	{
 		// Set VSys I limit pin
 		IODRV_SetPin(IODRV_PIN_ESYSLIM, true);
 
-		if ( (vbatAdcVal > wdgThreshold) || (true == POWER_SOURCE_PRESENT) )
+		if ( (vbatAdcVal > m_vbatPowerOffThreshold) || (true == POWER_SOURCE_PRESENT) )
 		{
 			IODRV_SetPin(IODRV_PIN_EXTVS_EN, true);
 			m_vsysEnabled = true;
@@ -276,7 +274,7 @@ void POWERSOURCE_SetVSysSwitchState(const uint8_t switchState)
 		// Reset VSys I limit pin
 		IODRV_SetPin(IODRV_PIN_ESYSLIM, false);
 
-		if ( (vbatAdcVal > wdgThreshold) || (true == POWER_SOURCE_PRESENT) )
+		if ( (vbatAdcVal > m_vbatPowerOffThreshold) || (true == POWER_SOURCE_PRESENT) )
 		{
 			IODRV_SetPin(IODRV_PIN_EXTVS_EN, true);
 			m_vsysEnabled = true;
@@ -406,9 +404,6 @@ void POWERSOURCE_Set5vBoostEnable(const bool enabled)
 			// Turn off LDO
 			POWERSOURCE_SetLDOEnable(false);
 
-			// Switch off the analog watchdog
-			AnalogAdcWDGEnable(DISABLE);
-
 			// Wait for it to happen
 			DelayUs(5u);
 
@@ -450,9 +445,6 @@ void POWERSOURCE_Set5vBoostEnable(const bool enabled)
 			// Stamp time boost converter is enabled
 			MS_TIME_COUNTER_INIT(m_boostOnTimeMs);
 
-			// Turn on the analog watchdog
-			AnalogAdcWDGEnable(ENABLE);
-
 			return;
 		}
 		else
@@ -470,8 +462,6 @@ void POWERSOURCE_Set5vBoostEnable(const bool enabled)
 		m_boostConverterEnabled = false;
 
 		POWERSOURCE_SetLDOEnable(false);
-
-		AnalogAdcWDGEnable(DISABLE);
 
 		return;
 	}
@@ -738,7 +728,7 @@ static void POWERSOURCE_CheckPowerValid(void)
 		}
 
 		// if no sources connected, turn off 5V regulator and system switch when battery voltage drops below minimum
-		if ( (batteryADCValue < GetAdcWDGThreshold())
+		if ( (batteryADCValue < m_vbatPowerOffThreshold)
 				&& (m_rpi5VInDetStatus != RPI5V_DETECTION_STATUS_POWERED)
 				&& (false == chargerHasPowerIn)
 				)

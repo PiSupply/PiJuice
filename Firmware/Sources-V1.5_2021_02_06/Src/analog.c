@@ -4,6 +4,8 @@
  *  Created on: 11.12.2016.
  *      Author: milan
  */
+// ----------------------------------------------------------------------------
+// Include section - add all #includes here:
 
 #include <stdlib.h>
 
@@ -20,29 +22,62 @@
 #include "util.h"
 
 
-ADC_AnalogWDGConfTypeDef analogWDGConfig;
+// ----------------------------------------------------------------------------
+// Defines section - add all #defines here:
+
+
+// ----------------------------------------------------------------------------
+// Function prototypes for functions that only have scope in this module:
+
+
+// ----------------------------------------------------------------------------
+// Variables that only have scope in this module:
 
 static uint32_t tempCalcCounter;
 static int16_t m_mcuTemperature = 25; // will contain the mcuTemperature in degree Celsius
 
 
-// Needs to be called once ADC has filled the filter buffer
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH GLOBAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * ANALOG_Init configures the module to a known initial state
+ * @param	sysTime		current value of the ms tick timer
+ * @retval	none
+ */
+// ****************************************************************************
 void ANALOG_Init(const uint32_t sysTime)
 {
-	// Process resistorConfig
-	SwitchResCongigInit(ADC_GetAverageValue(ANALOG_CHANNEL_BATTYPE));
-
 	// Initialise thermister period
 	MS_TIMEREF_INIT(tempCalcCounter, sysTime);
 }
 
 
+// ****************************************************************************
+/*!
+ * ANALOG_Shutdown prepares the module for a low power stop mode.
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
 void ANALOG_Shutdown(void)
 {
 
 }
 
 
+// ****************************************************************************
+/*!
+ * ANALOG_Service performs periodic updates for this module, just works out the
+ * temperature of the mcu from the internal registers
+ *
+ * @param	sysTime		current value of the ms tick timer
+ * @retval	none
+ */
+// ****************************************************************************
 void ANALOG_Service(const uint32_t sysTime)
 {
 	const uint16_t AVDD = ANALOG_GetAVDDMv();
@@ -60,12 +95,29 @@ void ANALOG_Service(const uint32_t sysTime)
 }
 
 
+// ****************************************************************************
+/*!
+ * ANALOG_GetAVDDMv gets the voltage of the 3v3 supply rail in millivolts.
+ *
+ * @param	none
+ * @retval	uint16_t		Voltage of the 3v3 rail in mV
+ */
+// ****************************************************************************
 uint16_t ANALOG_GetAVDDMv(void)
 {
 	return ADC_CalibrateValue(3300u);
 }
 
 
+// ****************************************************************************
+/*!
+ * ANALOG_GetMv converts the direct ADC pin value to millivolts, corrected for
+ * inaccuracy of the analog reference voltage (AVDD)
+ *
+ * @param	none
+ * @retval	uint16_t		mcu pin measured value in millivolts
+ */
+// ****************************************************************************
 uint16_t ANALOG_GetMv(const uint8_t channelIdx)
 {
 	const uint16_t adcVal = ADC_CalibrateValue(ADC_GetAverageValue(channelIdx));
@@ -74,6 +126,15 @@ uint16_t ANALOG_GetMv(const uint8_t channelIdx)
 }
 
 
+// ****************************************************************************
+/*!
+ * ANALOG_GetBatteryMv returns the measured value of the battery termial voltage
+ * corrected for AVDD variance and averaged.
+ *
+ * @param	none
+ * @retval	uint16_t		battery terminal measured value in millivolts
+ */
+// ****************************************************************************
 uint16_t ANALOG_GetBatteryMv(void)
 {
 	const uint16_t adcVal = ADC_CalibrateValue(ADC_GetAverageValue(ANALOG_CHANNEL_VBAT));
@@ -82,7 +143,15 @@ uint16_t ANALOG_GetBatteryMv(void)
 }
 
 
-// Original averaged both sides of ferrite bead
+// ****************************************************************************
+/*!
+ * ANALOG_Get5VRailMv returns the measured value of the 5V rail corrected for AVDD
+ * variance and averaged.
+ *
+ * @param	none
+ * @retval	uint16_t		5v rail measured value in millivolts
+ */
+// ****************************************************************************
 uint16_t ANALOG_Get5VRailMv(void)
 {
 	const uint16_t adcVal = ADC_CalibrateValue(ADC_GetAverageValue(ANALOG_CHANNEL_CS1));
@@ -91,6 +160,16 @@ uint16_t ANALOG_Get5VRailMv(void)
 }
 
 
+// ****************************************************************************
+/*!
+ * ANALOG_Get5VRailMa a stab in the dark, finger in the air rough estimate of the
+ * current to or from the RPi. It is averaged and errors of AVDD dialed out but
+ * really is probably never accurate due to the low SNR of the hardware implementation.
+ *
+ * @param	none
+ * @retval	uint16_t		5v rail measured current in milliamps
+ */
+// ****************************************************************************
 int16_t ANALOG_Get5VRailMa(void)
 {
 	const int16_t diff = ADC_GetAverageValue(ANALOG_CHANNEL_CS1) - ADC_GetAverageValue(ANALOG_CHANNEL_CS2);
@@ -101,74 +180,16 @@ int16_t ANALOG_Get5VRailMa(void)
 }
 
 
-uint8_t ANALOG_AnalogSamplesReady(void)
-{
-	return ADC_GetFilterReady();
-}
-
-
+// ****************************************************************************
+/*!
+ * ANALOG_GetMCUTemp returns the temperature of the processor in degrees
+ *
+ * @param	none
+ * @retval	int16_t		temperature of the processor in degrees
+ */
+// ****************************************************************************
 int16_t ANALOG_GetMCUTemp(void)
 {
 	return m_mcuTemperature;
 }
-
-
-void AnalogStop(void) {
-	// Stops adc conversions and disables the analog watchdog interrupt
-}
-
-void AnalogStart(void) {
-	// Starts adc conversions and enables the analog watchdog interrupt
-}
-
-void AnalogPowerIsGood(void){
-	// Not worked out what this does yet!!
-}
-
-HAL_StatusTypeDef AnalogAdcWDGConfig(uint8_t channel, uint16_t voltThresh_mV)
-{
-	/*
-	uint8_t convStat = ADC_IS_CONVERSION_ONGOING_REGULAR(&hadc);
-	if (convStat) HAL_ADC_Stop_DMA(&hadc);
-
-	analogWDGConfig.ITMode = ENABLE;
-	analogWDGConfig.Channel = channel;
-	analogWDGConfig.HighThreshold = 4095;
-	//vbatAdcTresh = (uint32_t)voltThresh_mV * 2981 / 3300; // voltThresh_mV * 4096 * 1000 / 1374 / 3300;
-	analogWDGConfig.LowThreshold = (uint32_t)voltThresh_mV * 2981 / 3300;
-	analogWDGConfig.WatchdogMode = ADC_ANALOGWATCHDOG_SINGLE_REG;
-
-	if (HAL_ADC_AnalogWDGConfig(&hadc, &analogWDGConfig) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	if (convStat)
-		if (HAL_ADC_Start_DMA(&hadc, analogIn, ADC_BUFFER_LENGTH) != HAL_OK)
-		{
-			Error_Handler();
-		}
-	*/
-	return HAL_OK;
-}
-
-void AnalogAdcWDGEnable(uint8_t enable)
-{
-	/*
-	uint8_t convStat = ADC_IS_CONVERSION_ONGOING_REGULAR(&hadc);
-	if (convStat) HAL_ADC_Stop_DMA(&hadc);
-
-	analogWDGConfig.ITMode = enable;
-
-	if (HAL_ADC_AnalogWDGConfig(&hadc, &analogWDGConfig) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	if (convStat)
-		if (HAL_ADC_Start_DMA(&hadc, analogIn, ADC_BUFFER_LENGTH) != HAL_OK)
-		{
-			Error_Handler();
-		}
-	*/
-}
-
 

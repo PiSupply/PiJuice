@@ -40,7 +40,7 @@ int8_t switchConfigCode = -1;
 int16_t resistorConfig1Code7 = -1;
 int8_t resistorConfig2Code4 = -1;
 
-void SwitchResCongigInit(uint32_t resistorConfigAdc)
+void SwitchResConfigInit(uint32_t resistorConfigAdc)
 {
 	if ( resistorConfigAdc > CONFIG_SW_11_ADC_HIGH + 2)
 	{

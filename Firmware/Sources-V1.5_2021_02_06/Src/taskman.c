@@ -17,6 +17,7 @@
 #include "osloop.h"
 #include "time_count.h"
 #include "execution.h"
+#include "config_switch_resistor.h"
 
 #include "nv.h"
 #include "eeprom.h"
@@ -112,6 +113,9 @@ void TASKMAN_Init(void)
 	NV_SetDataInitialised();
 
 	E2_Init();
+
+	// Process resistorConfig
+	SwitchResConfigInit(ADC_GetAverageValue(ANALOG_CHANNEL_BATTYPE));
 
 	ISENSE_Init();
 	BATTERY_Init();
