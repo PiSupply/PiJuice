@@ -153,7 +153,7 @@ void HOSTCOMMS_Init(const uint32_t sysTime)
 
 	if (NV_ReadVariable_U8(OWN_ADDRESS1_NV_ADDR, &tempU8))
 	{
-		I2C1->OAR1 = (tempU8 << 1u);
+		I2C1->OAR1 = tempU8;
 	}
 	else
 	{
@@ -406,6 +406,34 @@ uint32_t HOSTCOMMS_GetLastCommandAgeMs(const uint32_t sysTime)
 void HOSTCOMMS_SetInterrupt(void)
 {
 	MS_TIME_COUNTER_INIT(m_lastHostCommandTimeMs);
+}
+
+
+void HOSTCOMMS_ChangeAddress(const uint8_t addrType, const uint8_t addr)
+{
+	if (addrType < HOSTCOMMS_ADDR_TYPES)
+	{
+		HAL_I2C_DisableListen_IT(&hi2c1);
+
+		I2C1->CR1 &= ~(I2C_CR1_PE);
+
+		if (HOSTCOMMS_PRIMARY_ADDR == addrType)
+		{
+			I2C1->OAR1 &= ~(I2C_OAR1_OA1EN);
+			I2C1->OAR1 = addr | I2C_OAR1_OA1EN;
+		}
+		else
+		{
+			I2C1->OAR2 &= ~(I2C_OAR2_OA2EN);
+			I2C1->OAR2 = addr | I2C_OAR2_OA2EN;
+		}
+
+		// Enable the interrupts
+		I2C1->CR1 |= (I2C_CR1_ADDRIE | I2C_CR1_STOPIE);
+
+		// Enable the i2c device
+		I2C1->CR1 |= I2C_CR1_PE;
+	}
 }
 
 

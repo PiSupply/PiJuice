@@ -12,8 +12,7 @@
 #include "util.h"
 
 #include "load_current_sense.h"
-#include "command_server.h"
-#include "stddef.h"
+
 #include "nv.h"
 #include "fuel_gauge_lc709203f.h"
 #include "charger_bq2416x.h"
@@ -27,6 +26,10 @@
 #include "rtc_ds1339_emu.h"
 #include "io_control.h"
 #include "execution.h"
+#include "hostcomms.h"
+#include "i2cdrv.h"
+
+#include "command_server.h"
 
 #define REGISTERS_NUM	((uint16_t)256)
 
@@ -1105,55 +1108,60 @@ void CmdServerReadWritePowerRegulatorConfiguration(uint8_t dir, uint8_t * pData,
 	}
 }
 
-void CmdServerReadWriteOwnAddress1(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		uint8_t adr = pData[1]*2;
-		if (pData[1] > 0 && pData[1] < 128 && hi2c1.Init.OwnAddress1 != adr ){
-			EE_WriteVariable(OWN_ADDRESS1_NV_ADDR, adr | ((uint16_t)~adr<<8));
-			uint16_t var = 0;
-			EE_ReadVariable(OWN_ADDRESS1_NV_ADDR, &var);
-			if ( (var&0xFF) == adr && (((~var)&0xFF) == (var>>8)) ) {
-				// if successfully saved reinitialize I2C with new address
-				hi2c1.Init.OwnAddress1 = adr;
-				if (HAL_I2C_DeInit(&hi2c1) != HAL_OK)
+void CmdServerReadWriteOwnAddress1(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	uint8_t tempU8;
+
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		uint8_t addr = (pData[1u] << 1u) & 0xFEu;
+
+		if ( (pData[1u] > 0u) && (pData[1u] < 128u) && ((hi2c1.Instance->OAR1 & 0xFEu) != addr) )
+		{
+			NV_WriteVariable_U8(OWN_ADDRESS1_NV_ADDR, addr);
+
+			if (NV_ReadVariable_U8(OWN_ADDRESS1_NV_ADDR, &tempU8))
+			{
+				if (tempU8 == addr)
 				{
-					//Error_Handler();
-				}
-				if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-				{
-					//Error_Handler();
+					HOSTCOMMS_ChangeAddress(HOSTCOMMS_PRIMARY_ADDR, addr);
 				}
 			}
 		}
-	} else {
-		pData[0] = hi2c1.Init.OwnAddress1 >> 1;
-		*dataLen = 1;
+	}
+	else
+	{
+		pData[0u] = (uint8_t) ((hi2c1.Instance->OAR1 >> 1u) & 0xFFu);
+		*dataLen = 1u;
 	}
 }
 
-void CmdServerReadWriteOwnAddress2(uint8_t dir, uint8_t *pData, uint16_t *dataLen) {
-	if (dir == MASTER_CMD_DIR_WRITE) {
-		uint8_t adr = pData[1]*2;
-		if (pData[1] > 0 && pData[1] < 128 && hi2c1.Init.OwnAddress2 != adr ){
-			EE_WriteVariable(OWN_ADDRESS2_NV_ADDR, adr | ((uint16_t)~adr<<8));
-			uint16_t var = 0;
-			EE_ReadVariable(OWN_ADDRESS2_NV_ADDR, &var);
-			if ( (var&0xFF) == adr && (((~var)&0xFF) == (var>>8)) ) {
-				// if successfully saved reinitialize I2C with new address
-				hi2c1.Init.OwnAddress2 = adr;
-				if (HAL_I2C_DeInit(&hi2c1) != HAL_OK)
+void CmdServerReadWriteOwnAddress2(uint8_t dir, uint8_t *pData, uint16_t *dataLen)
+{
+	uint8_t tempU8;
+
+	if (dir == MASTER_CMD_DIR_WRITE)
+	{
+		uint8_t addr = (pData[1u] << 1u) & 0xFEu;
+
+		if ( (pData[1u] > 0u) && (pData[1u] < 128u) && ((hi2c1.Instance->OAR2 & 0xFEu) != addr) )
+		{
+			NV_WriteVariable_U8(OWN_ADDRESS2_NV_ADDR, addr);
+
+			if (NV_ReadVariable_U8(OWN_ADDRESS2_NV_ADDR, &tempU8))
+			{
+				// This will really mess stuff up!
+				if(tempU8 == addr)
 				{
-					//Error_Handler();
-				}
-				if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-				{
-					//Error_Handler();
+					HOSTCOMMS_ChangeAddress(HOSTCOMMS_SECONDARY_ADDR, addr);
 				}
 			}
 		}
-	} else {
-		pData[0] = hi2c1.Init.OwnAddress2 >> 1;
-		*dataLen = 1;
+	}
+	else
+	{
+		pData[0u] = (uint8_t)((hi2c1.Instance->OAR2 >> 1u) & 0xFFu);
+		*dataLen = 1u;
 	}
 }
 

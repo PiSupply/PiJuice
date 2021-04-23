@@ -257,7 +257,6 @@ void POWERMAN_Task(void)
 	const uint32_t lastHostCommandAgeMs = HOSTCOMMS_GetLastCommandAgeMs(sysTime);
 	const bool rtcWakeEvent = RTC_GetWakeEvent();
 	const bool ioWakeEvent = TASKMAN_GetIOWakeEvent();
-	const IODRV_Pin_t * p_gpio26 = IODRV_GetPinInfo(IODRV_PIN_IO1);
 
 	bool isWakeupOnCharge;
 
