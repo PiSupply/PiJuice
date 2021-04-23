@@ -43,7 +43,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define DEBUGGING
+//#define DEBUGGING
 
 /* USER CODE END PD */
 
@@ -157,6 +157,7 @@ int main(void)
   MX_TIM17_Init();
   MX_I2C2_Init();
   MX_I2C1_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
 
 	if ( (HAL_GPIO_ReadPin(IODRV_PIN_POW_EN_GPIO, IODRV_PIN_POW_EN_PIN_Pos) == GPIO_PIN_RESET) &&
@@ -478,9 +479,9 @@ static void MX_IWDG_Init(void)
 
   /* USER CODE END IWDG_Init 1 */
   hiwdg.Instance = IWDG;
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_4;
-  hiwdg.Init.Window = 4095;
-  hiwdg.Init.Reload = 4095;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
+  hiwdg.Init.Window = 0xFFF;
+  hiwdg.Init.Reload = 1300;
   if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
   {
     Error_Handler();

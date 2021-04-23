@@ -71,6 +71,8 @@ static int16_t m_loadFetMa;
 // ----------------------------------------------------------------------------
 // Variables that have scope from outside this module:
 
+IWDG_HandleTypeDef hiwdg;
+
 
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -559,11 +561,16 @@ static void ISENSE_CalibrateCurrent(const uint8_t pointIdx, const uint16_t curre
 {
 	const bool boostEnabled = POWERSOURCE_IsBoostConverterEnabled();
 	const bool ldoEnabled = POWERSOURCE_IsLDOEnabled();
+	const uint32_t watchdogTime = hiwdg.Init.Reload;
 
 	if (pointIdx >= 3u)
 	{
 		return;
 	}
+
+	// Make sure the watchdog doesn't time out whilst waiting for the filter, set to max.
+	hiwdg.Init.Reload = 4095u;
+	HAL_IWDG_Refresh(&hiwdg);
 
 	// Adjust filter period to try and stabilise the sense resistor.
 	ADC_SetIFilterPeriod(1000u);
@@ -602,4 +609,7 @@ static void ISENSE_CalibrateCurrent(const uint8_t pointIdx, const uint16_t curre
 	// Restore power regulation
 	POWERSOURCE_SetLDOEnable(ldoEnabled);
 	POWERSOURCE_Set5vBoostEnable(boostEnabled);
+
+	// Restore the watchdog value
+	hiwdg.Init.Reload = watchdogTime;
 }

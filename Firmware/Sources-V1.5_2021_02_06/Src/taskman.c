@@ -94,6 +94,7 @@ static bool m_ioWakeupEvent = false;
 // Variables that have scope from outside this module:
 
 extern RTC_HandleTypeDef hrtc;
+extern IWDG_HandleTypeDef hiwdg;
 
 
 // ----------------------------------------------------------------------------
@@ -210,6 +211,9 @@ void TASKMAN_Run(void)
 		if ( (MS_TIME_COUNT(m_lastTaskRunTimeMs) >= TASKMAN_TASK_PERIOD_MS) || needEventPoll )
 		{
 			MS_TIME_COUNTER_INIT(m_lastTaskRunTimeMs);
+
+			// Reset the watchdog down timer
+			HAL_IWDG_Refresh(&hiwdg);
 
 			CHARGER_Task();
 			FUELGAUGE_Task();
