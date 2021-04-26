@@ -39,7 +39,7 @@
  * UTIL_NV_ParamInitCheck_U16 checks to see if a NV parameter has been
  * initialised
  *
- * @param	uint16_t 	parameter vaue
+ * @param	uint16_t 	parameter value
  * @retval	bool		true = parameter is looking initialised
  * 						false = parameter is not looking initialised
  */
@@ -59,8 +59,8 @@ bool UTIL_NV_ParamInitCheck_U16(const uint16_t parameter)
  * is performed to the nearest whole number.
  *
  * @param	fixmul		fixed point value to multiply by
- * @param	value 		uint16_t parameter vaue
- * @retval	uint16_t 	muiltiplied value
+ * @param	value 		uint16_t parameter value
+ * @retval	uint16_t 	multiplied value
  */
 // ****************************************************************************
 uint16_t UTIL_FixMul_U32_U16(const uint32_t fixmul, const uint16_t value)
@@ -71,9 +71,23 @@ uint16_t UTIL_FixMul_U32_U16(const uint32_t fixmul, const uint16_t value)
 }
 
 
+// ****************************************************************************
+/*!
+ * UTIL_FixMulOvf_U32_U16 multiplies a uint16 value by a 16/16 fixed point multiplier.
+ * The multiplier is derived by UINT16_MAX * fullscale value / resolution, rounding
+ * is performed to the nearest whole number. If an overflow occurs the overflow
+ * flag will be set.
+ *
+ * @param	fixmul		fixed point value to multiply by
+ * @param	value 		uint16_t parameter value
+ * @param	p_overflow	false = no overflow occurred
+ * 						true = overflow occurred
+ * @retval	uint16_t 	multiplied value
+ */
+// ****************************************************************************
 uint16_t UTIL_FixMulOvf_U32_U16(const uint32_t fixmul, const uint16_t value, bool * const p_overFlow)
 {
-	/* Apply fixed point multipler */
+	/* Apply fixed point multiplier */
 	uint64_t result = (value * (uint64_t)fixmul);
 	*p_overFlow = result > UINT32_MAX;
 
@@ -86,6 +100,21 @@ uint16_t UTIL_FixMulOvf_U32_U16(const uint32_t fixmul, const uint16_t value, boo
 	return (uint16_t)(result >> 16u);
 }
 
+
+// ****************************************************************************
+/*!
+ * UTIL_FixMulOvf_U32_U32 multiplies a uint16 value by a 16/16 fixed point multiplier.
+ * The multiplier is derived by UINT16_MAX * fullscale value / resolution, rounding
+ * is performed to the nearest whole number. If an overflow occurs the overflow
+ * flag will be set.
+ *
+ * @param	fixmul		fixed point value to multiply by
+ * @param	value 		uint16_t parameter value
+ * @param	p_overflow	false = no overflow occurred
+ * 						true = overflow occurred
+ * @retval	uint16_t 	multiplied value
+ */
+// ****************************************************************************
 uint32_t UTIL_FixMulOvf_U32_U32(const uint32_t fixmul, const uint32_t value, bool * const p_overFlow)
 {
 	uint64_t result = (value * (uint64_t)fixmul);
@@ -100,6 +129,17 @@ uint32_t UTIL_FixMulOvf_U32_U32(const uint32_t fixmul, const uint32_t value, boo
 }
 
 
+// ****************************************************************************
+/*!
+ * UTIL_FixMul_U32_U32 multiplies a uint16 value by a 16/16 fixed point multiplier.
+ * The multiplier is derived by UINT16_MAX * fullscale value / resolution, rounding
+ * is performed to the nearest whole number.
+ *
+ * @param	fixmul		fixed point value to multiply by
+ * @param	value 		uint16_t parameter value
+ * @retval	uint16_t 	multiplied value
+ */
+// ****************************************************************************
 uint32_t UTIL_FixMul_U32_U32(const uint32_t fixmul, const uint32_t value)
 {
 	bool overflow;
@@ -108,6 +148,20 @@ uint32_t UTIL_FixMul_U32_U32(const uint32_t fixmul, const uint32_t value)
 }
 
 
+// ****************************************************************************
+/*!
+ * UTIL_FixMulOvf_U32_S32 multiplies a int32 value by a 16/16 fixed point multiplier.
+ * The multiplier is derived by UINT16_MAX * fullscale value / resolution. Rounding
+ * is performed to the nearest whole value. If an overflow occurs the overflow
+ * flag will be set.
+ *
+ * @param	fixmul		fixed point value to multiply by
+ * @param	value 		int16_t value to multiply
+ * @param	p_overflow	false = no overflow occurred
+ * 						true = overflow occurred
+ * @retval	int32_t		multiplied return value
+ */
+// ****************************************************************************
 int32_t UTIL_FixMulOvf_U32_S32(const uint32_t fixmul, const int32_t value, bool * const p_overFlow)
 {
 	const bool negative = (value < 0);
@@ -119,6 +173,17 @@ int32_t UTIL_FixMulOvf_U32_S32(const uint32_t fixmul, const int32_t value, bool 
 }
 
 
+// ****************************************************************************
+/*!
+ * UTIL_FixMul_U32_S32 multiplies a int32 value by a 16/16 fixed point multiplier.
+ * The multiplier is derived by UINT16_MAX * fullscale value / resolution. Rounding
+ * is performed to the nearest whole value.
+ *
+ * @param	fixmul		fixed point value to multiply by
+ * @param	value 		int16_t value to multiply
+ * @retval	int32_t		multiplied return value
+ */
+// ****************************************************************************
 int32_t UTIL_FixMul_U32_S32(const uint32_t fixmul, const int32_t value)
 {
 	bool overflow;
@@ -146,6 +211,20 @@ int16_t UTIL_FixMul_U32_S16(const uint32_t fixmul, const int16_t value)
 }
 
 
+// ****************************************************************************
+/*!
+ * UTIL_FixMulOvf_U32_S16 multiplies a int16 value by a 16/16 fixed point multiplier.
+ * The multiplier is derived by UINT16_MAX * fullscale value / resolution. Rounding
+ * is performed to the nearest whole value. If an overflow occurs the overflow
+ * flag will be set.
+ *
+ * @param	fixmul		fixed point value to multiply by
+ * @param	value 		int16_t value to multiply
+ * @param	p_overflow	false = no overflow occurred
+ * 						true = overflow occurred
+ * @retval	int16_t		multiplied return value
+ */
+// ****************************************************************************
 int16_t UTIL_FixMulOvf_U32_S16(const uint32_t fixmul, const int16_t value, bool * const p_overflow)
 {
 	const bool negative = (value < 0);
@@ -159,13 +238,14 @@ int16_t UTIL_FixMulOvf_U32_S16(const uint32_t fixmul, const int16_t value, bool 
 
 // ****************************************************************************
 /*!
- * UTIL_FixMulInverse_U16_U16 finds the fixed point conversion value.
+ * UTIL_FixMulInverse_U16_U16 finds the fixed point conversion value to use for
+ * calling the UTIL_FixMul_U32_U16 and UTIL_FixMulOvf_U32_U16 converter functions.
  *
  * @param	realVal		value to be referenced to by the fixed point multiplier
  * @param	divValue 	number of resolved steps that represents the real value
  * @param	p_result	pointer to where the result is to be placed
- * @retval	bool		true = conversion sucessful
- * 						false = conversion unsuccesful
+ * @retval	bool		true = conversion successful
+ * 						false = conversion unsuccessful
  */
 // ****************************************************************************
 bool UTIL_FixMulInverse_U16_U16(const uint16_t realVal, const uint16_t divValue, uint32_t * const p_result)
@@ -182,12 +262,30 @@ bool UTIL_FixMulInverse_U16_U16(const uint16_t realVal, const uint16_t divValue,
 }
 
 
+// ****************************************************************************
+/*!
+ * UTIL_FixMul_U16_U16 multiplies a uint16 value by an 8/8 fixed point multiplier.
+ * The multiplier is derived by UINT8_MAX * fullscale value / resolution, rounding
+ * is performed to the nearest whole number.
+ *
+ * @param	fixmul		fixed point value to multiply by
+ * @param	value 		uint16_t parameter value
+ * @retval	uint16_t 	multiplied value
+ */
+// ****************************************************************************
 uint16_t UTIL_FixMul_U16_U16(const uint16_t fixmul, const uint8_t value)
 {
 	uint32_t result = fixmul * value;
 
+	// Round up if halfway there
+	if (0u != (result & 0x80u))
+	{
+		result += 0x100u;
+	}
+
 	return (uint16_t)(result >> 8u);
 }
+
 
 // ****************************************************************************
 /*!

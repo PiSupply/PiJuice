@@ -257,6 +257,7 @@ void POWERMAN_Task(void)
 	const uint32_t lastHostCommandAgeMs = HOSTCOMMS_GetLastCommandAgeMs(sysTime);
 	const bool rtcWakeEvent = RTC_GetWakeEvent();
 	const bool ioWakeEvent = TASKMAN_GetIOWakeEvent();
+	const IODRV_Pin_t * p_gpio26 = IODRV_GetPinInfo(IODRV_PIN_IO1);
 
 	bool isWakeupOnCharge;
 
@@ -316,7 +317,9 @@ void POWERMAN_Task(void)
 	// Time is set in the future, so need to work in int32 or it'll roll over
 	if (0u != m_delayedPowerOffTimeMs)
 	{
-		if ( ((int32_t)MS_TIMEREF_DIFF(m_delayedPowerOffTimeMs, sysTime) > 0))
+		if ( ((int32_t)MS_TIMEREF_DIFF(m_delayedPowerOffTimeMs, sysTime) > 0)  ||
+				((p_gpio26->value == 0u) && (MS_TIMEREF_TIMEOUT(p_gpio26->lastDigitalChangeTime, sysTime, 2000u)))
+				)
 		{
 			if (RPI5V_DETECTION_STATUS_POWERED != pow5vInDetStatus)
 			{
