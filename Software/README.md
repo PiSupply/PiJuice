@@ -147,12 +147,12 @@ This feature will only work if you are either plugged in to the PiJuice microUSB
 
 When setting the Wakeup alarm for a repeated wakeup, after the initial reboot the Wakeup enabled capability is disabled due to the Raspbian RTC clock initialisation resetting the bit in the PiJuice firmware. To overcome this you will need to run a script to re-enable the wakeup-enable capability. The script is located in PiJuice > Software > Test > wakeup_enable.py
 
-```bash
+```python
 #!/usr/bin/python3
 # This script is started at reboot by cron
 # Since the start is very early in the boot sequence we wait for the i2c-1 device
 
-import pijuice, time
+import pijuice, time, os
 
 while not os.path.exists('/dev/i2c-1'):
     time.sleep(0.1)
