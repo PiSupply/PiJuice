@@ -173,23 +173,24 @@ void IoConfigure(uint8_t extIOPinIdx)
 	}
 }
 
-void IoNvReadConfig(uint8_t pin)
+void IoNvReadConfig(const uint8_t pin)
 {
-	uint16_t var;
-	EE_ReadVariable(IO_CONFIG1_NV_ADDR+(pin-1)*3, &var);
+	const uint8_t pinIdx = pin - 1u;
+	const uint16_t nvAddrOfs = IO_CONFIG1_NV_ADDR + (pinIdx * 3u);
+	uint8_t tempU8;
 
-	if (((~var)&0xFF) != (var>>8))
+	if ( true == NV_ReadVariable_U8(nvAddrOfs, &tempU8) )
 	{
-		ioConfig[pin-1] = 0x80; // in case of nv write error, set to non configured
-		return;
+		ioConfig[pinIdx] = tempU8;
+
+		EE_ReadVariable(nvAddrOfs + 1u, &ioParam1[pinIdx]);
+		EE_ReadVariable(nvAddrOfs + 2u, &ioParam2[pinIdx]);
 	}
 	else
 	{
-		ioConfig[pin-1] = var & 0xFF;
+		// in case of nv write error, set to non configured
+		ioConfig[pinIdx] = 0x80u;
 	}
-
-	EE_ReadVariable(IO_CONFIG1_PARAM1_NV_ADDR+(pin-1)*3, &ioParam1[pin-1]);
-	EE_ReadVariable(IO_CONFIG1_PARAM2_NV_ADDR+(pin-1)*3, &ioParam2[pin-1]);
 }
 
 void IoControlInit()

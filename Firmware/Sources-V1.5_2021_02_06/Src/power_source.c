@@ -337,7 +337,7 @@ void POWERSOURCE_SetRegulatorConfigData(const uint8_t * const p_data, const uint
 		return;
 	}
 
-	EE_WriteVariable(POWER_REGULATOR_CONFIG_NV_ADDR, p_data[0u] | ((uint16_t)(~p_data[0u]) << 8u));
+	NV_WriteVariable_U8(POWER_REGULATOR_CONFIG_NV_ADDR, p_data[0u]);
 
 	if (NV_ReadVariable_U8(POWER_REGULATOR_CONFIG_NV_ADDR, &tempU8))
 	{

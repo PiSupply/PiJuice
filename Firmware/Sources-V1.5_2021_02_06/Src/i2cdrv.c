@@ -125,13 +125,13 @@ void I2CDRV_Init(const uint32_t sysTime)
 	m_devices[1u].p_dmaTXInstance = hi2c2.hdmatx->DmaBaseAddress;
 	m_devices[1u].p_dmaTXChannelInstance = hi2c2.hdmatx->Instance;
 
-	// Sneaky stm actually makes the channel index the isr and icr pos
+	// STM makes the channel index the isr and icr pos, no need to modify
 	m_devices[1u].txDmaChannelIndex = hi2c2.hdmatx->ChannelIndex;
 
 	m_devices[1u].p_dmaRXInstance = hi2c2.hdmarx->DmaBaseAddress;
 	m_devices[1u].p_dmaRXChannelInstance = hi2c2.hdmarx->Instance;
 
-	// Sneaky stm actually makes the channel index the isr and icr pos
+	// STM makes the channel index the isr and icr pos, no need to modify
 	m_devices[1u].rxDmaChannelIndex = hi2c2.hdmarx->ChannelIndex;
 
 	m_devices[1u].p_dmaTXChannelInstance->CPAR = (uint32_t)&I2C2->TXDR;
