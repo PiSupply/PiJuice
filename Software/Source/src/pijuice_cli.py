@@ -1654,17 +1654,27 @@ class SystemTaskTab(object):
         self.wkupenabled = pijuiceConfigData['system_task']['wakeup_on_charge']['enabled']
         if not('trigger_level' in pijuiceConfigData['system_task']['wakeup_on_charge']):
             pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'] = 50
+        
+        self.wkupOnChargeLevel = pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level']
+
         if current_fw_version >= 0x15:
+            
             ret = pijuice.power.GetWakeUpOnCharge()
             self.wakeupRestoreEn = False
-            if ret['error'] == 'NO_ERROR': self.wakeupRestoreEn = ret['non_volatile']
+
+            if ret['error'] == 'NO_ERROR': 
+                self.wakeupRestoreEn = ret['non_volatile']
+                self.wkupOnChargeLevel = ret['data']
+        
         wkupCheckBox = attrmap(urwid.CheckBox('Wakeup on charge', state=self.wkupenabled,
                           on_state_change=self._toggle_wkupenabled))
-        wkuplevelEdit = urwid.IntEdit("Trigger level [%]: ", default = pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'])
+
+        wkuplevelEdit = urwid.IntEdit("Trigger level [%]: ", default = self.wkupOnChargeLevel)
         urwid.connect_signal(wkuplevelEdit, 'change', self.validate_wkuplevel)
         wkuplevelEditItem = attrmap(wkuplevelEdit)
         wkuplevelTextItem = attrmap(urwid.Text("Trigger level [%]: " + str(pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'])))
         wkuplevelItem = wkuplevelEditItem if self.wkupenabled else wkuplevelTextItem
+        
         if current_fw_version >= 0x15:
             wkupRestoreCheckBox = attrmap(urwid.CheckBox('Restore', state=self.wakeupRestoreEn, on_state_change=self._toggle_wkuprestore))
             wkuplevelRow = urwid.Columns([(24,wkupCheckBox), (23,wkuplevelItem), (11,wkupRestoreCheckBox)])
