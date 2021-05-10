@@ -4,247 +4,612 @@
  *  Created on: 10.03.2017.
  *      Author: milan
  */
+// ----------------------------------------------------------------------------
+// Include section - add all #includes here:
 
+#include <stdlib.h>
+#include "main.h"
 
-#include "load_current_sense.h"
+#include "adc.h"
 #include "analog.h"
 #include "nv.h"
 #include "time_count.h"
 #include "power_source.h"
+#include "charger_bq2416x.h"
 
-#if defined(RTOS_FREERTOS)
-#include "cmsis_os.h"
+#include "system_conf.h"
+#include "util.h"
+#include "iodrv.h"
 
-static void LoadCurrentSenseTask(void *argument);
+#include "load_current_sense.h"
+#include "current_sense_tables.h"
 
-static osThreadId_t currSenseTaskHandle;
 
-static const osThreadAttr_t currSenseTask_attributes = {
-	.name = "currSenseTask",
-	.priority = (osPriority_t) osPriorityNormal,
-	.stack_size = 128
-};
-#endif
+// ----------------------------------------------------------------------------
+// Defines section - add all #defines here:
 
-#define ID_T_POLY_COEFF_VDG_START 	240
-#define ID_T_POLY_COEFF_VDG_END 	800
-#define ID_T_POLY_COEFF_VDG_INC 	10
-#define ID_T_POLY_COEFF_LEN 		(((int16_t)ID_T_POLY_COEFF_VDG_END - ID_T_POLY_COEFF_VDG_START) / ID_T_POLY_COEFF_VDG_INC + 1)
+#define ISENSE_CAL_POINTS			3u
+#define ISENSE_CAL_POINT_LOW		0u
+#define ISENSE_CAL_POINT_MID		1u
+#define ISENSE_CAL_POINT_HIGH		2u
 
-// Table of poly coefficients of approximated PMOS drain current dependence on temperature and drain to gate voltage
-						 	 	 	 	  //{-0.0188,-0.0191,-0.0185,-0.0175,-0.0161,-0.0144,-0.0125,-0.0103,-0.008,-0.0055,-0.0029,0.0001,0.003,0.0058,0.0086,0.011,0.0135,0.0158,0.0173,0.0189,0.0198,0.0203,0.0199,0.019,0.0173,0.015,0.0113,0.0068,0.0011,-0.0056,-0.0137,-0.0231,-0.0339,-0.0463,-0.0603,-0.0763,-0.0938,-0.1126,-0.1336,-0.1558,-0.1802,-0.1558,-0.1558};
-static const float a[ID_T_POLY_COEFF_LEN] = {0.00672, 0.0065, 0.00628, 0.00606, 0.00584, 0.00562, 0.0054, 0.00518, 0.00496, 0.00474, 0.00452, 0.0043, 0.00408, 0.00386, 0.00364, 0.00342, 0.0032, 0.00298, 0.00276, 0.00254, 0.00232, 0.0021, 0.00188, 0.00166, 0.00144, 0.00122, 0.001, 0.00065, 0.0003, 0,-0.0051,-0.0092,-0.0139,-0.0193,-0.0254,-0.0323,-0.0399,-0.0483,-0.0576,-0.0677,-0.0788,-0.0909,-0.104,-0.1181,-0.1311,-0.1458,-0.1612,-0.1774,-0.1945,-0.2123,-0.231,-0.2506,-0.271,-0.2922,-0.3144,-0.3374,-0.3614};
-		//{ 0.0103, 0.0099, 0.0095, 0.0091, 0.0087, 0.0083, 0.0079, 0.0075, 0.0071, 0.0067, 0.0063, 0.0059, 0.0055, 0.0051, 0.0047, 0.0043, 0.0039, 0.0035, 0.0031, 0.0027, 0.0023, 0.0019, 0.0015, 0.0011, 0.0007, 0.0003, -0.0001, -0.0005, -0.0009, -0.0013,-0.0051,-0.0092,-0.0139,-0.0193,-0.0254,-0.0323,-0.0399,-0.0483,-0.0576,-0.0677,-0.0788,-0.0909,-0.104,-0.1181,-0.1311,-0.1458,-0.1612,-0.1774,-0.1945,-0.2123,-0.231,-0.2506,-0.271,-0.2922,-0.3144,-0.3374,-0.3614};
-		//{ 0.018148, 0.01765, 0.017132, 0.016594, 0.016036, 0.015458, 0.01486, 0.014242, 0.013604, 0.012946, 0.012268, 0.01157, 0.010852, 0.010114, 0.009356, 0.008578, 0.00778, 0.006962, 0.006124, 0.005266, 0.004388, 0.00349, 0.002572, 0.001634, 0.000676, -0.000302, -0.0013, -0.002318, -0.003356, -0.004414,-0.0051,-0.0092,-0.0139,-0.0193,-0.0254,-0.0323,-0.0399,-0.0483,-0.0576,-0.0677,-0.0788,-0.0909,-0.104,-0.1181,-0.1311,-0.1458,-0.1612,-0.1774,-0.1945,-0.2123,-0.231,-0.2506,-0.271,-0.2922,-0.3144,-0.3374,-0.3614};
-		//{0.02796, 0.028, 0.02796, 0.02784, 0.02764, 0.02736, 0.027, 0.02656, 0.02604, 0.02544, 0.02476, 0.024, 0.02316, 0.02224, 0.02124, 0.02016, 0.019, 0.01776, 0.01644, 0.01504, 0.01356, 0.012, 0.01036, 0.00864, 0.00684, 0.00496, 0.003, 0.00096, -0.00116, -0.00336,-0.0051,-0.0092,-0.0139,-0.0193,-0.0254,-0.0323,-0.0399,-0.0483,-0.0576,-0.0677,-0.0788,-0.0909,-0.104,-0.1181,-0.1311,-0.1458,-0.1612,-0.1774,-0.1945,-0.2123,-0.231,-0.2506,-0.271,-0.2922,-0.3144,-0.3374,-0.3614};
-		//{0.03632, 0.03545, 0.03452, 0.03353, 0.03248, 0.03137, 0.0302, 0.02897, 0.02768, 0.02633, 0.02492, 0.02345, 0.02192, 0.02033, 0.01868, 0.01697, 0.0152, 0.01337, 0.01148, 0.00953, 0.00752, 0.00545, 0.00332, 0.00113, -0.00112, -0.00343, -0.0058, -0.00823, -0.01072, -0.01327,-0.0051,-0.0092,-0.0139,-0.0193,-0.0254,-0.0323,-0.0399,-0.0483,-0.0576,-0.0677,-0.0788,-0.0909,-0.104,-0.1181,-0.1311,-0.1458,-0.1612,-0.1774,-0.1945,-0.2123,-0.231,-0.2506,-0.271,-0.2922,-0.3144,-0.3374,-0.3614};
-//{0,0,0,0,0,0,0,0,0,0,0,0,0.0028,0.0031,0.0028,0.0026,0.0024,0.0024,0.0024,0.0024,0.0025,0.0025,0.0026,0.0026,0.0026,0.0026,0.0025,0.0023,0.002,0.0016,-0.0051,-0.0092,-0.0139,-0.0193,-0.0254,-0.0323,-0.0399,-0.0483,-0.0576,-0.0677,-0.0788,-0.0909,-0.104,-0.1181,-0.1311,-0.1458,-0.1612,-0.1774,-0.1945,-0.2123,-0.231,-0.2506,-0.271,-0.2922,-0.3144,-0.3374,-0.3614};
-						 	 	 	 	  //{2.1296,2.0782,1.9572,1.8184,1.6645,1.4981,1.3222,1.1398,0.9543,0.7691,0.588,0.3775,0.1915,0.0219,-0.1394,-0.2502,-0.3679,-0.4625,-0.479,-0.4989,-0.4544,-0.3769,-0.2106,0.0011,0.2771,0.6116,1.0613,1.5835,2.1978,2.8995,3.7209,4.6451,5.6802,6.8469,8.1411,9.5966,11.16,12.828,14.671,16.588,18.676,16.588,16.588};
-static const float b[ID_T_POLY_COEFF_LEN] = {0.2169,0.1571,0.1201,0.1042,0.1078,0.1295,0.1676,0.2207,0.2872,0.3655,0.4541,0.5514,0.3989,0.4694,0.5615,0.6495,0.7352,0.8204,0.9068,0.9962,1.0904,1.1911,1.3001,1.4193,1.5503,1.695,1.8551,2.0323,2.2286,2.4456,3.0549,3.5263,4.0515,4.6335,5.2757,5.981,6.7528,7.5942,8.5084,9.4986,10.568,11.719,12.957,14.282,15.501,16.858,18.278,19.763,21.312,22.926,24.607,26.354,28.169,30.052,32.004,34.025,36.117};
-									      //{-49.855,-47.355,-43.582,-39.622,-35.508,-31.274,-26.956,-22.594,-18.229,-13.905,-9.6695,-4.7774,-0.339,3.8561,8.0158,11.287,14.931,18.354,20.432,22.947,24.503,25.822,25.767,25.318,24.128,22.378,18.922,14.729,9.4428,3.2338,-4.5243,-13.402,-23.5,-35.189,-48.31,-63.502,-79.554,-96.315,-115.23,-134.03,-154.69,-134.05,-134.06};
-static const float c[ID_T_POLY_COEFF_LEN] = {-8.2299,-4.4796,-1.6241,0.4295,1.774,2.5026,2.708,2.4833,1.9213,1.115,0.1574,-0.8587,3.632,3.669,4.126,5.003,6.3,8.017,10.154,12.711,15.688,19.085,22.902,27.139,31.796,36.873,42.37,48.287,54.624,61.381,68.558,76.155,84.172,92.609,101.47,110.74,120.44,130.56,141.09,152.05,163.43,175.23,187.44,200.08,217.37,234.16,252.12,271.29,291.73,313.5,336.64,361.2,387.24,414.82,443.99,474.79,507.28};
-// ID = a * T^2 + b * T + c
-// a = a[index], b = b[index], c = c[index]
-// index = (VDG - ID_T_POLY_COEFF_VDG_START) / ID_T_POLY_COEFF_VDG_INC
+typedef struct
+{
+	uint16_t iActual;
+	uint16_t iFet;
+	int16_t iRes;
+	uint16_t vBoost;
+	uint8_t temperature;
+} ISENSE_CalPoint_t;
 
-static int16_t currBuffer[16] = {0};
-static uint8_t currBufferInd = 0;
 
-volatile static uint8_t kta;
-volatile static uint8_t ktb;
+// ----------------------------------------------------------------------------
+// Function prototypes for functions that only have scope in this module:
 
-volatile static int16_t resLoadCurrCalib = 0;
+static bool ISENSE_ReadNVCalibration(void);
+static uint16_t ISENSE_CalculatePMOSLoadCurrentMa(void);
+static int16_t ISENSE_CalculateResSenseCurrentMa(void);
+static void ISENSE_CalibrateCurrent(const uint8_t pointIdx, const uint16_t currentMa);
+static float ISENSE_ConvertFETDrvToX(const uint16_t fetDrvAdc, const int8_t temperature);
+static void ISENSE_CalculateLoadCurrentMa(void);
 
-uint8_t pow5vIoResLoadCurrentStat[16];
 
-int16_t pow5vIoPMOSLoadCurrent = 0;
-int16_t pow5vIoResLoadCurrent = 0;
+// ----------------------------------------------------------------------------
+// Variables that only have scope in this module:
 
-static float GetRefLoadCurrent() {
-	int32_t vdg = 4790 - ((GetSample(POW_DET_SENS_CHN)*aVdd)>>11);//ANALOG_GET_VDG_AVG();
-	//vdg *= vdgCalibCoeff * mcuTemperature;
-	//vdg >>= 10;
-	int16_t i = vdg >= ID_T_POLY_COEFF_VDG_START ? (vdg - ID_T_POLY_COEFF_VDG_START + ID_T_POLY_COEFF_VDG_INC / 2) / ID_T_POLY_COEFF_VDG_INC : 0;
-	i = i >= ID_T_POLY_COEFF_LEN ? ID_T_POLY_COEFF_LEN - 1 : i;
+static uint8_t m_kta;
+static uint8_t m_ktb;
+static int16_t m_resLoadCurrCalibOffset = 0;
+static uint32_t m_resLoadCurrCalibScale_K;
+static ISENSE_CalPoint_t m_calPoints[ISENSE_CAL_POINTS];
+static uint32_t m_lastCurrentUpdateTimeMs;
+static int16_t m_loadCurrentMa;
+static int16_t m_loadResMa;
+static int16_t m_loadFetMa;
 
-	volatile float current = a[i] * mcuTemperature * mcuTemperature + b[i] * mcuTemperature + c[i];
-	return current > 0 ? current : 0;
-}
 
-static int32_t GetResSenseCurrent(void) {
-	volatile int32_t samAvg = GetSampleAverageDiff(0, 1);
-	return (samAvg * aVdd * 25) >> 8; // 4096 * 2 * aVdd * 100;
-}
+// ----------------------------------------------------------------------------
+// Variables that have scope from outside this module:
 
-int32_t GetLoadCurrent(void) {
-	if ( pow5vInDetStatus == POW_5V_IN_DETECTION_STATUS_NOT_PRESENT ) {
-		if ( POW_5V_BOOST_EN_STATUS() )  {
-			if ((pow5vIoResLoadCurrent - resLoadCurrCalib) < 800 && (pow5vIoResLoadCurrent - resLoadCurrCalib) > -300 )
-				return pow5vIoPMOSLoadCurrent;
-			else
-				return pow5vIoResLoadCurrent - resLoadCurrCalib;
-		} else {
-			return 0;
-		}
-	} else {
-		return pow5vIoResLoadCurrent - resLoadCurrCalib;
-	}
-	//return ((currBuffer[0] + currBuffer[1] + currBuffer[2] + currBuffer[3] + currBuffer[4] + currBuffer[5] + currBuffer[6] + currBuffer[7]) >> 3) - resLoadCurrCalib;
-	/*uint8_t i;
-	int8_t cnt = 0;
-	int32_t sum = 0;
-	int16_t d = pow5vIoResLoadCurrent < 0 ? - (pow5vIoResLoadCurrent >> 2) : pow5vIoResLoadCurrent >> 2;
-	int16_t h = pow5vIoResLoadCurrent + d;
-	int16_t r = pow5vIoResLoadCurrent - d;
-	for (i=0; i < 16; i++) {
-		if (currBuffer[i] < h && currBuffer[i] > r) {
-			sum += currBuffer[i];
-			cnt ++;
-		}
-	}
+IWDG_HandleTypeDef hiwdg;
 
-	return cnt ? sum / cnt - resLoadCurrCalib : pow5vIoResLoadCurrent - resLoadCurrCalib;*/
-	return pow5vIoResLoadCurrent - resLoadCurrCalib;
-}
 
-void MeasurePMOSLoadCurrent(void) {
-	pow5vIoPMOSLoadCurrent = ((kta * mcuTemperature + (((uint16_t)ktb) << 8) ) * ((int32_t)(GetRefLoadCurrent()+0.5))) >> 13; //ktNorm * k12 * refCurr
-}
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH GLOBAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * ISENSE_Init configures the module to a known initial state, calibration values
+ * are initialised.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+void ISENSE_Init(void)
+{
+	uint8_t i = 0;
 
-void GetCurrStat(uint8_t stat[]) {
-	uint8_t i;
-	for (i = 0; i < 8; i++) {
-		uint16_t ind = (ADC_BUFFER_LENGTH/8) * i;
-		int16_t diff = ((ADC_GET_BUFFER_SAMPLE(ind) - ADC_GET_BUFFER_SAMPLE(ind+1)) >> 1) + 8;
-		if (diff > 15) diff = 15;
-		if (diff < 0) diff = 0;
-		stat[diff] ++;
-	}
-}
-
-#if defined(RTOS_FREERTOS)
-void LoadCurrentSenseTask(void *argument) {
-	for(;;)
+	while(i < ISENSE_CAL_POINTS)
 	{
-		osDelay(98);
-		if (AnalogSamplesReady()) {
-			volatile int32_t newCurr = GetResSenseCurrent();
-			if (newCurr < 3000 && newCurr > -3000) {
-				uint8_t i = (currBufferInd++)&0x0F;
-				pow5vIoResLoadCurrent -= currBuffer[i] >> 4;
-				currBuffer[i] = newCurr;
-				pow5vIoResLoadCurrent += currBuffer[i] >> 4;
-			}
-		}
-	}
-}
-#else
-void LoadCurrentSenseTask(void) {
-	if (AnalogSamplesReady()) {
-		volatile int32_t newCurr = GetResSenseCurrent();
-		if (newCurr < 3000 && newCurr > -3000) {
-			uint8_t i = (currBufferInd++)&0x0F;
-			pow5vIoResLoadCurrent -= currBuffer[i] >> 4;
-			currBuffer[i] = newCurr;
-			pow5vIoResLoadCurrent += currBuffer[i] >> 4;
-		}
+		m_calPoints[i].iActual = 0u;
+		i++;
 	}
 
-	/*int32_t sum = 0;
-	for (i = 0; i < 16; i++) sum += currBuffer[i];
-	pow5vIoResLoadCurrent = sum >> 4;*/
+	m_loadCurrentMa = 0;
 
-	/*GetCurrStat(pow5vIoResLoadCurrentStat);
-	if ( !(i&0x0F) ) {
-		uint8_t j;
-		uint8_t maxStat = 0;
-		volatile int8_t maxInd = 0;
-		for (j = 0; j < 16; j++) {
-			if (pow5vIoResLoadCurrentStat[j] > maxStat) {
-				maxStat = pow5vIoResLoadCurrentStat[j];
-				maxInd = j;
+	// Load calibration values from NV
+	ISENSE_ReadNVCalibration();
+
+	MS_TIME_COUNTER_INIT(m_lastCurrentUpdateTimeMs);
+}
+
+
+// ****************************************************************************
+/*!
+ * ISENSE_Task performs periodic updates for this module, calculates the load current.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+void ISENSE_Task(void)
+{
+	const uint32_t sysTime = HAL_GetTick();
+	// do something?
+	if (MS_TIMEREF_TIMEOUT(m_lastCurrentUpdateTimeMs, sysTime, ISENSE_UPDATE_PERIOD))
+	{
+		MS_TIMEREF_INIT(m_lastCurrentUpdateTimeMs, sysTime);
+
+		ISENSE_CalculateLoadCurrentMa();
+	}
+}
+
+
+// ****************************************************************************
+/*!
+ * ISENSE_GetLoadCurrentMa returns the current in milliamps being sourced, can
+ * be from the fet drive if the RPi does not have it's own power source or from
+ * the load sense resistor depending on whether the battery is charging and the
+ * VSys output is on. The measurement from the load sense resistor is quite noisy
+ * but does give a stab in the dark figure! A positive current means the current
+ * direction is flowing out of the pijuice (charge source/battery).
+ *
+ * @param	none
+ * @retval	int16_t
+ */
+// ****************************************************************************
+int16_t ISENSE_GetLoadCurrentMa(void)
+{
+	return m_loadCurrentMa;
+}
+
+
+// ****************************************************************************
+/*!
+ * ISENSE_GetSenseResistorMa returns the current in milliamps being sourced as
+ * detected by the load sense resistor. The los SNR means this is quite noisy
+ * but does give a stab in the dark figure! A positive current means the current
+ * direction is flowing out of the pijuice (charge source/battery).
+ *
+ * @param	none
+ * @retval	int16_t		current in mA detected by the sense resistor
+ */
+// ****************************************************************************
+int16_t ISENSE_GetSenseResistorMa(void)
+{
+	return m_loadResMa;
+}
+
+
+// ****************************************************************************
+/*!
+ * ISENSE_GetFetMa returns the current in milliamps being sourced as
+ * detected by the LDO fet drive. The signal is quite stable and relatively accurate
+ * but can only be used when the LDO is enabled and the current is being sourced.
+ *
+ * Note: if the LDO is disabled then this value is invalid.
+ *
+ * @param	none
+ * @retval	uint16_t	current in mA detected by the LDO fet drive
+ */
+// ****************************************************************************
+uint16_t ISENSE_GetFetMa(void)
+{
+	return m_loadFetMa;
+}
+
+
+// ****************************************************************************
+/*!
+ * ISENSE_CalibrateLoadCurrent performs a single point calibration at 50mA, being
+ * a single point the resistor will not be as accurate but the fet drive is unaffected.
+ * Will take a while as the current sense filter is slowed down to try and get
+ * a fairly stable figure.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+void ISENSE_CalibrateLoadCurrent(void)
+{
+	ISENSE_CalibrateCurrent(ISENSE_CAL_POINT_MID, 50u);
+
+	float k12;
+	float ktNorm;
+
+	m_resLoadCurrCalibOffset = m_calPoints[ISENSE_CAL_POINT_MID].iRes - 51u;
+	m_resLoadCurrCalibScale_K = 0x10000u;
+
+	NV_WriteVariable_S8(RES_ILOAD_CALIB_ZERO_NV_ADDR, m_resLoadCurrCalibOffset / 10u);
+
+	NV_WipeVariable(ISENSE_RES_SPAN_L);
+	NV_WipeVariable(ISENSE_RES_SPAN_H);
+
+	ktNorm = 0.0052f * m_calPoints[ISENSE_CAL_POINT_MID].temperature + 0.9376f;
+
+	k12 = 52.0f / (ISENSE_ConvertFETDrvToX(m_calPoints[ISENSE_CAL_POINT_MID].iFet, m_calPoints[ISENSE_CAL_POINT_MID].temperature) * ktNorm);
+
+	m_kta = 0.0052f * k12 * 1024u * 8u;
+	m_ktb = 0.9376f * k12 * 32u;
+
+	NV_WriteVariable_U8(VDG_ILOAD_CALIB_KTA_NV_ADDR, m_kta);
+	NV_WriteVariable_U8(VDG_ILOAD_CALIB_KTB_NV_ADDR, m_ktb);
+}
+
+
+// ****************************************************************************
+/*!
+ * ISENSE_CalibrateZeroCurrent records the adc values for a load current of 0mA.
+ *
+ * Fit 1M to RPi 5V (ca. 0mA @ 4.8v) before calling this routine.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+void ISENSE_CalibrateZeroCurrent(void)
+{
+	ISENSE_CalibrateCurrent(ISENSE_CAL_POINT_LOW, 0u);
+}
+
+
+// ****************************************************************************
+/*!
+ * ISENSE_Calibrate51mACurrent records the adc values for a load current of 51mA.
+ *
+ * Fit 94R to RPi 5V (ca. 51mA @ 4.8v) before calling this routine.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+void ISENSE_Calibrate51mACurrent(void)
+{
+	ISENSE_CalibrateCurrent(ISENSE_CAL_POINT_MID, 51u);
+}
+
+
+
+// ****************************************************************************
+/*!
+ * ISENSE_Calibrate510mACurrent records the adc values for a load current of 510mA.
+ *
+ * Fit 9.4R to RPi 5V (ca. 510mA @ 4.8v) before calling this routine.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+void ISENSE_Calibrate510mACurrent(void)
+{
+	ISENSE_CalibrateCurrent(ISENSE_CAL_POINT_HIGH, 510u);
+}
+
+
+// ****************************************************************************
+/*!
+ * ISENSE_WriteNVCalibration takes the mid point and the high points of calibration
+ * to dial out the errors in the load resistor. The resistor appears to be non linear
+ * around the 0 point so the 0 offset is interpolated from the mid point. The fet
+ * drive calibration is performed from the mid point only. Both the mid and the
+ * low points muist be different and correct in polarity or the calibration will
+ * fail not be performed. The values are written to NV memory.
+ *
+ * Note: zero point is not required.
+ *
+ * @param	none
+ * @retval	bool		false = calibration not performed
+ * 						true = calibration performed and values updated
+ */
+// ****************************************************************************
+bool ISENSE_WriteNVCalibration(void)
+{
+	uint8_t i = 0u;
+	uint32_t spanK = 0u;
+	int16_t spanIAct = m_calPoints[ISENSE_CAL_POINT_HIGH].iActual - m_calPoints[ISENSE_CAL_POINT_MID].iActual;
+	int16_t spanIMeas = m_calPoints[ISENSE_CAL_POINT_HIGH].iRes - m_calPoints[ISENSE_CAL_POINT_MID].iRes;
+	float k12;
+	float ktNorm;
+
+	// Spans must be positive and not 0.
+	if ( (spanIAct <= 0) || (spanIMeas <= 0) )
+	{
+		return false;
+	}
+
+	// Find the span correction value
+	if (false == UTIL_FixMulInverse_U16_U16(spanIAct, spanIMeas, &spanK))
+	{
+		return false;
+	}
+
+	// Span can only be 0 to 1.99999999999
+	if (spanK >= 0x20000u)
+	{
+		return false;
+	}
+
+	// Lose a bit of resolution to fit in a uint16 slot in NV and store.
+	spanK >>= 1u;
+
+	NV_WriteVariable_U8(ISENSE_RES_SPAN_L, (uint8_t)(spanK & 0xFFu));
+
+	spanK >>= 8u;
+
+	NV_WriteVariable_U8(ISENSE_RES_SPAN_H, (uint8_t)(spanK & 0xFFu));
+
+	NV_WriteVariable_S8(RES_ILOAD_CALIB_ZERO_NV_ADDR, (m_calPoints[ISENSE_CAL_POINT_MID].iRes - m_calPoints[ISENSE_CAL_POINT_MID].iActual) / 10u);
+
+	if (0u != m_calPoints[ISENSE_CAL_POINT_MID].iActual)
+	{
+		ktNorm = 0.0052f * m_calPoints[ISENSE_CAL_POINT_MID].temperature + 0.9376f;
+
+		k12 = (float)m_calPoints[ISENSE_CAL_POINT_MID].iActual / (ISENSE_ConvertFETDrvToX(m_calPoints[ISENSE_CAL_POINT_MID].iFet, m_calPoints[ISENSE_CAL_POINT_MID].temperature) * ktNorm);
+
+		m_kta = 0.0052f * k12 * 1024u * 8u;
+		m_ktb = 0.9376f * k12 * 32u;
+
+		NV_WriteVariable_U8(VDG_ILOAD_CALIB_KTA_NV_ADDR, m_kta);
+		NV_WriteVariable_U8(VDG_ILOAD_CALIB_KTB_NV_ADDR, m_ktb);
+	}
+
+	// Reset cal points
+	while(i < ISENSE_CAL_POINTS)
+	{
+		m_calPoints[i].iActual = 0u;
+		i++;
+	}
+
+	return ISENSE_ReadNVCalibration();
+}
+
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// FUNCTIONS WITH LOCAL SCOPE
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ****************************************************************************
+/*!
+ * ISENSE_CalculateLoadCurrentMa calculates and populates the module values for
+ * both methods of current sense (fet and res). Depending on the mode of operation
+ * it will choose which method is the most appropriate and populate the main value
+ * to be retrieved using ISENSE_GetLoadCurrentMa.
+ *
+ * Note: if the LDO is off then the value calculated for the fet will be invalid.
+ *
+ * @param	none
+ * @retval	none
+ */
+// ****************************************************************************
+static void ISENSE_CalculateLoadCurrentMa(void)
+{
+	const bool boostConverterEnabled = POWERSOURCE_IsBoostConverterEnabled();
+	const bool ldoEnabled = POWERSOURCE_IsLDOEnabled();
+	const POWERSOURCE_RPi5VStatus_t pow5vInDetStatus = POWERSOURCE_GetRPi5VPowerStatus();
+	const BatteryStatus_T batteryStatus = BATTERY_GetStatus();
+	const bool vSysEnabled = POWERSOURCE_IsVsysEnabled();
+	const bool chargerRPiInEnabled = CHARGER_GetRPi5vInputEnable();
+
+	m_loadFetMa = ISENSE_CalculatePMOSLoadCurrentMa();
+	m_loadResMa = ISENSE_CalculateResSenseCurrentMa();
+
+	if (pow5vInDetStatus == RPI5V_DETECTION_STATUS_UNPOWERED)
+	{
+		if (true == boostConverterEnabled)
+		{
+			if ( (m_loadResMa > -300) && (m_loadResMa < 800) && (true == ldoEnabled) )
+			{
+				m_loadCurrentMa = m_loadFetMa;
 			}
-			//pow5vIoResLoadCurrentStat[j] = 0;
+			else
+			{
+				m_loadCurrentMa = m_loadResMa;
+			}
 		}
-
-		int16_t s = 0, cnt = 0;
-
-		for (j = maxInd - 2; j <= (maxInd+2); j++) {
-			s += (int16_t)pow5vIoResLoadCurrentStat[j] * j;
-			cnt += pow5vIoResLoadCurrentStat[j];
+		else
+		{
+			// No power in or out
+			m_loadCurrentMa = 0;
 		}
-		for (j = 0; j < 16; j++)  pow5vIoResLoadCurrentStat[j] = 0;
-		pow5vIoResLoadCurrent = ( (int32_t)(((float)s/cnt)-8) * 2 * aVdd * 25) >> 8;
-	}*/
-}
-#endif
-
-static int8_t ReadILoadCalibCoeffs(void) {
-	kta = 0; // invalid value
-	ktb = 0; // invalid value
-	resLoadCurrCalib = 0;
-
-	uint16_t var;
-	EE_ReadVariable(VDG_ILOAD_CALIB_KTA_NV_ADDR, &var);
-	if ( (((~var)&0xFF) != (var>>8)) ) return 1;
-	kta = var&0xFF;
-
-	EE_ReadVariable(VDG_ILOAD_CALIB_KTB_NV_ADDR, &var);
-	if ( (((~var)&0xFF) != (var>>8)) ) return 1;
-	ktb = var&0xFF;
-
-	EE_ReadVariable(RES_ILOAD_CALIB_ZERO_NV_ADDR, &var);
-	if ( (((~var)&0xFF) != (var>>8)) ) return 1;
-	//uint8_t c = var&0xFF;
-	resLoadCurrCalib = (int16_t)10 * ((int8_t)(var&0xFF));
-
-	return 0;
+	}
+	else if (pow5vInDetStatus == RPI5V_DETECTION_STATUS_POWERED)
+	{
+		if ( (BAT_STATUS_CHARGING_FROM_5V_IO == batteryStatus) || ((true == chargerRPiInEnabled) && (true == vSysEnabled)) )
+		{
+			m_loadCurrentMa = m_loadResMa;
+		}
+		else
+		{
+			m_loadCurrentMa = 0;
+		}
+	}
+	else
+	{
+		m_loadCurrentMa = m_loadResMa;
+	}
 }
 
-void LoadCurrentSenseInit(void) {
-	ReadILoadCalibCoeffs();
-#if defined(RTOS_FREERTOS)
-	currSenseTaskHandle = osThreadNew(LoadCurrentSenseTask, (void*)NULL, &currSenseTask_attributes);
-#endif
+
+// ****************************************************************************
+/*!
+ * ISENSE_ReadNVCalibration read the NV memory and populates the calibration figures.
+ *
+ * @param	none
+ * @retval	bool
+ */
+// ****************************************************************************
+static bool ISENSE_ReadNVCalibration(void)
+{
+	m_kta = 0u; // invalid value
+	m_ktb = 0u; // invalid value
+	m_resLoadCurrCalibOffset = 0;
+
+	uint8_t tempU8;
+	bool readResult = true;
+
+	NV_ReadVariable_U8(VDG_ILOAD_CALIB_KTA_NV_ADDR, &m_kta);
+	NV_ReadVariable_U8(VDG_ILOAD_CALIB_KTB_NV_ADDR, &m_ktb);
+	NV_ReadVariable_U8(RES_ILOAD_CALIB_ZERO_NV_ADDR, &tempU8);
+	m_resLoadCurrCalibOffset = ((int8_t)tempU8 * 10u);
+
+	if (false == NV_ReadVariable_U8(ISENSE_RES_SPAN_L, &tempU8))
+	{
+		readResult = false;
+	}
+
+	m_resLoadCurrCalibScale_K = (tempU8 << 1u);
+
+	if (false == NV_ReadVariable_U8(ISENSE_RES_SPAN_H, &tempU8))
+	{
+		readResult = false;
+	}
+
+	// Check for valid value
+	if (true == readResult)
+	{
+		m_resLoadCurrCalibScale_K |= (tempU8 << 9u);
+	}
+	else
+	{
+		// Use default adjustment value if bad
+		m_resLoadCurrCalibScale_K = 0x10000u;
+	}
+
+	return readResult;
 }
 
-int8_t CalibrateLoadCurrent(void) {
 
-	resLoadCurrCalib = pow5vIoResLoadCurrent - 51;  // 5.1v/100ohm
+// ****************************************************************************
+/*!
+ * ISENSE_CalculatePMOSLoadCurrentMa derives the current being drawn across the
+ * LDO fet by fitting a preset curve and modifying using the CPU temperature.
+ *
+ * @param	none
+ * @retval	uint16_t		current being drawn from the LDO in mA
+ */
+// ****************************************************************************
+static uint16_t ISENSE_CalculatePMOSLoadCurrentMa(void)
+{
+	const int16_t mcuTemperature = ANALOG_GetMCUTemp();
+	const uint16_t powDet = ADC_CalibrateValue(ADC_GetAverageValue(ANALOG_CHANNEL_POW_DET));
+	const float iNorm = ISENSE_ConvertFETDrvToX(powDet, mcuTemperature);
 
-	Turn5vBoost(1);
-	if (!POW_5V_BOOST_EN_STATUS()) return 1;
-	Power5VSetModeLDO();
-	DelayUs(10000);
+	int32_t result = ((m_kta * mcuTemperature + (((uint16_t)m_ktb) << 8) ) * ((int32_t)(iNorm + 0.5))) >> 13;
 
-	float ktNorm = 0.0052 * mcuTemperature + 0.9376;
-	volatile float curr = GetRefLoadCurrent();
-	DelayUs(10000);
-	curr += GetRefLoadCurrent();
-	DelayUs(10000);
-	curr += GetRefLoadCurrent();
-	DelayUs(10000);
-	curr += GetRefLoadCurrent();
-	DelayUs(10000);
-	curr += GetRefLoadCurrent();
-	DelayUs(10000);
-	curr += GetRefLoadCurrent();
-	DelayUs(10000);
-	curr += GetRefLoadCurrent();
-	DelayUs(10000);
-	curr += GetRefLoadCurrent();
-	//if ( curr > (4*52) || curr < (52/4) ) return 2;
-	float k12 = (float)52 * 8 / (curr * ktNorm); // = k / ktNorm;
-	kta = 0.0052 * k12 * 1024 * 8;
-	ktb = 0.9376 * k12 * 32;
-	EE_WriteVariable(VDG_ILOAD_CALIB_KTA_NV_ADDR, kta | ((uint16_t)~kta<<8));
-	EE_WriteVariable(VDG_ILOAD_CALIB_KTB_NV_ADDR, ktb | ((uint16_t)~ktb<<8));
+	// Current can't go backwards here!
+	return (result > 0) ? result : 0u;
+}
 
-	uint8_t c = resLoadCurrCalib / 10;
-	EE_WriteVariable(RES_ILOAD_CALIB_ZERO_NV_ADDR, c | ((uint16_t)~c<<8));
-	if (resLoadCurrCalib > 1250 || resLoadCurrCalib < -1250) return 2;
 
-	if ( ReadILoadCalibCoeffs() != 0 ) return 3;
+// ****************************************************************************
+/*!
+ * ISENSE_ConvertFETDrvToX returns a value that has a relationship to the amount
+ * of current being drawn across the FET. This can be used as a factor for converting
+ * the current using the reference tables.
+ *
+ * @param	fetDrv				fet drive value from ADC
+ * @param	temperature			temperature in degrees
+ * @retval	float				converted value
+ */
+// ****************************************************************************
+static float ISENSE_ConvertFETDrvToX(const uint16_t fetDrvAdc, const int8_t temperature)
+{
+	const uint16_t fetDrvConv = UTIL_FixMul_U32_U16(ISENSE_POWDET_K, fetDrvAdc);
+	const uint16_t vdg = (fetDrvConv > 4790u) ? 0u : 4790u - fetDrvConv;
 
-	return 0;
+	uint16_t coeffIdx;
+	float result;
+
+	// Check index isn't minimum
+	coeffIdx = (vdg >= ID_T_POLY_COEFF_VDG_START) ?
+					( (vdg - ID_T_POLY_COEFF_VDG_START) + (ID_T_POLY_COEFF_VDG_INC / 2u) ) / ID_T_POLY_COEFF_VDG_INC :
+					0u;
+
+	// Check index hasn't maxed out
+	if (coeffIdx > ID_T_POLY_LAST_COEFF_IDX)
+	{
+		coeffIdx = ID_T_POLY_LAST_COEFF_IDX;
+	}
+
+	// Should be some brackets here somewhere!
+	result = a[coeffIdx] * temperature * temperature + b[coeffIdx] * temperature + c[coeffIdx];
+
+	// Make sure its positive
+	return (result > 0.0f) ? result : 0.0f;
+}
+
+
+// ****************************************************************************
+/*!
+ * ISENSE_GetResSenseCurrentMa returns a calibrated value taken from the volt drop
+ * across FB2. The measurement is quite noisy due to the low SNR.
+ *
+ * @param	none
+ * @retval	int16_t
+ */
+// ****************************************************************************
+static int16_t ISENSE_CalculateResSenseCurrentMa(void)
+{
+	int16_t result = ADC_GetCurrentSenseAverage();
+
+	result = UTIL_FixMul_U32_S16(m_resLoadCurrCalibScale_K, result);
+
+	return result - m_resLoadCurrCalibOffset;
+}
+
+
+// ****************************************************************************
+/*!
+ * ISENSE_CalibrateCurrent records the values for the current sense resistor, power
+ * detect fet drive and the actual current and bundles them into an array so that
+ * calibration can be performed on all values. There are 3 points possible to store,
+ * should be 0mA, 51mA and 510mA. The mid point 51mA is required to calibrate the
+ * FET drive. The boost converter and LDO enables are overridden and returned back
+ * to their original state. The routine will block for the amount of time it takes
+ * to fill the current sense filter. Could be a while.
+ *
+ * @param	pointIdx		calibration point index
+ * @param	currentMa		actual current applied to the 5v rail
+ * @retval	none
+ */
+// ****************************************************************************
+static void ISENSE_CalibrateCurrent(const uint8_t pointIdx, const uint16_t currentMa)
+{
+	const bool boostEnabled = POWERSOURCE_IsBoostConverterEnabled();
+	const bool ldoEnabled = POWERSOURCE_IsLDOEnabled();
+	const uint32_t watchdogTime = hiwdg.Init.Reload;
+
+	if (pointIdx >= 3u)
+	{
+		return;
+	}
+
+	// Make sure the watchdog doesn't time out whilst waiting for the filter, set to max.
+	hiwdg.Init.Reload = 4095u;
+	HAL_IWDG_Refresh(&hiwdg);
+
+	// Adjust filter period to try and stabilise the sense resistor.
+	ADC_SetIFilterPeriod(1000u);
+
+	m_calPoints[pointIdx].iActual = currentMa;
+
+	// Override any config settings
+	IODRV_SetPin(IODRV_PIN_POWDET_EN, false);
+	IODRV_SetPin(IODRV_PIN_POW_EN, true);
+
+	HAL_Delay(FILTER_PERIOD_MS_CS1 * AVE_FILTER_ELEMENT_COUNT);
+
+	// Get boost converter voltage
+	m_calPoints[pointIdx].vBoost = ANALOG_Get5VRailMv();
+
+	// Enable LDO
+	IODRV_SetPin(IODRV_PIN_POWDET_EN, true);
+
+	// Wait for the filter to work.
+	HAL_Delay(1000u * AVE_FILTER_ELEMENT_COUNT);
+
+	// Log current sense value
+	m_calPoints[pointIdx].iRes = ADC_GetCurrentSenseAverage();
+
+	// Log LDO drive value
+	m_calPoints[pointIdx].iFet = ADC_CalibrateValue(
+									ADC_GetAverageValue(ANALOG_CHANNEL_POW_DET)
+									);
+
+	// Log temperature
+	m_calPoints[pointIdx].temperature = ANALOG_GetMCUTemp();
+
+	// Restore normal I sense filter period
+	ADC_SetIFilterPeriod(FILTER_PERIOD_MS_ISENSE);
+
+	// Restore power regulation
+	POWERSOURCE_SetLDOEnable(ldoEnabled);
+	POWERSOURCE_Set5vBoostEnable(boostEnabled);
+
+	// Restore the watchdog value
+	hiwdg.Init.Reload = watchdogTime;
 }

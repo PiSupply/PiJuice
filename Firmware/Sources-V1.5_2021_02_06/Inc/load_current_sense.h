@@ -8,16 +8,14 @@
 #ifndef LOAD_CURRENT_SENSE_H_
 #define LOAD_CURRENT_SENSE_H_
 
-#include "stdint.h"
+void ISENSE_Init(void);
+void ISENSE_Task(void);
 
-//extern int16_t pow5vIoLoadCurrent;
-
-void LoadCurrentSenseInit(void);
-#if !defined(RTOS_FREERTOS)
-void LoadCurrentSenseTask(void);
-#endif
-void MeasurePMOSLoadCurrent(void);
-int32_t GetLoadCurrent(void);
-int8_t CalibrateLoadCurrent(void);
+int16_t ISENSE_GetLoadCurrentMa(void);
+void ISENSE_CalibrateLoadCurrent(void);
+void ISENSE_CalibrateZeroCurrent(void);
+void ISENSE_Calibrate51mACurrent(void);
+void ISENSE_Calibrate510mACurrent(void);
+bool ISENSE_WriteNVCalibration(void);
 
 #endif /* LOAD_CURRENT_SENSE_H_ */

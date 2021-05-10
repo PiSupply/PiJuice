@@ -32,14 +32,11 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f0xx.h"
-#include "nv.h"
+#include "eeprom_conf.h"
 
 /* Exported constants --------------------------------------------------------*/
 /* Define the size of the sectors to be used */
 #define PAGE_SIZE             ((uint32_t)0x0400)  /* Page size = 1KByte */
-
-/* EEPROM start address in Flash */
-#define EEPROM_START_ADDRESS  ((uint32_t)0x0803BC00) /* EEPROM emulation start address: */
 
 /* Pages 0 and 1 base and end addresses */
 #define PAGE0_BASE_ADDRESS    ((uint32_t)(EEPROM_START_ADDRESS + 0x0000))
@@ -67,41 +64,12 @@
 /* Page full define */
 #define PAGE_FULL             ((uint8_t)0x80)
 
-/* Variables' number */
-#define NB_OF_VAR             NV_VAR_NUM//((uint8_t)0x04)
-
-/** @defgroup FLASH_Timeout_definition 
-  * @{
-  */ 
-#define FLASH_ER_PRG_TIMEOUT         ((uint32_t)0x000B0000)
-
 /* Exported types ------------------------------------------------------------*/
-/** 
-  * @brief  FLASH Status
-  */ 
-/*typedef enum
-{
-  FLASH_BUSY = 1,
-  FLASH_ERROR_WRP,
-  FLASH_ERROR_PROGRAM,
-  FLASH_COMPLETE,
-  FLASH_TIMEOUT
-}FLASH_Status;*/
-
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
-
-/* FLASH Memory Programming functions *****************************************/
-void FLASH_Unlock(void);
-void FLASH_Lock(void);
-HAL_StatusTypeDef FLASH_ErasePage(uint32_t Page_Address);
-//HAL_StatusTypeDef FLASH_EraseAllPages(void);
-//HAL_StatusTypeDef FLASH_ProgramWord(uint32_t Address, uint32_t Data);
-HAL_StatusTypeDef FLASH_ProgramHalfWord(uint32_t Address, uint16_t Data);
-
-uint16_t EE_Init(void);
-uint16_t EE_ReadVariable(uint16_t VirtAddress, uint16_t* Data);
-uint16_t EE_WriteVariable(uint16_t VirtAddress, uint16_t Data);
+HAL_StatusTypeDef EE_Init(void);
+HAL_StatusTypeDef EE_ReadVariable(const uint16_t VirtAddress, uint16_t * const Data);
+HAL_StatusTypeDef EE_WriteVariable(const uint16_t VirtAddress, const uint16_t Data);
 
 #endif /* __EEPROM_H */
 
