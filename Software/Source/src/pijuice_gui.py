@@ -1639,7 +1639,7 @@ class PiJuiceSysEventConfig(object):
     def __init__(self, master):
         self.frame = Frame(master, name='system_events')
         self.frame.grid(row=0, column=0, sticky=W)
-        self.frame.rowconfigure(10, weight=1)
+        self.frame.rowconfigure(11, weight=1)
         self.frame.columnconfigure(0, weight=0, minsize=175)
         self.frame.columnconfigure(1, weight=10, uniform=1)
         self.frame.columnconfigure(2, weight=1, uniform=1)
@@ -1649,6 +1649,7 @@ class PiJuiceSysEventConfig(object):
         self.sysEvents = [{'id':'low_charge', 'name':'Low charge', 'funcList':self.eventFunctions},
         {'id':'low_battery_voltage', 'name':'Low battery voltage', 'funcList':self.eventFunctions},
         {'id':'no_power', 'name':'No power', 'funcList':self.eventFunctions},
+        {'id':'power', 'name':'Power present', 'funcList':(['NO_FUNC']+pijuice_user_functions)},
         {'id':'watchdog_reset', 'name':'Watchdog reset', 'funcList':(['NO_FUNC']+pijuice_user_functions)},
         {'id':'button_power_off', 'name':'Button power off', 'funcList':(['NO_FUNC']+pijuice_user_functions)},
         {'id':'forced_power_off', 'name':'Forced power off', 'funcList':(['NO_FUNC']+pijuice_user_functions)},

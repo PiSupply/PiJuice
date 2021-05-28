@@ -33,9 +33,11 @@ lowBatVolEn = False
 watchdogEn = False
 chargeLevel = 50
 noPowEn = False
+PowEn = False
 sysStartEvEn = False
 sysStopEvEn = False
-noPowCnt = 0
+noPowCnt = 0  # 0 will trigger at boot without power, 3 will not trigger at boot without power
+PowCnt = 3    # 0 will trigger at boot with power, 3 will not trigger at boot with power
 dopoll = True
 PID_FILE = '/tmp/pijuice_sys.pid'
 HALT_FILE = '/tmp/pijuice_halt.flag'
@@ -172,7 +174,7 @@ def _EvalBatVoltage(status):
         try:
             th = float(configData['system_task'].get('min_bat_voltage', {}).get('threshold'))
         except ValueError:
-            th = None 
+            th = None
         if th is not None and v < th:
             global lowBatVolEn
             if lowBatVolEn:
@@ -183,20 +185,27 @@ def _EvalBatVoltage(status):
     else:
         return False
 
-
+NO_POWER_STATUSES = ['NOT_PRESENT', 'BAD']
 def _EvalPowerInputs(status):
     if (status['battery'] == 'NOT_PRESENT'): return
-    global noPowCnt
-    NO_POWER_STATUSES = ['NOT_PRESENT', 'BAD']
+    global noPowCnt, PowCnt
     if status['powerInput'] in NO_POWER_STATUSES and status['powerInput5vIo'] in NO_POWER_STATUSES:
-        noPowCnt = noPowCnt + 1
+        # power is absent
+        if noPowCnt:
+            PowCnt = 0 # enable checking for return of power
+        noPowCnt = min(noPowCnt + 1, 3)
+        if noPowEn and noPowCnt == 2:
+            # unplugged
+            ExecuteFunc(configData['system_events']['no_power']['function'],
+                                   'no_power', '')
     else:
-        noPowCnt = 0
-    if noPowCnt == 2:
-        # unplugged
-        ExecuteFunc(configData['system_events']['no_power']['function'],
-                    'no_power', '')
-
+        # power is present
+        if PowCnt:
+            noPowCnt = 0
+        PowCnt = min(PowCnt + 1, 3)
+        if PowEn and PowCnt == 2:
+            ExecuteFunc(configData['system_events']['power']['function'],
+                                   'power', '')
 
 def _EvalFaultFlags():
     faults = pijuice.status.GetFaultStatus()
@@ -239,15 +248,16 @@ def _LoadConfiguration():
     global configData
     global btConfig
     global sysEvEn
-    global minChgEn 
+    global minChgEn
     global minBatVolEn
     global watchdogEn
     global lowChgEn
     global lowBatVolEn
     global noPowEn
+    global PowEn
     global sysStartEvEn
     global sysStopEvEn
-    
+
     with open(configPath, 'r') as outputConfig:
         config_dict = json.load(outputConfig)
         configData.update(config_dict)
@@ -259,6 +269,7 @@ def _LoadConfiguration():
     lowChgEn = sysEvEn and configData.get('system_events', {}).get('low_charge', {}).get('enabled', False)
     lowBatVolEn = sysEvEn and configData.get('system_events', {}).get('low_battery_voltage', {}).get('enabled', False)
     noPowEn = sysEvEn and configData.get('system_events', {}).get('no_power', {}).get('enabled', False)
+    PowEn = sysEvEn and configData.get('system_events', {}).get('power', {}).get('enabled', False)
     sysStartEvEn = sysEvEn and configData.get('system_events', {}).get('sys_start', {}).get('enabled', False)
     sysStopEvEn = sysEvEn and configData.get('system_events', {}).get('sys_stop', {}).get('enabled', False)
 
@@ -271,11 +282,10 @@ def _LoadConfiguration():
                 addr = int(configData['board']['general']['i2c_addr'], 16)
             if 'i2c_bus' in configData['board']['general']:
                 bus = configData['board']['general']['i2c_bus']
-
         pijuice = PiJuice(bus, addr)
     except:
         sys.exit(0)
-        
+
     try:
         for b in pijuice.config.buttons:
             conf = pijuice.config.GetButtonConfiguration(b)
@@ -283,7 +293,7 @@ def _LoadConfiguration():
                 btConfig[b] = conf['data']
     except:
         pass
-        
+
 def reload_settings(signum=None, frame=None):
     _LoadConfiguration() # Update configuration
     global watchdogEn
@@ -297,6 +307,7 @@ def main():
     global minBatVolEn
     global watchdogEn
     global noPowEn
+    global PowEn
     global sysStartEvEn
     global sysStopEvEn
 
@@ -317,7 +328,7 @@ def main():
 
         if sysStopEvEn:
             ExecuteFunc(configData['system_events']['sys_stop']['function'], 'sys_stop', configData)
-            
+
         isHalting = False
         if os.path.exists(HALT_FILE):   # Created in _SystemHalt() called in main pijuice_sys process
             isHalting = True
@@ -330,7 +341,7 @@ def main():
         swStop = True if re.search('(?:halt|shutdown).target.*start', sysJobTargets) is not None else False           # shutdown | halt exists
         causePowerOff = True if (swStop and not reboot) else False
         ret = pijuice.status.GetStatus()
-        if ( ret['error'] == 'NO_ERROR' 
+        if ( ret['error'] == 'NO_ERROR'
             and not isHalting
             and causePowerOff                                # proper time to power down (!rebooting)
             and configData.get('system_task',{}).get('ext_halt_power_off', {}).get('enabled',False)
@@ -380,7 +391,7 @@ def main():
                         print('RTC os-support not available', flush=True)
 
     if watchdogEn: _ConfigureWatchdog('ACTIVATE')
-    
+
     if sysStartEvEn:
         ExecuteFunc(configData['system_events']['sys_start']['function'], 'sys_start', configData)
 
@@ -403,8 +414,10 @@ def main():
                         _EvalCharge(status)
                     if minBatVolEn:
                         _EvalBatVoltage(status)
-                    if noPowEn:
+                    if noPowEn or PowEn:
                         _EvalPowerInputs(status)
+            else:
+                print(ret)
         time.sleep(1)
 
 

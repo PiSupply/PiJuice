@@ -1654,7 +1654,7 @@ class SystemTaskTab(object):
         self.wkupenabled = pijuiceConfigData['system_task']['wakeup_on_charge']['enabled']
         if not('trigger_level' in pijuiceConfigData['system_task']['wakeup_on_charge']):
             pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level'] = 50
-        
+
         self.wkupOnChargeLevel = pijuiceConfigData['system_task']['wakeup_on_charge']['trigger_level']
 
         if current_fw_version >= 0x15:
@@ -1662,11 +1662,11 @@ class SystemTaskTab(object):
             ret = pijuice.power.GetWakeUpOnCharge()
             self.wakeupRestoreEn = False
 
-            if ret['error'] == 'NO_ERROR': 
+            if ret['error'] == 'NO_ERROR':
                 self.wakeupRestoreEn = ret['non_volatile']
                 if self.wakeupRestoreEn:
                     self.wkupOnChargeLevel = ret['data']
-        
+
         wkupCheckBox = attrmap(urwid.CheckBox('Wakeup on charge', state=self.wkupenabled,
                           on_state_change=self._toggle_wkupenabled))
 
@@ -1675,7 +1675,7 @@ class SystemTaskTab(object):
         wkuplevelEditItem = attrmap(wkuplevelEdit)
         wkuplevelTextItem = attrmap(urwid.Text("Trigger level [%]: " + str(self.wkupOnChargeLevel)))
         wkuplevelItem = wkuplevelEditItem if self.wkupenabled else wkuplevelTextItem
-        
+
         if current_fw_version >= 0x15:
             wkupRestoreCheckBox = attrmap(urwid.CheckBox('Restore', state=self.wakeupRestoreEn, on_state_change=self._toggle_wkuprestore))
             wkuplevelRow = urwid.Columns([(24,wkupCheckBox), (23,wkuplevelItem), (11,wkupRestoreCheckBox)])
@@ -1851,11 +1851,12 @@ class SystemTaskTab(object):
 
 
 class SystemEventsTab(object):
-    EVENTS = ['low_charge', 'low_battery_voltage', 'no_power', 'watchdog_reset', 'button_power_off', 'forced_power_off',
+    EVENTS = ['low_charge', 'low_battery_voltage', 'no_power', 'power', 'watchdog_reset', 'button_power_off', 'forced_power_off',
               'forced_sys_power_off', 'sys_start', 'sys_stop']
-    EVTTXT = ['Low charge', 'Low battery voltage', 'No power', 'Watchdog reset', 'Button power off', 'Forced power off',
+    EVTTXT = ['Low charge', 'Low battery voltage', 'No power', 'Power present', 'Watchdog reset', 'Button power off', 'Forced power off',
               'Forced sys power off', 'System start', 'System stop']
-    FUNCTIONS = ['NO_FUNC'] + pijuice_sys_functions + pijuice_user_functions
+    FUNCTIONS1 = ['NO_FUNC'] + pijuice_sys_functions + pijuice_user_functions
+    FUNCTIONS2 = ['NO_FUNC'] + pijuice_user_functions
 
     def __init__(self, *args):
         global pijuiceConfigData
@@ -1912,11 +1913,12 @@ class SystemEventsTab(object):
         func = data[1]
         elements = [urwid.Text("Select function for '"+self.EVTTXT[index]+"'"),
                     urwid.Divider()]
+        self.functions = self.FUNCTIONS1 if index < 3 else self.FUNCTIONS2
         self.bgroup = []
-        for function in  self.FUNCTIONS:
+        for function in self.functions:
             button = attrmap(urwid.RadioButton(self.bgroup, function))
             elements.append(button)
-        self.bgroup[self.FUNCTIONS.index(func)].toggle_state()
+        self.bgroup[self.functions.index(func)].toggle_state()
         elements.extend([urwid.Divider(),
                          urwid.Padding(attrmap(urwid.Button('Back', on_press=self._on_function_chosen, user_data=index)), width=8)
                         ])
@@ -1924,7 +1926,7 @@ class SystemEventsTab(object):
 
     def _on_function_chosen(self, button, index):
         states = [c.state for c in self.bgroup]
-        pijuiceConfigData['system_events'][self.EVENTS[index]]['function']=self.FUNCTIONS[states.index(True)]
+        pijuiceConfigData['system_events'][self.EVENTS[index]]['function']=self.functions[states.index(True)]
         self.bgroup=[]
         self.main()
 
