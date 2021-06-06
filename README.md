@@ -167,3 +167,4 @@ It is safe to say we have an awesome and growing community of people using PiJui
 * [PiJuice](https://github.com/networkupstools/nut/blob/master/docs/man/pijuice.txt) is now supported by [Network UPS Tools](
 https://github.com/networkupstools/nut/)!
 * PiJuice deployment [with balenaCloud](https://github.com/balenalabs-incubator/balena-pijuice). You can also view the blog post about it [here](https://www.balena.io/blog/how-to-protect-your-device-with-pijuice-and-balenacloud/)
+* Send info from [PiJuice](https://github.com/dalehumby/PiJuice-MQTT) to MQTT
