@@ -160,11 +160,12 @@ Here are some links to reviews and articles from around the web:
 # Third party software libraries and projects
 It is safe to say we have an awesome and growing community of people using PiJuice to add battery power to their projects  - both from our Kickstarter and beyond. We get a huge amount of contributions of code, some of which we can easily integrate here and others which we can't (we are only a small team). However we want to make sure that any contributions are easy to find, for anyone looking. So here is a list of other software libraries that might be useful to you (if you have one of your own, please visit the "Issues" tab above and let us know!):
 
-* Power outage monitor (using PiJuice and PaPiRus) by Frederick Vandenbosch. [You can find pictures and code here](http://frederickvandenbosch.be/?p=2876)
-* Build a wildlife camera using a Raspberry Pi and PiJuice [by Electromaker](https://www.electromaker.io/blog/article/build-a-wildlife-camera-using-a-raspberry-pi-and-pijuice)
-* CarPi - a Raspberry Pi, PiJuice and a HifiBerry all living neatly in a dashboard running Android Auto! [by Rick Tonoli](http://www.ricktonoli.com/2018/06/13/car-pi-hardware/)
-* PiJuice on Windows IoT Core! You can find the [code here](https://github.com/tresoft/PiJuice-Uwp)
+* Power outage monitor (using PiJuice and PaPiRus) by Frederick Vandenbosch. [You can find pictures and code here](http://frederickvandenbosch.be/?p=2876).
+* Build a wildlife camera using a Raspberry Pi and PiJuice [by Electromaker](https://www.electromaker.io/blog/article/build-a-wildlife-camera-using-a-raspberry-pi-and-pijuice).
+* CarPi - a Raspberry Pi, PiJuice and a HifiBerry all living neatly in a dashboard running Android Auto! [by Rick Tonoli](http://www.ricktonoli.com/2018/06/13/car-pi-hardware/).
+* PiJuice on Windows IoT Core! You can find the [code here](https://github.com/tresoft/PiJuice-Uwp).
 * [PiJuice](https://github.com/networkupstools/nut/blob/master/docs/man/pijuice.txt) is now supported by [Network UPS Tools](
 https://github.com/networkupstools/nut/)!
-* PiJuice deployment [with balenaCloud](https://github.com/balenalabs-incubator/balena-pijuice). You can also view the blog post about it [here](https://www.balena.io/blog/how-to-protect-your-device-with-pijuice-and-balenacloud/)
+* PiJuice deployment [with balenaCloud](https://github.com/balenalabs-incubator/balena-pijuice). You can also view the blog post about it [here](https://www.balena.io/blog/how-to-protect-your-device-with-pijuice-and-balenacloud/).
 * Send info from [PiJuice](https://github.com/dalehumby/PiJuice-MQTT) to MQTT
+* Integrate [PiJuice](https://github.com/Racailloux/home-assistant-pijuice) in the Home Assistant software.
