@@ -8,8 +8,11 @@
 # GNU General Public License for more details.
 
 # Description: Python tcript loads firmware to PiJuice boards
-# Example: python pijuiceboot.py 14 ./PiJuice-V1.5_2021_02_06.elf.binary
-# No start option: --no_start
+# Write firmware: python3 pijuiceboot.py 14 ./PiJuice-V1.5_2021_02_06.elf.binary
+# No start option: python3 pijuiceboot.py 14 ./PiJuice-V1.5_2021_02_06.elf.binary --no_start
+# Bulk erase option: python3 pijuiceboot.py 14 ./PiJuice-V1.5_2021_02_06.elf.binary --bulk_erase
+# Dump config to file: python3 pijuiceboot.py 14  --dump_config ./pjConfig.bin
+# Write config file: python3 pijuiceboot.py 14 --load_config ./pjConfig.bin
 
 import time
 #import serial
@@ -20,7 +23,10 @@ from fcntl import ioctl
 
 WRITE_PAGE_SIZE = 256
 ERASE_PAGE_SIZE = 2048
+MAX_ERASE_SECTORS = 40
 EEPROM_START_ADDRESS  = 0x08000000
+EEPROM_SIZE = 256*1024
+CONFIG_START_ADDRESS  = 0x0803BC00
 
 ACK = 0x79
 NACK = 0x1F
@@ -97,14 +103,17 @@ def GetCheckSum(msg, size):
     return result
 
 def WaitAck(tout):
-    start_time=time.time()
-    ack = None
-    while not ack and ((time.time()-start_time) < tout):
-        ack=ser.read(1)
-        #print "wait ack", (time.time()-start_time)
-    if ack:
-        return ord(ack)
-    else:
+    try:
+        start_time=time.time()
+        ack = None
+        while (ack==None) and ((time.time()-start_time) < tout):
+            ack=ser.read(1)
+            #print "wait ack", (time.time()-start_time)
+        if ack:
+            return ord(ack)
+        else:
+            return NO_RESP
+    except:
         return NO_RESP
         
 def SendAddress(addr):
@@ -335,29 +344,64 @@ def ReadPage(addr, size):
 
     return {'data':rsp, 'error':'OK'}
 
-def WriteBinary(data):
+def ReadBinary(address, dumpFile = None):
+    adr = address if address >= EEPROM_START_ADDRESS else EEPROM_START_ADDRESS
+    startAdr = adr
+    d = [0xff]*((EEPROM_START_ADDRESS+EEPROM_SIZE) - adr)
+    while adr < (EEPROM_START_ADDRESS+EEPROM_SIZE):#for i in range(pageCount-1, -1, -1):#range(0, pageCount): #
+        time.sleep(0.001)
+
+        status = ReadPage(adr, WRITE_PAGE_SIZE);
+        if (status['error'] != 'OK'):
+            print("Error reading binary:", adr, status['error'])
+            return {'error':'READ_BINARY,'+status['error']}
+        else:
+            #print('Page read:',len(status['data']), status['data'])
+            d[adr-startAdr:adr-startAdr+WRITE_PAGE_SIZE] = status['data']
+        adr += WRITE_PAGE_SIZE
+            
+    end = 0
+    for i in range(len(d)-1, -1, -1):
+        if d[i] != 0xff:
+            end = i+1
+            break
+    d= d[0:end]
+    
+    if dumpFile != None:
+        try:
+            with open(dumpFile, "wb") as cfgFile:
+                cfgFile.write(bytearray(d))
+        except:
+            print('Configuration file dump error, check if path is valid', sys.argv[fi])
+            return {'error':'DUMP_FILE_WRITE'}
+    
+    return {'data':d, 'error':'OK'}
+
+def WriteBinary(data, address):
     pageCount = len(data) // WRITE_PAGE_SIZE
     if (len(data) % WRITE_PAGE_SIZE):
         pageCount = pageCount + 1
     print('pageCount',pageCount)
+    adr = address if address >= EEPROM_START_ADDRESS else EEPROM_START_ADDRESS
     for i in range(pageCount-1, -1, -1):#range(0, pageCount): #
         #WriteUnprotect()
         time.sleep(0.001)
         d = data[i * WRITE_PAGE_SIZE:(i+1) * WRITE_PAGE_SIZE]
-        err = WritePage(EEPROM_START_ADDRESS + i * WRITE_PAGE_SIZE, d, len(d))
+        #print('writing page: ',i, len(d))
+        err = WritePage(adr + i * WRITE_PAGE_SIZE, d, len(d))
         if err != "OK":
             print("Page:", i, "write failed")
             return -7
         #time.sleep(0.01)
         # read verify
-        status = ReadPage(EEPROM_START_ADDRESS + i * WRITE_PAGE_SIZE, len(d));
+        status = ReadPage(adr + i * WRITE_PAGE_SIZE, len(d));
         if (status['error'] != 'OK'):
             print("Error reading page:", i, status['error'])
             return -8
         else:
             #print('Page read:',len(status['data']), status['data'])
-            if d != status['data']:
-                print("Page:", i, "read verify failed:");
+            if bytearray(d) != status['data']:
+                print("Page:", i, "read verify failed");
                 return -9
             else:
                 #print('mem data read success')
@@ -390,26 +434,86 @@ def StartBootloaderI2C(addr):
 
 #print ((sys.argv))
 #data = open(sys.argv[2]).read() #map(lambda c: ord(c), open("PiJuice-V1.5_2021_02_06.elf.binary").read()) # TO-DO recognise file path by pijuice firmware name format
+cfgFp = None
+loadConfig = None
+if '--dump_config' in sys.argv:
+    fi = sys.argv.index('--dump_config')+1
+    if len(sys.argv) > fi:
+        cfgFp = sys.argv[fi]
+        if fi < 4:
+            # Start embedded bootloader
+            if not ('--no_start' in sys.argv):
+                StartBootloaderI2C(int(sys.argv[1], 16))
+
+            status = ReadBinary(CONFIG_START_ADDRESS, cfgFp)
+            if status['error'] == "OK":
+                print("Configuration read success");
+            else:
+                print("Configuration read error", status['error']);
+                exit(status['error'])
+
+            err = GoCommand(EEPROM_START_ADDRESS)
+            if err != "OK":
+                print("Cannot execute code")
+            else:
+                print("Code executed successfully")
+            exit(err)
+        
+elif '--load_config' in sys.argv:
+    fi = sys.argv.index('--load_config')+1
+    if len(sys.argv) > fi:
+        loadCfgFile = sys.argv[fi]
+        cfgFile = open(sys.argv[fi], "rb")
+        loadConfig = cfgFile.read()
+        cfgFile.close()
+        if fi < 4:
+            # Start embedded bootloader
+            if not ('--no_start' in sys.argv):
+                StartBootloaderI2C(int(sys.argv[1], 16))
+
+            erasePageCount = len(loadConfig) // ERASE_PAGE_SIZE;
+            if (len(loadConfig) % ERASE_PAGE_SIZE):
+                erasePageCount = erasePageCount + 1
+            sectorOffset = (CONFIG_START_ADDRESS-EEPROM_START_ADDRESS) // ERASE_PAGE_SIZE
+            print("Erase page count", erasePageCount, sectorOffset)
+            pages = [0x0000]*256
+            for i in range(0, erasePageCount):
+                pages[i] = sectorOffset + i
+            err = ExtendedEraseMemory(pages, erasePageCount);
+            if err == "OK":
+                print("Erase success");
+            else:
+                print("Erase error", err);
+                exit(err) #ret = -5;
+            time.sleep(0.2)
+            err = WriteBinary(loadConfig, CONFIG_START_ADDRESS)
+            if err != "OK":
+                print("Write failed exiting..", err)
+                exit(err)
+            else:
+                print("Firmware load success")
+                
+            err = GoCommand(EEPROM_START_ADDRESS)
+            if err != "OK":
+                print("Cannot execute code")
+            else:
+                print("Code executed successfully")
+            exit(err)
+            
 file = open(sys.argv[2], "rb")
 data = file.read()
 file.close()
 print("File size:", len(data))
 
 # Start embedded bootloader
-if not (len(sys.argv) > 3 and sys.argv[3] == '--no_start'):
+if not ('--no_start' in sys.argv):
     StartBootloaderI2C(int(sys.argv[1], 16))
 
 if GetCommandsI2C() != 'OK':
     exit(-1)
 #WriteUnprotect()
 
-# get page count
-erasePageCount = len(data) // ERASE_PAGE_SIZE;
-if (len(data) % ERASE_PAGE_SIZE):
-	erasePageCount = erasePageCount + 1
-print("Erase page count", erasePageCount)
-
-# erase sectors
+# erase first sector
 pages = [0x0000]
 err = ExtendedEraseMemory(pages, len(pages))
 if err != "OK":
@@ -419,28 +523,70 @@ else:
     print("First page erase succcess")
 
 # erase all other pages
-pages = [0x0000]*256
-for i in range(1, erasePageCount):
-    pages[i - 1] = i
-
-err = ExtendedEraseMemory(pages, erasePageCount - 1);
-if err == "OK":
-    print("Erase success");
-else:
-    print("Erase error", err);
-    exit(-5) #ret = -5;
-
-err = WriteBinary(data)
-if err != "OK":
-    print("Write failed exiting..", err)
-    exit(err)
-else:
-    print("Firmware load success", err)
-
-    err = GoCommand(EEPROM_START_ADDRESS)
-    if err != "OK":
-        print("Cannot execute code")
+if '--bulk_erase' in sys.argv:     
+    status = ReadBinary(CONFIG_START_ADDRESS, cfgFp)
+    if status['error'] == "OK":
+        print("Configuration read success");
     else:
-        print("Code executed successfully")
-    #print("EEPROM programming finished successfully");
+        print("Configuration read error", status['error'] );
+        exit(status['error'])
 
+    # mass erase command
+    pages = [0xFFFF]
+    err = ExtendedEraseMemory(pages, 0)
+    if err == "OK":
+        print("Bulk erase success");
+    else:
+        print("Bulk erase error", err);
+        exit(err) #ret = -5;
+        
+    #print('config', status['data'])
+    err = WriteBinary(status['data'], CONFIG_START_ADDRESS)
+    if err != "OK":
+        print("Configuration write failed exiting..", err)
+        exit(err)
+    else:
+        print("Configuration load success", len(status['data']))
+        
+    err = WriteBinary(data, EEPROM_START_ADDRESS)
+    if err != "OK":
+        print("Write failed exiting..", err)
+        exit(err)
+    else:
+        print("Firmware load success")
+        
+else:
+    # get page count
+    erasePageCount = len(data) // ERASE_PAGE_SIZE;
+    if (len(data) % ERASE_PAGE_SIZE):
+        erasePageCount = erasePageCount + 1
+    print("Erase page count", erasePageCount)
+    pages = [0x0000]*erasePageCount
+    for i in range(1, erasePageCount):
+        pages[i-1] = i
+
+    erasePageCount -= 1 # first sector alredy erased
+    erased = 0
+    while erased<erasePageCount:
+        p = pages[erased:erased+MAX_ERASE_SECTORS]
+        print('erasing',erased,len(p))
+        err = ExtendedEraseMemory(p, len(p));
+        if err != "OK":
+            print("Erase error", err);
+            exit(err) #ret = -5;
+        erased += MAX_ERASE_SECTORS
+    print("Erase success")
+
+    err = WriteBinary(data, EEPROM_START_ADDRESS)
+    if err != "OK":
+        print("Write failed exiting..", err)
+        exit(err)
+    else:
+        print("Firmware load success", err)
+
+err = GoCommand(EEPROM_START_ADDRESS)
+if err != "OK":
+    print("Cannot execute code")
+else:
+    print("Code executed successfully")
+#print("EEPROM programming finished successfully");
