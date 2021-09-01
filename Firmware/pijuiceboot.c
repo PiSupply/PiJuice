@@ -1,35 +1,14 @@
 /*******************************************************************************
-file: rpi_zb_server.c
-rev: 1.0
-description: Functions for connected devices caching.
+# Author: Milan Neskovic, github.com/mmilann, Pi Supply, 2017-2021
 
-Copyright 2015 - 2016, electronicshowto.com. All rights reserved.
-
-	Redistribution and use in source and binary forms, with or without
-	modification, are permitted provided that the following conditions are met:
-		* Redistributions of source code must retain the above copyright
-		  notice, this list of conditions and the following disclaimer.
-		* Redistributions in binary form must reproduce the above copyright
-		  notice, this list of conditions and the following disclaimer in the
-		  documentation and/or other materials provided with the distribution.
-		* Neither the name of electronicshowto.com nor the
-		  names of its contributors may be used to endorse or promote products
-		  derived from this software without specific prior written permission.
-
-	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-	ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-	WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-	DISCLAIMED. IN NO EVENT SHALL ANDY GOCK BE LIABLE FOR ANY
-	DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-	(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-	LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-	ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 	
-compile: ~/ cc rpi_zb_server.c -o zb_server -lwebsockets
-run: ~/ ./zb_server /dev/ttyAMA0
-code depends on libwebsockets library: ~/ sudo apt-get install libwebsockets-dev
+# Description: Python tcript loads firmware to PiJuice boards
+# Compile: ~/ cc ./pijuiceboot.c -o pijuiceboot
+# Write firmware example: ./pijuiceboot 14 ./PiJuice-V1.5_2021_02_06.elf.binary
 ********************************************************************************/
 
 #include <string.h>
@@ -51,6 +30,7 @@ code depends on libwebsockets library: ~/ sudo apt-get install libwebsockets-dev
 #define ERASE_PAGE_SIZE             2048
 #define WRITE_PAGE_SIZE             256 //((uint32_t)0x0400)  // Page size = 1KByte 
 #define EEPROM_START_ADDRESS  ((uint32_t)0x08000000)
+#define MAX_ERASE_SECTORS 40
 
 
 static uint8_t rcvData[1024];
@@ -989,17 +969,26 @@ int main(int argc, char* argv[])
 		printf("first page erase succcess %d\n", n);
 	
 	// erase all other pages
-	for (i = 1; i < erasePageCount; i++) {
-		pages[i - 1] = i;
-	}
-	n = ExtendedEraseMemory(pages, erasePageCount - 1);
-	if (n >=0)
-		printf("erase success %d\n", n);
-	else {
-		printf("erase error %d\n", n);
-		ret = -5;
-		goto end;
-	}
+    int erased = 1;
+    while (erased<erasePageCount) {
+        int endSector = erased+MAX_ERASE_SECTORS;
+        if (endSector>erasePageCount) endSector = erasePageCount;
+        for (i = erased; i < endSector; i++) {
+            pages[i - erased] = i;
+            //printf("%d,", i);
+        }
+        //printf("erasing %d, %d\n", erased, endSector-erased);
+        n = ExtendedEraseMemory(pages, endSector-erased);
+        if (n >=0) {
+            printf("erase success %d\n", n);
+        } else {
+            printf("erase error %d\n", n);
+            ret = -5;
+            goto end;
+        }
+        erased += MAX_ERASE_SECTORS;
+    }
+    printf("Erase success\n");
 	
 	// get page count
 	int32_t pageCount = fSize / WRITE_PAGE_SIZE;
