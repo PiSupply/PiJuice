@@ -9,7 +9,7 @@ https://ubuntu.com/download/raspberry-pi
 cd $HOME
 
 sudo apt update
-sudo apt install -y python3-smbus python3-pip python3-stdeb dh-systemd dh-python debhelper fakeroot python3-all
+sudo apt install -y python3-smbus python3-pip python3-stdeb dh-python debhelper fakeroot python3-all
 sudo pip3 install stdeb3
 
 sudo git clone https://github.com/PiSupply/PiJuice.git

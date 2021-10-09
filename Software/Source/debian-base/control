@@ -2,7 +2,7 @@ Source: pijuice-base
 Maintainer: Milan Neskovic <milan@pi-supply.com>
 Section: python
 Priority: optional
-Build-Depends: python3-all (>= 3.5), debhelper (>= 9), dh-systemd (>= 1.5), i2c-tools, python3-smbus
+Build-Depends: python3-all (>= 3.5), debhelper (>= 9), i2c-tools, python3-smbus
 Standards-Version: 3.9.6
 
 Package: pijuice-base
