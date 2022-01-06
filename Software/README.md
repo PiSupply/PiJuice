@@ -1397,8 +1397,9 @@ Used to wakeup the Raspberry Pi when the battery charge level reaches a certain 
 Used to get the current state of the Wakeup on charge function and return its value set.
 Returns:
 ```python
-{'data': 127, 'error': 'NO_ERROR'}
+{'data': 20, 'error': 'NO_ERROR'}
 ```
+`'data'` is the charge level (0-100) or `'DISABLED'` when the function is disabled.
 
 **SetWatchdog(minutes)**
 The watchdog timer has a configurable time-out. It defines the time after which it will power cycle if it does not receive a heartbeat signal. The time step is in minutes so the minimum timeout period is one minute and the maximum is 65535 minutes. The number can be any whole number between one and 65535. If you set the time to zero the watchdog timer will be disabled.
