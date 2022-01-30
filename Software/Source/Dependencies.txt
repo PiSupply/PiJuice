@@ -1,7 +1,8 @@
-i2c-tools # raspbian installed
+# Running
 python3-smbus # raspbian installed
+python3-urwid
 
 
-# building
+# Building
 sudo pip3 install stdeb3
-sudo apt-get install dh-systemd
+sudo apt-get install debhelper

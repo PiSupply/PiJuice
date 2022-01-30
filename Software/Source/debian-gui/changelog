@@ -1,3 +1,7 @@
+pijuice-gui (1.8) unstable; urgency=low
+
+ -- Ton van Overbeek <tvoverbeek@gmail.com>  Sun, 30 Jan 2022 20:35:00 +0100
+
 pijuice-gui (1.7) unstable; urgency=low
 
   * pijuice_gui.py
