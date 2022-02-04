@@ -1,5 +1,13 @@
 pijuice-gui (1.8) unstable; urgency=low
 
+  * General
+    - Supports both Raspberry Pi OS 32-bit and 64-bit
+
+  * pijuice_tray.py
+    - Change tray icons background from transparent to white.
+      On Bullseye a transparent background becomes black and makes icon
+      unreadable.
+
  -- Ton van Overbeek <tvoverbeek@gmail.com>  Sun, 30 Jan 2022 20:35:00 +0100
 
 pijuice-gui (1.7) unstable; urgency=low

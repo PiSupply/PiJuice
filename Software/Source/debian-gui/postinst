@@ -8,9 +8,16 @@ if ! id -u pijuice > /dev/null 2>&1; then
 fi
 
 echo "Setting ownership and permissions of pijuice_gui"
-chown pijuice.pijuice /usr/bin/pijuice_gui
-chmod 4755 /usr/bin/pijuice_gui
+chown pijuice.pijuice /usr/bin/pijuice_gui32 /usr/bin/pijuice_gui64
+chmod 4755 /usr/bin/pijuice_gui32 /usr/bin/pijuice_gui64
 chown pijuice.pijuice /usr/bin/pijuice_gui.py
 chmod -x /usr/bin/pijuice_gui.py
+# Link to pijucie_gui for current architecture
+arch=$(uname -m)
+if [ "$arch" == "aarch64" ]; then
+	ln -sf /usr/bin/pijuice_gui64 /usr/bin/pijuice_gui
+else
+	ln -sf /usr/bin/pijuice_gui32 /usr/bin/pijuice_gui
+fi
 
 exit 0

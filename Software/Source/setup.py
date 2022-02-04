@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from distutils.core import setup
 #from distutils.command.install_data import install_data
 #from distutils.dep_util import newer
@@ -29,8 +27,10 @@ if int(os.environ.get('PIJUICE_BUILD_BASE', 0)) > 0:
         ('share/pijuice/data/firmware', glob.glob('data/firmware/*')),
         ('/etc/udev/rules.d', ['data/99-i2c.rules']),
         ('/etc/sudoers.d', ['data/020_pijuice-nopasswd']),
-        ('bin', ['bin/pijuiceboot']),
-        ('bin', ['bin/pijuice_cli']),
+        ('bin', ['bin/pijuiceboot32']),
+        ('bin', ['bin/pijuiceboot64']),
+        ('bin', ['bin/pijuice_cli32']),
+        ('bin', ['bin/pijuice_cli64']),
     ]
     scripts = ['src/pijuice_sys.py', 'src/pijuice_cli.py', 'src/pijuice_log.py']
     description = "Software package for PiJuice"
@@ -43,7 +43,8 @@ else:
         ('/etc/xdg/autostart', ['data/pijuice-tray.desktop']),
         ('share/pijuice/data/images', glob.glob('data/images/*')), 
         ('/etc/X11/Xsession.d', ['data/36x11-pijuice_xhost']),
-        ('bin', ['bin/pijuice_gui']),
+        ('bin', ['bin/pijuice_gui32']),
+        ('bin', ['bin/pijuice_gui64']),
     ]
     scripts = ['src/pijuice_tray.py', 'src/pijuice_gui.py']
     description = "GUI package for PiJuice"

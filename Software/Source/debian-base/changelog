@@ -1,5 +1,35 @@
 pijuice-base (1.8) unstable; urgency=low
 
+  * General
+    - Supports both Raspberry Pi OS 32-bit and 64-bit.
+
+  * Firmware V1.6_2021_09_10
+    - Introduced logging, up to 32, 31 bytes long messages, are saved into circular
+      buffer. New I2C command 0xF6 implemented to read log messages from host.
+      For specific message types are defined:
+        LOG_5VREG_ON - logs 5V regulator power on process, it shows battery voltage
+                and 5V signals that could be evaluated for conditions like overloading
+                at turn on.
+        LOG_5VREG_OFF - logs if there was unexpected or forced power off of the 5V
+                regulator.
+        WAKEUP_EVT - Logs system status after some of the triggers (RTC Alarm or
+                wakeup on charge or Io wakeup).
+        ALARM_EVT - Log status after RTC alarm peripheral interrupt.
+    - Load current sense update for hardware version 2.3.0. New GPIO 5V current
+      measurement using NCS213 current sense amp.
+    - Power good signal for 5V regulator used to disable 5V regulator if regulator is
+      in fault state. Hardware version 2.3.0.
+    - Introduced option to enable/disable log. Disabled  by default.
+    - Fixed instant watchdog wakeup trigger after restore.
+    - Fixed missing wakeup restore enable on power on when power source is present
+      and no battery, issue #760.
+
+  * pijuice_log.py
+    - Added script to enable and read the log introduced in the V1.6 firmware
+
+  * pijuiceboot
+    - Support loading firmwares larger than 80k. Needed for loading V1.6.
+
  -- Ton van Overbeek <tvoverbeek@gmail.com>  Sun, 30 Jan 2022 20:35:00 +0100
 
 pijuice-base (1.7) unstable; urgency=low
