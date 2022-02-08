@@ -2,7 +2,7 @@ Source: pijuice-base
 Maintainer: Milan Neskovic <milan@pi-supply.com>
 Section: python
 Priority: optional
-Build-Depends: python3-all (>= 3.5), debhelper (>= 9), i2c-tools, python3-smbus
+Build-Depends: python3-all (>= 3.5), debhelper (>= 10), i2c-tools, python3-smbus
 Standards-Version: 3.9.6
 
 Package: pijuice-base
@@ -13,6 +13,6 @@ Description: Basic support for Pi-Supply's PiJuice HAT
  This package contains the following python scripts:
  * The low level interface (pijuice.py)
  * The supporting service (pijuice_sys.py)
- * and the command line interface (pijuice_cli.py)
+ * and the command line interface (pijuice_cli, pijuice_cli.py).
  .
  The dekstop applications are in the pijuice-gui package which depends on this one.

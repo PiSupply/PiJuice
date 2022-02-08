@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+#
 # Author: Milan Neskovic, Pi Supply, 2021, https://github.com/mmilann
 
 # This program is distributed in the hope that it will be useful,
@@ -10,9 +12,10 @@
 # if there is file path as input argument it will append messages 
 # to file, otherwise will only print to screen
 # Usage: 
-# 	Enable: python3 pijuice_log.py --enable "ALL|5VREG_ON|5VREG_OFF|WAKEUP_EVT|ALARM_EVT|MCU_RESET"
+# 	Enable: python3 pijuice_log.py --enable "OTHER|5VREG_ON|5VREG_OFF|WAKEUP_EVT|ALARM_EVT|MCU_RESET"
 #	Read: python3 pijuice_log.py
 #	Read to file: python3 pijuice_log.py ./pijuice_log.txt
+#	Disable logging: python3 pijuice_log.py --disable
 
 from pijuice import PiJuice, PiJuiceInterface
 import time, datetime, sys
@@ -268,12 +271,15 @@ if '--enable' in sys.argv:
 	if len(sys.argv) > ci:
 		cfgList = sys.argv[ci].split('|')
 	else:
-		print('Invalid parameters')
+		print('Missing parameter')
 		exit(-1)
 	config = 0x00
 	for i in range(0, len(LOG_ENABLE_LIST)):
 		if (LOG_ENABLE_LIST[i] in cfgList):
 			config |= 0x01<<i
+	if config == 0x00:
+		print('Invalid parameter')
+		exit(-1)
 	ifs.WriteData(LOGGING_CMD, [0x01, config])
 	time.sleep(0.1)
 	ret = ifs.ReadData(LOGGING_CMD, 31)
@@ -303,6 +309,19 @@ if '--get_config' in sys.argv:
 		print(ret)
 		exit(-1)
 	exit(0)
+
+if '--disable' in sys.argv:
+	ifs.WriteData(LOGGING_CMD, [0x01, 0x00])
+	time.sleep(0.1)
+	ret = ifs.ReadData(LOGGING_CMD, 31)
+	if ret['error'] == 'NO_ERROR':
+		d = ret['data']
+		if d[1] == 0 and d[2] == 0x01 and d[3] == 0x00:
+			print ('Logging disabled successfully')
+			exit(0)
+		else:
+			print ('Failed to disable logging')
+			exit(-1)
 
 ifs.WriteData(LOGGING_CMD, [0])
 time.sleep(0.01)
