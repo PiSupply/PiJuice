@@ -48,6 +48,7 @@ class PiJuiceStatusTray(object):
         self.init_pijuice_interface()
         
         # Initalise and start battery display
+        self.refresh_err = 0
         self.refresh(None)
         self.tray.set_visible(True)
 
@@ -158,7 +159,10 @@ class PiJuiceStatusTray(object):
                 print('icon file not exist')
 
         except:
-            print('refresh error')
+            print('refresh error')  # happens when no PiJuice present
+            self.refresh_err += 1
+            if self.refresh_err > 4:
+                sys.exit(0)
         return True
 
 def receive_signal(signum, stack):
