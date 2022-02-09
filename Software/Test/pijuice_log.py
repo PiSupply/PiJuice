@@ -119,7 +119,7 @@ LOG_MSG_DEFS = [{'name':'NO_LOG   ', 'parser':{}},
 				{'name':'RESERVED1', 'parser':{}},
 				{'name':'ALARM_WRITE  ', 'parser':Parse_ALARM_EVT}]
 
-LOG_ENABLE_LIST = ['ALL', '5VREG_ON', '5VREG_OFF', 'WAKEUP_EVT', 'ALARM_EVT', 'MCU_RESET', 'RESERVED2']
+LOG_ENABLE_LIST = ['OTHER', '5VREG_ON', '5VREG_OFF', 'WAKEUP_EVT', 'ALARM_EVT', 'MCU_RESET', 'RESERVED2']
 
 def GetStatus(d):
 	status = {}
