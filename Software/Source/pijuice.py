@@ -219,7 +219,7 @@ class PiJuiceStatus(object):
                 d = d & ~(0x01 << self.faultEvents.index(ev))
             except:
                 ev
-        self.interface.WriteData(self.FAULT_EVENT_CMD, [d])  # clear fault events
+        return self.interface.WriteData(self.FAULT_EVENT_CMD, [d])  # clear fault events
 
     buttonEvents = ['NO_EVENT', 'PRESS', 'RELEASE',
                     'SINGLE_PRESS', 'DOUBLE_PRESS', 'LONG_PRESS1', 'LONG_PRESS2']
@@ -253,7 +253,7 @@ class PiJuiceStatus(object):
         except ValueError:
             return {'error': 'BAD_ARGUMENT'}
         d = [0xF0, 0xFF] if b == 0 else [0x0F, 0xFF] if b == 1 else [0xFF, 0xF0]
-        self.interface.WriteData(self.BUTTON_EVENT_CMD, d)  # clear button events
+        return self.interface.WriteData(self.BUTTON_EVENT_CMD, d)  # clear button events
 
     def GetBatteryTemperature(self):
         result = self.interface.ReadData(self.BATTERY_TEMPERATURE_CMD, 2)
@@ -1560,7 +1560,7 @@ class PiJuiceConfig(object):
                 'error': 'NO_ERROR'}
 
     def RunTestCalibration(self):
-        self.interface.WriteData(248, [0x55, 0x26, 0xa0, 0x2b])
+        return self.interface.WriteData(248, [0x55, 0x26, 0xa0, 0x2b])
 
 
 # Create an interface object for accessing PiJuice features via I2C bus.
