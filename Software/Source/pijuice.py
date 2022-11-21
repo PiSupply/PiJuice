@@ -162,6 +162,9 @@ class PiJuiceStatus(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         return False  # Don't suppress exceptions.
 
+    batStatusEnum = ['NORMAL', 'CHARGING_FROM_IN',
+                    'CHARGING_FROM_5V_IO', 'NOT_PRESENT']
+    powerInStatusEnum = ['NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT']
     def GetStatus(self):
         result = self.interface.ReadData(self.STATUS_CMD, 1)
         if result['error'] != 'NO_ERROR':
@@ -171,12 +174,9 @@ class PiJuiceStatus(object):
             status = {}
             status['isFault'] = bool(d & 0x01)
             status['isButton'] = bool(d & 0x02)
-            batStatusEnum = ['NORMAL', 'CHARGING_FROM_IN',
-                            'CHARGING_FROM_5V_IO', 'NOT_PRESENT']
-            status['battery'] = batStatusEnum[(d >> 2) & 0x03]
-            powerInStatusEnum = ['NOT_PRESENT', 'BAD', 'WEAK', 'PRESENT']
-            status['powerInput'] = powerInStatusEnum[(d >> 4) & 0x03]
-            status['powerInput5vIo'] = powerInStatusEnum[(d >> 6) & 0x03]
+            status['battery'] = self.batStatusEnum[(d >> 2) & 0x03]
+            status['powerInput'] = self.powerInStatusEnum[(d >> 4) & 0x03]
+            status['powerInput5vIo'] = self.powerInStatusEnum[(d >> 6) & 0x03]
             return {'data': status, 'error': 'NO_ERROR'}
 
     def GetChargeLevel(self):
