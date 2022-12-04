@@ -26,11 +26,11 @@ Install the dependency python urwid package:
 
 For the light version:
 
-`sudo dpkg -i ./pijuice-base_1.6_all.deb`
+`sudo dpkg -i ./pijuice-base_1.u_all.deb`
 
 For example for the full version with GUI:
 
-`sudo dpkg -i ./pijuice-gui_1.6_all.deb`
+`sudo dpkg -i ./pijuice-gui_1.8_all.deb`
 
 **Note:** You must install the PiJuice base version prior to installing the GUI.
 
@@ -236,7 +236,7 @@ User functions are 4 digit binary coded and have 15 combinations, code 0 is USER
 ```bash
 chmod +x user_script.py
 ```
-**NOTE:** Scripts executed by the pijuice.service will run as the "owner" of the script i.e. pi and must belong to the pijuice user group. By default the pijuice install script adds user `pi` to user group `pijuice`.
+**NOTE:** Scripts executed by the pijuice.service will run as the "owner" of the script i.e. the default user (pi if not changed) and must belong to the pijuice user group. Scripts owned by root will not be executed for security reasons. By default the pijuice install script adds the default user to user group `pijuice`.
 
 Scripts now must determine where the interpreter is located as a shebang line so the pijuice service knows that type of script it is:
 
@@ -738,7 +738,7 @@ User functions are 4 digit binary coded and have 15 combinations, code 0 is USER
 ```bash
 chmod +x user_script.py
 ```
-**NOTE:** Scripts executed by the pijuice.service will run as the "owner" of the script i.e. pi and must belong to the pijuice user group. By default the pijuice install script adds user `pi` to user group `pijuice`.
+**NOTE:** Scripts executed by the pijuice.service will run as the "owner" of the script i.e. pi and must belong to the pijuice user group. Scripts owned by root will not be executed for security reasons. By default the pijuice install script adds user `pi` to user group `pijuice`.
 
 Scripts now must determine where the interpreter is located as a shebang line so the pijuice service knows that type of script it is:
 

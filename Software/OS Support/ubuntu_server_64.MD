@@ -31,13 +31,13 @@ sudo rm -rf PiJuice
 2. Install the localpijuice-base:
 ```
 cd $HOME
-sudo apt install ./pijuice-base_1.6_all.deb
+sudo apt install ./pijuice-base_1.8_all.deb
 ```
 
 3. Install the local pijuice-gui (if needed):
 ```
 cd $HOME
-sudo apt install ./pijuice-gui_1.6_all.deb
+sudo apt install ./pijuice-gui_1.8_all.deb
 ```
 
 4. Fix broken packages:\

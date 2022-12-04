@@ -22,7 +22,7 @@ Add:
 
 6. Install pijuice-base:
 `cd PiJuice/Software/Install`
-`sudo dpkg -i pijuice-base_1.6_all.deb`
+`sudo dpkg -i pijuice-base_1.8_all.deb`
 
 Fix broken packages:
 `sudo apt --fix-broken install`
