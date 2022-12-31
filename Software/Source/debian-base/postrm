@@ -6,6 +6,9 @@ if [ "$1" = "remove" ]; then
 	if [ -L /usr/lib/python3/dist-packages/pijuice.py ]; then
 		rm /usr/lib/python3/dist-packages/pijuice.py
 	fi
+	if [ -L /usr/lib/python3.9/dist-packages/pijuice.py ]; then
+		rm /usr/lib/python3.9/dist-packages/pijuice.py
+	fi
 	if [ -L /usr/bin/pijuiceboot ]; then
 		rm /usr/bin/pijuiceboot
 	fi
