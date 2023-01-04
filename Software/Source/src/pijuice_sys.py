@@ -284,8 +284,7 @@ def _LoadConfiguration():
                 bus = configData['board']['general']['i2c_bus']
         pijuice = PiJuice(bus, addr)
     except:
-        print("Failed to connect with error '%s'" % e)
-        sys.exit(1)
+        exit("Failed to connect with error '%s'" % e)
 
     try:
         for b in pijuice.config.buttons:
