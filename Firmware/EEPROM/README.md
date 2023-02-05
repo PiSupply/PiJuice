@@ -19,7 +19,7 @@ git clone https://github.com/raspberrypi/hats.git
 sudo apt install device-tree-compiler
 
 # Enter eepromutils directory
-cd hat/eepromutils
+cd hats/eepromutils
 
 # Create the tools
 make && sudo make install
@@ -33,6 +33,10 @@ sudo dtc -@ -I dts -O dtb -o pijuice.dtb pijuice.dts ; sudo chown pi:pi pijuice.
 
 # Get the settings file and make the .eep file
 wget -c https://raw.githubusercontent.com/PiSupply/PiJuice/master/Firmware/EEPROM/settings.txt
+# Make sure to edit the settings.txt file with your actual device UUID
+cat /proc/device-tree/hat/uuid
+nano settings.txt
+
 eepmake settings.txt pijuice.eep pijuice.dtb
 
 # Blank the EEPROM and then flash it
