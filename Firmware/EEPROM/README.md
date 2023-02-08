@@ -15,11 +15,12 @@ You can use these commands:
 # Clone Raspberry Pi HATs repo:
 git clone https://github.com/raspberrypi/hats.git
 
-# Install the device tree compiler.
+# Install the device tree compiler (dtc) if needed.
+# Recent Raspberry Pi OS versions already include dtc.
 sudo apt install device-tree-compiler
 
 # Enter eepromutils directory
-cd hat/eepromutils
+cd hats/eepromutils
 
 # Create the tools
 make && sudo make install
