@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=PiJuice Test GUI
+Exec=sudo python3 /home/pi/pijuice_test_gui.py
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Comment=PiJuice test GUI
