@@ -381,12 +381,21 @@ def main():
             if ret != 0:
                 print('Remove rtc_ds1307 module failed', flush=True)
             else:
+                print('Wake up RTC hardware', flush=True)
+                timeout, pause = 100, 0.1
+                while pijuice.rtcAlarm.GetTime()['error'] != 'NO_ERROR' and timeout > 0:
+                    time.sleep(pause)
+                    timeout -= pause
+                if timeout <= 0:
+                    print('RTC hardware not responding, try to load rtc_ds1307 anyway', flush=True)
+
                 ret = os.system('sudo modprobe rtc_ds1307')
                 if (ret != 0):
                     print('Reload rtc_ds1307 module failed', flush=True)
                 else:
+                    time.sleep(1) # give udev time to create the device
                     if os.path.exists('/dev/rtc'):
-                        print('rtc_ds1307 mdule reloaded and RTC os-support OK', flush=True)
+                        print('rtc_ds1307 module reloaded and RTC os-support OK', flush=True)
                     else:
                         print('RTC os-support not available', flush=True)
 
