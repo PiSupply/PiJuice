@@ -45,6 +45,7 @@ else:
         ('/etc/X11/Xsession.d', ['data/36x11-pijuice_xhost']),
         ('bin', ['bin/pijuice_gui32']),
         ('bin', ['bin/pijuice_gui64']),
+        ('lib/tmpfiles.d', ['data/pijuice.conf']),
     ]
     scripts = ['src/pijuice_tray.py', 'src/pijuice_gui.py']
     description = "GUI package for PiJuice"

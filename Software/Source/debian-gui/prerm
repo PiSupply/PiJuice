@@ -3,8 +3,8 @@
 # Kill running pijuice_tray process
 pkill -u pijuice pijuice_tray
 set -e
-if [ -f /tmp/pijuice_tray.pid ]; then
-	rm /tmp/pijuice_tray.pid
+if [ -f /run/pijuice/pijuice_tray.pid ]; then
+	rm /run/pijuice/pijuice_tray.pid
 fi
 
 # dh_installdeb will replace this with shell code automatically
