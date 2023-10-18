@@ -39,8 +39,8 @@ chmod 4755 /usr/bin/pijuice_cli32 /usr/bin/pijuice_cli64
 chown pijuice.pijuice /usr/bin/pijuice_cli.py
 chmod -x /usr/bin/pijuice_cli.py
 # Link to pijuice_cli and pijuiceboot for current arhitecture
-arch=$(uname -m)
-if [ "$arch" == "aarch64" ]; then
+arch=$(dpkg --print-architecture)
+if [ "$arch" == "arm64" ]; then
 	ln -sf /usr/bin/pijuice_cli64 /usr/bin/pijuice_cli
 	ln -sf /usr/bin/pijuiceboot64 /usr/bin/pijuiceboot
 else
