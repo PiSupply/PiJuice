@@ -22,7 +22,7 @@ echo -e "\n# pijuice rtc\ndtoverlay=i2c-rtc,ds1307" | sudo tee -a /boot/efi/conf
 ```
 
 ## Install PiJuice Softaware
-To run the PiJuice service requires Linux kernel 6.5.6 or later. This kernel is available in the latest Fedora 38 and 39. The icon-tray app requires GNOME 45 to show in the upper right of the toolbar. Fedora 39 has GNOME 45. 
+The icon-tray app requires GNOME 45 to show in the upper right of the toolbar. Fedora 39 has GNOME 45. 
 
 Currently the software is forked and modified for Fedora here:
 https://github.com/komacke/PiJuice
