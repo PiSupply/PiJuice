@@ -3,8 +3,26 @@
 ## Install Fedora onto the Raspberry Pi
 https://docs.fedoraproject.org/en-US/quick-docs/raspberry-pi/
 
+## Configure firmware device tree
+Currently Fedora is configured for kernel device tree which results in a different enumeration of the i2c bus. Also it requires poking sysfs to instantiate rtc_ds1307 module.
+
+1. remove or rename the file /boot/dtb (it's a symlink so it's safe to delete):
+```
+sudo mv /boot/dtb /boot/dtb.disable
+```
+
+2. configure Fedora not to reenable kernel DT on a kernel upgrade
+```
+echo "FirmwareDT=True" | sudo tee -a /etc/u-boot.conf
+```
+
+3. configure the firmware DT to load the ds1307 with i2c
+```
+echo -e "\n# pijuice rtc\ndtoverlay=i2c-rtc,ds1307" | sudo tee -a /boot/efi/config.txt
+```
+
 ## Install PiJuice Softaware
-To run the PiJuice service requires Linux kernel 6.5.6 or later. This kernel is available in the latest Fedora 38 and 39. The icon-tray app requires GNOME 45 to show in the upper right of the toolbar. Fedora 39 has GNOME 45. 
+The icon-tray app requires GNOME 45 to show in the upper right of the toolbar. Fedora 39 has GNOME 45. 
 
 Currently the software is forked and modified for Fedora here:
 https://github.com/komacke/PiJuice
