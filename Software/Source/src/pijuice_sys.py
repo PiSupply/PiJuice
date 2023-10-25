@@ -39,8 +39,8 @@ sysStopEvEn = False
 noPowCnt = 0  # 0 will trigger at boot without power, 3 will not trigger at boot without power
 PowCnt = 3    # 0 will trigger at boot with power, 3 will not trigger at boot with power
 dopoll = True
-PID_FILE = '/tmp/pijuice_sys.pid'
-HALT_FILE = '/tmp/pijuice_halt.flag'
+PID_FILE = '/run/pijuice/pijuice_sys.pid'
+HALT_FILE = '/run/pijuice/pijuice_halt.flag'
 I2C_ADDRESS_DEFAULT = 0x14
 I2C_BUS_DEFAULT = 1
 

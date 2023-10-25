@@ -32,9 +32,9 @@ from pijuice import (PiJuice, pijuice_hard_functions, pijuice_sys_functions,
 
 I2C_ADDRESS_DEFAULT = 0x14
 I2C_BUS_DEFAULT = 1
-PID_FILE = '/tmp/pijuice_sys.pid'
-TRAY_PID_FILE = '/tmp/pijuice_tray.pid'
-LOCK_FILE = '/tmp/pijuice_gui.lock'
+PID_FILE = '/run/pijuice/pijuice_sys.pid'
+TRAY_PID_FILE = '/run/pijuice/pijuice_tray.pid'
+LOCK_FILE = '/run/pijuice/pijuice_gui.lock'
 USER_FUNCS_TOTAL = 15
 USER_FUNCS_MINI = 8
 pijuiceConfigData = {}
@@ -308,11 +308,11 @@ class PiJuiceFirmware(object):
                 self.returnCode = self.process.wait()
                 return
             else:
-                m = re.search('^page count (\d+)$', line.decode('utf-8'))
+                m = re.search(r'^page count (\d+)$', line.decode('utf-8'))
                 if m:
                     self.maxvar = int(m.group(1))
                 if self.maxvar > 0:
-                    m = re.search('^Page (\d+) programmed successfully$', line.decode('utf-8'))
+                    m = re.search(r'^Page (\d+) programmed successfully$', line.decode('utf-8'))
                     if m:
                         var = int(m.group(1))
                         progress = (self.maxvar - var) / self.maxvar * 100

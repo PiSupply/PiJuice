@@ -31,6 +31,7 @@ if int(os.environ.get('PIJUICE_BUILD_BASE', 0)) > 0:
         ('bin', ['bin/pijuiceboot64']),
         ('bin', ['bin/pijuice_cli32']),
         ('bin', ['bin/pijuice_cli64']),
+        ('lib/tmpfiles.d', ['data/pijuice.conf']),
     ]
     scripts = ['src/pijuice_sys.py', 'src/pijuice_cli.py', 'src/pijuice_log.py']
     description = "Software package for PiJuice"

@@ -20,7 +20,7 @@ I2C_BUS_DEFAULT = 1
 REFRESH_INTERVAL = 5000
 CHECK_SIGNAL_INTERVAL = 200
 ICON_DIR = '/usr/share/pijuice/data/images'
-TRAY_PID_FILE = '/tmp/pijuice_tray.pid'
+TRAY_PID_FILE = '/run/pijuice/pijuice_tray.pid'
 configPath = '/var/lib/pijuice/pijuice_config.JSON'
 
 class PiJuiceStatusTray(object):

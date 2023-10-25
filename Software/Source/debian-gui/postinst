@@ -14,7 +14,7 @@ chown pijuice.pijuice /usr/bin/pijuice_gui.py
 chmod -x /usr/bin/pijuice_gui.py
 
 # Link to pijuice_gui for current architecture
-arch=$(dpkg --print-archotecture)
+arch=$(dpkg --print-architecture)
 if [ "$arch" == "arm64" ]; then
 	ln -sf /usr/bin/pijuice_gui64 /usr/bin/pijuice_gui
 else
