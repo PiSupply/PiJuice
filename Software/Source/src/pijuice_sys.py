@@ -39,8 +39,8 @@ sysStopEvEn = False
 noPowCnt = 0  # 0 will trigger at boot without power, 3 will not trigger at boot without power
 PowCnt = 3    # 0 will trigger at boot with power, 3 will not trigger at boot with power
 dopoll = True
-PID_FILE = '/tmp/pijuice_sys.pid'
-HALT_FILE = '/tmp/pijuice_halt.flag'
+PID_FILE = '/run/pijuice/pijuice_sys.pid'
+HALT_FILE = '/run/pijuice/pijuice_halt.flag'
 I2C_ADDRESS_DEFAULT = 0x14
 I2C_BUS_DEFAULT = 1
 
@@ -284,6 +284,7 @@ def _LoadConfiguration():
                 bus = configData['board']['general']['i2c_bus']
         pijuice = PiJuice(bus, addr)
     except:
+        print("Failed to connect to PiJuice with: {}".format(configPath))
         sys.exit(0)
 
     try:
@@ -352,6 +353,7 @@ def main():
                 pijuice.power.SetPowerOff(powerOffDelay)
             except ValueError:
                 pass
+        os.remove(PID_FILE)
         sys.exit(0)
 
     # First check if rtc is operational when the rtc_ds1307 module is loaded.
@@ -403,6 +405,8 @@ def main():
                         print('rtc_ds1307 module reloaded and RTC os-support OK', flush=True)
                     else:
                         print('RTC os-support not available', flush=True)
+    else:
+        print('RTC os-support not available', flush=True)
 
     if watchdogEn: _ConfigureWatchdog('ACTIVATE')
 
