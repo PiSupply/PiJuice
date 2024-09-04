@@ -6,7 +6,7 @@ Resources for the [PiJuice range](https://uk.pi-supply.com/search?type=product&q
 
 Below you can find a list of our PiJuice range of products:
 
-- [PiJuice HAT](https://uk.pi-supply.com/products/pijuice-standard)
+- [PiJuice HAT](https://uk.pi-supply.com/collections/pijuice/products/pijuice-portable-power-raspberry-pi))
 - [PiJuice Zero](https://uk.pi-supply.com/products/pijuice-zero)
 - [PiJuice Additional / Replacement Batteries](https://uk.pi-supply.com/search?type=product&q=PiJuice+Battery)
 - [PiJuice Cases](https://uk.pi-supply.com/search?type=product&q=PiJuice+Case)
