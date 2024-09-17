@@ -284,6 +284,7 @@ def _LoadConfiguration():
                 bus = configData['board']['general']['i2c_bus']
         pijuice = PiJuice(bus, addr)
     except:
+        print("Failed to connect to PiJuice with: {}".format(configPath))
         sys.exit(0)
 
     try:
@@ -352,6 +353,7 @@ def main():
                 pijuice.power.SetPowerOff(powerOffDelay)
             except ValueError:
                 pass
+        os.remove(PID_FILE)
         sys.exit(0)
 
     # First check if rtc is operational when the rtc_ds1307 module is loaded.
@@ -381,14 +383,30 @@ def main():
             if ret != 0:
                 print('Remove rtc_ds1307 module failed', flush=True)
             else:
+                print('Wake up RTC hardware', flush=True)
+                timeout, pause = 100, 0.1
+                while pijuice.rtcAlarm.GetTime()['error'] != 'NO_ERROR' and timeout > 0:
+                    time.sleep(pause)
+                    timeout -= pause
+                if timeout <= 0:
+                    print('RTC hardware not responding, trying to load rtc_ds1307 anyway', flush=True)
+                else:
+                    if pijuice.rtcAlarm.GetTime()['data']['year'] == 2000:
+                        print('RTC clock was reset to 0. Possible battery loss.')
+                        print('Setting RTC to current system time')
+                        pijuice.rtcAlarm.SetTime(None)
+
                 ret = os.system('sudo modprobe rtc_ds1307')
                 if (ret != 0):
                     print('Reload rtc_ds1307 module failed', flush=True)
                 else:
+                    time.sleep(1) # give udev time to create the device
                     if os.path.exists('/dev/rtc'):
-                        print('rtc_ds1307 mdule reloaded and RTC os-support OK', flush=True)
+                        print('rtc_ds1307 module reloaded and RTC os-support OK', flush=True)
                     else:
                         print('RTC os-support not available', flush=True)
+    else:
+        print('RTC os-support not available', flush=True)
 
     if watchdogEn: _ConfigureWatchdog('ACTIVATE')
 
