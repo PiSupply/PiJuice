@@ -15,14 +15,14 @@ fi
 if [ -d "/var/lib" ]; then
 	if [ ! -d "/var/lib/pijuice" ]; then
 		mkdir -p /var/lib/pijuice
-		echo directory created
+		echo "pijuice directory created"
 	fi
 	if [ ! -f "/var/lib/pijuice/pijuice_config.JSON" ]; then
 		echo "{\"system_task\":{\"enabled\": true}}" > /var/lib/pijuice/pijuice_config.JSON
-		echo settings file created
+		echo "pijuice settings file created"
 	fi
 else
-	echo "/var/lib does not exist"
+	echo "Warning: /var/lib does not exist!"
 	exit 1
 fi
 
@@ -30,15 +30,16 @@ fi
 ln -sf /usr/lib/python3.9/dist-packages/pijuice.py /usr/lib/python3/dist-packages  # Build on Bullseye, Debian 11
 
 echo "Setting ownership and permissions"
-chown -R pijuice.pijuice /var/lib/pijuice
+chown -R pijuice:pijuice /var/lib/pijuice
 chmod 700 /var/lib/pijuice
 chmod 600 /var/lib/pijuice/pijuice_config.JSON
-# Set owner and suid permission for our pijuic_cli wrapper
-chown pijuice.pijuice /usr/bin/pijuice_cli32 /usr/bin/pijuice_cli64
+# Set owner and suid permission for our pijuice_cli wrapper
+chown pijuice:pijuice /usr/bin/pijuice_cli32 /usr/bin/pijuice_cli64
 chmod 4755 /usr/bin/pijuice_cli32 /usr/bin/pijuice_cli64
-chown pijuice.pijuice /usr/bin/pijuice_cli.py
+chown pijuice:pijuice /usr/bin/pijuice_cli.py
 chmod -x /usr/bin/pijuice_cli.py
-# Link to pijuice_cli and pijuiceboot for current arhitecture
+
+# Link to pijuice_cli and pijuiceboot for current architecture
 arch=$(dpkg --print-architecture)
 if [ "$arch" == "arm64" ]; then
 	ln -sf /usr/bin/pijuice_cli64 /usr/bin/pijuice_cli
@@ -91,10 +92,10 @@ if [ ! -f /sys/class/i2c-dev/i2c-1/dev ]; then
 fi
 
 if [ -f /sys/class/i2c-dev/i2c-1/dev ]; then
-	echo "pijuice.service is not active running, attempting to enable"
+	echo "pijuice system service is not active, attempting to enable run at boot and start"
 	systemctl unmask pijuice.service
 	systemctl enable pijuice.service
-	systemctl restart pijuice.service
+	systemctl start pijuice.service
 fi
 
 exit 0
