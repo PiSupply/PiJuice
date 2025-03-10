@@ -24,6 +24,7 @@ offTime = 0.5 # Length of time interval resistor load is off
 endVolt = 3100 #[mV], end test when battery voltage drops below this level
 k=0.93 # PiJuice regulator efficiency.
 
+import sys
 import time, datetime, calendar 
 from time import sleep
 from array import array
@@ -72,6 +73,7 @@ temp=0
 initLvl=10000
 onOff = 0
 dSOC=0
+dSOCp=0.0
 dSocDiff=0
 start_time = time.time()
 adv_time = 0
@@ -106,7 +108,7 @@ while 1:
 			if (Ibat1+Ibat2)<5000:
 				Ibat=Ibat1+Ibat2 
 				dSOC=dSOC-(Ibat1*onTime+Ibat2*(onTime+offTime))/3600 # state of charge drop counted from program start
-			Rbat=(volt_off-volt_on)/(Ibat+0000000001)
+			Rbat=(volt_off-volt_on)/(Ibat+0x0000000001)
 			dSOCp=dSOC/c0*100
 			sleep(0.002)
 			ret=_Read(2, 66)
@@ -118,7 +120,7 @@ while 1:
 				else:
 					dSocDiff=initLvl-chargeLvl+dSOCp
 			else:
-				print "charge level read ERROR"
+				print("charge level read ERROR")
 			ret=_Read(2, 71) # Temperature read
 			if ret['error'] == 'NO_ERROR':
 				d=ret['data']
@@ -126,20 +128,20 @@ while 1:
 				if temp > 128: 
 					temp = -(256-temp)
 			else:
-				print "temperature read ERROR"
+				print("temperature read ERROR")
 			out="%08.2f"%elapsed_time+'sec, Vbon:%04d'%volt_on+ 'mV, OCV:%04d'%volt_off+ 'mV, Ibat:%06.1f'%Ibat+'mA, Rbat:%07.5f'%Rbat+ 'Ohm, dSOC:%07.2f'%dSOCp+'%,'+' pj charge:%05.1f'%chargeLvl+'%,'+' diff:%05.2f'%dSocDiff+', T:%dC'%temp
 			print(out)
 			output_file = open('battery_soc_test.txt', 'ab')
-			output_file.write(out+'\n')
+			output_file.write((out+'\n').encode())
 			output_file.close()
 		if (volt_off < endVolt) and (volt_off > 0):
 			cd[1] = 0
 			cd[2] = 0xFF^cd[1]
 			_device.write(cd)
 			print('end voltage reached, terminating')
-			print('dSOC90: %07.2f'%dSOCp*0.1+' %') # Read ocv90 and r90 from line where dSOC matches dSOC90 value
-			print('dSOC50: %07.2f'%dSOCp*0.5+' %') # Read ocv50 and r50 from line where dSOC matches dSOC50 value
-			print('dSOC10: %07.2f'%dSOCp*0.9+' %') # Read ocv10 and r10 from line where dSOC matches dSOC10 value
+			print('dSOC90: %07.2f'%(dSOCp*0.1)+' %') # Read ocv90 and r90 from line where dSOC matches dSOC90 value
+			print('dSOC50: %07.2f'%(dSOCp*0.5)+' %') # Read ocv50 and r50 from line where dSOC matches dSOC50 value
+			print('dSOC10: %07.2f'%(dSOCp*0.9)+' %') # Read ocv10 and r10 from line where dSOC matches dSOC10 value
 			break
 	
 		onOff = not onOff
