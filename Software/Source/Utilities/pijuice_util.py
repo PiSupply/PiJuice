@@ -164,11 +164,11 @@ if __name__ == '__main__':
     # primitives
 
     if args.get_status:
-        print(pj.status.GetStatus())
+        print(json.dumps(pj.status.GetStatus()))
 
     if args.get_time:
         rtc = pj.rtcAlarm
-        print(getDataOrError(rtc.GetTime()))
+        print(json.dumps(getDataOrError(rtc.GetTime())))
 
     # composites
 
@@ -199,7 +199,7 @@ if __name__ == '__main__':
         v['chargeLevel'] = getDataOrError(status.GetChargeLevel())
         s = status.GetStatus().get('data',{ 'error': 'NO-STATUS-AVAILABLE'})
         v['batteryStatus']  = s.get('battery', 'BATTERY_STATUS-NOT-IN-STATUS')
-        print(v)
+        print(json.dumps(v))
 
     if args.get_input:
         v = {}
@@ -212,5 +212,5 @@ if __name__ == '__main__':
         # TODO is 'gpioPowerStatus' name good, or should it be powerInput5vIo?
         v['gpioPowerStatus'] = s.get('powerInput5vIo', 'GPIO_POWER_STATUS-NOT-IN-STATUS')
         v['usbPowerInput']  = s.get('powerInput', 'POWERINPUT-NOT-IN-STATUS')
-        print(v)
+        print(json.dumps(v))
 
